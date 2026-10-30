@@ -14,6 +14,7 @@ import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
@@ -37,6 +38,7 @@ import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
+const device = useDeviceStore();
 const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
@@ -88,14 +90,14 @@ function fill(src: TaskList) {
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
 onMounted(async () => {
-  api.tasksCalendarReminders().then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
+  device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
     original = JSON.stringify(form);
     // the names already taken, for "Also save as template"
     templates.load().catch(() => undefined);
     return;
   }
-  api.people().then((r) => { people.value = r.people; }).catch(() => undefined);
+  device.read('people', () => api.people()).then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') return fill(cur);
   loading.value = true;

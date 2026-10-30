@@ -1,326 +1,332 @@
-/** The last known state (feature last-known-state, ADR 0023): merge, prune, save, restore, per person, wipe. */
+/** The device store (ADR 0025): sync, restore, reads from it, the window, per person, wipe, the "Last updated" note. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CalendarItem } from '@/api/types';
-import { memoryKv, PERSON_KEY, setLastKnownDb, wipeLastKnown } from '@/lib/lastKnownDb';
+import { mount } from '@vue/test-utils';
+import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
-import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { useTaskListsStore } from '@/features/tasklists/store';
+import { useTasksViewStore } from '@/features/tasklists/tasksStore';
+import type { CalendarEvent, TaskList } from '@/api/types';
+import type { ChangeSet, DeviceData } from '@/lib/deviceData';
+import { memoryKv, PERSON_KEY, setDeviceDb, wipeDevice } from '@/lib/deviceDb';
 import { useAuthStore } from '@/stores/auth';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
-import { mergeRange, pruneRanges, useLastKnownStore, type LastKnownSnapshot, type SavedRange } from '@/stores/lastKnown';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
-import { mount } from '@vue/test-utils';
-import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
-import LeadingWidgets from '@/features/motivation/LeadingWidgets.vue';
-import { useMotivationStore } from '@/features/motivation/store';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
-const ev = (id: string, date: string, from = '10:00', to = '11:00') =>
-  eventFixture(id, `${date}T${from}:00+02:00`, `${date}T${to}:00+02:00`) as unknown as CalendarItem;
-const range = (from: string, to: string, items: CalendarItem[]): SavedRange => ({ from, to, items });
+const ev = (id: string, date: string, from = '10:00', to = '11:00'): CalendarEvent =>
+  eventFixture(id, `${date}T${from}:00+02:00`, `${date}T${to}:00+02:00`) as unknown as CalendarEvent;
+const list = (id: string, date: string | null, title = id): TaskList => ({
+  kind: 'tasklist', id, calendarId: 'tasks', title, date, time: null, items: [{ id: 'i1', title: 'Milk', done: false }], doneCount: 0, totalCount: 1,
+  estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#000', calendarColor: '#000',
+  completedOn: null, canvas: null, etag: 'e', updated: '2026-10-12T08:00:00+02:00',
+});
 const tpl = (id: string, name: string) => ({ id, name, items: [{ title: 'x' }], estimateMinutes: null, categoryId: null });
-const titles = (rs: SavedRange[]) => rs.flatMap((r) => r.items.map((i) => i.id)).sort();
+const cal = { id: 'primary', name: 'Me', color: '#039be5', primary: true, hidden: false, own: true, writable: true, defaultReminders: [] };
 
-describe('mergeRange', () => {
-  it('a newer range replaces the items it covers in older ranges', () => {
-    const month = range('2026-09-28', '2026-11-09', [ev('Dentist', '2026-10-13'), ev('Gone', '2026-10-14'), ev('Far', '2026-11-02')]);
-    const week = range('2026-10-12', '2026-10-19', [ev('Dentist', '2026-10-13', '11:00', '12:00')]);
-    const out = mergeRange([month], week);
-    // "Gone" was deleted (not in the week answer, but on its days); "Far" is outside the week and stays
-    expect(titles(out)).toEqual(['Dentist', 'Far']);
-    expect(out.find((r) => r.from === '2026-10-12')!.items[0]).toMatchObject({ start: '2026-10-13T11:00:00+02:00' });
-  });
-
-  it('an item moved out of the newer range is taken from the older one too', () => {
-    const month = range('2026-09-28', '2026-11-09', [ev('Call', '2026-10-13')]);
-    const moved = ev('Call', '2026-10-30');
-    const week = range('2026-10-12', '2026-10-19', []);
-    const day = range('2026-10-30', '2026-10-31', [moved]);
-    expect(titles(mergeRange(mergeRange([month], week), day))).toEqual(['Call']);
-  });
-
-  it('the same range is replaced, not duplicated', () => {
-    const a = range('2026-10-12', '2026-10-19', [ev('A', '2026-10-13')]);
-    const b = range('2026-10-12', '2026-10-19', [ev('B', '2026-10-13')]);
-    const out = mergeRange([a], b);
-    expect(out).toHaveLength(1);
-    expect(titles(out)).toEqual(['B']);
-  });
-});
-
-describe('pruneRanges', () => {
-  it('keeps what lies within four weeks of today and drops the rest', () => {
-    const old = range('2026-08-31', '2026-09-07', [ev('Old', '2026-09-01')]);
-    const now = range('2026-10-12', '2026-11-30', [ev('Near', '2026-10-20'), ev('Later', '2026-11-20')]);
-    const out = pruneRanges([old, now], '2026-10-12');
-    expect(out.map((r) => r.from)).toEqual(['2026-10-12']);
-    // 2026-11-09 is today + 28 days: the window ends before it
-    expect(titles(out)).toEqual(['Near']);
-  });
-});
-
-describe('last known state store', () => {
+describe('the device store', () => {
   let kv: ReturnType<typeof memoryKv>;
   let offline = false;
-  const snapshot = () => kv.data.get('-') as LastKnownSnapshot | undefined;
+  let events: CalendarEvent[] = [];
+  let lists: TaskList[] = [];
+  let calls: { path: string }[] = [];
+  const stored = (k: string) => kv.data.get(k) as (DeviceData & Record<string, unknown>) | undefined;
+
+  const answer = (): ChangeSet => ({
+    full: true, cursor: 'c1', window: { from: '2025-10-12', to: '2027-10-13' }, calendars: [cal],
+    events: { calendars: ['primary'], replace: [], series: [], removed: [], upserts: events.filter((e) => e.start < '2027-10-13'), failed: [] },
+    taskLists: { replace: true, series: [], removed: [], upserts: lists, failed: false },
+    files: {
+      settings: settingsFixture({ themeMode: 'dark' }), prefs: { language: 'de' }, themes: { themes: [] },
+      templates: { templates: [tpl('p', 'Packing')] }, canvas: { areas: [{ id: 'a', name: 'Haus', color: '#0b8043', x: 0, y: 0, w: 100, h: 100 }] },
+    },
+  });
 
   beforeEach(() => {
     vi.useFakeTimers();
     window.__appTimers = 0;
     localStorage.clear();
     kv = memoryKv();
-    setLastKnownDb(kv);
+    setDeviceDb(kv);
     offline = false;
+    events = [ev('Dentist', '2026-10-13')];
+    lists = [list('Visa', '2025-06-02'), list('Taxes', null)];
+    calls = [];
     freshPinia();
   });
   afterEach(() => {
     vi.useRealTimers();
-    setLastKnownDb(null);
+    setDeviceDb(null);
   });
 
-  function server(items: () => unknown[]) {
+  function server() {
     const net = (fn: () => unknown) => () => { if (offline) throw new TypeError('Failed to fetch'); return fn(); };
-    return mockFetch({
+    const m = mockFetch({
       'GET /api/config': net(() => config()),
       'GET /api/auth/me': net(() => ({ email: null, name: null })),
-      'GET /api/items': net(() => ({ items: items(), from: 'a', to: 'b', syncedAt: 'x' })),
-      'GET /api/settings': net(() => settingsFixture({ themeMode: 'dark' })),
-      'GET /api/prefs': net(() => ({ language: 'de' })),
-      'GET /api/calendars': net(() => ({ calendars: [{ id: 'primary', name: 'Me', color: '#039be5', primary: true, hidden: false }] })),
-      'GET /api/templates': net(() => ({ templates: [tpl('p', 'Packing'), tpl('w', 'Weekly shop')] })),
+      'GET /api/changes': net(() => answer()),
+      'GET /api/items': net(() => ({ items: [ev('Wedding', '2027-11-20')], from: 'a', to: 'b', syncedAt: 'x' })),
+      'GET /api/summary': net(() => ({ days: {} })),
     });
+    calls = m.calls;
+    return m;
   }
 
-  /** One app session: loads like main.ts and App.vue do, shows the week, lets the debounced save run. */
-  async function session(opts: { visit?: [string, string] } = {}) {
-    const lk = useLastKnownStore();
-    const shown = await lk.restore('/week/2026-10-12');
-    lk.install();
-    const loads = Promise.allSettled([useClockStore().load(), useSettingsStore().load(), useAuthStore().check(), usePrefsStore().load(), useCalendarsStore().load(), useTemplatesStore().load()]);
-    if (!shown) await loads;
-    const [from, to] = opts.visit ?? ['2026-10-12', '2026-10-19'];
-    const sync = useSyncStore();
-    await useItemsStore().setVisible(from, to).then(() => sync.markSynced(), () => undefined);
-    await loads;
+  /** One app session as main.ts and App.vue start it, then lets the debounced save run. */
+  async function session(visit: [string, string] = ['2026-10-12', '2026-10-19']) {
+    const device = useDeviceStore();
+    const shown = await device.restore('/week/2026-10-12');
+    device.install();
+    await Promise.allSettled([useClockStore().load(), useAuthStore().check()]);
+    await useSyncStore().syncNow('open').catch(() => undefined);
+    await useItemsStore().setVisible(...visit).catch(() => undefined);
     await vi.advanceTimersByTimeAsync(1000);
-    return { lk, shown };
+    return { device, shown };
   }
+  const requested = (path: string) => calls.filter((c) => c.path === path).length;
 
-  it('saves nothing before a fresh answer, then the seen range, settings, prefs and calendars', async () => {
-    offline = true;
-    server(() => [ev('Dentist', '2026-10-13')]);
+  it('takes in the first full answer: every kind is handed to its store and written to the device', async () => {
+    server();
     await session();
-    expect(snapshot()).toBeUndefined();
-
-    offline = false;
-    freshPinia();
-    await session();
-    const s = snapshot()!;
-    expect(s.person).toBe('-');
-    expect(titles(s.ranges)).toEqual(['Dentist']);
-    expect(s.settings?.themeMode).toBe('dark');
-    expect(s.prefs.language).toBe('de');
-    expect(s.calendars.map((c) => c.id)).toEqual(['primary']);
-    expect(s.savedAt).toBe(Date.parse('2026-10-12T06:00:00.000Z'));
-    expect(localStorage.getItem(PERSON_KEY)).toBe('-');
-    expect(document.documentElement.dataset.lastKnown).toBe('saved');
-  });
-
-  it('offline, the next start shows the saved state with its age, kept out of the loaded ranges', async () => {
-    server(() => [ev('Dentist', '2026-10-13')]);
-    await session();
-    offline = true;
-    freshPinia();
-    const { lk, shown } = await session();
-    expect(shown).toBe(true);
-    expect(lk.restored).toBe(true);
-    expect(lk.savedAt).toBe(Date.parse('2026-10-12T06:00:00.000Z'));
-    const items = useItemsStore();
-    expect(items.get('Dentist')).toBeTruthy();
-    // only fresh data counts as loaded (reminders: windowLoaded)
-    expect(Object.keys(items.ranges)).toEqual([]);
+    expect(useItemsStore().get('Dentist')).toBeTruthy();
     expect(useSettingsStore().settings.themeMode).toBe('dark');
     expect(usePrefsStore().language).toBe('de');
-    expect(useClockStore().today).toBe('2026-10-12');
-    expect(useCalendarsStore().list).toHaveLength(1);
+    expect(useCalendarsStore().list.map((c) => c.id)).toEqual(['primary']);
+    expect(useTemplatesStore().list.map((t) => t.name)).toEqual(['Packing']);
+    expect(stored('meta')!.person).toBe('-');
+    expect(stored('meta')!.cursor).toBe('c1');
+    expect(stored('meta')!.config).toMatchObject({ timeZone: 'Europe/Berlin' });
+    expect((stored('events') as unknown as CalendarEvent[]).map((e) => e.id)).toEqual(['Dentist']);
+    expect((stored('lists') as unknown as TaskList[]).map((l) => l.id).sort()).toEqual(['Taxes', 'Visa']);
+    expect(localStorage.getItem(PERSON_KEY)).toBe('-');
+    expect(document.documentElement.dataset.deviceStore).toBe('synced');
+    expect(document.documentElement.dataset.deviceSyncedAt).toBe(String(Date.parse('2026-10-12T06:00:00.000Z')));
   });
 
-  it('fresh data replaces the restored data and ends the "last updated" state', async () => {
-    let list = [ev('Dentist', '2026-10-13'), ev('Gone', '2026-10-14')];
-    server(() => list);
+  it('shows a range inside the window from the device without asking for items or counts', async () => {
+    server();
     await session();
-    list = [ev('Dentist', '2026-10-13', '11:00', '12:00')];
-    freshPinia();
-    const { lk } = await session();
-    const items = useItemsStore();
-    expect(items.get('Dentist')).toMatchObject({ start: '2026-10-13T11:00:00+02:00' });
-    expect(items.get('Gone')).toBeUndefined();
-    expect(lk.restored).toBe(false);
-    expect(titles(snapshot()!.ranges)).toEqual(['Dentist']);
+    expect(requested('/api/items')).toBe(0);
+    await useItemsStore().loadSummary('2026-10-01', '2026-11-01');
+    expect(useItemsStore().summary['2026-10-13']!.events).toBe(1);
+    expect(requested('/api/summary')).toBe(0);
   });
 
-  it('a prefetched neighbour is not kept: only ranges that were shown are', async () => {
-    server(() => [ev('Haircut', '2026-10-21')]);
-    const lk = useLastKnownStore();
-    await lk.restore('/week/2026-10-12');
-    lk.install();
-    await useClockStore().load();
-    await useAuthStore().check();
-    const items = useItemsStore();
-    await items.setVisible('2026-10-12', '2026-10-19');
-    useSyncStore().markSynced();
-    await items.fetchRange('2026-10-19', '2026-10-26');
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(snapshot()!.ranges.map((r) => r.from)).toEqual(['2026-10-12']);
-  });
-
-  it('keeps the templates, without one waiting for its undo time, and shows them offline at the next start', async () => {
-    server(() => []);
+  it('loads a range outside the window from the server and does not keep it', async () => {
+    server();
     await session();
-    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing', 'Weekly shop']);
-    usePendingDeletesStore().deleteTemplate('w', 'Weekly shop');
+    await useItemsStore().setVisible('2027-11-01', '2027-12-01');
+    expect(requested('/api/items')).toBe(1);
+    expect(useItemsStore().get('Wedding')).toBeTruthy();
     await vi.advanceTimersByTimeAsync(1000);
-    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
+    expect((stored('events') as unknown as CalendarEvent[]).map((e) => e.id)).toEqual(['Dentist']);
+  });
+
+  it('offline, a window range shows from the device and a range outside it is empty, with the banner for the failed sync', async () => {
+    server();
+    await session();
     offline = true;
     freshPinia();
-    await session();
-    const templates = useTemplatesStore();
-    expect(templates.loaded).toBe(true);
-    expect(templates.list.map((x) => x.name)).toEqual(['Packing']);
-  });
-
-  it('a template deleted just before the page goes away is written out of the snapshot at once', async () => {
-    server(() => []);
-    await session();
-    usePendingDeletesStore().deleteTemplate('w', 'Weekly shop');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(snapshot()!.templates!.map((x) => x.name), 'still waiting for the debounce').toEqual(['Packing', 'Weekly shop']);
-    window.dispatchEvent(new Event('pagehide'));
-    await vi.advanceTimersByTimeAsync(0);
-    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
-  });
-
-  it('undoing a template deletion saves the template back into the snapshot', async () => {
-    server(() => []);
-    await session();
-    const pending = usePendingDeletesStore();
-    pending.deleteTemplate('w', 'Weekly shop');
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
-    pending.undo();
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing', 'Weekly shop']);
-  });
-
-  it('a snapshot from before templates were kept still restores, and the templates stay unread', async () => {
-    server(() => []);
-    localStorage.setItem(PERSON_KEY, '-');
-    await kv.setOnly('-', { v: 1, person: '-', savedAt: 1, config: config(), settings: null, prefs: {}, calendars: [], themes: [], ranges: [] });
-    expect(await useLastKnownStore().restore('/week/2026-10-12')).toBe(true);
-    expect(useTemplatesStore().loaded).toBe(false);
-  });
-
-  // R16: the retired shared flame and plant switches may still sit in a cached settings copy; they show nothing
-  it('a cached settings copy with the retired flame and plant switches shows no streak while restored', async () => {
-    server(() => []);
-    offline = true;
-    localStorage.setItem(PERSON_KEY, '-');
-    const settings = { ...settingsFixture(), streakFlame: true, plant: true } as never;
-    await kv.setOnly('-', { v: 1, person: '-', savedAt: 1, config: config(), settings, prefs: {}, calendars: [], themes: [], ranges: [] });
-    const { shown } = await session();
+    const { device, shown } = await session();
     expect(shown).toBe(true);
-    expect(useSettingsStore().settings).toMatchObject({ streakFlame: true, plant: true });
-    expect(usePrefsStore().streak).toBe('off');
-    const m = { streak: { current: 3, best: 3, lastCheckIn: '2026-10-12', checkedInToday: true }, plant: { growth: 30, stage: 'Sprout', stageIndex: 1, nextStageAt: 60, todayPoints: 0, lastWatered: '2026-10-12', flowers: 0, vitality: 100, mood: 'happy', message: '' } };
-    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(String(u).endsWith('/checkin') ? { current: 3, best: 3, checkedInToday: true, newToday: false, motivation: m } : m))));
-    const w = mount(LeadingWidgets, { props: { streak: usePrefsStore().streak, today: () => '2026-10-12' } });
-    await vi.waitFor(() => expect(useMotivationStore().motivation).not.toBeNull());
-    expect(w.find('[data-testid="streak-flame"]').exists()).toBe(false);
-    expect(w.find('[data-testid="plant-button"]').exists()).toBe(false);
-    w.unmount();
-    vi.unstubAllGlobals();
+    expect(device.noteShown).toBe(true);
+    expect(device.syncedAt).toBe(Date.parse('2026-10-12T06:00:00.000Z'));
+    expect(useItemsStore().get('Dentist')).toBeTruthy();
+    expect(useClockStore().today).toBe('2026-10-12');
+    expect(useSyncStore().state).toBe('error');
+    await expect(useItemsStore().setVisible('2027-11-01', '2027-12-01')).rejects.toThrow();
+    expect(useItemsStore().all.some((i) => i.id === 'Wedding')).toBe(false);
   });
 
-  it('restores only the snapshot of the person last signed in on this device', async () => {
-    server(() => []);
-    await kv.setOnly('anna@example.com', { v: 1, person: 'anna@example.com', savedAt: 1, config: config(), settings: null, prefs: {}, calendars: [], themes: [], ranges: [] });
-    localStorage.setItem(PERSON_KEY, 'jo@example.com');
-    expect(await useLastKnownStore().restore('/week/2026-10-12')).toBe(false);
+  it('every task list is on the device, dated or not, also an old one, and the Tasks view lists them offline', async () => {
+    server();
+    await session();
+    offline = true;
+    freshPinia();
+    await session();
+    const tasks = useTasksViewStore();
+    await tasks.refresh();
+    expect(tasks.lists.map((l) => l.id).sort()).toEqual(['Taxes', 'Visa']);
+    expect(requested('/api/tasklists/all-open')).toBe(0);
   });
 
-  it('a session of another person drops the restored data and the stored snapshot, then starts the page afresh', async () => {
-    server(() => [ev('Dentist', '2026-10-13')]);
+  it('the tray is worked out on the device', async () => {
+    lists = [list('Recent', '2026-10-10')];
+    server();
+    await session();
+    await useTaskListsStore().refresh();
+    expect(useTaskListsStore().tray.map((l) => l.id)).toEqual(['Recent']);
+    expect(requested('/api/tasklists/open')).toBe(0);
+  });
+
+  it('a later sync brings changes made elsewhere, and a failed one keeps the data and the old time', async () => {
+    server();
+    const { device } = await session();
+    expect(device.noteShown).toBe(false);
+    const first = device.syncedAt;
+    mockFetch({
+      'GET /api/changes': () => ({
+        ...answer(), full: false, cursor: 'c2',
+        events: { calendars: ['primary'], replace: [], series: [], failed: [], removed: [{ calendarId: 'primary', id: 'Dentist' }], upserts: [ev('Flight', '2027-03-01')] },
+        taskLists: { replace: false, series: [], removed: [], upserts: [], failed: false },
+        files: { prefs: { language: 'en' } },
+      }),
+      'GET /api/config': () => config(),
+      'GET /api/summary': () => ({ days: {} }),
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    await useSyncStore().syncNow('focus');
+    expect(useItemsStore().get('Dentist')).toBeUndefined();
+    expect(usePrefsStore().language).toBe('en');
+    expect(device.data!.events.map((e) => e.id)).toEqual(['Flight']);
+    expect(device.syncedAt).toBeGreaterThanOrEqual(first!);
+    const at = device.syncedAt;
+    mockFetch({ 'GET /api/changes': () => { throw new TypeError('Failed to fetch'); }, 'GET /api/config': () => { throw new TypeError('x'); } });
+    await useSyncStore().syncNow('focus').catch(() => undefined);
+    expect(device.failed).toBe(true);
+    expect(device.noteShown).toBe(true);
+    expect(device.syncedAt).toBe(at);
+    expect(device.data!.events.map((e) => e.id)).toEqual(['Flight']);
+  });
+
+  it('the note shows until a complete sync succeeded since the app opened', async () => {
+    server();
+    await session();
+    offline = true;
+    freshPinia();
+    const { device } = await session();
+    expect(device.noteShown).toBe(true);
+    offline = false;
+    server();
+    await useSyncStore().syncNow('online');
+    expect(device.noteShown).toBe(false);
+  });
+
+  it('an incomplete answer (a calendar failed) keeps the old time and counts as a failed sync', async () => {
+    server();
+    const { device } = await session();
+    const at = device.syncedAt;
+    await vi.advanceTimersByTimeAsync(5000);
+    device.take({ ...answer(), full: false, events: { ...answer().events, failed: ['primary'] } });
+    expect(device.syncedAt).toBe(at);
+    expect(device.noteShown).toBe(true);
+  });
+
+  it('a successful write goes into the device copy, a failed one changes nothing', async () => {
+    server();
+    await session();
+    const items = useItemsStore();
+    mockFetch({
+      'POST /api/events': () => ev('New', '2026-10-14'),
+      'DELETE /api/events/Dentist': () => ({ status: 204 }),
+    });
+    await items.createEvent({ title: 'New' } as never);
+    expect(useDeviceStore().data!.events.map((e) => e.id).sort()).toEqual(['Dentist', 'New']);
+    await items.deleteEvent('Dentist');
+    expect(useDeviceStore().data!.events.map((e) => e.id)).toEqual(['New']);
+    mockFetch({ 'POST /api/events': () => ({ status: 503, body: { error: { code: 'UNAVAILABLE', message: 'x' } } }) });
+    await expect(items.createEvent({ title: 'Lost' } as never)).rejects.toThrow();
+    expect(useDeviceStore().data!.events.map((e) => e.id)).toEqual(['New']);
+  });
+
+  it('a start before the first sync reads from the server as before', async () => {
+    server();
+    expect(useDeviceStore().ready).toBe(false);
+    await useItemsStore().setVisible('2026-10-12', '2026-10-19');
+    expect(requested('/api/items')).toBe(1);
+  });
+
+  it('a hanging IndexedDB does not keep the app from starting', async () => {
+    localStorage.setItem(PERSON_KEY, '-');
+    setDeviceDb({ get: () => new Promise(() => undefined), putMany: async () => undefined, clear: async () => undefined });
+    const p = useDeviceStore().restore('/week/2026-10-12');
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(await p).toBe(false);
+  });
+
+  it('a broken IndexedDB keeps the app working from memory', async () => {
+    setDeviceDb({ get: async () => { throw new Error('blocked'); }, putMany: async () => { throw new Error('quota'); }, clear: async () => undefined });
+    server();
+    await session();
+    expect(useItemsStore().get('Dentist')).toBeTruthy();
+    expect(useDeviceStore().ready).toBe(true);
+  });
+
+  it('restores only the data of the person last signed in on this device', async () => {
+    server();
+    await session();
+    freshPinia();
+    localStorage.setItem(PERSON_KEY, 'anna@example.com');
+    expect(await useDeviceStore().restore('/week/2026-10-12')).toBe(false);
+  });
+
+  it('a session of another person drops what was shown and the stored data, then starts the page afresh', async () => {
+    server();
     await session();
     freshPinia();
     const reload = vi.fn();
     vi.stubGlobal('location', { ...window.location, reload });
-    mockFetch({
-      'GET /api/auth/me': () => ({ email: 'Anna@example.com', name: 'Anna' }),
-      'GET /api/config': () => config(),
-    });
-    const lk = useLastKnownStore();
-    await lk.restore('/week/2026-10-12');
-    lk.install();
+    mockFetch({ 'GET /api/auth/me': () => ({ email: 'Anna@example.com', name: 'Anna' }), 'GET /api/config': () => config() });
+    const device = useDeviceStore();
+    await device.restore('/week/2026-10-12');
+    device.install();
+    await useItemsStore().setVisible('2026-10-12', '2026-10-19');
     expect(useItemsStore().get('Dentist')).toBeTruthy();
     await useAuthStore().check();
     await vi.advanceTimersByTimeAsync(10);
     expect(useItemsStore().get('Dentist')).toBeUndefined();
-    expect(lk.restored).toBe(false);
-    expect(lk.savedAt).toBeNull();
+    expect(device.data).toBeNull();
     expect(kv.data.size).toBe(0);
     expect(reload).toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
-  it('after a wipe a pending save writes nothing back', async () => {
-    server(() => [ev('Dentist', '2026-10-13')]);
+  it('after a wipe a pending save writes nothing back, and the cached theme goes too', async () => {
+    server();
     await session();
+    localStorage.setItem('cal.theme', '{}');
     useItemsStore().upsert(ev('Call', '2026-10-14'));
-    await wipeLastKnown();
+    await wipeDevice();
     await vi.advanceTimersByTimeAsync(1000);
     expect(kv.data.size).toBe(0);
     expect(localStorage.getItem(PERSON_KEY)).toBeNull();
+    expect(localStorage.getItem('cal.theme')).toBeNull();
   });
 
   it('the sign-in page wipes what the device kept', async () => {
-    server(() => [ev('Dentist', '2026-10-13')]);
+    server();
     await session();
-    expect(kv.data.size).toBe(1);
+    expect(kv.data.size).toBeGreaterThan(0);
     freshPinia();
-    expect(await useLastKnownStore().restore('/signin')).toBe(false);
-    expect(kv.data.size).toBe(0);
-    expect(localStorage.getItem(PERSON_KEY)).toBeNull();
-  });
-
-  it('wipeLastKnown clears the store and the person pointer', async () => {
-    await kv.setOnly('-', { v: 1 });
-    localStorage.setItem(PERSON_KEY, '-');
-    await wipeLastKnown();
+    expect(await useDeviceStore().restore('/signin')).toBe(false);
     expect(kv.data.size).toBe(0);
     expect(localStorage.getItem(PERSON_KEY)).toBeNull();
   });
 });
 
 describe('the "Last updated" note', () => {
-  it('shows the time of the last update while the last known state is shown, and the day when it was not today', async () => {
+  it('shows the time of the last complete sync, and the day when it was not today', async () => {
     const pinia = freshPinia();
     useClockStore().restore(config() as never);
-    const lk = useLastKnownStore();
+    const device = useDeviceStore();
     const w = mount(LastUpdatedNote, { global: { plugins: [pinia] } });
     expect(w.find('[data-testid="last-updated-note"]').exists()).toBe(false);
-    lk.savedAt = Date.parse('2026-10-12T06:12:00Z');
-    lk.restored = true;
+    device.data = { v: 2, person: '-', cursor: 'c', syncedAt: Date.parse('2026-10-12T06:12:00Z'), window: null, config: null, calendars: [], events: [], taskLists: [], files: {} };
     await w.vm.$nextTick();
     expect(w.get('[data-testid="last-updated-note"]').text()).toBe('Last updated 08:12');
-    lk.savedAt = Date.parse('2026-10-10T18:05:00Z');
+    device.data = { ...device.data, syncedAt: Date.parse('2026-10-10T18:05:00Z') };
     await w.vm.$nextTick();
     expect(w.get('[data-testid="last-updated-note"]').text()).toBe('Last updated 10 Oct, 20:05');
-    lk.restored = false;
+    device.fresh = true;
     await w.vm.$nextTick();
     expect(w.find('[data-testid="last-updated-note"]').exists()).toBe(false);
+    device.failed = true;
+    await w.vm.$nextTick();
+    expect(w.find('[data-testid="last-updated-note"]').exists()).toBe(true);
     w.unmount();
   });
 });

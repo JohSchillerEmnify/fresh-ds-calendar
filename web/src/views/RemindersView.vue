@@ -13,6 +13,7 @@ import IconButton from '@/components/m3/IconButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import { useCalendarsStore } from '@/stores/calendars';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useUiStore } from '@/stores/ui';
@@ -23,6 +24,7 @@ const router = useRouter();
 const cals = useCalendarsStore();
 const prefs = usePrefsStore();
 const ui = useUiStore();
+const device = useDeviceStore();
 const items = useItemsStore();
 
 /** Calendars the person has not switched off (their own hide choice), in the app's order. */
@@ -44,7 +46,7 @@ async function setPush(on: boolean) {
 onMounted(() => {
   void refreshPushState();
   void cals.load().catch(() => undefined);
-  api.tasksCalendarReminders().then((r) => { tasksDefault.value = r.defaultReminders; }, () => undefined);
+  void device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { tasksDefault.value = r.defaultReminders; }, () => undefined);
 });
 
 function back() {
@@ -70,7 +72,9 @@ async function saveTasks(minutes: number[]) {
   const before = tasksDefault.value;
   tasksDefault.value = minutes;
   try {
-    tasksDefault.value = (await api.setTasksCalendarReminders(minutes)).defaultReminders;
+    const saved = await api.setTasksCalendarReminders(minutes);
+    device.putFile('tasksCalendarReminders', saved);
+    tasksDefault.value = saved.defaultReminders;
     refreshItems();
   } catch (e) {
     tasksDefault.value = before;

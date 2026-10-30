@@ -47,7 +47,7 @@ describe('templates store', () => {
 
   it('keeps the templates it has when a reading fails', async () => {
     const s = useTemplatesStore();
-    s.restore([tpl('a', 'Packing')]);
+    s.fromDevice([tpl('a', 'Packing')]);
     expect(s.loaded).toBe(true);
     vi.spyOn(api, 'templates').mockRejectedValueOnce(new ApiError(0, 'NETWORK', 'offline'));
     await expect(s.load()).rejects.toBeInstanceOf(ApiError);

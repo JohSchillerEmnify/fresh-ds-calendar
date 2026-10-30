@@ -14,6 +14,7 @@ import type {
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { ThemePref } from '@/theme/presets';
+import type { ChangeSet } from '@/lib/deviceData';
 import { hasKey, t } from '@/i18n';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
@@ -197,6 +198,12 @@ export class ApiClient {
   }
   calendars(o?: RequestOptions) {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);
+  }
+  /** What changed for the person since `cursor` (everything without one), see API.md `GET /api/changes`. */
+  changes(cursor: string | null, today: LocalDate, o?: RequestOptions) {
+    const q = new URLSearchParams({ today });
+    if (cursor) q.set('cursor', cursor);
+    return this.request<ChangeSet>('GET', `/api/changes?${q}`, undefined, o);
   }
 
   prefs(o?: RequestOptions) {

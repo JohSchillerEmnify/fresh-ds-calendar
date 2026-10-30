@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useClockStore } from '@/stores/clock';
 import { useSyncStore } from '@/stores/sync';
-import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
+import { changesFixture, config, freshPinia, mockFetch } from './helpers';
 
 const BEACON = 'POST /api/diag/sync-error';
 
@@ -11,7 +11,7 @@ describe('sync error beacon (POST /api/diag/sync-error)', () => {
 
   beforeEach(() => {
     freshPinia();
-    settings = () => settingsFixture();
+    settings = () => changesFixture({ full: false });
     beacon = () => ({ status: 204 });
   });
   afterEach(() => vi.restoreAllMocks());
@@ -20,7 +20,7 @@ describe('sync error beacon (POST /api/diag/sync-error)', () => {
     return mockFetch({
       'GET /api/config': () => config(),
       'GET /api/items': () => ({ items: [], from: 'a', to: 'b', syncedAt: 'x' }),
-      'GET /api/settings': () => settings(),
+      'GET /api/changes': () => settings(),
       'GET /api/calendars': () => ({ calendars: [] }),
       'GET /api/summary': () => ({ days: {} }),
       [BEACON]: () => beacon(),
@@ -36,7 +36,7 @@ describe('sync error beacon (POST /api/diag/sync-error)', () => {
     settings = down;
     await sync.syncNow();
     await vi.waitFor(() => expect(beacons(m)).toHaveLength(1));
-    expect(beacons(m)[0]!.body).toEqual({ kind: 'http', status: 503, task: 'settings', online: true, resumed: false, app: false });
+    expect(beacons(m)[0]!.body).toEqual({ kind: 'http', status: 503, task: 'device', online: true, resumed: false, app: false });
     await sync.syncNow();
     await sync.syncNow();
     expect(beacons(m)).toHaveLength(1);
@@ -52,7 +52,7 @@ describe('sync error beacon (POST /api/diag/sync-error)', () => {
       settings = () => { throw new TypeError('Failed to fetch'); };
       await useSyncStore().syncNow();
       await vi.waitFor(() => expect(beacons(m)).toHaveLength(1));
-      expect(beacons(m)[0]!.body).toEqual({ kind: 'network', task: 'settings', online: false, resumed: false, app: true });
+      expect(beacons(m)[0]!.body).toEqual({ kind: 'network', task: 'device', online: false, resumed: false, app: true });
     } finally { delete (window as unknown as Record<string, unknown>).Capacitor; }
   });
 
@@ -77,10 +77,10 @@ describe('sync error beacon (POST /api/diag/sync-error)', () => {
     beacon = () => { throw new TypeError('Failed to fetch'); };
     await sync.syncNow();
     await vi.waitFor(() => expect(beacons(m)).toHaveLength(1));
-    settings = () => settingsFixture();
+    settings = () => changesFixture({ full: false });
     beacon = () => ({ status: 204 });
     await vi.waitFor(async () => { await sync.syncNow(); expect(beacons(m)).toHaveLength(2); });
-    expect(beacons(m)[1]!.body).toMatchObject({ kind: 'http', status: 503, task: 'settings', ageSec: expect.any(Number) });
+    expect(beacons(m)[1]!.body).toMatchObject({ kind: 'http', status: 503, task: 'device', ageSec: expect.any(Number) });
     await sync.syncNow();
     expect(beacons(m)).toHaveLength(2);
   });

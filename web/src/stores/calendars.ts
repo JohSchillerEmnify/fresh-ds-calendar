@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api } from '@/api/client';
 import type { Calendar } from '@/api/types';
+import { useDeviceStore } from './device';
 
 /** Every calendar of the person with their hidden choice. Toggling is instant; the server is told in the background. */
 export const useCalendarsStore = defineStore('calendars', () => {
@@ -11,14 +12,16 @@ export const useCalendarsStore = defineStore('calendars', () => {
   const hidden = computed(() => new Set(list.value.filter((c) => c.hidden).map((c) => c.id)));
   const isHidden = (calendarId: string) => hidden.value.has(calendarId);
 
-  async function load(): Promise<void> {
-    const r = await api.calendars();
-    if (saving === 0) list.value = r.calendars; // a poll must not undo a toggle that is still being saved
+  /** Takes the list the device holds; a poll must not undo a toggle that is still being saved. */
+  function fromDevice(saved: Calendar[]): void {
+    if (saving === 0) list.value = saved;
   }
 
-  /** Shows the last known calendar list until the server answers (feature last-known-state). */
-  function restore(saved: Calendar[]): void {
-    if (!list.value.length) list.value = saved;
+  /** Reads the list from the device store; the server only before the device has had its first sync. */
+  async function load(): Promise<void> {
+    const device = useDeviceStore();
+    if (device.ready) return fromDevice(device.data!.calendars);
+    fromDevice((await api.calendars()).calendars);
   }
 
   async function toggle(id: string): Promise<void> {
@@ -29,6 +32,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
     saving++;
     try {
       await api.setCalendarHidden(id, next);
+      useDeviceStore().putCalendars(list.value);
     } catch {
       list.value = list.value.map((c) => (c.id === id ? { ...c, hidden: !next } : c));
     } finally {
@@ -44,6 +48,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
     try {
       const saved = await api.setCalendarDefaultReminders(id, minutes);
       list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
+      useDeviceStore().putCalendars(list.value);
     } catch (e) {
       list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders } : c));
       throw e;
@@ -52,5 +57,5 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, hidden, isHidden, load, restore, toggle, setDefaultReminders };
+  return { list, hidden, isHidden, load, fromDevice, toggle, setDefaultReminders };
 });

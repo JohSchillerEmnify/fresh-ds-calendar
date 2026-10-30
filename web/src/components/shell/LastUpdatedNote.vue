@@ -3,14 +3,14 @@ import { computed } from 'vue';
 import { t } from '@/i18n';
 import { formatDate, parseIsoDate } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
-import { useLastKnownStore } from '@/stores/lastKnown';
+import { useDeviceStore } from '@/stores/device';
 
 const clock = useClockStore();
-const lastKnown = useLastKnownStore();
+const device = useDeviceStore();
 
 /** "Last updated 08:12" (the calendar's zone); an update before today also names its day, a bare time would mislead. */
 const text = computed(() => {
-  const at = lastKnown.savedAt;
+  const at = device.syncedAt;
   if (at === null) return '';
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
     timeZone: clock.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
@@ -22,7 +22,7 @@ const text = computed(() => {
 </script>
 
 <template>
-  <p v-if="lastKnown.restored && text" class="note" role="status" data-testid="last-updated-note">{{ text }}</p>
+  <p v-if="device.noteShown && text" class="note" role="status" data-testid="last-updated-note">{{ text }}</p>
 </template>
 
 <style scoped>

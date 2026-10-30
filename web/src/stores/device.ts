@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
-import { addDays } from 'date-fns';
-import type { StoredTheme } from '@/api/client';
-import type { AppConfig, Calendar, CalendarItem, LocalDate, Prefs, Settings, TaskTemplate } from '@/api/types';
+import { computed, ref, shallowRef, watch } from 'vue';
+import { api } from '@/api/client';
+import type { AppConfig, CalendarItem } from '@/api/types';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
-import { parseIsoDate, toIsoDate } from '@/lib/dates';
-import { itemSegments } from '@/lib/items';
-import { lastKnownDb, lastKnownPerson, setLastKnownPerson, wipeLastKnown } from '@/lib/lastKnownDb';
+import { useCanvasStore } from '@/features/tasklists/canvasStore';
+import { useMotivationStore } from '@/features/motivation/store';
+import {
+  applyChanges, dropItem, emptyData, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
+} from '@/lib/deviceData';
+import { deviceDb, devicePerson, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useAuthStore } from './auth';
 import { useCalendarsStore } from './calendars';
@@ -14,107 +16,45 @@ import { useClockStore } from './clock';
 import { useItemsStore } from './items';
 import { usePrefsStore } from './prefs';
 import { useSettingsStore } from './settings';
-import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 
-/** Days kept on either side of today (owner, 2026-10-23: "about the last 4 weeks around today"). */
-export const KEEP_DAYS = 28;
 const SAVE_DEBOUNCE_MS = 300;
 const RESTORE_TIMEOUT_MS = 1000;
+/** The records the data is stored in: the bulky lists apart from the rest, so a small change does not rewrite them. */
+const RECORDS = ['meta', 'events', 'lists'] as const;
 
-/** One range the app showed, with its items as the server last answered (and local changes since). */
-export interface SavedRange { from: LocalDate; to: LocalDate; items: CalendarItem[] }
-
-/** What the device keeps of one person (ADR 0023). `savedAt` is the app-clock time of the last successful update. */
-export interface LastKnownSnapshot {
-  v: 1;
-  person: string;
-  savedAt: number;
-  config: AppConfig;
-  settings: Settings | null;
-  prefs: Partial<Prefs>;
-  calendars: Calendar[];
-  themes: StoredTheme[];
-  ranges: SavedRange[];
-  /** The task list templates; absent in snapshots written before they were kept. */
-  templates?: TaskTemplate[];
+/** Marks `<html data-device-store>` (`saving` / `synced`) and when it last synced, so a test can wait for the write. */
+function mark(state: 'saving' | 'synced', at?: number | null): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.deviceStore = state;
+  if (at != null) document.documentElement.dataset.deviceSyncedAt = String(at);
 }
-
-const touches = (it: CalendarItem, from: LocalDate, to: LocalDate) => itemSegments(it).some((s) => s.date >= from && s.date < to);
 
 /**
- * Adds `next` to the saved ranges: it replaces a range with the same bounds, and takes out of the others every item it
- * holds or whose days it covers (that item moved, changed or was deleted), so an older range never brings it back.
+ * The device store (ADR 0025): everything of one signed-in person, kept in IndexedDB and in memory. It is restored
+ * before the first route, then brought up to date by `sync` (one `GET /api/changes` per call) and handed to the stores
+ * the views read from. `fresh` is true once a complete sync succeeded since the app opened; `failed` while the last
+ * sync did not; together they drive the "Last updated" note.
  */
-export function mergeRange(ranges: SavedRange[], next: SavedRange): SavedRange[] {
-  const ids = new Set(next.items.map((i) => i.id));
-  const rest = ranges
-    .filter((r) => r.from !== next.from || r.to !== next.to)
-    .map((r) => ({ ...r, items: r.items.filter((it) => !ids.has(it.id) && !touches(it, next.from, next.to)) }));
-  return [...rest, next];
-}
+export const useDeviceStore = defineStore('device', () => {
+  const data = shallowRef<DeviceData | null>(null);
+  /** A complete sync succeeded since this page opened. */
+  const fresh = ref(false);
+  /** The last sync failed (or was incomplete). */
+  const failed = ref(false);
+  /** App-clock time of the last complete sync (the stored one until a fresh one comes), `null` before the first. */
+  const syncedAt = computed(() => data.value?.syncedAt ?? null);
+  /** The note "Last updated" shows: what is on screen has not been confirmed by the server since the app opened, or the last sync failed. */
+  const noteShown = computed(() => syncedAt.value !== null && (!fresh.value || failed.value));
+  /** The device holds a first full sync, so reads come from it. */
+  const ready = computed(() => data.value?.cursor != null);
 
-/** Keeps only the ranges, and their items, that lie within `KEEP_DAYS` of `today`. */
-export function pruneRanges(ranges: SavedRange[], today: LocalDate): SavedRange[] {
-  const day = parseIsoDate(today)!;
-  const from = toIsoDate(addDays(day, -KEEP_DAYS));
-  const to = toIsoDate(addDays(day, KEEP_DAYS));
-  return ranges
-    .filter((r) => r.from < to && r.to > from)
-    .map((r) => ({ ...r, items: r.items.filter((it) => touches(it, from, to)) }));
-}
-
-/** Marks `<html data-last-known>` (`saving` / `saved`) so a test can wait for the write. */
-const mark = (state: 'saving' | 'saved') => { if (typeof document !== 'undefined') document.documentElement.dataset.lastKnown = state; };
-
-/**
- * The last known state (feature last-known-state, ADR 0023): restores the snapshot of the person last signed in on this
- * device before the first route, and saves what the app shows after every fresh answer. `restored` is true while the
- * shown calendar is that snapshot and no fresh answer has come yet (the "Last updated" note shows meanwhile).
- */
-export const useLastKnownStore = defineStore('lastKnown', () => {
-  const restored = ref(false);
-  /** App-clock time of the last successful update of the shown data (the snapshot's while restored). */
-  const savedAt = ref<number | null>(null);
   /** The person the data on screen belongs to: `-` while sign-in is off. */
   let person: string | null = null;
-  /** Ranges as last stored, merged with the fresh ones on every save. */
-  let saved: SavedRange[] = [];
-  let base: LastKnownSnapshot | null = null;
-  /** `from_to` of every range that was the visible one in this session (prefetched neighbours were not seen). */
-  const seen = new Set<string>();
+  /** The records as last written, to write only those that changed. */
+  const written: Record<string, unknown> = {};
   let pending: Disposer | null = null;
   let stops: Array<() => void> = [];
-
-  /** Applies the stored snapshot when one exists for the person last signed in here; the sign-in page wipes it instead. */
-  async function restore(path: string): Promise<boolean> {
-    if (path === '/signin') {
-      await Promise.race([wipeLastKnown(), new Promise((resolve) => { setTimeout(resolve, RESTORE_TIMEOUT_MS); })]);
-      return false;
-    }
-    const who = lastKnownPerson();
-    const db = lastKnownDb();
-    if (who === null || !db) return false;
-    let snap: LastKnownSnapshot | undefined;
-    // a hanging IndexedDB (some private modes) must not keep the app from starting: then nothing is restored
-    const late = new Promise<undefined>((resolve) => { setTimeout(() => resolve(undefined), RESTORE_TIMEOUT_MS); });
-    try { snap = await Promise.race([db.get<LastKnownSnapshot>(who), late]); } catch { return false; }
-    if (!snap || snap.v !== 1 || snap.person !== who) return false;
-    const clock = useClockStore();
-    clock.restore(snap.config);
-    if (snap.settings) useSettingsStore().restore(snap.settings);
-    usePrefsStore().restore(snap.prefs);
-    useCalendarsStore().restore(snap.calendars);
-    useThemeStore().restore(snap.themes);
-    if (snap.templates) useTemplatesStore().restore(snap.templates);
-    saved = pruneRanges(snap.ranges, clock.today);
-    useItemsStore().restore(saved.flatMap((r) => r.items));
-    base = snap;
-    person = who;
-    savedAt.value = snap.savedAt;
-    restored.value = true;
-    return true;
-  }
 
   /** The person of the session as the server says, `null` while unknown or signed out. */
   function sessionPerson(): string | null {
@@ -123,49 +63,84 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     return auth.status === 'in' && auth.email ? auth.email.toLowerCase() : null;
   }
 
+  const file = <T>(name: DeviceFileName): T | undefined => data.value?.files[name] as T | undefined;
+
+  /** A per-person file from the device store; the server answers only before the device has had its first sync. */
+  async function read<T>(name: DeviceFileName, fetchIt: () => Promise<T>): Promise<T> {
+    return file<T>(name) ?? fetchIt();
+  }
+
+  /** Hands every kind of data to the store the views read it from. */
+  function hydrate(): void {
+    const d = data.value;
+    if (!d) return;
+    if (d.config) useClockStore().restore(d.config);
+    useCalendarsStore().fromDevice(d.calendars);
+    const settings = file<never>('settings');
+    if (settings) useSettingsStore().fromDevice(settings);
+    const prefs = file<never>('prefs');
+    if (prefs) usePrefsStore().fromDevice(prefs);
+    useThemeStore().fromDevice(file('theme'), file<{ themes: never[] }>('themes')?.themes);
+    const templates = file<{ templates: never[] }>('templates');
+    if (templates) useTemplatesStore().fromDevice(templates.templates);
+    const canvas = file<{ areas: never[] }>('canvas');
+    if (canvas) useCanvasStore().fromDevice(canvas.areas);
+    const motivation = file<never>('motivation');
+    if (motivation) useMotivationStore().fromDevice(motivation);
+    useItemsStore().refreshFromDevice();
+  }
+
+  /** Restores the data of the person last signed in here before the first route; the sign-in page wipes it instead. */
+  async function restore(path: string): Promise<boolean> {
+    if (path === '/signin') {
+      await Promise.race([wipeDevice(), new Promise((resolve) => { setTimeout(resolve, RESTORE_TIMEOUT_MS); })]);
+      return false;
+    }
+    const who = devicePerson();
+    const db = deviceDb();
+    if (who === null || !db) return false;
+    // a hanging IndexedDB (some private modes) must not keep the app from starting: then nothing is restored
+    const late = new Promise<undefined>((resolve) => { setTimeout(() => resolve(undefined), RESTORE_TIMEOUT_MS); });
+    type Meta = Omit<DeviceData, 'events' | 'taskLists'>;
+    let meta: Meta | undefined, events: DeviceData['events'] | undefined, lists: DeviceData['taskLists'] | undefined;
+    try {
+      meta = await Promise.race([db.get<Meta>('meta'), late]);
+      if (!meta || meta.v !== 2 || meta.person !== who || meta.cursor == null) return false;
+      [events, lists] = await Promise.all([db.get<DeviceData['events']>('events'), db.get<DeviceData['taskLists']>('lists')]);
+    } catch { return false; }
+    data.value = { ...meta, events: events ?? [], taskLists: lists ?? [] };
+    person = who;
+    hydrate();
+    return true;
+  }
+
+  /** Writes the records that changed; plain data only, since reactive proxies cannot be cloned into IndexedDB. */
   async function save(): Promise<void> {
     pending = null;
     const who = sessionPerson();
-    const db = lastKnownDb();
-    const clock = useClockStore();
-    const config = clock.loaded ? (clock.config as AppConfig) : base?.config;
-    if (!who || !db || !config || savedAt.value === null || restored.value) return;
-    const items = useItemsStore();
-    for (const [key, r] of Object.entries(items.ranges)) {
-      if (!seen.has(key)) continue;
-      saved = mergeRange(saved, { from: r.from, to: r.to, items: r.ids.map((id) => items.byId[id]).filter((i): i is CalendarItem => !!i) });
-    }
-    saved = pruneRanges(saved, clock.today);
-    const settings = useSettingsStore();
-    const templates = useTemplatesStore();
-    const snap: LastKnownSnapshot = {
-      v: 1, person: who, savedAt: savedAt.value, config,
-      settings: settings.loaded ? settings.settings : base?.settings ?? null,
-      prefs: usePrefsStore().current(),
-      calendars: useCalendarsStore().list,
-      themes: useThemeStore().themes,
-      ranges: saved,
-      // the shown list: a template waiting for its undo time is left out (its delete is sent on leaving, and a save
-      // still waiting is written then too, see flushSave); an undo shows it again and saves it back
-      templates: templates.loaded ? templates.list : base?.templates,
-    };
+    const db = deviceDb();
+    const d = data.value;
+    if (!who || !db || !d || d.cursor == null) return;
+    const { events, taskLists, ...rest } = d;
+    const next: Record<string, unknown> = { meta: { ...rest, person: who }, events, lists: taskLists };
+    const entries: Record<string, unknown> = {};
+    for (const k of RECORDS) if (k === 'meta' || written[k] !== next[k]) entries[k] = JSON.parse(JSON.stringify(next[k]));
     try {
-      // plain data only: reactive proxies cannot be cloned into IndexedDB
-      await db.setOnly(who, JSON.parse(JSON.stringify(snap)));
-      setLastKnownPerson(who);
-      base = snap;
-      mark('saved');
-    } catch { /* storage full or blocked: the app works as before, without a last known state */ }
+      await db.putMany(entries);
+      setDevicePerson(who);
+      for (const k of RECORDS) written[k] = next[k];
+      mark('synced', d.syncedAt);
+    } catch { /* storage full or blocked: the app works as before, without the device copy surviving a restart */ }
   }
 
   function scheduleSave(): void {
-    if (savedAt.value === null || restored.value) return;
+    if (!data.value) return;
     pending?.();
     mark('saving');
     pending = appTimeout(() => { void save(); }, SAVE_DEBOUNCE_MS);
   }
 
-  /** Writes a save still waiting for its debounce now: the page is going away (a template deleted just before stays gone). */
+  /** Writes a save still waiting for its debounce now: the page is going away. */
   function flushSave(): void {
     if (!pending) return;
     pending();
@@ -173,46 +148,82 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     void save();
   }
 
-  /** Starts following the stores: a fresh answer ends the restored state, every change after one is saved (debounced). */
+  /** Takes in an answer of `/api/changes`: applies it, keeps it and hands it on. Exposed for tests; `sync` is the entry point. */
+  function take(res: ChangeSet): void {
+    const clock = useClockStore();
+    const base = res.full || !data.value ? emptyData(person ?? '') : data.value;
+    const complete = res.events.failed.length === 0 && !res.taskLists.failed;
+    const next = applyChanges(base, res);
+    // the clock's config (zone, frozen time, polling, plugins) goes with the data so a start without a connection has it
+    const config = clock.loaded ? clock.config as AppConfig : next.config;
+    data.value = complete ? { ...next, config, syncedAt: clock.nowMs() } : { ...next, config };
+    fresh.value = complete;
+    failed.value = !complete;
+    hydrate();
+    // a sync is already one batch: it is written at once, so a page closed right after still has it
+    pending?.();
+    mark('saving');
+    void save();
+  }
+
+  /** One round of the device sync: asks the server what changed since the cursor and takes it in. Throws on failure (the caller reports it). */
+  async function sync(): Promise<void> {
+    const clock = useClockStore();
+    try {
+      take(await api.changes(data.value?.cursor ?? null, clock.today));
+    } catch (e) {
+      failed.value = true;
+      throw e;
+    }
+  }
+
+  /** A successful write's answer: the item goes into the device copy at once. */
+  function put(item: CalendarItem): void {
+    if (!data.value) return;
+    data.value = putItem(data.value, item);
+    scheduleSave();
+  }
+  /** A successful delete (or a list that left): the item leaves the device copy. */
+  function drop(id: string): void {
+    if (!data.value) return;
+    data.value = dropItem(data.value, id);
+    scheduleSave();
+  }
+  /** A successful write of a per-person file: its answer replaces the device copy. */
+  function putFile(name: DeviceFileName, value: unknown): void {
+    if (!data.value) return;
+    data.value = { ...data.value, files: { ...data.value.files, [name]: value } };
+    scheduleSave();
+  }
+  /** A changed list of calendars (hidden, reminder defaults). */
+  function putCalendars(list: DeviceData['calendars']): void {
+    if (!data.value) return;
+    data.value = { ...data.value, calendars: list };
+    scheduleSave();
+  }
+
+  /** Starts following the session: another person's session wipes the store and starts the page afresh; the page leaving saves. */
   function install(): () => void {
     stop();
-    const items = useItemsStore();
-    const sync = useSyncStore();
-    const clock = useClockStore();
     const auth = useAuthStore();
     stops.push(
-      // the visible range (and today, fetched with it) counts as seen
-      watch(() => items.visible, (v) => {
-        if (!v) return;
-        seen.add(`${v.from}_${v.to}`);
-        if (v.withToday) seen.add(`${clock.today}_${toIsoDate(addDays(clock.todayDate, 1))}`);
-      }, { immediate: true }),
-      watch(() => sync.lastSync, (at) => {
-        if (!at) return;
-        restored.value = false;
-        savedAt.value = clock.nowMs();
-        scheduleSave();
-      }),
-      // a session of another person: what was shown is not theirs
       watch(() => [auth.status, auth.email] as const, () => {
         const who = sessionPerson();
         if (!who) return;
         if (person !== null && who !== person) {
           // nothing of the other person may stay on screen or be saved as this one's: wipe and start clean
           stop();
-          savedAt.value = null;
-          restored.value = false;
-          items.dropRestored();
-          void wipeLastKnown().then(() => window.location.reload());
+          data.value = null;
+          useItemsStore().dropDevice();
+          void wipeDevice().then(() => window.location.reload());
           return;
         }
         person = who;
-        // the person is known only now: a fresh answer that came first is saved now
+        // the person is known only now: a sync that came first is saved now
         scheduleSave();
       }, { immediate: true }),
       listen(window, 'pagehide', flushSave),
       listen(document, 'visibilitychange', () => { if (document.hidden) flushSave(); }),
-      watch(() => [items.byId, items.ranges, useSettingsStore().settings, usePrefsStore().current(), useCalendarsStore().list, useThemeStore().themes, useTemplatesStore().list], scheduleSave),
     );
     return stop;
   }
@@ -224,5 +235,7 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     stops = [];
   }
 
-  return { restored, savedAt, restore, install, stop };
+  return {
+    data, ready, noteShown, syncedAt, fresh, failed, file, read, restore, sync, take, install, stop, put, drop, putFile, putCalendars,
+  };
 });

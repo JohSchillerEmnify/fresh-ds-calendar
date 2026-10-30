@@ -7,7 +7,7 @@ import { createAppRouter, warmView } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useAuthStore } from './stores/auth';
 import { useClockStore } from './stores/clock';
-import { useLastKnownStore } from './stores/lastKnown';
+import { useDeviceStore } from './stores/device';
 import { useSettingsStore } from './stores/settings';
 import { pushWidget } from './stores/sync';
 import { useThemeStore } from './stores/theme';
@@ -29,15 +29,15 @@ async function bootstrap() {
   const clock = useClockStore();
   const settings = useSettingsStore();
   warmView(location.pathname);
-  // the last known state shows at once: then nothing below waits for the network (feature last-known-state)
-  const lastKnown = useLastKnownStore();
-  const shown = await lastKnown.restore(location.pathname);
+  // the device store shows at once: then nothing below waits for the network (feature last-known-state)
+  const device = useDeviceStore();
+  const shown = await device.restore(location.pathname);
   const budget = shown ? undefined : AbortSignal.timeout(4000);
   // the router guard asks the same question (once) right after; asking now saves a round trip
   const session = location.pathname === '/signin' ? undefined : useAuthStore().check();
   const loads = Promise.allSettled([clock.load(budget), settings.load(budget), useThemeStore().load(budget), session]);
   if (!shown) await loads;
-  lastKnown.install();
+  device.install();
   if (clock.config.testMode) enableTimerCounting();
   // the language chosen on this device last time (or the device's), before the first paint
   await applyLanguage(cachedLanguagePref());

@@ -7,17 +7,14 @@ import { defineStore } from 'pinia';
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { api } from '@/api/client';
 import type { TaskList } from '@/api/types';
-import { addDays, toIsoDate } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { isFinished } from './archive';
 import { isOpen } from './tasksView';
 
 /** The tabs of the Tasks view: the Canvas shows the same open lists as Open (feature tasks-canvas). */
 export type TasksTab = 'open' | 'canvas' | 'archive';
-
-/** Same horizon as the endpoint (API.md): a year either side of today. */
-const WINDOW_DAYS = 365;
 
 export const useTasksViewStore = defineStore('tasksView', () => {
   const clock = useClockStore();
@@ -32,7 +29,17 @@ export const useTasksViewStore = defineStore('tasksView', () => {
   /** Ids of the archived lists the server listed last time. */
   const archiveIds = shallowRef<string[]>([]);
 
+  /** Worked out on the device: every task list the device store holds, of any date, undated ones included. */
+  function refreshFromDevice(): void {
+    items.refreshFromDevice();
+    const alive = useDeviceStore().data!.taskLists.filter((l) => !items.isDeleted(l.id));
+    if (tab.value === 'archive') archiveIds.value = alive.filter(isFinished).map((l) => l.id);
+    else served.value = new Set(alive.filter(isOpen).map((l) => l.id));
+  }
+
+  /** Reads the lists of the shown tab; from the server only before the device has had its first sync. */
   async function refresh(): Promise<void> {
+    if (useDeviceStore().ready) return refreshFromDevice();
     if (tab.value === 'archive') return refreshArchive();
     const res = await api.allOpenTaskLists(clock.today);
     const alive = res.items.filter((l) => !items.isDeleted(l.id));
@@ -68,13 +75,9 @@ export const useTasksViewStore = defineStore('tasksView', () => {
     finishedHere.add(id);
   }
 
-  const inScope = (l: TaskList): boolean => {
-    if (l.date === null) return true;
-    return l.date >= toIsoDate(addDays(clock.todayDate, -WINDOW_DAYS)) && l.date <= toIsoDate(addDays(clock.todayDate, WINDOW_DAYS));
-  };
   /** Every open list in the cache (plus the ones finished here), before filtering, grouping and sorting. */
   const lists = computed<TaskList[]>(() =>
-    Object.values(items.byId).filter((i): i is TaskList => i.kind === 'tasklist' && !items.isDeleted(i.id) && inScope(i) && (isOpen(i) || finishedHere.has(i.id))));
+    Object.values(items.byId).filter((i): i is TaskList => i.kind === 'tasklist' && !items.isDeleted(i.id) && (isOpen(i) || finishedHere.has(i.id))));
 
   /** The archived lists in the cache that are still finished (an unticked one has moved back to Open). */
   const archived = computed<TaskList[]>(() =>

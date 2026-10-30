@@ -5,10 +5,12 @@ import type {
   CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
+import { covers, itemsIn, summaryOf } from '@/lib/deviceData';
 import { toIsoDate } from '@/lib/dates';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
 import { addDays } from 'date-fns';
 import { useClockStore } from './clock';
+import { useDeviceStore } from './device';
 import { useSyncStore } from './sync';
 
 const MAX_RANGES = 6;
@@ -46,11 +48,6 @@ export const useItemsStore = defineStore('items', () => {
   const deleted = new Set<string>();
   /** First week id -> series id of the repeating lists created in this session: deleting one of them deletes the series. */
   const createdSeries = new Map<string, string>();
-  /**
-   * Items of the last known state (feature last-known-state): shown until a fresh answer covers their days, kept by gc,
-   * but in no range, so only fresh data counts as loaded (reminder scheduling, `windowLoaded`).
-   */
-  const restoredIds = new Set<string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
@@ -89,7 +86,7 @@ export const useItemsStore = defineStore('items', () => {
     const keep = new Set<string>();
     for (const r of Object.values(ranges.value)) r.ids.forEach((i) => keep.add(i));
     const next: Record<string, CalendarItem> = {};
-    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id) || keptIds.has(id) || restoredIds.has(id)) next[id] = it;
+    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id) || keptIds.has(id)) next[id] = it;
     byId.value = next;
   }
 
@@ -97,14 +94,6 @@ export const useItemsStore = defineStore('items', () => {
   function applyResponse(from: LocalDate, to: LocalDate, items: CalendarItem[], syncedAt: string) {
     const next = { ...byId.value };
     const key = rangeKey(from, to);
-    // the fresh answer replaces the last known state on its days (an item no longer there was moved or deleted)
-    const fresh = new Set(items.map((i) => i.id));
-    for (const id of restoredIds) {
-      const it = next[id];
-      if (it && !fresh.has(id) && !overlaps(it, { from, to, ids: [], syncedAt: '' })) continue;
-      restoredIds.delete(id);
-      if (!pending.has(id)) delete next[id];
-    }
     for (const it of items) {
       if (deleted.has(it.id)) continue; // stale response from before the delete
       if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
@@ -118,13 +107,41 @@ export const useItemsStore = defineStore('items', () => {
     gc();
   }
 
-  async function fetchRange(from: LocalDate, to: LocalDate, signal?: AbortSignal): Promise<void> {
-    const res = await api.items(from, to, undefined, { signal });
-    applyResponse(from, to, res.items, res.syncedAt);
+  /** The held items of `[from, to)` become that cached range. */
+  function applyHeld(from: LocalDate, to: LocalDate): void {
+    const device = useDeviceStore();
+    applyResponse(from, to, itemsIn(device.data!, from, to), new Date(device.syncedAt ?? useClockStore().nowMs()).toISOString());
+  }
+  /** Whether the device store holds all of `[from, to)`: then it answers and the server is not asked. */
+  const heldInFull = (from: LocalDate, to: LocalDate): boolean => {
+    const device = useDeviceStore();
+    return device.ready && covers(device.data!, from, to);
+  };
+
+  /** Loads `[from, to)`: from the device store when it holds the range, else from the server (days outside the window, not kept; before the first sync). */
+  async function fetchRange(from: LocalDate, to: LocalDate, signal?: AbortSignal): Promise<boolean> {
+    if (heldInFull(from, to)) {
+      applyHeld(from, to);
+      return false;
+    }
+    try {
+      const res = await api.items(from, to, undefined, { signal });
+      applyResponse(from, to, res.items, res.syncedAt);
+    } catch (e) {
+      // without the server the part the device holds still shows
+      if (useDeviceStore().ready) applyHeld(from, to);
+      throw e;
+    }
+    return true;
   }
 
   /** One request for `[from, to)` plus the `also` range; the merged response is split back into both cached ranges. */
-  async function fetchWithAlso(from: LocalDate, to: LocalDate, also: { from: LocalDate; to: LocalDate }, signal?: AbortSignal): Promise<void> {
+  async function fetchWithAlso(from: LocalDate, to: LocalDate, also: { from: LocalDate; to: LocalDate }, signal?: AbortSignal): Promise<boolean> {
+    if (heldInFull(from, to) && heldInFull(also.from, also.to)) {
+      applyHeld(also.from, also.to);
+      applyHeld(from, to);
+      return false;
+    }
     const res = await api.items(from, to, undefined, { signal }, also);
     const extra: RangeEntry = { ...also, ids: [], syncedAt: res.syncedAt };
     const inAlso = res.items.filter((it) => overlaps(it, extra));
@@ -132,6 +149,7 @@ export const useItemsStore = defineStore('items', () => {
     const inMain = res.items.filter((it) => overlaps(it, { from, to, ids: [], syncedAt: '' }) || !inAlso.includes(it));
     applyResponse(also.from, also.to, inAlso, res.syncedAt);
     applyResponse(from, to, inMain, res.syncedAt);
+    return true;
   }
 
   const prefetching = new Set<string>();
@@ -148,28 +166,28 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
-  async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<void> {
+  async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<boolean> {
     visible.value = { from, to, withToday };
     return refreshVisible();
   }
 
-  async function refreshVisible(): Promise<void> {
+  /** Resolves to whether the server answered (false: the device store did, which says nothing about the connection). */
+  async function refreshVisible(): Promise<boolean> {
     const v = visible.value;
-    if (!v) return;
+    if (!v) return false;
     ctrl?.abort();
     const mine = (ctrl = new AbortController());
     loading.value = true;
     try {
       const clock = useClockStore();
       const today = clock.today;
-      if (v.withToday && (today < v.from || today >= v.to)) {
-        await fetchWithAlso(v.from, v.to, { from: today, to: toIsoDate(addDays(clock.todayDate, 1)) }, mine.signal);
-      } else {
-        await fetchRange(v.from, v.to, mine.signal);
-      }
-      useSyncStore().markSynced();
+      const server = v.withToday && (today < v.from || today >= v.to)
+        ? await fetchWithAlso(v.from, v.to, { from: today, to: toIsoDate(addDays(clock.todayDate, 1)) }, mine.signal)
+        : await fetchRange(v.from, v.to, mine.signal);
+      if (server) useSyncStore().markSynced();
+      return server;
     } catch (e) {
-      if (e instanceof ApiError && e.isAbort) return;
+      if (e instanceof ApiError && e.isAbort) return false;
       throw e;
     } finally {
       if (ctrl === mine) {
@@ -183,7 +201,8 @@ export const useItemsStore = defineStore('items', () => {
   function overlaps(it: CalendarItem, r: RangeEntry): boolean {
     return itemSegments(it).some((s) => s.date >= r.from && s.date < r.to);
   }
-  function upsert(item: CalendarItem): void {
+  /** Shows `item` in the cache and the ranges it falls into, without touching the device store. */
+  function place(item: CalendarItem): void {
     if (deleted.has(item.id)) return; // e.g. a task list op finishing while its list waits for its delete
     const it = strip(item);
     // an undated list is in no range, so nothing else would keep it in the cache
@@ -197,6 +216,11 @@ export const useItemsStore = defineStore('items', () => {
       else if (!should && has) next[k] = { ...r, ids: r.ids.filter((i) => i !== it.id) };
     }
     ranges.value = next;
+  }
+  /** A saved item (the server's answer): shown, and kept in the device store at once. */
+  function upsert(item: CalendarItem): void {
+    place(item);
+    if (!deleted.has(item.id)) useDeviceStore().put(item);
   }
   /** Mark an id as having local, unconfirmed changes: polls will not overwrite it. Balanced by `endPending`. */
   function beginPending(id: string): void { pending.add(id); }
@@ -244,7 +268,7 @@ export const useItemsStore = defineStore('items', () => {
   /** Undo `hide`: show `it` (the item as it was when hidden) again. */
   function unhide(it: CalendarItem): void {
     deleted.delete(it.id);
-    upsert(it);
+    place(it);
   }
   /** Hide one task list item until `unhideTaskItem`. */
   function hideTaskItem(listId: string, itemId: string): void {
@@ -289,6 +313,7 @@ export const useItemsStore = defineStore('items', () => {
       await api.deleteEvent(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       deleted.add(id);
       remove(id);
+      useDeviceStore().drop(id);
     } catch (e) { report(e); }
   }
   async function createTaskList(input: CreateTaskListInput): Promise<TaskList> {
@@ -317,13 +342,14 @@ export const useItemsStore = defineStore('items', () => {
         // a repeating list deleted (or its undo time over) right after it was created goes as a whole: no If-Match, the etag is its first week's
         await api.deleteTaskList(series, o);
         // every cached occurrence of the list, also of parts split off by a "this and following" change (same seriesKey)
-        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); }
+        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); useDeviceStore().drop(it.id); }
         createdSeries.delete(id);
       } else {
         await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       }
       deleted.add(id);
       remove(id);
+      useDeviceStore().drop(id);
     } catch (e) { report(e); }
   }
 
@@ -357,7 +383,7 @@ export const useItemsStore = defineStore('items', () => {
   async function optimisticItem<T extends CalendarItem>(id: string, next: CalendarItem | null, call: () => Promise<T | void>): Promise<T | undefined> {
     const before = byId.value[id];
     pending.add(id);
-    if (next) upsert(next);
+    if (next) place(next);
     else remove(id);
     try {
       const fresh = await call();
@@ -369,7 +395,7 @@ export const useItemsStore = defineStore('items', () => {
       return fresh ?? undefined;
     } catch (e) {
       pending.delete(id);
-      if (before) upsert(before);
+      if (before) place(before);
       else remove(id);
       return report(e);
     }
@@ -393,14 +419,17 @@ export const useItemsStore = defineStore('items', () => {
     summary.value = out;
   }
   /** Loads `[from, to)` day counts (cached; at most 14 ranges kept). */
-  async function loadSummary(from: LocalDate, to: LocalDate, force = false): Promise<void> {
+  async function loadSummary(from: LocalDate, to: LocalDate, force = false): Promise<boolean> {
     const key = rangeKey(from, to);
-    if (!force && summaryByKey.has(key)) return;
-    const res = await api.summary(from, to);
-    summaryByKey.set(key, res.days);
+    if (!force && summaryByKey.has(key)) return false;
+    // counted on the device when it holds the range, else the server counts (days outside the window)
+    const server = !heldInFull(from, to);
+    const days = server ? (await api.summary(from, to)).days : summaryOf(useDeviceStore().data!, from, to);
+    summaryByKey.set(key, days);
     summaryKeys.value = [key, ...summaryKeys.value.filter((k) => k !== key)];
     while (summaryKeys.value.length > 14) summaryByKey.delete(summaryKeys.value.pop()!);
     mergeSummary();
+    return server;
   }
   async function refreshSummaries(): Promise<void> {
     await Promise.all(summaryKeys.value.map((k) => {
@@ -409,22 +438,32 @@ export const useItemsStore = defineStore('items', () => {
     }));
   }
 
-  /** Shows the items of the last known state (feature last-known-state) until fresh answers replace them. */
-  function restore(list: CalendarItem[]): void {
+  /**
+   * The device store changed (a sync, or the first read after a restart): every task list it holds is kept in the cache
+   * (the tray, the Tasks view and the Canvas read them from here), and every cached range the device holds in full is
+   * read from it again; the day counts too.
+   */
+  function refreshFromDevice(): void {
+    const device = useDeviceStore();
+    if (!device.ready) return;
+    const lists = device.data!.taskLists.filter((l) => !deleted.has(l.id) && !pending.has(l.id));
     const next = { ...byId.value };
-    for (const it of list) {
-      if (next[it.id] || deleted.has(it.id)) continue;
-      next[it.id] = it;
-      restoredIds.add(it.id);
+    keptIds.clear();
+    for (const l of lists) { keptIds.add(l.id); next[l.id] = strip(l); }
+    byId.value = next;
+    for (const r of Object.values(ranges.value)) if (heldInFull(r.from, r.to)) applyHeld(r.from, r.to);
+    gc();
+    for (const k of summaryKeys.value) {
+      const [f, t] = k.split('_');
+      if (heldInFull(f, t)) { summaryByKey.set(k, summaryOf(device.data!, f, t)); }
     }
-    byId.value = next;
+    mergeSummary();
   }
-  /** Removes every item still shown from the last known state (it belongs to another person). */
-  function dropRestored(): void {
-    const next = { ...byId.value };
-    for (const id of restoredIds) delete next[id];
-    restoredIds.clear();
-    byId.value = next;
+  /** Removes everything shown from the device store (it belongs to another person). */
+  function dropDevice(): void {
+    byId.value = {};
+    ranges.value = {};
+    keptIds.clear();
   }
 
   /** Test / logout helper. */
@@ -438,7 +477,6 @@ export const useItemsStore = defineStore('items', () => {
     carriedIds.clear();
     keptIds.clear();
     createdSeries.clear();
-    restoredIds.clear();
     prefetchFailed.clear();
     summaryByKey.clear();
     summaryKeys.value = [];
@@ -447,7 +485,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
-    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, restore, dropRestored, upsert, remove, beginPending, endPending, setCarried, setKept,
+    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, refreshFromDevice, dropDevice, upsert, remove, beginPending, endPending, setCarried, setKept,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem, optimisticItemPatch,
     loadSummary, refreshSummaries, $reset,
   };

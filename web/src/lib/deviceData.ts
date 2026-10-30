@@ -1,0 +1,134 @@
+/**
+ * What the device keeps of one person (ADR 0025) and the pure rules on it: applying an answer of `GET /api/changes`,
+ * keeping events within the window, and reading items, day counts and open lists back out. No I/O and no store here,
+ * so every rule is unit tested without a browser (`web/test/device-data.test.ts`).
+ */
+import type { AppConfig, Calendar, CalendarEvent, CalendarItem, DaySummary, LocalDate, TaskList } from '@/api/types';
+import { addDays, parseIsoDate, toIsoDate } from '@/lib/dates';
+import { itemSegments } from '@/lib/items';
+
+/** The per-person files a change set can carry, by name (API.md `GET /api/changes`); each is the answer of its own GET. */
+export type DeviceFileName =
+  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'canvas' | 'motivation' | 'categoryShares' | 'people' | 'tasksCalendarReminders';
+
+/** Events from today minus a year to today plus a year, end exclusive. */
+export interface DeviceWindow { from: LocalDate; to: LocalDate }
+
+/** Everything one person's device holds; `cursor` is opaque (the server's position of this device). */
+export interface DeviceData {
+  v: 2;
+  person: string;
+  cursor: string | null;
+  /** App-clock time (ms) of the last complete successful sync; `null` before the first one. */
+  syncedAt: number | null;
+  window: DeviceWindow | null;
+  config: AppConfig | null;
+  calendars: Array<Calendar & { hidden?: boolean }>;
+  events: CalendarEvent[];
+  taskLists: TaskList[];
+  files: Partial<Record<DeviceFileName, unknown>>;
+}
+
+/** The answer of `GET /api/changes` (API.md). */
+export interface ChangeSet {
+  full: boolean;
+  cursor: string;
+  window: DeviceWindow;
+  calendars: Array<Calendar & { hidden?: boolean }>;
+  events: {
+    calendars: string[]; replace: string[]; series: Array<{ calendarId: string; seriesId: string }>;
+    removed: Array<{ calendarId: string; id: string }>; upserts: CalendarEvent[]; failed: string[];
+  };
+  taskLists: { replace: boolean; series: string[]; removed: string[]; upserts: TaskList[]; failed: boolean };
+  files: Partial<Record<DeviceFileName, unknown>>;
+}
+
+/** An empty store for `person`. */
+export function emptyData(person: string): DeviceData {
+  return { v: 2, person, cursor: null, syncedAt: null, window: null, config: null, calendars: [], events: [], taskLists: [], files: {} };
+}
+
+/** The window the server keeps for a device whose today is `today` (as `windowOf` in the server's change feed). */
+export function windowOf(today: LocalDate): DeviceWindow {
+  const d = parseIsoDate(today)!;
+  return { from: toIsoDate(addDays(d, -365)), to: toIsoDate(addDays(d, 366)) };
+}
+
+const touches = (it: CalendarItem, from: LocalDate, to: LocalDate): boolean => itemSegments(it).some((s) => s.date >= from && s.date < to);
+
+/** Whether `id` is an instance of (or is) the repeating series `seriesId` (Google names instances `<series>_<start>`). */
+const inSeries = (id: string, seriesId: string): boolean => id === seriesId || id.startsWith(`${seriesId}_`);
+
+/** Keeps the events that touch the window; task lists are never pruned. */
+export function pruneWindow(data: DeviceData, w: DeviceWindow): DeviceData {
+  return { ...data, window: w, events: data.events.filter((e) => touches(e, w.from, w.to)) };
+}
+
+/**
+ * Applies one answer: calendars first, then per kind the replace / series / removed drops, then the upserts, then the
+ * files (the order API.md prescribes). A calendar listed in `failed` keeps its stored events. Returns a new value.
+ */
+export function applyChanges(data: DeviceData, res: ChangeSet): DeviceData {
+  const ev = res.events, tl = res.taskLists;
+  const cals = new Set(ev.calendars);
+  const replaced = new Set(ev.replace);
+  let events = data.events.filter((e) => cals.has(e.calendarId) && !replaced.has(e.calendarId));
+  for (const s of ev.series) events = events.filter((e) => !(e.calendarId === s.calendarId && inSeries(e.id, s.seriesId)));
+  const gone = new Set(ev.removed.map((r) => `${r.calendarId}\n${r.id}`));
+  events = events.filter((e) => !gone.has(`${e.calendarId}\n${e.id}`));
+  const byKey = new Map(events.map((e) => [`${e.calendarId}\n${e.id}`, e]));
+  for (const e of ev.upserts) byKey.set(`${e.calendarId}\n${e.id}`, e);
+
+  let lists = tl.replace ? data.taskLists.filter((l) => l.id.startsWith('shared:')) : data.taskLists;
+  for (const s of tl.series) lists = lists.filter((l) => !(l.seriesId === s || inSeries(l.id, s)));
+  const removed = new Set(tl.removed);
+  lists = lists.filter((l) => !removed.has(l.id));
+  const byId = new Map(lists.map((l) => [l.id, l]));
+  for (const l of tl.upserts) byId.set(l.id, l);
+
+  return pruneWindow({
+    ...data, cursor: res.cursor, calendars: res.calendars, events: [...byKey.values()],
+    taskLists: [...byId.values()], files: { ...data.files, ...res.files },
+  }, res.window);
+}
+
+/** The items (events and dated task lists) that touch `[from, to)`. */
+export function itemsIn(data: DeviceData, from: LocalDate, to: LocalDate): CalendarItem[] {
+  return [...data.events, ...data.taskLists].filter((it) => touches(it, from, to));
+}
+
+/** Whether `[from, to)` lies inside the window, so the device holds all of it (outside, the server is asked). */
+export function covers(data: DeviceData, from: LocalDate, to: LocalDate): boolean {
+  return !!data.window && from >= data.window.from && to <= data.window.to;
+}
+
+/** Day counts for `[from, to)` as `GET /api/summary` answers them, computed from the held items. */
+export function summaryOf(data: DeviceData, from: LocalDate, to: LocalDate): Record<LocalDate, DaySummary> {
+  const days: Record<LocalDate, DaySummary> = {};
+  for (const it of [...data.events, ...data.taskLists]) {
+    for (const s of itemSegments(it)) {
+      if (s.date < from || s.date >= to) continue;
+      const row = (days[s.date] ??= { events: 0, tasklists: 0, openTasklists: 0, density: 0 });
+      if (it.kind === 'tasklist') { row.tasklists++; if (it.doneCount < it.totalCount) row.openTasklists++; } else row.events++;
+    }
+  }
+  for (const r of Object.values(days)) {
+    const n = r.events + r.tasklists;
+    r.density = n >= 4 ? 3 : n >= 2 ? 2 : 1;
+  }
+  return days;
+}
+
+/** Puts a written item (the server's answer to a create or change) into the held data, replacing its older copy. */
+export function putItem(data: DeviceData, item: CalendarItem): DeviceData {
+  if (item.kind === 'event') {
+    const rest = data.events.filter((e) => !(e.calendarId === item.calendarId && e.id === item.id));
+    return { ...data, events: touches(item, data.window?.from ?? '0000-01-01', data.window?.to ?? '9999-12-31') ? [...rest, item] : rest };
+  }
+  return { ...data, taskLists: [...data.taskLists.filter((l) => l.id !== item.id), item] };
+}
+
+/** Takes a deleted item (by id) out of the held data. */
+export function dropItem(data: DeviceData, id: string): DeviceData {
+  return { ...data, events: data.events.filter((e) => e.id !== id), taskLists: data.taskLists.filter((l) => l.id !== id) };
+}

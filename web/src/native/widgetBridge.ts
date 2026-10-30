@@ -10,7 +10,9 @@ import { api } from '@/api/client';
 import { addDays, toIsoDate, WEEK_OPTS } from '@/lib/dates';
 import { language } from '@/i18n/language';
 import { useCalendarsStore } from '@/stores/calendars';
+import { covers, itemsIn } from '@/lib/deviceData';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
 import { usePrefsStore } from '@/stores/prefs';
 import { buildWidgetSnapshot, type WidgetTheme } from './widgetSnapshot';
 import type { CalendarItem } from '@/api/types';
@@ -21,7 +23,7 @@ interface CapacitorGlobal {
   Plugins?: { WidgetBridge?: { setSnapshot(o: { json: string }): Promise<unknown> } };
 }
 
-/** The week is re-read from the server at most this often; every sync still refreshes theme, language and the clock. */
+/** Without the device store the week is re-read from the server at most this often; every sync still refreshes theme, language and the clock. */
 const ITEMS_MAX_AGE_MS = 10 * 60_000;
 
 let cached: { weekStart: string; at: number; items: CalendarItem[] } | null = null;
@@ -54,8 +56,13 @@ async function push(): Promise<void> {
   const today = useClockStore().today;
   const monday = startOfWeek(new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8, 10))), WEEK_OPTS);
   const weekStart = toIsoDate(monday);
-  if (!cached || cached.weekStart !== weekStart || Date.now() - cached.at > ITEMS_MAX_AGE_MS) {
-    const res = await api.items(weekStart, toIsoDate(addDays(monday, 7)));
+  const weekEnd = toIsoDate(addDays(monday, 7));
+  const device = useDeviceStore();
+  if (device.ready && covers(device.data!, weekStart, weekEnd)) {
+    // the week is read from the device store: always current, no request
+    cached = { weekStart, at: Date.now(), items: itemsIn(device.data!, weekStart, weekEnd) };
+  } else if (!cached || cached.weekStart !== weekStart || Date.now() - cached.at > ITEMS_MAX_AGE_MS) {
+    const res = await api.items(weekStart, weekEnd);
     cached = { weekStart, at: Date.now(), items: res.items };
   }
   // the hidden calendars come from the server; without them the widget would show calendars the person switched off

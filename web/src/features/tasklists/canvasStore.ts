@@ -9,6 +9,7 @@ import { api, ApiError } from '@/api/client';
 import type { CanvasArea } from '@/api/types';
 import { t } from '@/i18n';
 import { appTimeout, type Disposer } from '@/lib/timers';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -86,6 +87,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     unsaved++;
     chain = chain
       .then(() => api.putCanvas(areas.value.map((a) => ({ ...a }))))
+      .then((saved) => useDeviceStore().putFile('canvas', { areas: saved?.areas ?? areas.value }))
       .catch((e) => {
         ui.notify(e instanceof ApiError ? e.userMessage : t('canvas.areasNotSaved'));
         // the screen must not keep what the server refused
@@ -94,8 +96,15 @@ export const useCanvasStore = defineStore('canvas', () => {
       .finally(() => { unsaved--; });
   }
 
-  /** Reads the areas from the server; skipped while a local edit is still on its way (it would overwrite the edit). */
+  /** Takes the areas the device holds; skipped while a local edit is still on its way (it would overwrite the edit). */
+  function fromDevice(held: CanvasArea[]): void {
+    if (unsaved === 0) areas.value = held;
+  }
+
+  /** Reads the areas from the device store; the server only before the device has had its first sync. */
   async function loadAreas(): Promise<void> {
+    const held = useDeviceStore().file<{ areas: CanvasArea[] }>('canvas');
+    if (held) return fromDevice(held.areas);
     if (unsaved > 0) return;
     try {
       const d = await api.canvas();
@@ -125,5 +134,5 @@ export const useCanvasStore = defineStore('canvas', () => {
     persist();
   }
 
-  return { view, areas, placed, setView, flushView, moveNote, loadAreas, addArea, updateArea, removeArea };
+  return { view, areas, placed, setView, flushView, moveNote, loadAreas, fromDevice, addArea, updateArea, removeArea };
 });

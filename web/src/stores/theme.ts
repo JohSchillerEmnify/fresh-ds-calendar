@@ -7,6 +7,7 @@ import {
   type CustomThemeKey, type Seasonal, type ThemeOverrides, type ThemePref,
 } from '@/theme/presets';
 import { useClockStore } from './clock';
+import { useDeviceStore } from './device';
 
 const CACHE_KEY = 'cal.theme';
 
@@ -35,20 +36,23 @@ export const useThemeStore = defineStore('theme', () => {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(pref.value)); } catch { /* storage unavailable */ }
   }
 
+  /** Takes the choice and the imported themes the device holds; the themes first, so a chosen one resolves at once. */
+  function fromDevice(choice: ThemePref | undefined, saved: StoredTheme[] | undefined): void {
+    if (saved) custom.value = saved;
+    if (choice) pref.value = sanitizePref(choice);
+    remember();
+  }
+
+  /** Reads the theme from the device store; the server only before the device has had its first sync. */
   async function load(signal?: AbortSignal): Promise<void> {
+    const device = useDeviceStore();
+    if (device.ready) return fromDevice(device.file<ThemePref>('theme'), device.file<{ themes: StoredTheme[] }>('themes')?.themes);
     // both requests go out together (one round trip fewer before the first paint)
     const themes = api.themes({ signal }).then((r) => r.themes, () => custom.value);
     const choice = api.themePref({ signal });
     choice.catch(() => {}); // a refusal is rethrown below, after the themes were applied
-    // imported themes first, so a chosen one resolves as soon as the choice is known; without them it falls back to Default
     custom.value = await themes;
-    pref.value = sanitizePref(await choice);
-    remember();
-  }
-
-  /** Shows the last known imported themes until the server answers, so a chosen one resolves offline (feature last-known-state). */
-  function restore(saved: StoredTheme[]): void {
-    if (!custom.value.length) custom.value = saved;
+    fromDevice(await choice, custom.value);
   }
 
   /** Optimistic: apply now, save in the background. */
@@ -58,6 +62,7 @@ export const useThemeStore = defineStore('theme', () => {
     saveError.value = null;
     try {
       await api.patchThemePref(next);
+      useDeviceStore().putFile('theme', next);
     } catch {
       saveError.value = 'Could not save the theme';
     }
@@ -88,6 +93,7 @@ export const useThemeStore = defineStore('theme', () => {
   async function importTheme(doc: ThemeDoc, picture?: ThemePicture): Promise<void> {
     const saved = await api.saveTheme(doc, picture);
     custom.value = [...custom.value, { id: saved.id, doc: saved.doc, picture: saved.picture }];
+    useDeviceStore().putFile('themes', { themes: custom.value });
     await choose(`theme:${saved.id}` as CustomThemeKey);
   }
   const hide = (id: string) => { hidden.value = [...hidden.value, id]; };
@@ -96,8 +102,9 @@ export const useThemeStore = defineStore('theme', () => {
   async function removeCustom(id: string, keepalive = false): Promise<void> {
     await api.deleteTheme(id, { keepalive });
     custom.value = custom.value.filter((t) => t.id !== id);
+    useDeviceStore().putFile('themes', { themes: custom.value });
     unhide(id);
   }
 
-  return { pref, resolved, themes, saveError, load, restore, choose, pick, pickMany, preview, setSeasonal, importTheme, hide, unhide, removeCustom };
+  return { pref, resolved, themes, saveError, load, fromDevice, choose, pick, pickMany, preview, setSeasonal, importTheme, hide, unhide, removeCustom };
 });

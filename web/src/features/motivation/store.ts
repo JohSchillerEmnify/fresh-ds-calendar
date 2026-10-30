@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { t } from '@/i18n';
+import { useDeviceStore } from '@/stores/device';
 import type { ChangeKind, CheckInResult, Motivation } from './types';
 
 export interface StartOptions {
@@ -51,12 +52,19 @@ export const useMotivationStore = defineStore('motivation', () => {
     return (await res.json()) as T;
   }
 
-  function apply(next: Motivation) {
+  function apply(next: Motivation, keep = true) {
     const kinds = diffMotivation(motivation.value, next);
     motivation.value = next;
+    if (keep) useDeviceStore().putFile('motivation', next);
     if (kinds.length) change.value = { id: ++seq, kinds };
   }
 
+  /** Takes the streak and plant the device holds (every sync). */
+  function fromDevice(held: Motivation): void {
+    apply(held, false);
+  }
+
+  /** Asks the server (after a change that moves the streak or plant); the answer is kept on the device too. */
   async function load(): Promise<void> {
     try {
       apply(await json<Motivation>('/api/motivation'));
@@ -75,7 +83,8 @@ export const useMotivationStore = defineStore('motivation', () => {
     if (inflight) return void (await inflight);
     inflight = (async () => {
       try {
-        if (!motivation.value) await load();
+        const held = useDeviceStore().file<Motivation>('motivation');
+        if (!motivation.value) { if (held) fromDevice(held); else await load(); }
         const prev = motivation.value;
         const r = await json<CheckInResult>('/api/streak/checkin', { method: 'POST' });
         lastCheckInDay = day ?? null;
@@ -120,5 +129,5 @@ export const useMotivationStore = defineStore('motivation', () => {
     message.value = null;
   }
 
-  return { motivation, streakPulse, message, change, error, start, stop, load, refresh, checkIn, dismissMessage };
+  return { motivation, streakPulse, message, change, error, start, stop, load, fromDevice, refresh, checkIn, dismissMessage };
 });

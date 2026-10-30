@@ -27,7 +27,8 @@ export const useCalendarStore = defineStore('calendar', () => {
     const [from, to] = v === 'year' ? [toIsoDate(today), toIsoDate(addDays(today, 1))] : fetchRange(v, d);
     const sync = useSyncStore();
     useItemsStore().setVisible(from, to, true).then(
-      () => { if (sync.error) sync.clearError(); sync.markSynced(); },
+      // only an answer of the server says the connection works: the device store answers offline too
+      (server) => { if (server) { if (sync.error) sync.clearError(); sync.markSynced(); } },
       (e) => sync.reportError(e),
     );
   }
