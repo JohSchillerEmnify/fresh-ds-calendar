@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@iconify-json/material-symbols": "1.2.95",
-    "@size-limit/file": "14.2.0",
+    "@size-limit/file": "14.3.0",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "6.0.10",
     "@vitest/browser-playwright": "5.0.3",
