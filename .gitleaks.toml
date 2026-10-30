@@ -4,12 +4,6 @@ title = "calendar leak guards"
 [extend]
 useDefault = true
 
-# Only the one known fake door key (e2e/steps/door.steps.ts, server/test/hardening-door.test.ts) is skipped, by exact value.
-# gitleaks 8.24 ignores `condition = "AND"` on the global allowlist, so a path filter would widen it instead of narrowing it.
-[allowlist]
-description = "fake door API key used by the door tests"
-regexes = ['''door-test-key-0123456789abcdef0123456789abcdef''']
-
 [[rules]]
 id = "public-ipv4"
 description = "Public IPv4 address (private, loopback, link-local and documentation ranges are fine)"

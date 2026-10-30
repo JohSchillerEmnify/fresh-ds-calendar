@@ -414,6 +414,7 @@ collapsed card button.
 ## Repeating task lists (`@repeating`)
 
 ```
+the calendar contains a weekly task list {string} on Mondays since {date} with items:
 {string} of {string} was ticked on {date}
 I rename the expanded task list to {string}
 I am asked whether to change {string} or {string}
@@ -426,6 +427,7 @@ the task list {string} has no estimate
 
 - The choice is `repeat-scope-dialog` (an `AdaptiveSheet`): radio options `repeat-scope-this` / `repeat-scope-following` (the
   `label` elements, `data-checked="true"` on the chosen one), `repeat-scope-ok`, `repeat-scope-cancel`.
+- "weekly task list ... on Mondays since D": `POST /api/tasklists` with `recurrence: weekly` and `date: D`.
 - "X of L was ticked on D": the occurrence of L listed by `GET /api/items?from=D&to=D+1` gets `PATCH .../items/<X>`
   `{ done: true }` (that week is split off, as a tick in the app does).
 - "I rename the expanded task list to T": taps `tasklist-expanded-title` in the list sheet, fills
@@ -2687,58 +2689,6 @@ the seven days are side by side in a single row
   the top of row 0's visible `.scroll` area and the latest ends at the bottom of row 1's (within 6 px). "the empty area of D": the last
   `time-slot` of D's `week-day-column`. "single row": the seven `week-header` cells share one top.
 
-## Door board (`@door`)
-
-The door plugin (ADR 0003/0004; `server/src/plugins/door/README.md`): a key and person set through the TEST_MODE
-override `POST /api/__test/door` (`{ token, person }` or `{ off: true }`; reset clears it), door-tagged lists, and
-`GET /api/door` asked with a bearer key.
-
-```
-the door board has the key of the owner
-the door board's key is taken away
-{string} is set to show on the door
-the calendar contains a weekly task list {string} on Mondays since {date} with items:
-{string} of {string} on {date} is still open
-the calendar contains an event {string} on {date} from {time} to {time} with the description {string}
-another person {string} has a task list {string} on {date} marked to show on the door with items:
-the door board asks for its reminders
-the door board asks for today's events
-something asks for the door's reminders with a wrong key
-it gets no reminders
-it gets the reminders:
-it gets the events:
-nothing but titles and times is in the answer
-it is refused as unauthenticated and gets nothing
-asking for the door's reminders finds no such thing
-I edit the task list {string}
-there is no "Show on door" switch
-I edit the task list {string} and turn "Show on door" on
-I open the list sheet of {string} and turn "Show on door" on
-{string} is marked to show on the door
-the door board gets {string} from {string}
-```
-
-- The owner is `owner@example.test` while sign-in is on (the "another person" step turns it on for the owner and that
-  person); while it is off, the door sees the local calendar. The key is a fixed test string.
-- "is set to show on the door": finds the list by title in `GET /api/tasklists/all-open` and patches `tags` with
-  `door` added (the other tags stay). "is marked to show on the door" (a check) polls the same list for the tag.
-- "weekly task list ... on Mondays since D": `POST /api/tasklists` with `recurrence: weekly` and `date: D`;
-  "X of L on D is still open": the occurrence of L dated D lists X undone.
-- "another person P has a task list ...": `POST /api/__test/auth` with the owner and `p@example.test`, then
-  `POST /api/__test/tasklists` with `owner`, `date` and `tags: ["door"]`.
-- "asks for its reminders" / "asks for today's events": `GET /api/door` with `Authorization: Bearer <key>`; the answer
-  (status and body) is kept for the checks. "with a wrong key": a different bearer. "finds no such thing": 404.
-- "it gets the reminders:" compares the whole `reminders` array in order (columns `item`, `list`, `date`, optional `time`;
-  an empty `date` is null). "it gets the events:" compares `events` (columns `title`, `start`, `end`, `all day`
-  yes/no), times to the minute. "nothing but titles and times": event keys are exactly title/start/end/allDay and
-  reminder keys are within title/list/date/time.
-- "I edit the task list T": the Tasks view, a tap on T's title (`tasks-item` → `tasklist-expanded-title`) opens its
-  form (`tasklist-dialog`). The switch is `tasklist-door-switch` (row `tasklist-door`); "there is no ... switch": none
-  in the form. "... and turn Show on door on": clicks the switch and saves (`tasklist-save`, PATCH 200).
-  "I open the list sheet of T and turn ... on": the day view of T's date, T's sheet opened as "I expand the task list"
-  does (an open desktop tray is collapsed first; `tasklist-expanded` without `data-presentation=overlay`), the switch
-  there patches the tag at once.
-
 ## Visual states (`@visual`)
 
 Rules that need no reference picture, plus `toHaveScreenshot` regression pictures (baselines in `e2e/snapshots/<project>/`,
@@ -3155,10 +3105,9 @@ the top bar's widgets are in reverse order
   `scene-<scene>-<layout>-<scheme>`.
 
 
-## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, door-board, shared-lists)
+## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)
 
-These scenarios describe behaviour that is already built. Two groups (the HTTP steps are in `e2e/steps/security.steps.ts` and
-`door.steps.ts`):
+These scenarios describe behaviour that is already built. Two groups (the HTTP steps are in `e2e/steps/security.steps.ts`):
 
 - **HTTP steps (the scenarios without `@unit`)**: run against the TEST_MODE server through Playwright `request`
   (no browser), keeping the last response like `I request {string}`.
@@ -3185,11 +3134,6 @@ the privacy policy names the place search and says what it sees: {string}
 the privacy policy says the device, not the server, asks it
 the privacy policy says there is no advertising, tracking or analytics
 the privacy policy says the only outside parties are Google and the two map services
-the door board has the key of {string}
-the door board asks for its reminders {int} times within a minute
-the first {int} are answered
-the next one is told there are too many requests
-it is told the door's person is not available
 ```
 
 - "the response header X is Y" / "contains Y": the header of the last response (name case-insensitive), compared exactly
@@ -3211,14 +3155,6 @@ it is told the door's person is not available
   them. "no advertising, tracking or analytics" = those three words are in the "What is not done" list. "the only outside
   parties are Google and the two map services" = the same list says apart from Google the only third parties are the two
   map services.
-- "the door board has the key of "P"" (Given): `POST /api/__test/auth` with P as the only allowed address, then
-  `POST /api/__test/door { token, person: P }` with the fixed test key. "may no longer use the calendar" then changes the
-  allowed addresses to the other person, as in feature signin. "it is told the door's person is not available" = status 503.
-- "asks for its reminders N times within a minute": N sequential `GET /api/door` calls with the key, all inside one clock
-  minute (the step first waits for a fresh minute if this one already had door asks or fewer than 5 s are left, and afterwards waits for the next
-  minute so later scenarios start with an unused budget; this makes the scenario take about two minutes); the statuses are kept.
-  "the first N are answered" = those calls answered 200; "the next one is told ..." = the call after them answered 429.
-
 ```
 the server has a valid encryption key
 the server is set up for real Google sign-in
@@ -3254,20 +3190,6 @@ the server is set up with a public address and one other allowed address
 a write from the public address is accepted
 a write from the other allowed address is accepted
 a write from a foreign website is refused
-the operator's door key is only {int} characters long
-the operator's door key is {int} characters long
-the door stays off
-the door is on
-the operator is told the key must have at least 32 characters
-the server sits behind the trusted proxy
-the server does not sit behind a trusted proxy
-one client has used up its 60 asks of this minute
-{int} other clients ask once each
-the client that used up its asks is still told there are too many requests
-one client asks 70 times, each time claiming to come from a different address
-one client asks 70 times, each time claiming a different first address but arriving through the same last hop
-{int} of the asks are told there are too many requests
-a client arriving through another last hop still has its own 60 asks
 {string} shares the task list {string} with {string}
 a second shared list file on the server is damaged because {string}
 the damaged file is left out and noted in the server log
@@ -3282,6 +3204,5 @@ the damaged shared list is left out and noted in the server log
   for "an https public address" / "production mode" / "a local http address" / "development mode" / "no address at all""
   = `PUBLIC_URL=https://...` / `NODE_ENV=production` / `PUBLIC_URL=http://localhost:3000` / `NODE_ENV=development` / neither;
   "runs as the demo" = `PROVIDER=mock` (or unset); "allows running open on purpose" = `ALLOW_INSECURE_MOCK=1`; "the
-  encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes; "sits behind the
-  trusted proxy" = `TRUST_PROXY=1`, and "claiming" = the `X-Forwarded-For` header (the last entry is the proxy's own);
+  encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes;
   "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.

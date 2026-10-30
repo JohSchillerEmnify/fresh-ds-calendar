@@ -1,12 +1,18 @@
 /** Repeating task list steps (STEPS.md "Repeating task lists"): the "This week / All weeks" choice. */
 import { expect } from '@playwright/test';
+import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import { addDays } from './support/dates.js';
+import { itemsFrom } from './support/tables.js';
 import { attr, exactText, type World } from './support/world.js';
 
 const choice = (w: World) => w.page.getByTestId('repeat-scope-dialog');
 
 interface ListRow { id: string; title: string; kind: string; items: { id: string; title: string; done: boolean }[] }
+
+Given('the calendar contains a weekly task list {string} on Mondays since {date} with items:', async function (this: World, title: string, since: string, table: DataTable) {
+  await this.api.post('/api/tasklists', { title, date: since, time: null, items: itemsFrom(table), recurrence: 'weekly' });
+});
 
 Given('{string} of {string} was ticked on {date}', async function (this: World, item: string, title: string, date: string) {
   // the week of that date, as a range read lists it (its occurrence id): the tick splits that week off

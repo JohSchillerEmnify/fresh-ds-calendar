@@ -115,25 +115,6 @@ Feature: The calendar's states look right
     Then "Groceries" expands in place and shows "Tomatoes"
     And the "top row" still looks like "two-row-band-grown"
 
-  Scenario: The list form offers the door switch where the door plugin is on
-    Given the door board has the key of the owner
-    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
-      | Tomatoes |
-    When I edit the task list "Groceries"
-    Then no text in the "list form" is clipped
-    And the "list form" still looks like "door-form"
-
-  Scenario: The list sheet offers the door switch where the door plugin is on
-    Given the door board has the key of the owner
-    And the expanding task-list cards experiment is off
-    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
-      | Tomatoes |
-    When I open the day view for 2026-10-12
-    And I tap the task list "Groceries"
-    Then the task list "Groceries" opens as the list sheet
-    And no text in the "expanded task list" is clipped
-    And the "expanded task list" still looks like "door-sheet"
-
   Scenario: A grown task list in the dark theme is a box of its own
     Given the device prefers a dark color scheme
     And the two-row week overview is on
