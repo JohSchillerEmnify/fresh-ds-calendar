@@ -28,8 +28,18 @@ export async function signIn(world: World, email: string, date = '2026-10-12', d
 
 const onSignIn = (world: World) => expect(world.page.getByTestId('signin-page')).toBeVisible();
 
+/** Per scenario: who may use the calendar (so that taking one person off keeps the others). */
+const allowed = new WeakMap<World, string[]>();
+
 Given('{string} and {string} may use the calendar', async function (this: World, a: string, b: string) {
+  allowed.set(this, [a, b]);
   await this.api.setAuth([a, b]);
+});
+
+Given('{string} may no longer use the calendar', async function (this: World, email: string) {
+  const rest = (allowed.get(this) ?? []).filter((e) => e !== email);
+  allowed.set(this, rest);
+  await this.api.setAuth(rest);
 });
 
 Given(

@@ -146,7 +146,7 @@ async function backToCalendar(world: World) {
 }
 
 /** Clicks a gallery card and waits until the choice has been saved in the background. */
-async function chooseTheme(world: World, name: string) {
+export async function chooseTheme(world: World, name: string) {
   const saved = world.page.waitForResponse(isSaved);
   await card(world, name).click();
   await expect(card(world, name)).toHaveAttribute('aria-pressed', 'true');

@@ -74,7 +74,6 @@ Feature: Backup to Google Drive
     And there is no button to back up now
     And the Drive holds 0 backups of "anna@example.com"
 
-  @backlog
   Scenario: Only the last 7 backups are kept
     Given "jo@example.com" is signed in
     And I chose the theme "Neon"
@@ -95,7 +94,6 @@ Feature: Backup to Google Drive
     When I restore from the backup and confirm, twice
     Then the theme "Winter" is in use
 
-  @backlog
   Scenario: My restore does not overwrite what another person uses
     Given "jo@example.com" is signed in with the theme "Neon" backed up
     And "anna@example.com" adds the category "Garden"
