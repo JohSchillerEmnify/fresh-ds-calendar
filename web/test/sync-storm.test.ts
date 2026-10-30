@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
-import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
+import { changesFixture, config, freshPinia, mockFetch } from './helpers';
 
 const down = () => ({ status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } });
 const limited = (retryAfter?: number) => () => ({ status: 503, body: { error: { code: 'RATE_LIMITED', message: 'x' } }, headers: retryAfter ? { 'Retry-After': String(retryAfter) } : undefined });
@@ -15,7 +15,7 @@ describe('sync against a failing or rate-limited server', () => {
   function setup(route: () => unknown) {
     const m = mockFetch({
       'GET /api/config': () => config(),
-      'GET /api/items': () => route(), 'GET /api/settings': () => (route() === ok ? settingsFixture() : route()),
+      'GET /api/items': () => route(), 'GET /api/changes': () => (route() === ok ? changesFixture() : route()),
       'GET /api/calendars': () => (route() === ok ? { calendars: [] } : route()), 'GET /api/summary': () => (route() === ok ? { days: {} } : route()),
       'GET /api/tasklists/open': () => (route() === ok ? { items: [], finishedToday: [] } : route()),
       'POST /api/diag/sync-error': () => ({ status: 204 }),
@@ -56,7 +56,7 @@ describe('sync against a failing or rate-limited server', () => {
     void sync.syncNow(); // a trigger during the run
     await p;
     await vi.advanceTimersByTimeAsync(5_000);
-    expect(reads().filter((c) => c.path === '/api/settings')).toHaveLength(1);
+    expect(reads().filter((c) => c.path === '/api/changes')).toHaveLength(1);
     sync.stop();
   });
 

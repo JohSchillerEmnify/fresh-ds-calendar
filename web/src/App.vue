@@ -89,6 +89,8 @@ onMounted(() => {
   // the sign-in page has no data to sync (and every call would be refused)
   if (!route.meta.public) {
     sync.start();
+    // the device takes in what changed on the server since it last asked, also for days never opened
+    void sync.syncNow('open');
     void calendars.load().catch((e) => sync.reportError(e));
     // per-person data kept on the device: read at start so the first saved last known state has them
     void useTemplatesStore().load().catch((e) => sync.reportError(e));

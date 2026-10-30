@@ -219,6 +219,8 @@ Then('the categories are {string}', async function (this: World, list: string) {
 });
 
 Then('the category {string} has the color {string}', async function (this: World, name: string, color: string) {
+  // the categories are a part of the settings: from a calendar view the person opens them first
+  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
   await expect(categoryRow(this, name)).toHaveAttribute('data-color', new RegExp(`^${color}$`, 'i'));
 });
 

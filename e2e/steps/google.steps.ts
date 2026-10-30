@@ -236,19 +236,22 @@ When('Google becomes available again', async function (this: World) {
 const SLOW_DOWN_SEC = 4;
 
 /**
- * The next Google call answers "rate limited" (ADR 0007). Waits for two `/api/items` answers the server marked `X-Stale`
- * (served from its cache during the cooldown): the sync that hits the limit and one full poll after it, so later steps
- * see the app after a poll inside the cooldown. The cooldown ends at the latest {@link SLOW_DOWN_SEC} after the first
- * (`world.slowDownUntil`).
+ * The next Google call answers "rate limited" (ADR 0007). Waits for the answer that shows it: `/api/changes` refused with
+ * 503, or `/api/items` marked `X-Stale`. The app then backs off, so the cooldown ends at the latest {@link SLOW_DOWN_SEC}
+ * after it (`world.slowDownUntil`).
  */
 When('Google asks the app to slow down for the next sync', async function (this: World) {
   if (this.page.url().startsWith('http')) await this.settled().catch(() => undefined);
   const timeout = (this.pollIntervalMs || 30_000) + 5_000;
   this.extendTimeout(2 * timeout);
-  const isStale = (r: Response) => new URL(r.url()).pathname === '/api/items' && r.headers()['x-stale'] === '1';
+  // the device sync (`/api/changes`) answers the rate limit itself as 503; the range reads answer from the server's cache
+  const isStale = (r: Response) => {
+    const path = new URL(r.url()).pathname;
+    return (path === '/api/items' && r.headers()['x-stale'] === '1') || (path === '/api/changes' && r.status() === 503);
+  };
+  // the app then backs off for the cooldown (no second request inside it), so one answer is all there is to wait for
   const first = this.page.waitForResponse(isStale, { timeout });
   await this.api.rateLimitNext(SLOW_DOWN_SEC);
   await first;
   this.slowDownUntil = Date.now() + SLOW_DOWN_SEC * 1000;
-  await this.page.waitForResponse(isStale, { timeout });
 });

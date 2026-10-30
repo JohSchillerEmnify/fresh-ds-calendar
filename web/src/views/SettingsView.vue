@@ -27,6 +27,7 @@ import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
 import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { systemReducedMotion } from '@/motion';
@@ -43,6 +44,7 @@ import { LANGUAGE_NAMES, LANGUAGES, t, type LanguagePref } from '@/i18n';
 const router = useRouter();
 const settings = useSettingsStore();
 const clock = useClockStore();
+const device = useDeviceStore();
 const auth = useAuthStore();
 const sync = useSyncStore();
 const ui = useUiStore();
@@ -181,7 +183,7 @@ const currentStreak = computed(() => motivation.motivation?.streak.current ?? nu
 onMounted(() => {
   // The top bar (which normally starts the check-in) is not shown on this page.
   void motivation.start({ today: () => clock.today }).then(() => { if (motivation.motivation) best.value = motivation.motivation.streak.best; });
-  api.motivation().then((m: Motivation) => { best.value = m.streak.best; }, () => { best.value = null; });
+  device.read('motivation', () => api.motivation()).then((m: Motivation) => { best.value = m.streak.best; }, () => { best.value = null; });
 });
 onBeforeUnmount(() => motivation.stop());
 // --- backup to Google Drive (feature drive-backup) ---------------------------------------------

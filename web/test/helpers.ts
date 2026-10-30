@@ -45,3 +45,14 @@ export const eventFixture = (id: string, start: string, end: string, o: Record<s
   kind: 'event', id, calendarId: 'primary', title: id, description: '', location: '', allDay: false, start, end, colorId: null,
   color: '#039be5', etag: 'etag-' + id, updated: start, ...o,
 });
+
+/** An answer of `GET /api/changes` with nothing in it (the device then holds an empty calendar). */
+export const changesFixture = (o: Record<string, unknown> = {}) => ({
+  full: true, cursor: 'c1', window: { from: '2025-10-12', to: '2027-10-13' }, calendars: [],
+  events: { calendars: [], replace: [], series: [], removed: [], upserts: [], failed: [] },
+  taskLists: { replace: true, series: [], removed: [], upserts: [], failed: false },
+  files: {}, ...o,
+});
+
+/** A device window far from every date the tests look at: ranges are then asked of the server, as before the device store. */
+export const farWindow = { window: { from: '2040-01-01', to: '2042-01-01' } };

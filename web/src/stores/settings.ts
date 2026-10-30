@@ -6,6 +6,8 @@ import { applyTheme, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
 import { usePrefsStore } from './prefs';
+import { useDeviceStore } from './device';
+import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 
 export const DEFAULT_CATEGORIES: Category[] = [
@@ -33,16 +35,23 @@ export const useSettingsStore = defineStore('settings', () => {
   /** Scene the top bar shows (API.md "Scenes"): the theme's scene, whatever the streak choice; none = nothing. */
   const effectiveScene = computed<ShownScene>(() => useThemeStore().resolved.attrs.scene);
 
-  async function load(signal?: AbortSignal): Promise<void> {
-    const next = await api.settings({ signal });
-    // Skip churn when nothing changed (polling).
+  /** Takes settings from the device store or an answer; skips the churn when nothing changed (every sync). */
+  function fromDevice(next: Settings): void {
     if (next.version !== s.value.version || !loaded.value) s.value = next;
     loaded.value = true;
   }
 
-  /** Shows the last known settings until the server answers (feature last-known-state). */
-  function restore(saved: Settings): void {
-    if (!loaded.value) s.value = saved;
+  /** Reads the settings from the device store; the server only before the device has had its first sync. */
+  async function load(signal?: AbortSignal): Promise<void> {
+    const device = useDeviceStore();
+    const held = device.file<Settings>('settings');
+    fromDevice(held ?? await api.settings({ signal }));
+  }
+
+  /** The server's answer to a change is also the device copy. */
+  function keep(saved: Settings): Settings {
+    useDeviceStore().putFile('settings', saved);
+    return saved;
   }
 
   function mergeLocal(p: SettingsPatch): void {
@@ -56,13 +65,13 @@ export const useSettingsStore = defineStore('settings', () => {
     mergeLocal(p);
     try {
       try {
-        s.value = await api.patchSettings(p, { ifMatch: before.version });
+        s.value = keep(await api.patchSettings(p, { ifMatch: before.version }));
       } catch (e) {
         if (!(e instanceof ApiError && e.isConflict)) throw e;
         const fresh = await api.settings();
         s.value = fresh;
         mergeLocal(p);
-        const saved = await api.patchSettings(p, { ifMatch: fresh.version });
+        const saved = keep(await api.patchSettings(p, { ifMatch: fresh.version }));
         s.value = saved;
       }
     } catch (e) {
@@ -74,8 +83,11 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** Category mutations return the whole Settings. */
   async function categoryOp(fn: () => Promise<Settings>): Promise<Settings> {
-    const next = await fn();
+    const next = keep(await fn());
     s.value = next;
+    // the lists carry their category's colour: the device reads them all again
+    useDeviceStore().requestFull();
+    void useSyncStore().resyncAfterWrite();
     return next;
   }
   const addCategory = (c: { name: string; color: string; icon?: string | null }) => categoryOp(() => api.createCategory(c));
@@ -89,7 +101,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const before = s.value;
     s.value = { ...before, categories: ids.map((x) => before.categories.find((c) => c.id === x)!) };
     try {
-      s.value = await api.reorderCategories(ids);
+      s.value = keep(await api.reorderCategories(ids));
     } catch (e) {
       s.value = before;
       throw e;
@@ -147,6 +159,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     settings: s, loaded, saveError, categories, categoryById, effectiveScene,
-    load, restore, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
+    load, fromDevice, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
   };
 });

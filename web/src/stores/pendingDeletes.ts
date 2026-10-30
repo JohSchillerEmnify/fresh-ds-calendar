@@ -6,6 +6,7 @@ import { removeItem } from '@/features/tasklists/ops';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
+import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
 
@@ -108,7 +109,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
       send: async (keepalive) => {
         await items.deleteEvent(ev.id, ev.etag, { keepalive });
         // a birthday goes with every year: reload what the views show
-        if (ev.special) items.refreshVisible().catch(() => undefined);
+        if (ev.special) void useSyncStore().resyncAfterWrite();
       },
     }, () => items.hide(ev.id));
   }

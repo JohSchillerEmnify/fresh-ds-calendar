@@ -11,14 +11,15 @@ import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
-import { useItemsStore } from '@/stores/items';
+import { useDeviceStore } from '@/stores/device';
+import { useSyncStore } from '@/stores/sync';
 import { useSettingsStore } from '@/stores/settings';
-import { useTaskListsStore } from '@/features/tasklists/store';
 import { googleColorLabel } from '@/theme/labels';
 
 const props = defineProps<{ category?: Category }>();
 const emit = defineEmits<{ close: [] }>();
 const settings = useSettingsStore();
+const device = useDeviceStore();
 
 const name = ref(props.category?.name ?? '');
 const color = ref(props.category?.color ?? GOOGLE_COLORS[9].hex);
@@ -33,7 +34,7 @@ let sharedBefore = '';
 onMounted(async () => {
   if (!props.category) return;
   try {
-    const [p, s] = await Promise.all([api.people(), api.categoryShares()]);
+    const [p, s] = await Promise.all([device.read('people', () => api.people()), device.read('categoryShares', () => api.categoryShares())]);
     people.value = p.people;
     sharedWith.value = sharedBefore = s.shares[props.category.id]?.sub ?? '';
   } catch { /* sharing stays hidden: nobody to pick */ }
@@ -49,10 +50,9 @@ function save() {
     if (!props.category) return settings.addCategory(body);
     await settings.updateCategory(props.category.id, body);
     if (sharedWith.value === sharedBefore) return;
-    // the lists of the category move into (out of) the shared store: reload what is on screen
-    await api.shareCategory(props.category.id, sharedWith.value || null);
-    void useItemsStore().refreshVisible().catch(() => undefined);
-    void useTaskListsStore().refresh().catch(() => undefined);
+    // the lists of the category move into (out of) the shared store with new ids: the device takes in the move
+    device.putFile('categoryShares', await api.shareCategory(props.category.id, sharedWith.value || null));
+    void useSyncStore().resyncAfterWrite();
   });
 }
 </script>

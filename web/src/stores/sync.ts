@@ -2,10 +2,9 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
-import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
+import { useDeviceStore } from './device';
 import { useItemsStore } from './items';
-import { useSettingsStore } from './settings';
 import { checkServerVersion, checkVersion } from '@/pwa/update';
 import { t } from '@/i18n';
 
@@ -15,6 +14,8 @@ export function pushWidget(): void {
 }
 
 export type SyncState = 'idle' | 'syncing' | 'error';
+/** Why a sync runs: the triggers of ADR 0025 (and `changed`, which the live connection of ADR 0030 calls with). */
+export type SyncReason = 'open' | 'focus' | 'visible' | 'online' | 'retry' | 'poll' | 'changed';
 const FOCUS_DEBOUNCE_MS = 500;
 /** After a failed sync, automatic triggers wait at least the poll interval (or this, when polling is off) and any `Retry-After`. */
 const DEFAULT_BACKOFF_MS = 30_000;
@@ -102,14 +103,12 @@ export const useSyncStore = defineStore('sync', () => {
     state.value = 'idle';
   }
 
+  /** What every sync does after the device store has taken in the server's changes: re-read what is shown from it (days outside the window come from the server). */
   function builtinTasks(): [string, () => Promise<unknown>][] {
     const items = useItemsStore();
-    const settings = useSettingsStore();
     return [
       ['items', () => items.refreshVisible()],
       ['summary', () => items.refreshSummaries()],
-      ['settings', () => settings.load()],
-      ['calendars', () => useCalendarsStore().load()],
     ];
   }
 
@@ -121,11 +120,11 @@ export const useSyncStore = defineStore('sync', () => {
     if (withConfig) {
       await clock.load().catch(() => undefined);
       void checkVersion(clock.config.version, clock.config.apk);
-    } else {
-      await checkServerVersion();
     }
-    const list = [...builtinTasks(), ...tasks.entries()];
-    const results = await Promise.allSettled(list.map(([, fn]) => fn()));
+    // the device store comes first: everything else reads what it took in (the version check runs beside it, it never fails)
+    const device = await Promise.allSettled([useDeviceStore().sync(), withConfig ? undefined : checkServerVersion()]).then((r) => r.slice(0, 1));
+    const list: [string, () => Promise<unknown>][] = [['device', () => Promise.resolve()], ...builtinTasks(), ...tasks.entries()];
+    const results = [...device, ...await Promise.allSettled(list.slice(1).map(([, fn]) => fn()))];
     const failedAt = results.findIndex((r) => r.status === 'rejected' && !(r.reason instanceof ApiError && r.reason.isAbort));
     const failed = failedAt >= 0 ? (results[failedAt] as PromiseRejectedResult) : undefined;
     if (failed) {
@@ -148,8 +147,12 @@ export const useSyncStore = defineStore('sync', () => {
     return !failed;
   }
 
-  /** Run a sync now (coalesces concurrent calls; a call during a run schedules exactly one follow-up, unless that run fails). */
-  function syncNow(withConfig = false): Promise<void> {
+  /**
+   * Run a sync now (coalesces concurrent calls; a call during a run schedules exactly one follow-up, unless that run fails).
+   * The one entry point of every trigger; only focus, visibility, `online` and retry re-read the config (the app start has just read it).
+   */
+  function syncNow(reason: SyncReason = 'poll'): Promise<void> {
+    const withConfig = reason === 'focus' || reason === 'visible' || reason === 'online' || reason === 'retry';
     if (current) {
       again = true;
       return current;
@@ -169,22 +172,30 @@ export const useSyncStore = defineStore('sync', () => {
     return current;
   }
 
+  /**
+   * After a write whose effect reaches beyond the item it answered (a series, a category, a conflict): the device takes in
+   * the server's state and the views read it again. Reading the device alone would show the stale copy.
+   */
+  function resyncAfterWrite(): Promise<void> {
+    return syncNow('changed').catch(() => undefined);
+  }
+
   /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
   function markSynced(): void {
     if (state.value !== 'error') lastSync.value = new Date().toISOString();
   }
 
   function retry(): Promise<void> {
-    return syncNow(true);
+    return syncNow('retry');
   }
 
   /** A sync started by focus or visibility: skipped (the poll timer stays) during the quiet period after a failure. */
-  function syncAuto(): void {
+  function syncAuto(reason: SyncReason): void {
     if (Date.now() < quietUntil) {
       schedule();
       return;
     }
-    void syncNow(true).then(schedule);
+    void syncNow(reason).then(schedule);
   }
 
   function schedule(): void {
@@ -208,14 +219,14 @@ export const useSyncStore = defineStore('sync', () => {
       return;
     }
     visibleAt = Date.now();
-    syncAuto();
+    syncAuto('visible');
   }
   function onFocus(): void {
     focusTimer?.();
     focusTimer = appTimeout(() => {
       focusTimer = null;
       if (document.hidden) return;
-      syncAuto();
+      syncAuto('focus');
     }, FOCUS_DEBOUNCE_MS);
   }
 
@@ -226,7 +237,7 @@ export const useSyncStore = defineStore('sync', () => {
     bag.add(listen(document, 'visibilitychange', onVisible));
     bag.add(listen(window, 'focus', onFocus));
     // the network coming back is news, so it is not held back by the quiet period
-    bag.add(listen(window, 'online', () => { void syncNow(true).then(schedule); }));
+    bag.add(listen(window, 'online', () => { void syncNow('online').then(schedule); }));
     schedule();
   }
   /** Stop everything (timers and listeners). */
@@ -239,5 +250,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
 });

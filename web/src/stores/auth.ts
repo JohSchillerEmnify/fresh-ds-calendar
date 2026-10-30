@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import { dropPushSubscription } from '@/pwa/push';
-import { wipeLastKnown } from '@/lib/lastKnownDb';
+import { wipeDevice } from '@/lib/deviceDb';
 
 /** Where to go once signed in (set when the router sends a deep link to /signin). */
 export const RETURN_KEY = 'signin-return';
@@ -82,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     try { await end(endpoint); } catch { /* already signed out (401) or the server is down: leave anyway */ }
     clearPersonalStorage();
     // the calendar this device kept for the person goes too (feature last-known-state)
-    await wipeLastKnown();
+    await wipeDevice();
     window.location.replace('/signin');
   }
 

@@ -5,6 +5,7 @@ import type { TaskList } from '@/api/types';
 import { CARRY_OVER_DAYS, isCarriedOver } from '@/lib/items';
 import { differenceInCalendarDays, parseIsoDate } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { firstOpenItem, isComplete } from './format';
 
@@ -26,7 +27,15 @@ export const useTaskListsStore = defineStore('tasklists', () => {
   const finishedHere = reactive(new Set<string>());
   const loaded = ref(false);
 
+  /** The tray is worked out on the device from the lists the device store holds; the server is asked only before the device has had its first sync. */
   async function refresh(): Promise<void> {
+    if (useDeviceStore().ready) {
+      fromApi.value = [];
+      finishedFromApi.value = [];
+      items.refreshFromDevice();
+      loaded.value = true;
+      return;
+    }
     const res = await api.openTaskLists(clock.today, CARRY_OVER_DAYS);
     const alive = (l: TaskList) => !items.isDeleted(l.id); // a response in flight during a delete still lists it
     fromApi.value = res.items.filter(alive);

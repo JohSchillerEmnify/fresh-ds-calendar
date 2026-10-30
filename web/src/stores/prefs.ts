@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
+import { useDeviceStore } from './device';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
 import type { ApproachWindowHours, DaySideBySide, HeaderLayout, MinEventMinutes, StreakChoice, WeekSideBySide, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, TaskOpen, UndatedDone } from '@/api/types';
 
@@ -112,9 +113,16 @@ export const usePrefsStore = defineStore('prefs', () => {
     };
   }
 
+  /** Takes the preferences the device holds (every sync). */
+  function fromDevice(p: Partial<Prefs>): void {
+    apply(p);
+    loaded.value = true;
+  }
+
+  /** Reads the preferences from the device store; the server only before the device has had its first sync. */
   async function load(): Promise<void> {
     try {
-      apply(await api.prefs());
+      apply(useDeviceStore().file<Prefs>('prefs') ?? await api.prefs());
       loaded.value = true;
     } catch { /* offline or signed out: switches keep their defaults */ }
   }
@@ -124,12 +132,13 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = current();
     apply(p);
     try {
-      await api.patchPrefs(p);
+      const saved = await api.patchPrefs(p);
+      useDeviceStore().putFile('prefs', saved ?? current());
     } catch (e) {
       apply(before);
       throw e;
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout, loaded, load, set, current, restore: apply };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout, loaded, load, set, current, fromDevice };
 });

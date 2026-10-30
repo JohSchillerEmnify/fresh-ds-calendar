@@ -9,7 +9,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useMotivationStore } from '@/features/motivation/store';
 import { isSwipeScreen, isTouchLayout } from '@/composables/useViewport';
-import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
+import { changesFixture, config, eventFixture, farWindow, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
 let wrapper: VueWrapper | null = null;
@@ -21,6 +21,7 @@ async function mountAt(path: string, extra: Parameters<typeof mockFetch>[0] = {}
     'GET /api/config': () => config({ pollIntervalMs: 0 }),
     'GET /api/settings': () => server,
     'GET /api/calendars': () => ({ calendars: [] }),
+    'GET /api/changes': () => changesFixture(farWindow),
     'PATCH /api/settings': ({ body }) => (server = settingsFixture({ ...server, ...body, version: server.version + 1 })),
     'POST /api/categories': ({ body }) => (server = settingsFixture({ ...server, categories: [...server.categories, { id: 'new1', icon: null, googleColorId: '7', ...body }], version: server.version + 1 })),
     'GET /api/items': () => ({ items, from: 'a', to: 'b', syncedAt: 's' }),
@@ -541,8 +542,10 @@ describe('settings', () => {
   });
   it('opens the Reminders page from Settings, edits a calendar default at once and switches task list reminders', async () => {
     let defaults = [30];
+    const cals = () => [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, own: false, hidden: false, defaultReminders: [10] }];
     const { w, router, m } = await mountAt('/settings', {
-      'GET /api/calendars': () => ({ calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, own: false, hidden: false, defaultReminders: [10] }] }),
+      'GET /api/calendars': () => ({ calendars: cals() }),
+      'GET /api/changes': () => changesFixture({ ...farWindow, calendars: cals() }),
       'PATCH /api/calendars/primary': ({ body }) => { defaults = (body as { defaultReminders: number[] }).defaultReminders; return { id: 'primary', name: 'Personal', defaultReminders: defaults }; },
       'GET /api/reminders/tasks-calendar': () => ({ defaultReminders: [] }),
       'PATCH /api/prefs': () => ({}),

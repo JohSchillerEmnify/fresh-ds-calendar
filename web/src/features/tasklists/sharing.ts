@@ -4,6 +4,7 @@
  */
 import { api } from '@/api/client';
 import type { Person, TaskList } from '@/api/types';
+import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { useTaskListsStore } from './store';
 
@@ -20,7 +21,7 @@ export const withNames = (people: Person[]): string => people.map((p) => p.name)
 
 function swap(oldId: string, next: TaskList): void {
   const items = useItemsStore();
-  if (next.id !== oldId) items.remove(oldId);
+  if (next.id !== oldId) { items.remove(oldId); useDeviceStore().drop(oldId); }
   items.upsert(next);
   void useTaskListsStore().refresh().catch(() => undefined);
 }
@@ -39,5 +40,6 @@ export async function unshareList(id: string): Promise<void> {
 export async function leaveList(id: string): Promise<void> {
   await api.leaveTaskList(id);
   useItemsStore().remove(id);
+  useDeviceStore().drop(id);
   void useTaskListsStore().refresh().catch(() => undefined);
 }

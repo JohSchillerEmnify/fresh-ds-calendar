@@ -525,7 +525,7 @@ this device keeps no last known calendar
 - "last updated at T": `last-updated-note` is visible and its text ends with T (`Last updated 08:12`); "not told": it
   is absent.
 - "keeps a last known calendar": the device store (IndexedDB) holds data of a person; "keeps no ...": it holds none
-  (or does not exist), localStorage has no `cal.lastKnownPerson` and no cached theme of a person (`cal.theme`).
+  (or does not exist), localStorage has no `cal.devicePerson` and no cached theme of a person (`cal.theme` holds no own theme; the sign-in page may cache the default look).
 - Device store window (ADR 0025): events from today - 1 year to today + 1 year; every task list regardless of date.
 
 ### Live sync (`@last-known-state`, rule "Live sync", ADR 0030)

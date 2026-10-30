@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
 import { RETURN_KEY, useAuthStore } from '@/stores/auth';
-import { memoryKv, setLastKnownDb } from '@/lib/lastKnownDb';
+import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
-import { apiError, config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
+import { apiError, changesFixture, config, eventFixture, farWindow, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 function setHidden(v: boolean) {
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => v });
@@ -38,6 +38,7 @@ describe('sync store', () => {
       'GET /api/config': () => config({ pollIntervalMs: 1000 }),
       'GET /api/items': () => ({ items: [], from: 'a', to: 'b', syncedAt: 'x' }),
       'GET /api/settings': () => settingsFixture(),
+      'GET /api/changes': () => changesFixture(farWindow),
       'GET /api/calendars': () => ({ calendars: [] }),
       'GET /api/summary': () => ({ days: {} }),
       ...extra,
@@ -265,27 +266,27 @@ describe('auth store sign-out', () => {
     return replace;
   };
 
-  it('signs out of the server, clears cal.* storage except theme and language, and replaces the page', async () => {
+  it('signs out of the server, clears cal.* storage (the cached theme too, ADR 0025) except the language, and replaces the page', async () => {
     const { calls } = mockFetch({ 'POST /api/auth/signout': () => ({ status: 204 }) });
     const replace = stubLocation();
     for (const k of ['cal.canvasView', 'cal.bedtimeReminded', 'cal.theme', 'cal.themeCss', 'cal.themeMode', 'language', 'other']) localStorage.setItem(k, '1');
     sessionStorage.setItem('cal.zoomMonth', '1');
     await useAuthStore().signOut();
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['POST /api/auth/signout']);
-    expect(Object.keys(localStorage).sort()).toEqual(['cal.theme', 'cal.themeCss', 'cal.themeMode', 'language', 'other']);
+    expect(Object.keys(localStorage).sort()).toEqual(['language', 'other']);
     expect(sessionStorage.length).toBe(0);
     expect(replace).toHaveBeenCalledWith('/signin');
   });
 
-  it('removes the last known state of this device (feature last-known-state)', async () => {
+  it('removes the device store of this device (feature last-known-state)', async () => {
     mockFetch({ 'POST /api/auth/signout': () => ({ status: 204 }) });
     stubLocation();
     const kv = memoryKv();
-    setLastKnownDb(kv);
-    await kv.setOnly('-', { v: 1 });
+    setDeviceDb(kv);
+    await kv.putMany({ meta: { v: 2 } });
     await useAuthStore().signOut();
     expect(kv.data.size).toBe(0);
-    setLastKnownDb(null);
+    setDeviceDb(null);
   });
 
   it('leaves even when the server refuses (already signed out)', async () => {

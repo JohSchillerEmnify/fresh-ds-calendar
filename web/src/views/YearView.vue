@@ -28,7 +28,7 @@ watch(year, (y) => {
   const load = items.loadSummary(`${y}-01-01`, `${y + 1}-01-01`);
   // a preview loads in the background; the route change reports sync state
   if (props.preview) { load.catch(() => {}); return; }
-  load.then(() => { if (sync.error) sync.clearError(); sync.markSynced(); }, (e) => sync.reportError(e));
+  load.then((server) => { if (server) { if (sync.error) sync.clearError(); sync.markSynced(); } }, (e) => sync.reportError(e));
 }, { immediate: true });
 
 const density = (date: string) => items.summary[date]?.density ?? 0;

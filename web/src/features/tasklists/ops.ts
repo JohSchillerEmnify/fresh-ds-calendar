@@ -119,7 +119,7 @@ function enqueue(listId: string, op: Op): void {
 
 /** A change for the following occurrences of a repeating list landed: the other occurrences the views show are read again. */
 function followingDone(): void {
-  useItemsStore().refreshVisible().catch(() => undefined);
+  void useSyncStore().resyncAfterWrite();
 }
 /** `scope` of a request: only `following` goes to the server (`this` is the plain request). */
 const sent = (scope?: ChangeScope) => (scope === 'following' ? 'following' : undefined);
