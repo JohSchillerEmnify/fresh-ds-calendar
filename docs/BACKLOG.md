@@ -19,8 +19,6 @@ Tracked here so it survives across sessions. Newest first within each section. M
 - **The live clock runs 4 app timers where at most 2 are allowed** (full e2e 2026-10-26; also red on a55be8f, so older
   than that day's work). `performance.feature` "The live clock uses one timer and pauses while hidden" fails on mobile
   (`Received: 4`). Root-cause by falsification, then fix.
-- **Labs zoom month: back-to-back short events are not laid out as overlapping** (min-event-length outline, Example #6;
-  red on main since at least a7e9c5f): "title not covered". The zoom month gets no side-by-side limit.
 - **Labs Timeline: no way back to today after scrolling** (owner, 2026-10-26). After scrolling a while there is no
   Today button to jump back. The date-less Labs views (Now, Timeline) hide the top bar's date/prev/next/Today since
   2026-10-23; the Timeline needs a Today control again (spec + canvas mockup first: where it sits, maybe only once today
