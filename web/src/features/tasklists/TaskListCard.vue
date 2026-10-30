@@ -123,7 +123,7 @@ const collapsed = computed(() => titles.value);
 /** Item fit, time foot and lead, decided in one place (`cardLayout`). */
 const fit = computed(() => cardLayout({
   variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, height: props.height,
-  timed: !!tl.value.time, titled: !!title.value, open: openItems.value.length, total: tl.value.items.length,
+  timed: !!tl.value.time, titled: !!title.value, open: openItems.value.length, total: tl.value.items.length, inked: inked.value,
 }));
 /** Untitled list whose card would otherwise show no item text (chip, titles mode, or a card/block too short to fit any
  * item): surface the FIRST item where the title would be, so the overview is never blank, in every view. It renders as an

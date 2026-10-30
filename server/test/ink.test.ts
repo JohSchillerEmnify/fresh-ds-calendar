@@ -171,3 +171,12 @@ describe('ink when a list is shared and shared no more', () => {
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
   });
 });
+
+describe('ink in templates', () => {
+  it('keeps the strokes of an ink item in a template and returns them', async () => {
+    const r = await t.json('POST', '/api/templates', { name: 'Weekly shop', items: [{ title: 'Text' }, { title: '', strokes: [stroke()] }, { title: ' ' }] });
+    expect(r.status).toBe(201);
+    expect(r.body.items).toEqual([{ title: 'Text' }, { title: '', strokes: [stroke()] }]);
+    expect((await t.json('GET', '/api/templates')).body.templates[0].items[1].strokes).toEqual([stroke()]);
+  });
+});

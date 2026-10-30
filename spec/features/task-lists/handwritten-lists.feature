@@ -242,18 +242,15 @@ Feature: Labs: handwritten lists
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
 
-    @backlog
     Scenario: A calendar card shows the ink items scaled down
       When I open the day view for 2026-10-14
       Then the card of "Groceries" shows 2 ink items, scaled down
       And a pen stroke on the card draws nothing
 
-    @backlog
     Scenario: The Tasks view shows the ink items read-only
       When I open the Tasks view
       Then the task list "Groceries" shows 2 ink items, scaled down
 
-    @backlog
     Scenario: A Canvas note can be written on
       When I open the Canvas
       And I write an ink item on the note "Groceries" with the pen
@@ -349,15 +346,14 @@ Feature: Labs: handwritten lists
 
     Background:
       Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
       And I open the new task list form
 
-    @backlog
     Scenario: The undo button removes the last stroke
       When I draw 2 strokes with the pen
       And I press the undo button
       Then the writing area shows 1 stroke
 
-    @backlog
     Scenario: The Apple Pencil double tap undoes the last stroke where the device passes it on
       Given the device passes the pen double tap on
       When I draw 2 strokes with the pen
@@ -368,15 +364,14 @@ Feature: Labs: handwritten lists
 
     Background:
       Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
       And I open the new task list form
 
-    @backlog
     Scenario: The eraser end of the pen erases the strokes it touches
       Given I have drawn 2 strokes with the pen
       When I touch the first stroke with the eraser end of the pen
       Then the writing area shows 1 stroke
 
-    @backlog
     Scenario: The eraser button switches to erase mode for a pen without an eraser end
       Given I have drawn 2 strokes with the pen
       When I press the eraser button
@@ -388,10 +383,10 @@ Feature: Labs: handwritten lists
 
   Rule: A list holds about 200 KB of ink (decision Q3)
 
-    @backlog
     Scenario: A full list says so and takes no more strokes
       Given the Labs switch "Handwritten lists" is on
       And the task list "Notes" holds about 200 KB of ink
+      And I expand the task list "Notes"
       When I draw a stroke with the pen
       Then the app says the list is full and suggests starting a new list
       And nothing is drawn
@@ -400,32 +395,28 @@ Feature: Labs: handwritten lists
 
     Background:
       Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
       And I open the new task list form
 
-    @backlog
     Scenario: The default ink colour is the theme's text colour
       When I draw a stroke with the pen
       Then the stroke has the theme's text colour
 
-    @backlog
     Scenario: A preset colour can be chosen
       When I choose the ink colour preset "red"
       And I draw a stroke with the pen
       Then the stroke is red
 
-    @backlog
     Scenario: A custom colour can be chosen with the colour picker
       When I choose the custom ink colour "#12AB56" in the colour picker
       And I draw a stroke with the pen
       Then the stroke has the colour "#12AB56"
 
-    @backlog
     Scenario: A chosen colour stays readable in light and dark
       Given I choose the custom ink colour "#000000"
       When the theme is dark
       Then the stroke is adjusted so it is readable on the dark background
 
-    @backlog
     Scenario: The chosen colour is remembered on the device
       Given I choose the ink colour preset "red"
       When I open the app again
@@ -560,11 +551,9 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs, Bread, Rice, Tea"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: A screen reader reads an ink item with its position
       Then a screen reader reads the item number 2 as "Handwritten item 2 of 5"
 
-    @backlog
     Scenario: A screen reader adds the ticked state
       When I tick the item number 2
       Then a screen reader reads the item number 2 as "Handwritten item 2 of 5, ticked"

@@ -206,8 +206,8 @@ async function commitRename() {
 }
 
 // --- handwriting (feature handwritten-lists) -------------------------------------------------------------------
-/** Pen writing happens in the open list (the sheet); everywhere else ink is shown read-only. */
-const writing = computed(() => inkMode.enabled.value && !!props.closable && !props.compact);
+/** Pen writing happens in the open list (the sheet) and on Canvas notes; everywhere else ink is shown read-only. */
+const writing = computed(() => inkMode.enabled.value && (!!props.closable || !!props.compact));
 const inkWriting = useInkWriting(() => props.id, writing, () => (tl.value?.items ?? []).filter((i) => i.ink).map((i) => i.id));
 const inkLabel = (item: TaskItem, i: number): string => t(item.done ? 'ink.itemTicked' : 'ink.item', { n: i + 1, total: tl.value?.items.length ?? 0 });
 // --- list actions -----------------------------------------------------------------------------------------------
@@ -317,7 +317,7 @@ defineExpose({ root, busy });
           />
         </form>
 
-        <InkTools v-if="writing" class="inktools" :can-undo="inkWriting.canUndo.value" @undo="inkWriting.undo" />
+        <InkTools v-if="writing && !compact" class="inktools" :can-undo="inkWriting.canUndo.value" @undo="inkWriting.undo" />
 
         <footer v-if="!compact" class="foot">
           <Button variant="text" class="squeeze" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>

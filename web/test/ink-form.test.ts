@@ -26,3 +26,13 @@ describe('useInkForm', () => {
     expect(f.canUndo.value).toBe(false);
   });
 });
+
+describe('templates with ink', () => {
+  it('keeps the ink items of a list and brings them back as lines', async () => {
+    const { templateFromList, inkLinesOf } = await import('../src/features/tasklists/templates');
+    const l = { estimateMinutes: null, categoryId: null, items: [{ id: 'a', title: 'Text', done: false }, { id: 'b', title: '', done: false, ink: true as const }] };
+    const tpl = templateFromList(l, 'Shop', false, (id) => (id === 'b' ? [s(1)] : []));
+    expect(tpl.items).toEqual([{ title: 'Text' }, { title: '', strokes: [s(1)] }]);
+    expect(inkLinesOf({ id: 't', ...tpl, estimateMinutes: null, categoryId: null })).toEqual([[s(1)]]);
+  });
+});

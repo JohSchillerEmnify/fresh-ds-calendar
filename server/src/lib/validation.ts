@@ -64,10 +64,13 @@ export const canvasDocSchema = v.pipe(
   v.check((d) => new Set(d.areas.map((a) => a.id)).size === d.areas.length, 'Area ids must be unique'),
 );
 
+/** One pen point: x and y in line heights, pressure 0..1 (feature handwritten-lists). */
+const inkPoint = v.tuple([v.pipe(v.number(), v.minValue(-5), v.maxValue(500)), v.pipe(v.number(), v.minValue(-5), v.maxValue(20)), v.pipe(v.number(), v.minValue(0), v.maxValue(1))]);
+const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex) })), v.maxLength(500));
 /** `POST /api/templates`, `PUT /api/templates/:id` (feature tasklist-templates): a name, item titles, estimate, category. */
 export const templateSchema = so({
   name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(80, 'Name must be at most 80 characters')),
-  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
+  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
   estimateMinutes: v.optional(estimate),
   categoryId: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
 });
@@ -124,9 +127,6 @@ export const updateEventSchema = so({
   reminders: v.optional(reminders),
 });
 
-/** One pen point: x and y in line heights, pressure 0..1 (feature handwritten-lists). */
-const inkPoint = v.tuple([v.pipe(v.number(), v.minValue(-5), v.maxValue(500)), v.pipe(v.number(), v.minValue(-5), v.maxValue(20)), v.pipe(v.number(), v.minValue(0), v.maxValue(1))]);
-const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex) })), v.maxLength(500));
 export const createTaskListSchema = so({
   title: listTitle,
   date: v.nullable(localDate),

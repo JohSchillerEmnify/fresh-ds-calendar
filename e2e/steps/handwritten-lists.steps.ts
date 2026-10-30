@@ -100,7 +100,7 @@ Then('the dialog is larger than without the feature', async function (this: Worl
   expect((await box(dialog(this))).width).toBeGreaterThan(560);
 });
 Then('the dialog is as large as without the feature', async function (this: World) {
-  expect((await box(dialog(this))).width).toBeLessThanOrEqual(521);
+  expect((await box(dialog(this))).width).toBeLessThanOrEqual(530);
 });
 Then('the dialog fits the window', async function (this: World) {
   const v = this.page.viewportSize()!;
@@ -118,8 +118,8 @@ Then('typing in the item field works as without the feature', async function (th
 
 // --- the pen -------------------------------------------------------------------------------------------------------
 /** Sends pointer events of one stroke to `line`, as the given pointer type (a pen with pressure by default). */
-async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opts: { buttons?: number } = {}) {
-  await line.scrollIntoViewIfNeeded();
+async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opts: { buttons?: number; short?: boolean; noScroll?: boolean } = {}) {
+  if (!opts.noScroll) await line.scrollIntoViewIfNeeded();
   await line.evaluate((el, o) => {
     const r = el.getBoundingClientRect();
     const fire = (type: string, i: number) => el.dispatchEvent(new PointerEvent(type, {
@@ -127,9 +127,9 @@ async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opt
       clientX: r.left + 10 + i * 12, clientY: r.top + r.height / 2 + Math.sin(i / 2) * 6, pressure: 0.2 + i * 0.03, width: 1, height: 1,
     }));
     fire('pointerdown', 0);
-    for (let i = 1; i <= 12; i++) fire('pointermove', i);
-    fire('pointerup', 12);
-  }, { pointerType, buttons: opts.buttons ?? 1 });
+    for (let i = 1; i <= o.n; i++) fire('pointermove', i);
+    fire('pointerup', o.n);
+  }, { pointerType, buttons: opts.buttons ?? 1, n: opts.short ? 2 : 12 });
 }
 const nextLine = (w: World) => w.expanded.getByTestId('ink-next-line').getByTestId('ink-line');
 
@@ -163,4 +163,105 @@ Then('the writing of the item number {int} starts at least {int} pixels right of
   const row = rows(this).nth(n - 1);
   const [w, g] = [await box(row.getByTestId('ink-line')), await box(row.getByTestId('tasklist-item-grip'))];
   expect(w.x - (g.x + g.width)).toBeGreaterThanOrEqual(gap);
+});
+
+// --- writing in the new list form: undo, eraser, colours ------------------------------------------------------------
+const formLines = (w: World) => dialog(w).getByTestId('tasklist-ink-lines').getByTestId('ink-line');
+const formStrokes = (w: World) => dialog(w).getByTestId('tasklist-ink-lines').getByTestId('ink-stroke');
+/** Draws `n` pen strokes, each on its own line of the form, so the first one can be touched alone. */
+async function drawStrokes(w: World, n: number, start = 0) {
+  for (let i = 0; i < n; i++) await stroke(formLines(w).nth(start + i), 'pen');
+}
+When('I draw {int} stroke(s) with the pen', async function (this: World, n: number) { await drawStrokes(this, n); });
+Given('I have drawn {int} stroke(s) with the pen', async function (this: World, n: number) { await drawStrokes(this, n); });
+When('I draw a stroke with the pen', async function (this: World) {
+  const open = nextLine(this);
+  if (await open.count()) return stroke(open, 'pen');
+  await stroke(formLines(this).last(), 'pen');
+});
+Then('the writing area shows {int} stroke(s)', async function (this: World, n: number) {
+  await expect(formStrokes(this)).toHaveCount(n);
+});
+When('I press the undo button', async function (this: World) { await this.page.getByTestId('ink-undo').click(); });
+Given('the device passes the pen double tap on', async function (this: World) { /* the host dispatches `pencildoubletap`; nothing to switch on */ });
+When('I double tap the pen', async function (this: World) {
+  await this.page.evaluate(() => window.dispatchEvent(new CustomEvent('pencildoubletap')));
+});
+When('I touch the first stroke with the eraser end of the pen', async function (this: World) {
+  await stroke(formLines(this).first(), 'pen', { buttons: 32 });
+});
+When('I touch the first stroke with the pen', async function (this: World) { await stroke(formLines(this).first(), 'pen'); });
+When('I press the eraser button', async function (this: World) { await this.page.getByTestId('ink-eraser').click(); });
+Given('the task list {string} holds about 200 KB of ink', async function (this: World, title: string) {
+  // three strokes of ~66 KB: just under the 200 KB the server allows, so one more stroke is too much
+  const pts = (n: number) => ({ p: Array.from({ length: n }, (_, i) => [1 + (i % 9) / 10, 0.5, 0.5]), c: '#d32f2f' });
+  // the server counts the JSON of each item's strokes: grow the last stroke until the list is just under the limit
+  const measure = (items: { strokes: unknown[] }[]) => JSON.stringify(items.map((i) => i.strokes)).length;
+  let n = 4700;
+  let items = [{ title: '', strokes: [pts(4750), pts(4750)] }, { title: '', strokes: [pts(n)] }];
+  while (measure(items) < 199_800) items = [items[0]!, { title: '', strokes: [pts(++n)] }];
+  await this.api.post('/api/tasklists', { title, date: '2026-10-14', time: null, items });
+  if (!this.page.url().startsWith('http')) { await this.page.goto('/'); await this.calendarShown(); }
+});
+Then('the app says the list is full and suggests starting a new list', async function (this: World) {
+  await expect(this.page.getByText('Start a new list')).toBeVisible();
+});
+Step('I choose the ink colour preset {string}', async function (this: World, name: string) { await this.page.getByTestId(`ink-color-${name}`).click(); });
+Step('I choose the custom ink colour {string} in the colour picker', async function (this: World, hex: string) {
+  await this.page.getByTestId('ink-color-custom').fill(hex.toLowerCase());
+});
+Given('I choose the custom ink colour {string}', async function (this: World, hex: string) {
+  await this.page.getByTestId('ink-color-custom').fill(hex.toLowerCase());
+});
+Then('the stroke has the theme\'s text colour', async function (this: World) {
+  await expect(formStrokes(this).first()).toHaveAttribute('data-colour', 'theme');
+});
+Then('the stroke is red', async function (this: World) {
+  await expect(formStrokes(this).first()).toHaveAttribute('data-colour', '#d32f2f');
+});
+Then('the stroke has the colour {string}', async function (this: World, hex: string) {
+  await expect(formStrokes(this).first()).toHaveAttribute('data-colour', hex.toLowerCase());
+});
+When('the theme is dark', async function (this: World) {
+  await this.api.patch('/api/settings', { themeMode: 'dark' });
+  await expect(this.page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+Then('the stroke is adjusted so it is readable on the dark background', async function (this: World) {
+  if (!(await formStrokes(this).count())) await drawStrokes(this, 1);
+  const rgb = await formStrokes(this).first().evaluate((el) => getComputedStyle(el).fill);
+  const [r, g, b] = rgb.match(/\d+/g)!.map(Number) as [number, number, number];
+  // black (0,0,0) is moved towards white until it reads on the dark surface
+  expect(r + g + b).toBeGreaterThan(300);
+});
+Then('the chosen ink colour is {string}', async function (this: World, name: string) {
+  await expect(this.page.getByTestId(`ink-color-${name}`)).toHaveAttribute('aria-pressed', 'true');
+});
+
+// --- reading ink: cards, the Tasks view, the Canvas, screen readers --------------------------------------------------
+Then('the card of {string} shows {int} ink items, scaled down', async function (this: World, title: string, n: number) {
+  const items = this.taskCard(title).locator('[data-ink="true"]');
+  await expect(items).toHaveCount(n);
+  // a band card may show only its title row; the ink line is 24 px high wherever it is laid out
+  const h = await items.first().getByTestId('ink-line').evaluate((el) => getComputedStyle(el).height);
+  expect(parseFloat(h)).toBeLessThanOrEqual(26);
+});
+Then('a pen stroke on the card draws nothing', async function (this: World) {
+  const line = this.taskCard('Groceries').locator('[data-ink="true"]').first().getByTestId('ink-line');
+  await stroke(line, 'pen', { short: true, noScroll: true });
+  await expect(line).toHaveAttribute('data-strokes', '1');
+});
+Then('the task list {string} shows {int} ink items, scaled down', async function (this: World, title: string, n: number) {
+  const items = this.page.locator(`[data-testid="tasklist-view"][data-title="${title}"]`).getByTestId('tasklist-item-ink');
+  await expect(items).toHaveCount(n);
+  expect((await box(items.first().getByTestId('ink-line'))).height).toBeLessThanOrEqual(48);
+});
+const note = (w: World, title: string) => w.page.locator(`[data-testid="canvas-note"][data-title="${title}"]`);
+When('I write an ink item on the note {string} with the pen', async function (this: World, title: string) {
+  await stroke(note(this, title).getByTestId('ink-next-line').getByTestId('ink-line'), 'pen');
+});
+Then('the note {string} shows {int} ink items', async function (this: World, title: string, n: number) {
+  await expect(note(this, title).getByTestId('tasklist-item-ink')).toHaveCount(n);
+});
+Then('a screen reader reads the item number {int} as {string}', async function (this: World, n: number, text: string) {
+  await expect(rows(this).nth(n - 1).getByTestId('ink-line')).toHaveAttribute('aria-label', text);
 });

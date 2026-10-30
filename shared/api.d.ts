@@ -235,7 +235,8 @@ export interface UpdateTaskListInput {
 export interface TaskTemplate {
   id: string;
   name: string;
-  items: { title: string }[];
+  /** An ink item has an empty `title` and its `strokes` (feature handwritten-lists). */
+  items: { title: string; strokes?: InkStroke[] }[];
   estimateMinutes: number | null;
   categoryId: string | null;
 }
@@ -243,7 +244,7 @@ export interface TaskTemplate {
 /** `POST /api/templates` and `PUT /api/templates/:id` body. */
 export interface TaskTemplateInput {
   name: string;
-  items: { title: string }[];
+  items: { title: string; strokes?: InkStroke[] }[];
   estimateMinutes?: number | null;
   categoryId?: string | null;
 }

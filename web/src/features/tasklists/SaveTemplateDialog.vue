@@ -14,6 +14,7 @@ import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
+import { useInkStore } from '@/stores/ink';
 import { NAME_MAX, templateFromList, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
@@ -21,6 +22,7 @@ const props = defineProps<{ open: boolean; list: TaskList | null }>();
 const emit = defineEmits<{ close: [] }>();
 const templates = useTemplatesStore();
 const cats = useTaskCategories();
+const inkStore = useInkStore();
 const ui = useUiStore();
 
 const name = ref('');
@@ -42,7 +44,7 @@ async function save(): Promise<void> {
   if (error.value) return;
   saving.value = true;
   try {
-    await templates.add(templateFromList(props.list, name.value, cats.on.value));
+    await templates.add(templateFromList(props.list, name.value, cats.on.value, inkStore.strokes));
     ui.notify(t('tasks.templates.saved'));
     emit('close');
   } catch (e) {
@@ -62,7 +64,7 @@ async function save(): Promise<void> {
       <div class="preview">
         <span class="lab">{{ t('tasks.templates.preview') }}</span>
         <ul v-if="list?.items.length" class="items">
-          <li v-for="i in list.items" :key="i.id" class="item" data-testid="template-save-item"><span class="box" aria-hidden="true" />{{ i.title }}</li>
+          <li v-for="i in list.items" :key="i.id" class="item" data-testid="template-save-item"><span class="box" aria-hidden="true" />{{ i.ink ? t('ink.placeholder') : i.title }}</li>
         </ul>
         <p v-else class="none">{{ t('tasks.templates.noItems') }}</p>
       </div>

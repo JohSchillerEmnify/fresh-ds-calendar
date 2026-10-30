@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { clampLeft } from '@/lib/clamp';
+import { cardLayout } from '@/features/tasklists/layout';
 
 describe('clampLeft', () => {
   it('keeps an in-range anchor', () => expect(clampLeft(40, 260, 800)).toBe(40));
@@ -18,5 +19,12 @@ describe('completed task list styling', () => {
   it('struck-through class for done items', () => {
     expect(itemClass(true)).toBe('it done');
     expect(itemClass(false)).toBe('it');
+  });
+});
+
+describe('cardLayout with ink', () => {
+  it('fits fewer rows in the same height because every row is as tall as the ink line', () => {
+    const base = { variant: 'card', grown: false, titles: false, mini: false, height: 100, timed: false, titled: true, open: 6, total: 6 };
+    expect(cardLayout({ ...base, inked: true }).shown).toBeLessThan(cardLayout(base).shown);
   });
 });

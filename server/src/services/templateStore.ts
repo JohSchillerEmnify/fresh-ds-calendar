@@ -98,7 +98,7 @@ export class TemplateStore {
       id,
       name: input.name.trim(),
       // a template never keeps a tick, and an empty line is no item
-      items: input.items.map((it) => ({ title: it.title.trim() })).filter((it) => it.title.length > 0),
+      items: input.items.map((it) => ({ title: it.title.trim(), ...(it.strokes ? { strokes: it.strokes } : {}) })).filter((it) => it.title.length > 0 || it.strokes),
       estimateMinutes: input.estimateMinutes ?? null,
       categoryId: input.categoryId ?? null,
     };

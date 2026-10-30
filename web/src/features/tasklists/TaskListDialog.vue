@@ -10,6 +10,7 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import InkLine from './InkLine.vue';
 import InkTools from './InkTools.vue';
 import { useInkForm } from './useInkForm';
+import { usePenDoubleTap } from './usePenDoubleTap';
 import { useInkMode } from './useInkMode';
 import { useInkStore } from '@/stores/ink';
 import { usePrefsStore } from '@/stores/prefs';
@@ -37,7 +38,7 @@ import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
 import TemplatePill from './TemplatePill.vue';
-import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
+import { fillFromTemplate, inkLinesOf, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; draftList?: TaskList }>();
@@ -51,6 +52,7 @@ const inkForm = useInkForm();
 const toolsShown = computed(() => !editing.value && inkMode.enabled.value);
 const inking = computed(() => toolsShown.value && inkStore.mode === 'ink' && (inkMode.ruled.value || prefs.labsDrawWithFinger));
 const wide = computed(() => !editing.value && inkMode.ruled.value);
+usePenDoubleTap(inkForm.undo, () => inking.value);
 const outbox = useOutboxStore();
 const device = useDeviceStore();
 const pendingDeletes = usePendingDeletesStore();
@@ -138,6 +140,7 @@ const alsoTemplate = ref(false);
 const pill = ref<InstanceType<typeof TemplatePill> | null>(null);
 function pickTemplate(tpl: TaskTemplate) {
   Object.assign(form, fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id)));
+  inkForm.set(inkLinesOf(tpl));
   pickedTemplate.value = tpl.name;
 }
 function manageTemplates() {
@@ -191,7 +194,7 @@ async function save() {
       });
       // the list is saved; a template that fails now is only reported, the list stays
       if (alsoTemplate.value) {
-        await templates.add(templateFromForm(form, cats.on.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
+        await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
       }
     }
     void lists.refresh().catch(() => undefined);

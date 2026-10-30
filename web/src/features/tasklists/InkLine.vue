@@ -38,6 +38,7 @@ const viewBox = computed(() => `0 0 ${Math.max(widthUnits.value, reach.value)} 1
 
 const paths = computed(() => shown.value.map((s) => ({
   d: strokePath(s.p),
+  colour: s.c ?? 'theme',
   style: s.c ? { '--l': readableInk(s.c, false), '--d': readableInk(s.c, true) } : {},
 })));
 const livePath = computed(() => (live.value && !live.value.erase ? strokePath(live.value.points) : ''));
@@ -104,7 +105,8 @@ function move(e: PointerEvent): void {
   const l = live.value;
   if (!l) return;
   moved = true;
-  for (const c of e.getCoalescedEvents?.() ?? [e]) {
+  const coalesced = e.getCoalescedEvents?.() ?? [];
+  for (const c of coalesced.length ? coalesced : [e]) {
     const p = point(c);
     l.points.push(p);
     if (l.erase) erasing.value = eraseAt(erasing.value ?? props.strokes, p[0], p[1], ERASE_RADIUS);
@@ -157,7 +159,7 @@ onBeforeUnmount(() => {
     data-testid="ink-line" :data-strokes="shown.length" :role="label ? 'img' : undefined" :aria-label="label" :aria-hidden="label ? undefined : 'true'"
     @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel($event)"
   >
-    <path v-for="(p, i) in paths" :key="i" class="p" :d="p.d" :style="p.style" data-testid="ink-stroke" />
+    <path v-for="(p, i) in paths" :key="i" class="p" :d="p.d" :style="p.style" data-testid="ink-stroke" :data-colour="p.colour" />
     <path v-if="livePath" class="p" :d="livePath" :style="liveColour" />
   </svg>
 </template>
@@ -165,8 +167,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .ink { display: block; width: 100%; height: var(--ink-h, 44px); overflow: hidden; color: var(--md-sys-color-on-surface); touch-action: auto; }
 .p { fill: var(--l, currentColor); }
-@media (prefers-color-scheme: dark) { :global(:root:not([data-theme='light'])) .p { fill: var(--d, currentColor); } }
-:global(:root[data-theme='dark']) .p { fill: var(--d, currentColor); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .p { fill: var(--d, currentColor); } }
+:root[data-theme='dark'] .p { fill: var(--d, currentColor); }
 /* a finger scrolls the list, a pen draws; with "Draw with finger" a single finger draws and scrolling takes two */
 .editable { touch-action: pan-y; }
 .editable.finger { touch-action: pinch-zoom; }

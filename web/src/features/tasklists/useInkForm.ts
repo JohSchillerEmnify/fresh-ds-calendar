@@ -26,7 +26,12 @@ export function useInkForm() {
     const i = history.value.pop();
     if (i !== undefined && lines.value[i]) change(i, lines.value[i]!.slice(0, -1));
   }
+  /** Replaces the written lines (a template brings its ink items). */
+  function set(next: InkStroke[][]): void {
+    lines.value = next;
+    history.value = [];
+  }
   /** The written lines, each an ink item to create. */
   const written = computed(() => lines.value.filter((l) => l.length));
-  return { shown, change, undo, written, canUndo: computed(() => history.value.length > 0) };
+  return { shown, change, undo, set, written, canUndo: computed(() => history.value.length > 0) };
 }

@@ -7,6 +7,7 @@ import { t } from '@/i18n';
 import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
 import { useInkStore } from '@/stores/ink';
+import { usePenDoubleTap } from './usePenDoubleTap';
 
 /** Idle time after the last stroke on the empty line before it becomes an item. */
 const DRAFT_MS = 1200;
@@ -70,6 +71,7 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     else outbox.setInk(listId(), step.itemId, next);
   }
 
+  usePenDoubleTap(undo, () => active.value);
   onBeforeUnmount(flush);
   return { draft, changeDraft, change, undo, flush, canUndo: computed(() => active.value && history.value.length > 0) };
 }
