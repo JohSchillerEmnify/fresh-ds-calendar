@@ -4,6 +4,7 @@
  * `DOOR_API_TOKEN` is set (a TEST_MODE override can set or take the key away at runtime).
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { Hono, type Context } from 'hono';
 import type { Ctx } from '../../context.js';
 import { ApiException } from '../../lib/errors.js';
@@ -13,6 +14,9 @@ import { doorAnswer } from './service.js';
 
 /** Requests per minute one client may make before it is told to slow down. */
 const RATE_PER_MINUTE = 60;
+/** How many clients are counted at once; further ones share one bucket instead of wiping the counters. */
+const MAX_CLIENTS = 1000;
+const OVERFLOW = '*overflow*';
 
 /** The key and person in force: the test override wins over the config; null means no door. */
 export function doorConfig(ctx: Ctx): { token: string; person: string } | null {
@@ -32,8 +36,26 @@ function keyMatches(presented: string | undefined, token: string): boolean {
 /** The calendar and prefs key of the door's person; null when that person is unknown to this server. */
 function personOf(ctx: Ctx, email: string): { sub: string | null; prefsKey: string } | null {
   if (!ctx.auth.on) return { sub: null, prefsKey: LOCAL_PERSON };
+  // a person taken off ALLOWED_EMAILS is gone from the door as well
+  if (!ctx.auth.allows(email)) return null;
   const sub = ctx.mock ? mockSub(email) : ctx.people.all().find((p) => p.email === email.toLowerCase())?.sub ?? null;
   return sub ? { sub, prefsKey: sub } : null;
+}
+
+/**
+ * The client the rate limit counts. Behind a trusted proxy (`TRUST_PROXY`) it is the LAST `X-Forwarded-For` entry, the one
+ * the proxy itself appended; otherwise the header is client-supplied and ignored, and the socket's address is used.
+ */
+function clientKey(ctx: Ctx, c: Context): string {
+  if (ctx.config.trustProxy) {
+    const last = c.req.header('x-forwarded-for')?.split(',').at(-1)?.trim();
+    if (last) return last;
+  }
+  try {
+    return getConnInfo(c).remote.address ?? 'local';
+  } catch {
+    return 'local'; // no socket (in-process requests)
+  }
 }
 
 export const doorPlugin = {
@@ -43,12 +65,14 @@ export const doorPlugin = {
     const r = new Hono();
     const hits = new Map<string, { minute: number; n: number }>();
     const limit = (c: Context) => {
-      const who = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
       const minute = Math.floor(ctx.clock.real() / 60_000);
+      // a bounded memory for a one-client endpoint: drop expired counters first, then pool newcomers
+      if (hits.size >= MAX_CLIENTS) for (const [k, v] of hits) if (v.minute !== minute) hits.delete(k);
+      const key = clientKey(ctx, c);
+      const who = hits.has(key) || hits.size < MAX_CLIENTS ? key : OVERFLOW;
       const h = hits.get(who);
       const n = h && h.minute === minute ? h.n + 1 : 1;
       hits.set(who, { minute, n });
-      if (hits.size > 1000) hits.clear(); // a bounded memory for a one-client endpoint
       if (n > RATE_PER_MINUTE) throw new ApiException('RATE_LIMITED', 429, 'Too many requests');
     };
     r.get('/', async (c) => {

@@ -16,6 +16,8 @@ services:
     environment:
       PROVIDER: google
       SEED: "false"
+      # Caddy sits in front and sets X-Forwarded-For: the door rate limit counts its last entry
+      TRUST_PROXY: "1"
     volumes:
       - data:/data
     mem_limit: 512m

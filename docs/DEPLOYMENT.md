@@ -107,7 +107,8 @@ All variables (defaults from `server/src/config.ts`):
 | `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
 | `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
 | `ALLOWED_EMAILS` | – | comma-separated Google addresses that may sign in |
-| `DOOR_API_TOKEN`, `DOOR_PERSON` | – | optional door plugin (ADR 0003/0004): the board's key and the person it sees; unset = no door |
+| `DOOR_API_TOKEN`, `DOOR_PERSON` | – | optional door plugin (ADR 0003/0004): the board's key (at least 32 characters, e.g. `openssl rand -base64 32`; a shorter key logs a warning and leaves the door off) and the person it sees; unset = no door |
+| `TRUST_PROXY` | off | `1` when a reverse proxy in front sets `X-Forwarded-For` (the VPS compose file does): the door rate limit then counts the last entry of that header. Off, the header is ignored and the socket address is used, so never set it when the server is reachable directly |
 | `PLACE_SEARCH_URL` | `https://photon.komoot.io/api` | Photon place search the device asks directly for location suggestions (https only). Its origin is added to the CSP `connect-src`; on the VPS also change the Caddyfile CSP |
 | `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | map picture template the device loads directly (https only, needs `{z}` `{x}` `{y}`). Its origin is added to the CSP `img-src` and `connect-src` (the service worker keeps shown pictures for offline use); on the VPS also change the Caddyfile CSP |
 | `ALLOW_INSECURE_MOCK` | – | `1` lets the mock (no sign-in) start on a public HTTPS address or in production |
