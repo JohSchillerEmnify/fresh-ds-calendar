@@ -257,20 +257,17 @@ Feature: Labs: handwritten lists
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
 
-    @backlog
     Scenario: Ink is shown without a connection
       Given I have seen the day view for 2026-10-14
       When the network connection is lost
       And I open the app again
       Then the card of "Groceries" shows 2 ink items, scaled down
 
-    @backlog
     Scenario: Ink follows me to another device
       When I switch to another device
       And I open the day view for 2026-10-14
       Then the card of "Groceries" shows 2 ink items, scaled down
 
-    @backlog
     Scenario: Google Calendar only gets a placeholder title for an ink item
       Then the Google event for the task list "Groceries" has the description:
         """
@@ -278,14 +275,12 @@ Feature: Labs: handwritten lists
         ☐ Handwritten item
         """
 
-    @backlog
     Scenario: The ink is in the backup with the server files
       When the backup to Drive runs
       Then the backup holds the ink of the task list "Groceries"
 
   Rule: A shared list shares its ink with the other person
 
-    @backlog
     Scenario: The other person sees the ink
       Given the Labs switch "Handwritten lists" is on
       And "jo@example.com" has an undated task list "Groceries" with the ink items "Milk, Eggs"
@@ -296,7 +291,6 @@ Feature: Labs: handwritten lists
 
   Rule: Switching handwriting off keeps what I wrote (assumption A2)
 
-    @backlog
     Scenario: Ink items stay visible, read-only, when the feature is off
       Given the Labs switch "Handwritten lists" is off
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -483,13 +477,11 @@ Feature: Labs: handwritten lists
     Background:
       Given the Labs switch "Handwritten lists" is on
 
-    @backlog
     Scenario: A list made from a template has the template's ink items
       Given the template "Weekly shop" has the ink items "Milk, Eggs"
       When I create a task list from the template "Weekly shop"
       Then the new task list shows 2 ink items, scaled down
 
-    @backlog
     Scenario: The next occurrence of a repeating list has the ink items
       Given the calendar contains a repeating task list "Groceries" with the ink items "Milk, Eggs"
       When the next occurrence of the task list "Groceries" is created
@@ -502,7 +494,6 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: Ink written offline is visible at once and reaches another device after reconnecting
       Given the network connection is lost
       When I write an ink item with the pen
@@ -597,7 +588,6 @@ Feature: Labs: handwritten lists
 
   Rule: A ticked ink item is struck through and faded like a text item (decision G6)
 
-    @backlog
     Scenario: A ticked ink item has the strike line of a text item and is faded to about half
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Mixed" on 2026-10-14 with the ink items "Milk"
@@ -610,9 +600,10 @@ Feature: Labs: handwritten lists
 
   Rule: Left-handed mode mirrors the writing tools (decision G7)
 
-    @backlog
+    @mobile
     Scenario: The mode switch, undo, eraser and colour buttons swap sides
       Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
       And I open the new task list form
       And I note where the writing tools are
       When I turn on left-handed mode
@@ -621,7 +612,6 @@ Feature: Labs: handwritten lists
 
   Rule: Ink is scaled to the line on every screen (decision G8)
 
-    @backlog
     Scenario Outline: The same ink looks the same on every screen size
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -642,18 +632,17 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: Deleting an ink item removes its ink
       When I delete the item number 2
       Then the server holds 1 ink item for the task list "Groceries"
 
-    @backlog
     Scenario: Deleting the list removes all its ink
       When I delete the task list "Groceries"
       Then the server holds no ink for the task list "Groceries"
 
-  @mobile @backlog
+  @mobile
   Scenario: The add button never covers the writing area
     Given the Labs switch "Handwritten lists" is on
+    And the device reports pen support
     When I open the new task list form
     Then the add button covers no control of the "writing area"

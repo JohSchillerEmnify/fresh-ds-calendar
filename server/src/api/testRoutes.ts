@@ -290,6 +290,8 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.backup.forget(sub);
     return c.body(null, 204);
   });
+  // What a backup of the single local person would carry (the public backup needs a signed-in person with Drive).
+  t.get('/backup/collect', (c) => c.json({ files: ctx.backup.collect('local') }));
   t.get('/backup/drive', (c) => {
     const owner = c.req.query('owner');
     if (!owner) throw validation('owner is required', 'owner');

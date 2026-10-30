@@ -1,6 +1,7 @@
 /** Handwritten lists steps (STEPS.md "Handwritten lists"): Labs switches, the writing mode, ink items and the pen. */
 import { expect, type Locator } from '@playwright/test';
 import { Given, Step, Then, When } from './fixtures.js';
+import { call } from './sharing.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
 import { box } from './support/ui.js';
 import type { World } from './support/world.js';
@@ -421,6 +422,9 @@ When('I add the text item {string}', async function (this: World, title: string)
   const input = this.expanded.getByTestId('tasklist-new-item');
   await input.fill(title);
   await input.press('Enter');
+  // the add field is closed again, so the next click lands on its row and not on a field that closes under it
+  await input.press('Escape');
+  await expect(input).toBeHidden();
 });
 When('I click the next empty line and type {string}', async function (this: World, text: string) {
   await nextLine(this).click();
@@ -460,4 +464,159 @@ Then('the title field is not a writing area', async function (this: World) {
 Then('the collapsed task list shows the items {string}', async function (this: World, list: string) {
   const shown = this.page.locator('[data-testid="tasklist-card-item"], [data-testid="tasklist-item-title"]');
   await expect.poll(async () => (await shown.allTextContents()).map((s) => s.trim()).filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).join(', ')).toBe(list);
+});
+
+// --- where the ink lives: other people, devices, Google, the backup, the server -------------------------------------------
+const scribbles = (n: number) => Array.from({ length: n }, (_, i) => ({ title: '', strokes: [scribble(i)] }));
+
+Given('{string} has an undated task list {string} with the ink items {string}', async function (this: World, owner: string, title: string, words: string) {
+  // signing in needs the allow-list (the other person of the share is let in too)
+  await this.api.setAuth([owner, 'anna@example.com']);
+  const made = await call<{ items: { id: string }[] }>(this, owner, 'POST', '/api/tasklists', { title, date: null, items: scribbles(words.split(', ').length) });
+  expect(made.status, 'list created').toBe(201);
+  seeded.set(this, { names: words.split(', '), ids: made.body.items.map((i) => i.id) });
+});
+
+/** What the backup carries: the files it collects for the person (the Drive upload itself is feature drive-backup). */
+let backupFiles: Record<string, string> = {};
+When('the backup to Drive runs', async function (this: World) {
+  backupFiles = (await this.api.get<{ files: Record<string, string> }>('/api/__test/backup/collect')).files;
+});
+Then('the backup holds the ink of the task list {string}', async function (this: World) {
+  const ink = Object.entries(backupFiles).find(([name]) => name.endsWith('/ink.json'));
+  expect(ink, 'the backup has the ink file').toBeDefined();
+  for (const id of seeded.get(this)!.ids) expect(ink![1]).toContain(id);
+});
+
+Then('the item writing area offers no writing mode switch', async function (this: World) {
+  await expect(this.page.getByTestId('ink-mode')).toHaveCount(0);
+});
+Then('I can still tick the item number {int}', async function (this: World, n: number) {
+  const row = this.page.getByTestId('tasklist-view').first().getByTestId('tasklist-item').nth(n - 1);
+  await row.getByTestId('tasklist-item-checkbox').click();
+  await expect(row).toHaveAttribute('data-done', 'true');
+});
+
+When('I delete the task list {string}', async function (this: World) {
+  await this.expanded.getByTestId('tasklist-delete').click();
+});
+/** The ids of the seeded list that the server still holds ink for. */
+async function inkHeld(w: World): Promise<number> {
+  const { items } = await w.api.get<{ items: Record<string, unknown> }>('/api/ink');
+  return seeded.get(w)!.ids.filter((id) => id in items).length;
+}
+Then('the server holds {int} ink item(s) for the task list {string}', async function (this: World, n: number) {
+  this.extendTimeout(30_000);
+  await expect.poll(() => inkHeld(this), { timeout: 20_000 }).toBe(n);
+});
+Then('the server holds no ink for the task list {string}', async function (this: World) {
+  this.extendTimeout(30_000);
+  await expect.poll(() => inkHeld(this), { timeout: 20_000 }).toBe(0);
+});
+
+// --- templates and repeating lists ---------------------------------------------------------------------------------------
+const made = new WeakMap<World, string>();
+Given('the template {string} has the ink items {string}', async function (this: World, name: string, words: string) {
+  await this.api.post('/api/templates', { name, items: scribbles(words.split(', ').length) });
+});
+When('I create a task list from the template {string}', async function (this: World, name: string) {
+  await this.page.goto('/');
+  await this.calendarShown();
+  await this.page.getByTestId('create-button').click();
+  await this.page.getByTestId('new-kind-tasklist').click();
+  await expect(dialog(this)).toBeVisible();
+  await dialog(this).getByTestId('tasklist-from-template').click();
+  await this.page.getByTestId('template-picker').getByTestId('template-picker-item').and(this.page.locator(`[data-name="${name}"]`)).click();
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/tasklists' && r.request().method() === 'POST');
+  await dialog(this).getByTestId('tasklist-save').click();
+  expect((await saved).status(), 'list created').toBe(201);
+  await expect(dialog(this)).toBeHidden();
+  made.set(this, name);
+});
+Then('the new task list shows {int} ink items, scaled down', async function (this: World, n: number) {
+  await this.page.getByTestId('view-switch-tasks').click();
+  const items = this.page.locator(`[data-testid="tasklist-view"][data-title="${made.get(this)}"]`).getByTestId('tasklist-item-ink');
+  await expect(items).toHaveCount(n);
+  expect((await box(items.first().getByTestId('ink-line'))).height).toBeLessThanOrEqual(48);
+});
+Given('the calendar contains a repeating task list {string} with the ink items {string}', async function (this: World, title: string, words: string) {
+  await this.api.post('/api/tasklists', { title, date: '2026-10-12', time: null, items: scribbles(words.split(', ').length), recurrence: 'weekly' });
+  await this.page.goto('/');
+  await this.calendarShown();
+});
+When('the next occurrence of the task list {string} is created', async function (this: World) {
+  await this.page.goto('/day/2026-10-19');
+  await this.settled();
+});
+Then('the next occurrence shows {int} ink items, scaled down', async function (this: World, n: number) {
+  const items = this.taskCard('Groceries').locator('[data-ink="true"]');
+  await expect(items).toHaveCount(n);
+});
+
+// --- ticked ink, scaling, left-handed -------------------------------------------------------------------------------------
+Then('the ink item number {int} has the same strike line as the text item number {int}', async function (this: World, ink: number, text: number) {
+  await expect(inkRow(this, ink)).toHaveAttribute('data-done', 'true');
+  // the text strike draws itself over a short transition
+  await expect.poll(() => inkRow(this, text).locator('.tt').evaluate((el) => getComputedStyle(el).backgroundSize)).toBe('100% 1.6px');
+  const [a, b] = await Promise.all([
+    inkRow(this, ink).getByTestId('tasklist-item-ink').evaluate((el) => { const s = getComputedStyle(el, '::after'); return { h: s.height, top: parseFloat(s.top) / el.getBoundingClientRect().height, colour: s.backgroundColor, text: getComputedStyle(el).color }; }),
+    inkRow(this, text).locator('.tt').evaluate((el) => { const s = getComputedStyle(el); return { size: s.backgroundSize, pos: s.backgroundPositionY, text: s.color }; }),
+  ]);
+  expect(b.size).toMatch(/1\.6px$/);
+  expect(parseFloat(a.h)).toBeCloseTo(1.6, 1);
+  expect(a.top).toBeCloseTo(0.55, 1);
+  expect(b.pos).toBe('55%');
+  expect(a.colour).toBe(a.text);
+  expect(a.text).toBe(b.text);
+});
+Then('the ink item number {int} is faded to about half', async function (this: World, n: number) {
+  const cell = inkRow(this, n).getByTestId('tasklist-item-ink');
+  await expect.poll(async () => Number(await cell.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.4);
+  expect(Number(await cell.evaluate((el) => getComputedStyle(el).opacity))).toBeLessThan(0.65);
+});
+
+/** The proportions of the ink of the first item to its line, at one window width. */
+async function inkProportions(w: World, title: string, width: number) {
+  await w.page.setViewportSize({ width, height: 900 });
+  await w.page.goto('/day/2026-10-14');
+  await w.calendarShown();
+  await expandTaskList(w, title);
+  await expect(inkOf(w, 1)).toBeVisible();
+  return inkOf(w, 1).evaluate((svg) => {
+    const line = svg.getBoundingClientRect();
+    const p = svg.querySelector('[data-testid="ink-stroke"]')!.getBoundingClientRect();
+    return { w: p.width / line.height, h: p.height / line.height, inside: p.right <= line.right + 0.5 && p.left >= line.left - 0.5 && p.bottom <= line.bottom + 0.5 && p.top >= line.top - 0.5 };
+  });
+}
+const scaled = new WeakMap<World, { w: number; h: number; inside: boolean }>();
+When('I expand the task list {string} on a screen {int} pixels wide', async function (this: World, title: string, width: number) {
+  scaled.set(this, await inkProportions(this, title, width));
+  this.scaleTitle = title;
+});
+Then('the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen', async function (this: World, _n: number, ref: number) {
+  const mine = scaled.get(this)!;
+  const there = await inkProportions(this, this.scaleTitle!, ref);
+  expect(mine.w).toBeCloseTo(there.w, 1);
+  expect(mine.h).toBeCloseTo(there.h, 1);
+});
+Then('the ink of the item number {int} is not cut off', async function (this: World) {
+  expect(scaled.get(this)!.inside).toBe(true);
+});
+
+const toolBoxes = async (w: World) => dialog(w).getByTestId('ink-tools').evaluate((row) => {
+  const r = row.getBoundingClientRect();
+  const parts = [...row.querySelectorAll('[data-testid="ink-mode"], [data-testid="ink-undo"], [data-testid="ink-eraser"], [data-testid^="ink-color-"]')];
+  return { width: r.width, parts: parts.map((el) => { const b = (el.closest('label') ?? el).getBoundingClientRect(); return { id: el.getAttribute('data-testid')!, x: b.x - r.x, w: b.width, y: b.y - r.y }; }) };
+});
+const toolsBefore = new WeakMap<World, Awaited<ReturnType<typeof toolBoxes>>>();
+When('I note where the writing tools are', async function (this: World) { toolsBefore.set(this, await toolBoxes(this)); });
+Then('every writing tool is at the mirror image of where it was, within {int} pixel', async function (this: World, px: number) {
+  const before = toolsBefore.get(this)!;
+  const after = await toolBoxes(this);
+  expect(after.parts.map((p) => p.id).sort()).toEqual(before.parts.map((p) => p.id).sort());
+  for (const b of before.parts) {
+    const a = after.parts.find((p) => p.id === b.id)!;
+    expect(Math.abs(a.x - (before.width - b.x - b.w)), `${b.id} x`).toBeLessThanOrEqual(px);
+    expect(Math.abs(a.y - b.y), `${b.id} y`).toBeLessThanOrEqual(px);
+  }
 });
