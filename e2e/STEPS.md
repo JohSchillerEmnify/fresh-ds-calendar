@@ -2786,8 +2786,8 @@ the server plans the push {string} saying {string} for {date} {time}
 
 ```
 the two-row week overview is on
-the expanding task-list cards experiment is on
-the expanding task-list cards experiment is off
+tapping a task list grows it in place
+tapping a task list opens the list sheet
 the split is set to three days on top
 I open the week of {date} on a phone
 all seven days are laid out in two rows

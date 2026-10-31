@@ -64,9 +64,8 @@ const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
  * the pill-and-list presentation the owner wants on a tap, never a detour to the sheet (owner, 2026-10-19).
  */
 function toggle() {
-  // Growing in place is a Labs experiment (owner, 2026-10-19: it does not work properly yet); off, or with the setting
-  // "Tapping a task list: drawer", a tap opens the list sheet.
-  if (prefs.taskOpen === 'drawer' || !prefs.labsGrowCards) {
+  // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
+  if (prefs.taskOpen === 'drawer') {
     el.value?.focus({ preventScroll: true });
     ui.revealTask(tl.value.id);
     return;

@@ -11,7 +11,7 @@ Feature: Rewarding feedback and delightful motion
 
   Background:
     Given the calendar is empty
-    And the expanding task-list cards experiment is on
+    And tapping a task list grows it in place
     And today is 2026-10-12
     And the calendar contains a task list "Groceries" on 2026-10-12 with items:
       | item  | done |

@@ -191,8 +191,7 @@ switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; a
 per id. A missing id follows the client's registry default (Strip off, others on).
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
-open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs switch for growing cards in place (off, a
-tap opens the list sheet).
+open the list sheet.
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; any other value is a 400; feature nav-position).
 The person pref `headerLayout` (`'two-rows' | 'one-row'`, default `'two-rows'`; anything else is a 400) is the phone's
