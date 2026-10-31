@@ -134,9 +134,9 @@ Then('the seven days are side by side in a single row', async function (this: Wo
   expect(new Set(tops).size).toBe(1);
 });
 
-Given('the expanding task-list cards experiment is on', async function (this: World) {
-  await this.api.patch('/api/prefs', { labsGrowCards: true });
+Given('tapping a task list grows it in place', async function (this: World) {
+  await this.api.patch('/api/prefs', { taskOpen: 'inline' });
 });
-Given('the expanding task-list cards experiment is off', async function (this: World) {
-  await this.api.patch('/api/prefs', { labsGrowCards: false });
+Given('tapping a task list opens the list sheet', async function (this: World) {
+  await this.api.patch('/api/prefs', { taskOpen: 'drawer' });
 });

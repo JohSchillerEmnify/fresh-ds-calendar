@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-31
+- Tapping a task list now follows your setting again: with "Tapping a task list: Grows in place" the list grows right where it is; with "Opens the list sheet" the sheet opens. A hidden extra switch had overridden it.
 - New events now always take the colour of the calendar you choose; you can still pick another colour for a single event. The "Default event color" setting is gone.
 
 ## 2026-10-30

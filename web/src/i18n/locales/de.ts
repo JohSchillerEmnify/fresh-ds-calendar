@@ -173,7 +173,6 @@ export default {
     labs: {
       views: { title: 'Anzubietende experimentelle Ansichten' },
       experimental: { label: 'Experimentelle Ansichten', hint: 'Uhr, Zeitstrahl und Streifen in der Ansichtswahl' },
-      growCards: { label: 'Aufklappende Aufgabenlisten-Karten', hint: 'Ein Tipp auf eine Aufgabenliste im Kalender klappt die Karte an Ort und Stelle auf; aus: er öffnet die Liste' },
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen', hint: 'Die Woche in zwei Zeilen darstellen, sodass alle sieben Tage ohne Scrollen auf einen Bildschirm passen', split: 'Tage in der oberen Zeile' },
     },
     account: {

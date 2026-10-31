@@ -115,8 +115,6 @@ export interface Prefs {
   weekTwoRow: boolean;
   /** Days on the overview's top row: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
   weekTwoRowTop: 3 | 4;
-  /** Labs: a tap on a task-list card grows it in place (the grown card); off, a tap opens the list sheet. */
-  labsGrowCards: boolean;
   /** Labs: items of a task list can be written by hand with a pen (feature handwritten-lists); off, existing ink stays visible and tickable. */
   labsHandwriting: boolean;
   /** Labs: a finger draws in the writing area too (two fingers scroll); off, only a pen draws. */

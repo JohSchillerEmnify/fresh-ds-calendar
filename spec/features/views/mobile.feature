@@ -9,7 +9,7 @@ Feature: Mobile-first layout
   Background:
     Given I am using a phone
     And the calendar is empty
-    And the expanding task-list cards experiment is on
+    And tapping a task list grows it in place
     And today is 2026-10-12
 
   Scenario Outline: No horizontal page scroll in any view

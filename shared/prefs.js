@@ -90,7 +90,6 @@ export const PREFS = {
   notify: { default: DEFAULT_NOTIFY, merge: true, parse: parseNotify },
   weekTwoRow: bool(false),
   weekTwoRowTop: oneOf([3, 4], 4, 'weekTwoRowTop must be 3 or 4'),
-  labsGrowCards: bool(false),
   labsHandwriting: bool(false),
   labsDrawWithFinger: bool(false),
   minEventMinutes: oneOf([0, 15, 30], 0, 'minEventMinutes must be 0, 15 or 30'),
