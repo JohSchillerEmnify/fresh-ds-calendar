@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import InkLine from '@/features/tasklists/InkLine.vue';
@@ -121,5 +122,36 @@ describe('InkLine', () => {
     svg.dispatchEvent(ev('pointerup', 80, 20, pen));
     const out = w.emitted('change')![0]![0] as { p: number[][] }[];
     expect(out[0]!.p.every((q) => q[0]! < 3)).toBe(true);
+  });
+  it('a finger touching after a pen hover gives the pan back', async () => {
+    const { w, svg } = setup();
+    svg.dispatchEvent(ev('pointerenter', 10, 20, { pointerType: 'pen' }));
+    expect(svg.style.touchAction).toBe('none');
+    await nextTick();
+    expect(w.classes()).toContain('pen');
+    svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'touch' }));
+    await nextTick();
+    expect(svg.style.touchAction).toBe('');
+    expect(w.classes()).not.toContain('pen');
+  });
+
+  it('a pen going down sets touch-action at once, and losing editable or unmounting resets it', async () => {
+    const { w, svg } = setup();
+    svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'pen' }));
+    expect(svg.style.touchAction).toBe('none');
+    await w.setProps({ editable: false });
+    expect(svg.style.touchAction).toBe('');
+    await w.setProps({ editable: true });
+    svg.dispatchEvent(ev('pointerenter', 10, 20, { pointerType: 'pen' }));
+    expect(svg.style.touchAction).toBe('none');
+    w.unmount();
+    expect(svg.style.touchAction).toBe('');
+  });
+
+  it('a cancelled pen stroke of one point is not saved', () => {
+    const { w, svg } = setup();
+    svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'pen' }));
+    svg.dispatchEvent(ev('pointercancel', 10, 20, { pointerType: 'pen' }));
+    expect(w.emitted('change')).toBeUndefined();
   });
 });

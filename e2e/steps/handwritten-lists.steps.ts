@@ -755,3 +755,9 @@ Then('the writing area does not let the browser pan', async function (this: Worl
 Then('the writing area lets a finger pan the list up and down', async function (this: World) {
   await expect.poll(() => touchAction(this)).toBe('pan-y');
 });
+When('I touch the ink item number {int} with a finger', async function (this: World, n: number) {
+  await inkOf(this, n).evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 31, pointerType: 'touch', isPrimary: true, clientX: r.left + 60, clientY: r.top + r.height / 2, buttons: 1, width: 1, height: 1 }));
+  });
+});

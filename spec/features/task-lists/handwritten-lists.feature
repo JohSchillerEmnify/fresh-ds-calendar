@@ -175,6 +175,11 @@ Feature: Labs: handwritten lists
       When I move the pen away from the writing area
       Then the writing area lets a finger pan the list up and down
 
+    Scenario: A finger touching the writing area after the pen was over it can scroll again
+      When I hold the pen over the ink item number 3
+      And I touch the ink item number 3 with a finger
+      Then the writing area lets a finger pan the list up and down
+
     Scenario: A resting palm does not draw while the pen writes
       When I rest my palm on the writing area and draw a stroke with the pen
       Then only the pen stroke is drawn
