@@ -211,3 +211,25 @@ When('I hide where carried-over task lists come from in the settings', async fun
   expect((await saved).status(), 'prefs saved').toBe(200);
   await this.page.getByTestId('settings-back').click();
 });
+
+// --- the open tasks row of the phone's bottom bar (tray option C) ------------------------------------------------------
+
+const barRow = (w: World) => w.page.getByTestId('bottom-bar').getByTestId('task-tray-toggle');
+
+Then('the bottom bar shows the open tasks {string} with the names {string}', async function (this: World, count: string, names: string) {
+  await expect(barRow(this).getByTestId('task-tray-count')).toHaveText(exactText(count));
+  await expectJoined(barRow(this).getByTestId('task-tray-chip'), names);
+});
+
+Then('the bottom bar has no open tasks row', async function (this: World) {
+  await expect(this.page.getByTestId('bottom-bar')).toBeVisible();
+  await expect(barRow(this)).toHaveCount(0);
+});
+
+Then('the open tasks row is hidden', async function (this: World) {
+  await expect.poll(() => barRow(this).evaluate((el) => el.getBoundingClientRect().top >= innerHeight - 1), { message: 'row out of the viewport' }).toBe(true);
+});
+
+Then('the open tasks row is shown', async function (this: World) {
+  await expect.poll(() => barRow(this).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), { message: 'row inside the viewport' }).toBe(true);
+});

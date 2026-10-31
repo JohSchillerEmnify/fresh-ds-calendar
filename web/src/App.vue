@@ -117,6 +117,8 @@ onBeforeUnmount(() => {
 // CSS (FAB, tray, snackbar) follows the position through one attribute on <html>
 watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; if (p !== 'drawer') ui.sideMenuOpen = false; }, { immediate: true });
 watch(barSize.bottom, (v) => { document.documentElement.dataset.barSize = v; }, { immediate: true });
+// the + stands beside the phone's bottom bar in the calendar views, lifted above it in the Tasks view
+watch(() => isPhone.value && navPosition.value === 'bottom' && !route.meta.tasks, (v) => { document.documentElement.dataset.fabBeside = String(v); }, { immediate: true });
 watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v); ui.barHidden = v; }, { immediate: true });
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });

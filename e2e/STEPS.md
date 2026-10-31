@@ -3365,6 +3365,10 @@ the bottom bar size is set to {string}
 I choose {string} as the bottom bar size
 the bottom bar size {string} is the default
 the bottom bar floats above the calendar
+the bottom bar shows the open tasks {string} with the names {string}
+the bottom bar has no open tasks row
+the open tasks row is hidden
+the open tasks row is shown
 the bottom bar floats {int} pixels from the edges of the screen
 the calendar ends above the bottom bar
 nothing is reserved at the bottom of the screen
@@ -3418,6 +3422,11 @@ the floating toolbar is shown
   `[data-scroll-area]` and of `task-tray` is at or above the top of the bar. "nothing is reserved at the bottom of the
   screen": the lowest of the visible `[data-scroll-area]` and `task-tray` boxes ends within 1 px of `innerHeight` (the room
   of a slid-away bar is given back).
+- Open tasks row (tray option C, feature open-tasks-in-sight): on a phone the open tasks are the row `task-tray-toggle` inside
+  the `bottom-bar` element: `task-tray-count` ("3 open") and one `task-tray-chip` per open list in tray order (their texts joined
+  by ", " are the names). "the bottom bar shows the open tasks C with the names N": the count text is C and the chip texts joined
+  are N, both inside `bottom-bar`. "has no open tasks row": no `task-tray-toggle` inside `bottom-bar`. "the open tasks row is
+  hidden / shown": the row's box is out of / inside the viewport (it slides with the bar). Hooks: `task-tray-toggle`, `task-tray-count`, `task-tray-chip`.
 - Meaning, for the builder: "filled" = a solid primary-coloured container (M3 filled button, FAB); "tonal" = secondary
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
   shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
