@@ -26,9 +26,12 @@ const r2 = (n: number): string => n.toFixed(3);
 /** perfect-freehand thinks in pixels; the stroke is scaled to a 24 px line and back so its tuning holds for line-height units. */
 const PX = 24;
 
-/** SVG path data of a stroke in line-height units; the width follows the pressure (decision Q4). */
+/** How much the width follows the pressure: 0.2 keeps the thinnest line at about 70 % of the thickest. */
+const THINNING = 0.2;
+
+/** SVG path data of a stroke in line-height units; the width follows the pressure only moderately (decision Q4). */
 export function strokePath(points: InkPoint[]): string {
-  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: 3, thinning: 0.6, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
+  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: 3, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
     .map(([x, y]) => [x! / PX, y! / PX] as [number, number]);
   if (outline.length < 4) return '';
   let [a, b] = [outline[0]!, outline[1]!];

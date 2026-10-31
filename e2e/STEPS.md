@@ -3385,6 +3385,14 @@ I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
 the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
+I draw a stroke with the pen at the pressure {float}
+the harder stroke is thicker, but at most {float} times as thick as the lighter one
+I draw a stroke {int} pixels downwards with the pen on the ink item number {int}
+the list has not scrolled
+I hold the pen over the ink item number {int}
+I move the pen away from the writing area
+the writing area does not let the browser pan
+the writing area lets a finger pan the list up and down
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3481,6 +3489,12 @@ the server holds no ink for the task list {string}
 - "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
   finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
   is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
+- Pen width and panning (Windows pen): "at the pressure P" is a synthetic `pen` stroke with that constant pressure; "the harder stroke
+  is thicker, but at most R times as thick as the lighter one" measures each stroke path across its middle (`isPointInFill`, line
+  heights). "I draw a stroke D pixels downwards with the pen on the ink item N" and "I hold the pen over / move the pen away from"
+  use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
+  scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
+  "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`).
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).

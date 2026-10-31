@@ -24,6 +24,8 @@ const svg = ref<SVGSVGElement | null>(null);
 const live = ref<{ points: InkPoint[]; colour: string | null; erase: boolean } | null>(null);
 /** The strokes as an erase gesture leaves them while it is still going on. */
 const erasing = ref<InkStroke[] | null>(null);
+/** A pen is over or on the line: the browser must not pan from it (a pen is panned like a finger unless `touch-action` says no). */
+const penOver = ref(false);
 /** A pen was last at work at this time (ms); a touch right after it is a palm (decision R1). */
 let penAt = 0;
 const PALM_MS = 800;
@@ -79,7 +81,7 @@ function scroller(): HTMLElement | null {
 let activeId = -1;
 let moved = false;
 function down(e: PointerEvent): void {
-  if (e.pointerType === 'pen') { ink.notePen(); penAt = Date.now(); }
+  if (e.pointerType === 'pen') { ink.notePen(); penAt = Date.now(); penOver.value = true; }
   if (!props.editable) return;
   moved = false;
   if (e.pointerType === 'touch') {
@@ -137,6 +139,15 @@ function up(e: PointerEvent): void {
   }
   emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
 }
+/** The pen came into or left the line (hovering counts); a finger or mouse changes nothing. */
+function penAbove(e: PointerEvent, over: boolean): void {
+  if (e.pointerType === 'pen') penOver.value = over;
+}
+/** A pen the browser cancelled keeps what it wrote so far; any other cancel drops the stroke. */
+function cancelled(e: PointerEvent): void {
+  if (e.pointerType === 'pen' && live.value && e.pointerId === activeId) up(e);
+  else cancel(e);
+}
 function cancel(e?: PointerEvent): void {
   if (e) fingers.delete(e.pointerId);
   live.value = null;
@@ -161,9 +172,10 @@ onBeforeUnmount(() => {
 
 <template>
   <svg
-    ref="svg" class="ink" :class="{ editable, finger: editable && prefs.labsDrawWithFinger }" :viewBox="viewBox" preserveAspectRatio="xMinYMid meet"
+    ref="svg" class="ink" :class="{ editable, finger: editable && prefs.labsDrawWithFinger, pen: editable && penOver }" :viewBox="viewBox" preserveAspectRatio="xMinYMid meet"
     data-testid="ink-line" :data-strokes="shown.length" :role="label ? 'img' : undefined" :aria-label="label" :aria-hidden="label ? undefined : 'true'"
-    @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel($event)"
+    @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancelled"
+    @pointerenter="penAbove($event, true)" @pointerleave="penAbove($event, false)"
   >
     <path v-for="(p, i) in paths" :key="i" class="p" :d="p.d" :style="p.style" data-testid="ink-stroke" :data-colour="p.colour" />
     <path v-if="livePath" class="p" :d="livePath" :style="liveColour" />
@@ -178,4 +190,6 @@ onBeforeUnmount(() => {
 /* a finger scrolls the list, a pen draws; with "Draw with finger" a single finger draws and scrolling takes two */
 .editable { touch-action: pan-y; }
 .editable.finger { touch-action: pinch-zoom; }
+/* a pen over the line writes and never pans (on Windows the browser pans a pen on `pan-y` and cancels the stroke) */
+.editable.pen { touch-action: none; }
 </style>
