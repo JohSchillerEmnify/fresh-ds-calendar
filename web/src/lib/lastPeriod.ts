@@ -21,3 +21,8 @@ export function resumePath(now = Date.now()): string | null {
     return null;
   }
 }
+
+/** Forgets the remembered period (the person was signed out: the next one on this device starts at today). */
+export function forgetPeriod(): void {
+  try { localStorage.removeItem(KEY); } catch { /* storage unavailable */ }
+}

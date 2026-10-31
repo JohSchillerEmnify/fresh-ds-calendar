@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { RESUME_MS, rememberPeriod, resumePath } from '@/lib/lastPeriod';
+import { RESUME_MS, forgetPeriod, rememberPeriod, resumePath } from '@/lib/lastPeriod';
+import { homeTarget } from '@/router';
 
 describe('lastPeriod', () => {
   beforeEach(() => localStorage.clear());
@@ -25,5 +26,25 @@ describe('lastPeriod', () => {
     expect(resumePath(1001)).toBeNull();
     localStorage.setItem('cal.lastPeriod', 'garbage');
     expect(resumePath(1001)).toBeNull();
+  });
+
+  it('does not remember a path that is not a calendar period', () => {
+    rememberPeriod('/settings', 1000);
+    rememberPeriod('//evil.test/x', 1000);
+    expect(resumePath(1001)).toBeNull();
+  });
+
+  it('forgets the period on request', () => {
+    rememberPeriod('/month/2026-12', 1000);
+    forgetPeriod();
+    expect(resumePath(1001)).toBeNull();
+  });
+});
+
+describe('homeTarget', () => {
+  it('prefers the page wanted before sign-in, then the resumed period, then the default view', () => {
+    expect(homeTarget('/week/2026-12-07', '/month/2026-12', null)).toBe('/week/2026-12-07');
+    expect(homeTarget(null, '/month/2026-12', null)).toBe('/month/2026-12');
+    expect(homeTarget(null, null, null)).toBeNull();
   });
 });

@@ -1,10 +1,11 @@
 import { listen } from '@/lib/timers';
 
-/** Width (px) of the screen edges the system keeps for its back gesture (iOS left edge; Android gesture navigation both). */
-const SYSTEM_EDGE_PX = 24;
+const SYSTEM_EDGE_PX = 16;
 
-/** Whether a touch starting at `x` begins in a system gesture edge, so it belongs to the system and not to a swipe. */
-export const inSystemEdge = (x: number): boolean => x <= SYSTEM_EDGE_PX || x >= window.innerWidth - SYSTEM_EDGE_PX;
+/** A touch starting here is the system's back gesture, not a swipe: left edge everywhere, right edge on Android only. */
+export function inSystemEdge(x: number, ua: string = navigator.userAgent, width: number = window.innerWidth): boolean {
+  return x <= SYSTEM_EDGE_PX || (/Android/i.test(ua) && x >= width - SYSTEM_EDGE_PX);
+}
 
 export interface SwipeOptions {
   onLeft?: () => void;
