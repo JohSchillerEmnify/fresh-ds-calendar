@@ -131,8 +131,6 @@ export default {
     },
     calendar: {
       defaultView: 'Standard-Ansicht, yo',
-      defaultEventColor: 'Standardfarbe für Termine, fresh',
-      calendarColor: 'Farbe vom Kalender, yo',
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Kopfzeilengröße, yo', hint: 'Aufm Handy, Digga; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
       bottomBarSize: { label: 'Untere Leiste Größe, Digga', hint: 'Aufm Handy, Digga' },
@@ -182,7 +180,6 @@ export default {
     labs: {
       views: { title: 'Welche Experimente sollen mit, yo' },
       experimental: { label: 'Experimentelle Ansichten, yo', hint: 'Uhr, Zeitstrahl und Streifen in der Ansichtswahl. Fresh D. hat das gecheckt, seit Billionen Jahren.' },
-      growCards: { label: 'Aufklappende Aufgabenlisten-Karten, yo', hint: 'Tipp auf eine Aufgabenliste im Kalender klappt die Karte direkt auf; aus: macht die Liste auf, Digga' },
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen, yo', hint: 'Die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf den Screen passen, Digga', split: 'Tage in der oberen Zeile, yo' },
     },
     account: {

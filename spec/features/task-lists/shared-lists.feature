@@ -58,7 +58,7 @@ Feature: Sharing task lists with another person
     Then "bob@example.com" cannot read the shared task list "Groceries"
 
   @conflict
-  Scenario: Editing a shared list that the other person changed in the meantime
+  Scenario: Editing a shared list that the other person changed in the meantime, the last change wins (ADR 0031)
     Given automatic sync is disabled
     And the live connection is blocked
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -69,7 +69,9 @@ Feature: Sharing task lists with another person
     And I fill in the task list form with:
       | title | Food |
     And I save the task list
-    Then the task list dialog shows the error "This task list was changed elsewhere. Reload it and try again."
+    Then the task list dialog is closed
+    And "anna@example.com" sees the task lists "Food"
+    And the card of the task list "Food" in the Tasks view shows the items "Milk, Eggs"
 
   @backlog
   Scenario: Everyone sees the owner's category on a shared list

@@ -141,14 +141,6 @@ Then('the default view {string} is selected', async function (this: World, label
   await expect.poll(() => selectedLabel(this.page.getByTestId('settings-default-view'))).toBe(label);
 });
 
-When('I choose {string} as the default event color', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-default-event-color'), label);
-});
-
-Then('the default event color {string} is selected', async function (this: World, label: string) {
-  await expect.poll(() => selectedLabel(this.page.getByTestId('settings-default-event-color'))).toBe(label);
-});
-
 When('I switch to another device', async function (this: World) {
   await this.switchDevice();
 });

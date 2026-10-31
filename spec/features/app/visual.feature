@@ -6,7 +6,7 @@ Feature: The calendar's states look right
 
   Background:
     Given the calendar is empty
-    And the expanding task-list cards experiment is on
+    And tapping a task list grows it in place
     And today is 2026-10-12
 
   Scenario: The two-row week overview is tidy
@@ -199,7 +199,7 @@ Feature: The calendar's states look right
 
   # Feature tasklist-templates (owner's design canvas, 2026-10-25)
   Scenario: The list sheet's footer offers Save as template, which opens a small sheet with the name and the items
-    Given the expanding task-list cards experiment is off
+    Given tapping a task list opens the list sheet
     And the calendar contains a task list "Packing" on 2026-10-12 with items:
       | item       | done |
       | Passport   | yes  |

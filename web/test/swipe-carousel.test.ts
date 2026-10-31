@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   bindSwipeCarousel, followOffset, lockAxis, releaseTarget, settleVelocity, type CarouselHooks,
 } from '@/composables/useSwipeCarousel';
@@ -139,5 +139,43 @@ describe('swipe carousel binding', () => {
     touch(el, 'touchstart', 200, 100, 200);
     touch(el, 'touchmove', 150, 100, 300);
     expect(h.start).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('swipe carousel at the system edges', () => {
+  const ua = (v: string) => vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(v);
+  afterEach(() => vi.restoreAllMocks());
+
+  it('ignores a touch that starts at the left edge', () => {
+    ua('iPhone');
+    const { el, h } = bind();
+    touch(el, 'touchstart', 10, 100, 0);
+    touch(el, 'touchmove', 80, 100, 100);
+    touch(el, 'touchend', 80, 100, 120);
+    expect(h.start).not.toHaveBeenCalled();
+    expect(h.end).not.toHaveBeenCalled();
+  });
+
+  it('ignores a touch at the right edge on Android only', () => {
+    const x = window.innerWidth - 10;
+    ua('Mozilla/5.0 (Linux; Android 14)');
+    let b = bind();
+    touch(b.el, 'touchstart', x, 100, 0);
+    touch(b.el, 'touchmove', x - 80, 100, 100);
+    expect(b.h.start).not.toHaveBeenCalled();
+    ua('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)');
+    b = bind();
+    touch(b.el, 'touchstart', x, 100, 0);
+    touch(b.el, 'touchmove', x - 80, 100, 100);
+    expect(b.h.start).toHaveBeenCalledWith(1);
+  });
+
+  it('cancels a swipe in progress when the history moves', () => {
+    ua('iPhone');
+    const { el, h } = bind();
+    touch(el, 'touchstart', 200, 100, 0);
+    touch(el, 'touchmove', 150, 100, 100);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(h.cancel).toHaveBeenCalled();
   });
 });

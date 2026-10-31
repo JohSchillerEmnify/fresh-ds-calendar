@@ -165,7 +165,6 @@ export const settingsPatchSchema = so({
   themeMode: v.optional(v.picklist(['system', 'light', 'dark'], 'Invalid theme mode')),
   seedColor: v.optional(hex),
   defaultView: v.optional(v.picklist(['month', 'week', 'day'], 'Invalid default view')),
-  defaultEventColorId: v.optional(colorId),
   animationLevel: v.optional(v.picklist(['full', 'reduced', 'off'], 'Invalid animation level')),
   sounds: v.optional(v.boolean()),
   calmMode: v.optional(v.boolean()),

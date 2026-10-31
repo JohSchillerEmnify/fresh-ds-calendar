@@ -233,6 +233,103 @@ Feature: Navigation and view switching
     Then the URL path is "/month/2026-10"
     And the period title is "October 2026"
 
+  Scenario: Browser back after two moves returns one period at a time
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I go back in the browser
+    Then the URL path is "/month/2026-11"
+    When I go back in the browser
+    Then the URL path is "/month/2026-10"
+
+  Scenario: Browser back from an opened day returns to the month it was opened from
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I tap the day 2026-12-14 in the month view
+    Then the URL path is "/day/2026-12-14"
+    When I go back in the browser
+    Then the URL path is "/month/2026-12"
+    And the period title is "December 2026"
+
+  @picker
+  Scenario: Browser back from an opened day returns to the month picked in the month picker
+    When I open the month view for 2026-10
+    And I open the month picker
+    And I go to the next month in the month picker
+    And I go to the next month in the month picker
+    And I pick 2026-12-01 in the month picker
+    And I tap the day 2026-12-14 in the month view
+    Then the URL path is "/day/2026-12-14"
+    When I go back in the browser
+    Then the URL path is "/month/2026-12"
+
+  Scenario: Browser back after switching the view returns to the period it was switched from
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I switch to the week view
+    And I go back in the browser
+    Then the URL path is "/month/2026-12"
+
+  Scenario: Browser back after pressing Today returns to the period it was pressed on
+    When I open the month view for 2026-12
+    And I go to today
+    And I go back in the browser
+    Then the URL path is "/month/2026-12"
+
+  Scenario: Browser back after reloading the page returns to the previous period
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I reload the page
+    Then the period title is "November 2026"
+    When I go back in the browser
+    Then the URL path is "/month/2026-10"
+
+  @mobile
+  Scenario: Browser back after moving with the open tasks tray expanded returns to the previous period
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I open the open tasks tray
+    And I go to the next period
+    And I go back in the browser
+    Then the URL path is "/month/2026-10"
+    And the period title is "October 2026"
+
+  Scenario: Reopening the app soon after leaving it returns to the period that was open
+    When I open the month view for 2026-12
+    And I open the app
+    Then the URL path is "/month/2026-12"
+    And the period title is "December 2026"
+
+  # unit: web/test/last-period.test.ts:offers nothing after the window, so a fresh opening shows today
+  @unit
+  Scenario: Reopening the app after more than 30 minutes shows the current period
+    When I open the month view for 2026-12
+    And I open the app 31 minutes later
+    Then the URL path is "/month/2026-10"
+
+  @mobile
+  Scenario: A swipe from the left screen edge does not change the period
+    Given I am using a phone
+    When I open the month view for 2026-11
+    And I swipe right from the left edge of the screen
+    Then the URL path is "/month/2026-11"
+
+  @mobile
+  Scenario: Going back twice from a swiped day returns to the day, then to the month it belongs to
+    Given I am using a phone
+    When I open the month view for 2026-11
+    And I tap the day 2026-11-19 in the month view
+    Then the URL path is "/day/2026-11-19"
+    When I swipe left on the calendar
+    Then the URL path is "/day/2026-11-20"
+    When I go back in the browser
+    Then the URL path is "/day/2026-11-19"
+    When I go back in the browser
+    Then the URL path is "/month/2026-11"
+    And the period title is "November 2026"
+
   @month @desktop
   Scenario: Clicking a day number in the month view opens that day
     When I open the month view for 2026-10

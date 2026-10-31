@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-31
+- iPhone: going back with the swipe from the left screen edge no longer also flips the calendar one month (or week or day) back. Reopening the app within 30 minutes brings you back to where you were.
+- Tapping a task list now follows your setting again: with "Tapping a task list: Grows in place" the list grows right where it is; with "Opens the list sheet" the sheet opens. A hidden extra switch had overridden it.
+- New events now always take the colour of the calendar you choose; you can still pick another colour for a single event. The "Default event color" setting is gone.
+
 ## 2026-10-30
 - Labs, handwritten lists: ink written on two devices at once is now merged stroke by stroke instead of one replacing the other; a resting palm no longer adds to a pen stroke; text mode has ruled lines; left-handed mode also mirrors the colour choice.
 - Labs: handwritten lists. Turn on Settings › Labs › "Handwritten lists" to write list items with a pen (Apple Pencil, Android or Windows stylus). On tablets and pen devices the opened list gets wider and ruled; the pen draws, mouse and finger tick as before ("Draw with finger" lets a finger write). Ink has pressure, colours, an eraser and undo, and syncs and works offline like everything else.

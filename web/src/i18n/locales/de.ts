@@ -128,8 +128,6 @@ export default {
     },
     calendar: {
       defaultView: 'Standardansicht',
-      defaultEventColor: 'Standardfarbe für Termine',
-      calendarColor: 'Farbe des Kalenders',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
       approachTimeLeft: { label: 'Restzeit', hint: 'Die Restzeit des laufenden Termins in der Karte „Gleich“; aus, steht sie am Termin selbst' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
@@ -179,7 +177,6 @@ export default {
     labs: {
       views: { title: 'Anzubietende experimentelle Ansichten' },
       experimental: { label: 'Experimentelle Ansichten', hint: 'Uhr, Zeitstrahl und Streifen in der Ansichtswahl' },
-      growCards: { label: 'Aufklappende Aufgabenlisten-Karten', hint: 'Ein Tipp auf eine Aufgabenliste im Kalender klappt die Karte an Ort und Stelle auf; aus: er öffnet die Liste' },
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen', hint: 'Die Woche in zwei Zeilen darstellen, sodass alle sieben Tage ohne Scrollen auf einen Bildschirm passen', split: 'Tage in der oberen Zeile' },
     },
     account: {

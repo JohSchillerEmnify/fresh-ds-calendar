@@ -63,7 +63,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `settings-view`, `settings-back` | settings page and its back button |
 | `settings-theme-mode` | segmented button (in the theme menu); options `data-value="system\|light\|dark"`, `aria-pressed`, labels System/Light/Dark |
 | `settings-seed-preset` | swatches with `data-name`, `data-color`, `aria-pressed`; `settings-seed-custom` (hex text field, Enter/blur applies), `settings-seed-error` |
-| `settings-default-view`, `settings-default-event-color` | selects |
+| `settings-default-view` | select |
 | `category-dialog` | also `category-error`, `category-cancel`, `category-delete` |
 | `view-switcher` | the tabs' container (`data-position` = `bottom` \| `top` \| `rail`); the top tabs row is `nav-tabs`; tabs `view-switch-year`, `view-switch-month`, `view-switch-week`, `view-switch-day`, `view-switch-tasks` (`aria-selected`) |
 | `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | add button and the kind switch of the one "new" dialog |
@@ -82,7 +82,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
 | `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
-| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
+| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (swatches `event-color-option` with `data-color`; order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
@@ -142,6 +142,7 @@ The raw task list event has `extendedProperties.private.kind = "tasklist"` but n
 
 ```
 I open the app
+I open the app {int} minutes later
 the browser window is {int} by {int} pixels wide and high
 I open the path {string}
 I open the month view for {month}
@@ -263,6 +264,7 @@ the snackbar is drawn in the {scheme} theme
 the event dialog is open
 the event dialog is closed
 the event dialog shows the error {string}
+the calendar color swatch is {string}
 the event form shows:
 the event dialog is shown as a bottom sheet
 the event dialog fits within the viewport
@@ -652,6 +654,7 @@ the create button is at the bottom of the screen
 the navigation, view switcher and create buttons are at least {int} by {int} pixels
 I swipe left on the calendar
 I swipe right on the calendar
+I swipe right from the left edge of the screen
 I swipe up on the calendar
 I start swiping left on the calendar by a quarter of the width
 I start swiping left on the calendar by half the width
@@ -690,6 +693,8 @@ the text on the page can be selected by a long press
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
+- "I swipe right from the left edge of the screen": touch at x = 3 px, 200 px to the right in 150 ms (what iOS delivers during
+  its back gesture), then waits 800 ms.
 - "start swiping … by a quarter/half of the width": touchstart + slow touchmoves (≥ 400 ms, so no flick) to that
   fraction of `calendar-swipe-area`'s width, finger kept down; "I let go" sends touchend. "shown beside": a
   `swipe-neighbour` element with `data-period-start` = that date is visible and sits right of the current view.
@@ -863,8 +868,6 @@ the custom seed color field shows the error {string}
 the color role {string} has a hue within {int} degrees of {string}
 I choose {string} as the default view
 the default view {string} is selected
-I choose {string} as the default event color
-the default event color {string} is selected
 I switch to another device
 the settings are changed elsewhere to the theme mode {string}
 ```
@@ -2777,8 +2780,8 @@ the server plans the push {string} saying {string} for {date} {time}
 
 ```
 the two-row week overview is on
-the expanding task-list cards experiment is on
-the expanding task-list cards experiment is off
+tapping a task list grows it in place
+tapping a task list opens the list sheet
 the split is set to three days on top
 I open the week of {date} on a phone
 all seven days are laid out in two rows
@@ -3477,6 +3480,14 @@ I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
 the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
+I draw a stroke with the pen at the pressure {float}
+the harder stroke is thicker, but at most {float} times as thick as the lighter one
+I draw a stroke {int} pixels downwards with the pen on the ink item number {int}
+the list has not scrolled
+I hold the pen over the ink item number {int}
+I move the pen away from the writing area
+the writing area does not let the browser pan
+the writing area lets a finger pan the list up and down
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3538,15 +3549,9 @@ the calendar contains a repeating task list {string} with the ink items {string}
 the next occurrence of the task list {string} is created
 the next occurrence shows {int} ink items, scaled down
 the home-screen widget lists the task list {string}
-the widget shows {int} small ink pictures for the task list {string}
-the door board shows the task list {string}
-the door board shows {int} small ink pictures for the task list {string}
-the notification for the task list {string} is shown
-the notification text mentions {string}
+the widget shows {string} {int} times for the task list {string}
 a screen reader reads the item number {int} as {string}
-I filter the Tasks view by {string}
-the Tasks view shows the task list {string}
-the Tasks view does not show the task list {string}
+the calendar contains a task list {string} finished on {date} with the ink items {string}
 the title field is an ordinary text field
 the title field is not a writing area
 two devices have the task list {string} open
@@ -3579,6 +3584,12 @@ the server holds no ink for the task list {string}
 - "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
   finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
   is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
+- Pen width and panning (Windows pen): "at the pressure P" is a synthetic `pen` stroke with that constant pressure; "the harder stroke
+  is thicker, but at most R times as thick as the lighter one" measures each stroke path across its middle (`isPointInFill`, line
+  heights). "I draw a stroke D pixels downwards with the pen on the ink item N" and "I hold the pen over / move the pen away from"
+  use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
+  scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
+  "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`).
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
@@ -3589,12 +3600,13 @@ the server holds no ink for the task list {string}
   device ... while offline" sets that context offline, acts, and keeps it offline until "both devices reconnect", which
   restores both in the order first, second and waits for both to have synced. Steps are applied in the order written, so
   "later" means the later step. A seeded ink item holds one stroke (A9); "erases the ink item" removes all its strokes.
-- Widget / door board / notification (G2): the widget picture is checked on the widget's render endpoint, the door board
-  on `door-board` (`ink-picture` elements per ink item), the notification on the payload the push or reminder carries
-  (the text "Handwritten item" for an ink item).
+- Widget (G2): `@unit`, proven by the Android unit test named in the scenario (`WeekDataTest`); the widget is native and
+  cannot be driven from a browser. An ink item is the text "Handwritten item" there. Notifications never show item text
+  and the door board is deactivated (owner 2026-10-30).
 - Screen reader (G3): "a screen reader reads the item number N as T" = the accessible name of the Nth item (`aria-label`)
-  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. "I filter the Tasks view by T" types T into the
-  Tasks view filter field; "shows / does not show the task list" looks for the list card by its title.
+  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. The search of ink lists uses the existing
+  Archive steps ("I search the Archive for", "the Archive lists"); "finished on {date} with the ink items" creates the
+  ink list and ticks every item while the test clock stands on that date.
 - Title (G4): "an ordinary text field" = the title `input` is a text input without an ink canvas; "not a writing area" = no
   `ink-writing-area` inside the title field's row.
 - Strike and fade (G6): "the same strike line" = the computed `text-decoration-line`/colour/thickness of the ink item's

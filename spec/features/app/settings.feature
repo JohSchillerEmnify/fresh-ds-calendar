@@ -2,7 +2,7 @@
 Feature: Settings
   A Settings screen (from the settings button in the top app bar, or /settings) lets the owner
   choose the theme mode (System, Light, Dark), the seed color the whole Material 3 color scheme
-  is generated from (8 presets or a custom hex), the default view and the default event color.
+  is generated from (8 presets or a custom hex) and the default view.
   Settings are stored on the server, so they survive reloads and apply on every device.
 
   Background:
@@ -24,7 +24,6 @@ Feature: Settings
     Then the theme mode "System" is selected
     And the seed color "Blue" is selected
     And the default view "Month" is selected
-    And the default event color "Calendar color" is selected
     And the settings show up to 4 events side by side in the day view
     And the settings show up to 2 events side by side in the week view
     And the categories are "Shopping, To-do, Work, Home"
@@ -110,14 +109,6 @@ Feature: Settings
       | Week  | /week/2026-10-12 |
       | Day   | /day/2026-10-12  |
       | Month | /month/2026-10   |
-
-  Scenario: The default event color is used for new events
-    When I open the path "/settings"
-    And I choose "Tomato" as the default event color
-    And I open the week view for 2026-10-12
-    And I start creating an event
-    Then the event form shows:
-      | color | Tomato |
 
   Scenario: Settings changes made on another device appear after the app regains focus
     When I open the week view for 2026-10-12

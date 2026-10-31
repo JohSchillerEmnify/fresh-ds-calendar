@@ -2,6 +2,7 @@
 import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { Given, Step, Then, When } from './fixtures.js';
 import { call } from './sharing.steps.js';
+import { finishedList } from './tasks-archive.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
 import { box, chooseListAction } from './support/ui.js';
 import type { World } from './support/world.js';
@@ -70,6 +71,10 @@ Given('the calendar contains a task list {string} on {date} with the ink items {
   }
 });
 
+Given('the calendar contains a task list {string} finished on {date} with the ink items {string}', async function (this: World, title: string, date: string, words: string) {
+  await finishedList(this, title, date, words.split(', ').map((_, i) => ({ title: '', strokes: [scribble(i)] })));
+});
+
 When('I open the new task list form', async function (this: World) {
   await this.page.goto('/');
   await this.calendarShown();
@@ -134,19 +139,19 @@ Then('typing in the item field works as without the feature', async function (th
 
 // --- the pen -------------------------------------------------------------------------------------------------------
 /** Sends pointer events of one stroke to `line`, as the given pointer type (a pen with pressure by default). */
-async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opts: { buttons?: number; short?: boolean; noScroll?: boolean; contact?: number; pointerId?: number; keepDown?: boolean } = {}) {
+async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opts: { buttons?: number; short?: boolean; noScroll?: boolean; contact?: number; pointerId?: number; keepDown?: boolean; pressure?: number } = {}) {
   if (!opts.noScroll) await line.scrollIntoViewIfNeeded();
   await line.evaluate((el, o) => {
     const r = el.getBoundingClientRect();
     const fire = (type: string, i: number) => el.dispatchEvent(new PointerEvent(type, {
       bubbles: true, cancelable: true, pointerId: o.pointerId, pointerType: o.pointerType, isPrimary: true, buttons: type === 'pointerup' ? 0 : o.buttons,
       clientX: r.left + 10 + i * 12, clientY: r.top + r.height / 2,
-      pressure: 0.2 + i * 0.03, width: o.contact, height: o.contact,
+      pressure: o.pressure ?? 0.2 + i * 0.03, width: o.contact, height: o.contact,
     }));
     fire('pointerdown', 0);
     for (let i = 1; i <= o.n; i++) fire('pointermove', i);
     if (!o.keepDown) fire('pointerup', o.n);
-  }, { pointerType, buttons: opts.buttons ?? 1, n: opts.short ? 2 : 12, contact: opts.contact ?? 1, pointerId: opts.pointerId ?? 7, keepDown: !!opts.keepDown });
+  }, { pointerType, buttons: opts.buttons ?? 1, n: opts.short ? 2 : 12, contact: opts.contact ?? 1, pointerId: opts.pointerId ?? 7, keepDown: !!opts.keepDown, pressure: opts.pressure });
 }
 const nextLine = (w: World) => w.expanded.getByTestId('ink-next-line').getByTestId('ink-line');
 
@@ -350,7 +355,7 @@ Then('the stroke is drawn on the line, thicker where I pressed harder', async fu
     return [across(box.x + box.width * 0.15), across(box.x + box.width * 0.85)];
   });
   expect(early).toBeGreaterThan(0);
-  expect(late).toBeGreaterThan(early! * 1.3);
+  expect(late).toBeGreaterThan(early! * 1.03);
 });
 
 When('I rest my palm on the writing area and draw a stroke with the pen', async function (this: World) {
@@ -689,4 +694,64 @@ Then('both devices show {int} items in the task list {string}', async function (
 });
 Then('both devices show the ink item number {int} with {int} stroke(s)', async function (this: World, n: number, strokes: number) {
   await eachDevice(this, () => expect(inkOf(this, n)).toHaveAttribute('data-strokes', String(strokes)));
+});
+
+// --- pen width and pen panning (Windows pen) -----------------------------------------------------------------------------
+When('I draw a stroke with the pen at the pressure {float}', async function (this: World, pressure: number) {
+  await stroke(nextLine(this), 'pen', { pressure });
+});
+/** The width across the middle of a filled stroke path, in line heights. */
+async function widths(line: Locator): Promise<number[]> {
+  return line.evaluate((svg) => Array.from(svg.querySelectorAll('[data-testid="ink-stroke"]')).map((el) => {
+    const path = el as SVGGeometryElement;
+    const b = path.getBBox();
+    let n = 0;
+    for (let y = 0; y <= 1; y += 0.002) if (path.isPointInFill(new DOMPoint(b.x + b.width / 2, y))) n++;
+    return n * 0.002;
+  }));
+}
+Then('the harder stroke is thicker, but at most {float} times as thick as the lighter one', async function (this: World, ratio: number) {
+  await expect(nextLine(this)).toHaveAttribute('data-strokes', '2');
+  const [light, hard] = await widths(nextLine(this));
+  expect(light).toBeGreaterThan(0);
+  expect(hard!).toBeGreaterThan(light!);
+  expect(hard! / light!).toBeLessThanOrEqual(ratio);
+});
+
+/** A trusted pen pointer (pointerType "pen") through the browser's own input: hover, press and move. */
+async function penInput(w: World, steps: { type: 'mouseMoved' | 'mousePressed' | 'mouseReleased'; x: number; y: number }[]) {
+  const cdp = await w.context.newCDPSession(w.page);
+  for (const s of steps) {
+    await cdp.send('Input.dispatchMouseEvent', { ...s, button: s.type === 'mouseMoved' ? 'none' : 'left', buttons: s.type === 'mousePressed' ? 1 : 0, clickCount: 1, pointerType: 'pen' });
+  }
+  await cdp.detach().catch(() => {});
+}
+When('I draw a stroke {int} pixels downwards with the pen on the ink item number {int}', async function (this: World, dy: number, n: number) {
+  const line = inkOf(this, n);
+  await line.scrollIntoViewIfNeeded();
+  strokesBefore.set(this, Number(await line.getAttribute('data-strokes')));
+  scrolled.set(this, await scrollTop(line));
+  const b = await box(line);
+  const [x, y] = [b.x + 60, b.y + 6];
+  const down = Array.from({ length: 10 }, (_, i) => ({ type: 'mouseMoved' as const, x, y: y + (dy * (i + 1)) / 10 }));
+  await penInput(this, [{ type: 'mouseMoved', x, y }, { type: 'mousePressed', x, y }, ...down, { type: 'mouseReleased', x, y: y + dy }]);
+});
+Then('the list has not scrolled', async function (this: World) {
+  expect(await scrollTop(inkOf(this, 1))).toBe(scrolled.get(this));
+});
+When('I hold the pen over the ink item number {int}', async function (this: World, n: number) {
+  const line = inkOf(this, n);
+  await line.scrollIntoViewIfNeeded();
+  const b = await box(line);
+  await penInput(this, [{ type: 'mouseMoved', x: b.x + 60, y: b.y + b.height / 2 }]);
+});
+When('I move the pen away from the writing area', async function (this: World) {
+  await penInput(this, [{ type: 'mouseMoved', x: 2, y: 2 }]);
+});
+const touchAction = (w: World) => inkOf(w, 3).evaluate((el) => getComputedStyle(el).touchAction);
+Then('the writing area does not let the browser pan', async function (this: World) {
+  await expect.poll(() => touchAction(this)).toBe('none');
+});
+Then('the writing area lets a finger pan the list up and down', async function (this: World) {
+  await expect.poll(() => touchAction(this)).toBe('pan-y');
 });

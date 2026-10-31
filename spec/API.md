@@ -145,7 +145,6 @@ interface Settings {
   themeMode: ThemeMode;              // default 'system'
   seedColor: string;                 // '#rrggbb', default '#1a73e8'
   defaultView: ViewName;             // default 'month'
-  defaultEventColorId: string | null; // Google colorId '1'..'11' or null (= calendar color), default null
   animationLevel: 'full' | 'reduced' | 'off';    // default 'full'; the system "reduce motion" caps it at 'reduced'
   ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
@@ -191,8 +190,7 @@ switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; a
 per id. A missing id follows the client's registry default (Strip off, others on).
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
-open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs switch for growing cards in place (off, a
-tap opens the list sheet).
+open the list sheet.
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; `navPhone` also accepts `drawer`, the side menu of feature nav-expressive; any other value is a 400; feature nav-position).
 The person pref `bottomBarSize` (`'auto' | 'expressive' | 'compact'`, default `'auto'`: Compact on phones, Expressive elsewhere;

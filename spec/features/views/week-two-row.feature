@@ -7,7 +7,7 @@ Feature: Two-row week overview
 
   Background:
     Given the calendar is empty
-    And the expanding task-list cards experiment is on
+    And tapping a task list grows it in place
     And today is 2026-10-12
 
   Scenario: The whole week is visible at once in two rows

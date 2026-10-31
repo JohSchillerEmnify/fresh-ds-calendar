@@ -25,7 +25,6 @@ import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
 import { useSyncStore } from '@/stores/sync';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
-import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { calendars, loadCalendars } from './calendars';
 import EventMap from './EventMap.vue';
@@ -42,7 +41,6 @@ const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; da
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const outbox = useOutboxStore();
-const settings = useSettingsStore();
 const clock = useClockStore();
 const ui = useUiStore();
 
@@ -77,7 +75,7 @@ const label = computed(() => {
 
 function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
-  return newForm(ctx.date, ctx.time, 'primary', settings.settings.defaultEventColorId, props.minutes);
+  return newForm(ctx.date, ctx.time, 'primary', null, props.minutes);
 }
 const hasDraft = !!(props.draft || props.draftEvent);
 const form = ref<EventForm>(props.draft ? { ...props.draft } : props.draftEvent ? formFromEvent(props.draftEvent) : blank());

@@ -149,6 +149,8 @@ final class WeekData {
         return w;
     }
 
+    private static final String INK_PLACEHOLDER = "Handwritten item";
+
     /**
      * Builds the week from an {@code /api/items} response.
      *
@@ -269,7 +271,8 @@ final class WeekData {
         JSONArray names = it.optJSONArray("items");
         for (int i = 0; names != null && i < names.length(); i++) {
             JSONObject n = names.optJSONObject(i);
-            if (n != null && !n.optBoolean("done")) open.add(n.optString("title"));
+            // an ink item has no title; the widget cannot draw ink, so it names it like Google does
+            if (n != null && !n.optBoolean("done")) open.add(n.optBoolean("ink") ? INK_PLACEHOLDER : n.optString("title"));
         }
         // no category colours while task categories are off (owner rule): the calendar's colour, as in the app
         String color = categoriesOn ? it.optString("color") : it.optString("calendarColor", it.optString("color"));
