@@ -2717,6 +2717,57 @@ the add button is above the open tasks tray
 - The overlap check reuses "the add button covers no control of the {string}" with the panel name `view switcher`
   (`view-switcher`), see the panel map in `e2e/steps/tasks-canvas.steps.ts`.
 
+## Month view scrolling up and down (`@id:month-vertical`; setting `settings-month-scroll`, pref `monthScroll`)
+
+```
+the month view scrolls up and down
+the month view scrolls sideways
+I choose {string} as the month scrolling
+{string} is selected as the month scrolling
+the month view shows only the month of {month}
+the month header {string} is shown
+the month header {string} is shown below the month {month}
+the month {month} is below the month {month}
+the month {month} is the month most in view
+the day {date} is in view
+the weekday row is pinned at the top of the calendar
+the date {date} appears exactly once in the month view
+the month cell of {date} is not shown in the month of {month}
+every week of the month view is the same height
+I scroll the calendar to the month {month}
+I scroll the calendar down by {int} pixels
+I scroll the calendar up by {int} pixels
+I scroll the mouse wheel down by {int} pixels over the calendar
+the bottom bar is hidden
+the bottom bar is shown
+the create button is shown
+at most {int} months are built in the month view
+the month {month} is not built in the month view
+```
+
+- "the month view scrolls up and down" (Given) / "... sideways": `PATCH /api/prefs { monthScroll: "vertical" | "sideways" }` as that
+  person before the view opens; as a Then step it checks `month-view[data-scroll="vertical" | "sideways"]`. "I choose X as the month scrolling"
+  (X = `Sideways` | `Up and down`) picks that option of the select `settings-month-scroll` and waits for the `PATCH /api/prefs` 200.
+- Up and down, `month-view` holds one `month-block` per built month (`data-month` = `YYYY-MM`), each with a `month-block-header`
+  (its text is the month name and year) above its `month-cell`s; there is one `month-weekday-header` row, `position: sticky` at
+  the top of `calendar-swipe-area`'s scroller. "shows only the month of M" = exactly one `month-block`, M.
+- "the month M is below the month N": the top of `month-block` M is at or below the bottom of `month-block` N. "the month header H is shown
+  below the month M": the header is visible in the viewport and its top is at or below the bottom of that month's last week.
+  "the month header H is shown": visible in the viewport.
+- "the month M is the month most in view": M's block has the largest visible height in the scroller; the URL path and period title are
+  checked by the existing steps. "the day D is in view": its `month-cell` is fully inside the scroller's visible area. "the weekday row is
+  pinned": its top equals the scroller's top after scrolling.
+- "the date D appears exactly once": exactly one `month-cell` with `data-date` D that is not `data-outside-month`; "the month cell of D is not
+  shown in the month of M": the block M has no non-empty cell for D (a day outside the month is an empty placeholder without `data-date`).
+  "every week of the month view is the same height": all week rows of the built months have equal height (1 px).
+- "I scroll the calendar to the month M": sets the scroller's `scrollTop` so M's header is at the top, as a person's swipe or flick would
+  end, then waits until the URL path and period title have settled. "I scroll the calendar down / up by N pixels": a touch or wheel scroll
+  of the scroller by N px (shared with feature nav-expressive: input counts as the person's own, so the bottom bar reacts). "I scroll the
+  mouse wheel down by N pixels over the calendar": `mouse.wheel` over the scroller. "the bottom bar is hidden" = `bottom-bar[data-hidden="true"]`
+  and moved out of the viewport, "shown" = fully inside it; "the create button is shown" = `create-button` fully inside it.
+- "at most N months are built": the number of `month-block`s (month cells present in the DOM) is at most N. "the month M is not built":
+  no `month-block` M.
+
 ## Reminders
 
 ```
