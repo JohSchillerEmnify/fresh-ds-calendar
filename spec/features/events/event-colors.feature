@@ -23,11 +23,49 @@ Feature: Event colors
     And the Google event "Birthday" has:
       | colorId | 11 |
 
-  Scenario: New events default to the calendar color
+  Scenario: New events use the calendar color
     When I open the week view for 2026-10-12
     And I start creating an event
     Then the event form shows:
       | color | Calendar color |
+
+  Scenario: The calendar color swatch shows the chosen calendar's color
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    Then the calendar color swatch is "#039be5"
+    When I fill in the event form with:
+      | calendar | Work |
+    Then the calendar color swatch is "#0b8043"
+    And the event form shows:
+      | color | Calendar color |
+
+  Scenario: Choosing a calendar makes the new event's color that calendar's color
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    And I fill in the event form with:
+      | title      | Standup    |
+      | start date | 2026-10-14 |
+      | start time | 09:00      |
+      | end time   | 09:15      |
+      | calendar   | Work       |
+    And I save the event
+    Then the event "Standup" has the color "#0b8043"
+    And the Google event "Standup" has no color ID
+
+  Scenario: A color picked explicitly stays when the calendar is chosen
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    And I fill in the event form with:
+      | title      | Standup    |
+      | start date | 2026-10-14 |
+      | start time | 09:00      |
+      | end time   | 09:15      |
+      | color      | Tomato     |
+      | calendar   | Work       |
+    And I save the event
+    Then the event "Standup" has the color "#d50000"
+    And the Google event "Standup" has:
+      | colorId | 11 |
 
   Scenario: Change the color of an existing event and reset it
     Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00

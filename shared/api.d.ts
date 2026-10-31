@@ -168,7 +168,6 @@ export interface Settings {
   themeMode: ThemeMode;
   seedColor: string;
   defaultView: ViewName;
-  defaultEventColorId: string | null;
   animationLevel: AnimationLevel;
   sounds: boolean;
   calmMode: boolean;

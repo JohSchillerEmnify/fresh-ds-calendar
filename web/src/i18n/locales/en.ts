@@ -132,8 +132,6 @@ export default {
     },
     calendar: {
       defaultView: 'Default view',
-      defaultEventColor: 'Default event color',
-      calendarColor: 'Calendar color',
       headerLayout: { label: 'Header layout', hint: 'On phones', twoRows: 'Two rows', oneRow: 'One row' },
       approachingCard: { label: 'Approaching card', hint: 'What is on now and next, above the calendar' },
       approachTimeLeft: { label: 'Time left', hint: 'The time left of the running entry in the Approaching card; off, it shows on the entry itself' },

@@ -19,7 +19,6 @@ export function defaultSettings(now: string): Settings {
     themeMode: 'system',
     seedColor: '#1a73e8',
     defaultView: 'month',
-    defaultEventColorId: null,
     animationLevel: 'full',
     sounds: false,
     calmMode: false,
@@ -47,10 +46,12 @@ export class SettingsStore {
 
   /** Reads the file again (start, and after a backup restore replaced it). */
   reload(): void {
-    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown; streakFlame?: unknown; plant?: unknown }>(this.file) : null;
+    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown; streakFlame?: unknown; plant?: unknown; defaultEventColorId?: unknown }>(this.file) : null;
     // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders); the shared `streakFlame` and
     // `plant` switches by the person pref `streak`, Off for everyone, so they are dropped, not carried over (API.md)
     const { scene, garden, transitionWarningMinutes: _retired, streakFlame: _flame, plant: _plant, ...loaded } = raw ?? {};
+    // the retired `defaultEventColorId` (new events follow their calendar) is dropped on read
+    delete (loaded as { defaultEventColorId?: unknown }).defaultEventColorId;
     this.legacyScene = typeof scene === 'string' ? scene : undefined;
     this.legacyGardenStyle = typeof garden === 'string' ? garden : undefined;
     const defaults = defaultSettings(this.stamp());

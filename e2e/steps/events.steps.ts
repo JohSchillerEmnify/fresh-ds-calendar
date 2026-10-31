@@ -341,6 +341,11 @@ Then('the event dialog fits within the viewport', async function (this: World) {
   await expectInViewport(this.page, dialog(this));
 });
 
+Then('the calendar color swatch is {string}', async function (this: World, hex: string) {
+  const swatch = dialog(this).getByTestId('event-color').getByTestId('event-color-option').first();
+  await expect(swatch).toHaveAttribute('data-color', hex);
+});
+
 Then('the event color options are {string}', async function (this: World, list: string) {
   await expect.poll(async () => (await optionLabels(dialog(this).getByTestId('event-color'))).join(', ')).toBe(list);
 });

@@ -63,7 +63,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `settings-view`, `settings-back` | settings page and its back button |
 | `settings-theme-mode` | segmented button (in the theme menu); options `data-value="system\|light\|dark"`, `aria-pressed`, labels System/Light/Dark |
 | `settings-seed-preset` | swatches with `data-name`, `data-color`, `aria-pressed`; `settings-seed-custom` (hex text field, Enter/blur applies), `settings-seed-error` |
-| `settings-default-view`, `settings-default-event-color` | selects |
+| `settings-default-view` | select |
 | `category-dialog` | also `category-error`, `category-cancel`, `category-delete` |
 | `view-switcher` | the tabs' container (`data-position` = `bottom` \| `top` \| `rail`); the top tabs row is `nav-tabs`; tabs `view-switch-year`, `view-switch-month`, `view-switch-week`, `view-switch-day`, `view-switch-tasks` (`aria-selected`) |
 | `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | add button and the kind switch of the one "new" dialog |
@@ -82,7 +82,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
 | `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
-| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
+| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (swatches `event-color-option` with `data-color`; order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
@@ -263,6 +263,7 @@ the snackbar is drawn in the {scheme} theme
 the event dialog is open
 the event dialog is closed
 the event dialog shows the error {string}
+the calendar color swatch is {string}
 the event form shows:
 the event dialog is shown as a bottom sheet
 the event dialog fits within the viewport
@@ -863,8 +864,6 @@ the custom seed color field shows the error {string}
 the color role {string} has a hue within {int} degrees of {string}
 I choose {string} as the default view
 the default view {string} is selected
-I choose {string} as the default event color
-the default event color {string} is selected
 I switch to another device
 the settings are changed elsewhere to the theme mode {string}
 ```
