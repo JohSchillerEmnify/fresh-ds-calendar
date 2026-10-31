@@ -159,6 +159,22 @@ Feature: Labs: handwritten lists
       Then the list scrolls
       And nothing is drawn
 
+    Scenario: Pen pressure changes the line width only moderately
+      When I draw a stroke with the pen at the pressure 0.1
+      And I draw a stroke with the pen at the pressure 1.0
+      Then the harder stroke is thicker, but at most 1.5 times as thick as the lighter one
+
+    Scenario: A downward pen stroke draws and does not scroll the list
+      When I draw a stroke 40 pixels downwards with the pen on the ink item number 3
+      Then the ink item number 3 has one more stroke
+      And the list has not scrolled
+
+    Scenario: While the pen is over the writing area the list does not scroll; a finger still scrolls
+      When I hold the pen over the ink item number 3
+      Then the writing area does not let the browser pan
+      When I move the pen away from the writing area
+      Then the writing area lets a finger pan the list up and down
+
     Scenario: A resting palm does not draw while the pen writes
       When I rest my palm on the writing area and draw a stroke with the pen
       Then only the pen stroke is drawn
