@@ -1,16 +1,25 @@
 @month @navigation @id:month-vertical
 Feature: Month view that scrolls up and down
   By default the month view moves sideways: a swipe (or the arrows on desktop) replaces the month on screen with the
-  next one. An option in the settings, "Month view scrolls", lets the person choose "Sideways" (the default) or
-  "Up and down" instead (owner request, 2026-10-31). Up and down, the months are stacked in one long list that
-  scrolls continuously, like the month list of Google Calendar: each month starts with a header ("November 2026"),
-  the weekday row stays pinned at the top, and a month's weeks keep one fixed height (they do not stretch to fill the
-  screen). Days that belong to the neighbouring month are left empty in a month's first and last week, so every date
-  appears exactly once. The other views are not affected.
-  Proposed behaviour, to be confirmed by the owner (see the open questions in the report): the scrolling is
-  continuous (no snapping), the URL follows the month most in view without adding history entries, only the months
-  near the one in view are built, and the choice is a per-person preference (`monthScroll`: `sideways` | `vertical`)
-  that follows the person to every device, phones, tablets and desktop alike.
+  next one. The setting "Month view scrolls" (owner request, 2026-10-31) offers three choices: "Sideways" (the
+  default), "Up and down" and "Up and down, one month at a time". Up and down, the months are stacked in one long
+  list, like the month list of Google Calendar: each month starts with a header ("November 2026"), the weekday row
+  stays pinned at the top, and a month's weeks keep one fixed height (about 96 px on a phone) instead of stretching to
+  the screen. "Up and down" scrolls continuously; "one month at a time" snaps so that a flick lands on the next month's
+  header. The other views are not affected. The choice is a per-person preference (`monthScroll`: `sideways` |
+  `vertical` | `vertical-snap`) that follows the person to every device, phone, tablet and desktop alike.
+  Owner decisions, 2026-10-31:
+  1. Continuous scrolling and snapping are both offered, as one setting with three values.
+  2. Days of the neighbouring month in a month's first and last week are shown greyed, as in the sideways month, so
+     a date appears twice in the stacked list; tapping a greyed day opens that day.
+  3. The week height is fixed.
+  4. The title and URL follow the month in view using replace, so there is no back step per month. Leaving the list
+     by tapping a day saves the exact scroll position; going back returns to exactly that position (same month and
+     the same pixel offset).
+  Assumptions taken from the proposal: the month with the largest visible share is "in view"; the arrows and Today
+  scroll smoothly but jump when the target is far away; the year view and month picker open the list at their month;
+  only the month in view and one month before and after are built; the Labs month views and the two-row week are
+  untouched.
 
   Background:
     Given the calendar is empty
@@ -34,6 +43,10 @@ Feature: Month view that scrolls up and down
       When I choose "Up and down" as the month scrolling
       And I leave the settings
       Then the month view scrolls up and down
+      When I open the settings
+      And I choose "Up and down, one month at a time" as the month scrolling
+      And I leave the settings
+      Then the month view scrolls up and down one month at a time
 
     @backlog @mobile
     Scenario: The choice follows the person to another device
@@ -70,18 +83,20 @@ Feature: Month view that scrolls up and down
       And the weekday row is pinned at the top of the calendar
 
     @backlog @mobile
-    Scenario: Every date appears exactly once
+    Scenario: Days of the neighbouring month are shown greyed and open their day
       Given the month view scrolls up and down
       When I open the month view for 2026-10
-      Then the date 2026-10-31 appears exactly once in the month view
-      And the date 2026-11-01 appears exactly once in the month view
-      And the month cell of 2026-09-30 is not shown in the month of 2026-10
+      Then the date 2026-10-31 appears twice in the month view
+      And the day 2026-11-01 is greyed in the month 2026-10
+      And the day 2026-11-01 is not greyed in the month 2026-11
+      When I tap the day 2026-11-01 in the month 2026-10
+      Then the URL path is "/day/2026-11-01"
 
     @backlog @mobile
     Scenario: Weeks keep one height and entries are shown as in the sideways month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
-      Then every week of the month view is the same height
+      Then every week of the month view is 96 pixels tall
       And the month cell of 2026-10-14 shows its first entry
 
     @backlog @mobile
@@ -99,6 +114,41 @@ Feature: Month view that scrolls up and down
       And I scroll the calendar to the month 2026-12
       Then the month header "December 2026" is shown
       And the day 2026-12-24 is in view
+
+  Rule: One month at a time snaps to the month headers
+
+    @backlog @mobile
+    Scenario: A flick lands on the next month's header
+      Given the month view scrolls up and down one month at a time
+      When I open the month view for 2026-10
+      And I flick the calendar up
+      Then the month header "November 2026" is at the top of the calendar
+      And the period title is "November 2026"
+      And the URL path is "/month/2026-11"
+
+    @backlog @mobile
+    Scenario: A short drag snaps back to the month it started on
+      Given the month view scrolls up and down one month at a time
+      When I open the month view for 2026-10
+      And I scroll the calendar down by 80 pixels
+      Then the month header "October 2026" is at the top of the calendar
+      And the URL path is "/month/2026-10"
+
+    @backlog @mobile
+    Scenario: A flick down goes back one month
+      Given the month view scrolls up and down one month at a time
+      When I open the month view for 2026-11
+      And I flick the calendar down
+      Then the month header "October 2026" is at the top of the calendar
+      And the URL path is "/month/2026-10"
+
+    @backlog @mobile
+    Scenario: A tall month is read by scrolling inside it before it snaps
+      Given the month view scrolls up and down one month at a time
+      When I open the month view for 2026-11
+      And I scroll the calendar down by 300 pixels
+      Then the period title is "November 2026"
+      And the month header "December 2026" is not at the top of the calendar
 
   Rule: The top bar and the URL follow the month most in view
 
@@ -176,14 +226,15 @@ Feature: Month view that scrolls up and down
       Then the URL path is "/day/2026-11-14"
 
     @backlog @mobile
-    Scenario: Going back from the day view returns to the same place in the month list
+    Scenario: Going back from the day view returns to exactly the same scroll position
       Given the month view scrolls up and down
       When I open the month view for 2026-10
-      And I scroll the calendar to the month 2026-11
+      And I scroll the calendar down by 700 pixels
+      And I note the scroll position of the calendar
       And I tap the day 2026-11-14 in the month view
       And I go back in the browser
-      Then the URL path is "/month/2026-11"
-      And the day 2026-11-14 is in view
+      Then the calendar is at the noted scroll position
+      And the URL path is "/month/2026-11"
 
     @backlog @desktop
     Scenario: On desktop the arrows scroll by one month

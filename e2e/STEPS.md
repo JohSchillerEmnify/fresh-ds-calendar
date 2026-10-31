@@ -2721,6 +2721,7 @@ the add button is above the open tasks tray
 
 ```
 the month view scrolls up and down
+the month view scrolls up and down one month at a time
 the month view scrolls sideways
 I choose {string} as the month scrolling
 {string} is selected as the month scrolling
@@ -2731,9 +2732,17 @@ the month {month} is below the month {month}
 the month {month} is the month most in view
 the day {date} is in view
 the weekday row is pinned at the top of the calendar
-the date {date} appears exactly once in the month view
-the month cell of {date} is not shown in the month of {month}
-every week of the month view is the same height
+the date {date} appears twice in the month view
+the day {date} is greyed in the month {month}
+the day {date} is not greyed in the month {month}
+I tap the day {date} in the month {month}
+every week of the month view is {int} pixels tall
+I note the scroll position of the calendar
+the calendar is at the noted scroll position
+I flick the calendar up
+I flick the calendar down
+the month header {string} is at the top of the calendar
+the month header {string} is not at the top of the calendar
 I scroll the calendar to the month {month}
 I scroll the calendar down by {int} pixels
 I scroll the calendar up by {int} pixels
@@ -2745,9 +2754,9 @@ at most {int} months are built in the month view
 the month {month} is not built in the month view
 ```
 
-- "the month view scrolls up and down" (Given) / "... sideways": `PATCH /api/prefs { monthScroll: "vertical" | "sideways" }` as that
-  person before the view opens; as a Then step it checks `month-view[data-scroll="vertical" | "sideways"]`. "I choose X as the month scrolling"
-  (X = `Sideways` | `Up and down`) picks that option of the select `settings-month-scroll` and waits for the `PATCH /api/prefs` 200.
+- "the month view scrolls up and down" (Given) / "... sideways": `PATCH /api/prefs { monthScroll: "vertical" | "vertical-snap" | "sideways" }` as that
+  person before the view opens; as a Then step it checks `month-view[data-scroll="vertical" | "vertical-snap" | "sideways"]`. "I choose X as the month scrolling"
+  (X = `Sideways` | `Up and down` | `Up and down, one month at a time`) picks that option of the select `settings-month-scroll` and waits for the `PATCH /api/prefs` 200.
 - Up and down, `month-view` holds one `month-block` per built month (`data-month` = `YYYY-MM`), each with a `month-block-header`
   (its text is the month name and year) above its `month-cell`s; there is one `month-weekday-header` row, `position: sticky` at
   the top of `calendar-swipe-area`'s scroller. "shows only the month of M" = exactly one `month-block`, M.
@@ -2757,9 +2766,15 @@ the month {month} is not built in the month view
 - "the month M is the month most in view": M's block has the largest visible height in the scroller; the URL path and period title are
   checked by the existing steps. "the day D is in view": its `month-cell` is fully inside the scroller's visible area. "the weekday row is
   pinned": its top equals the scroller's top after scrolling.
-- "the date D appears exactly once": exactly one `month-cell` with `data-date` D that is not `data-outside-month`; "the month cell of D is not
-  shown in the month of M": the block M has no non-empty cell for D (a day outside the month is an empty placeholder without `data-date`).
-  "every week of the month view is the same height": all week rows of the built months have equal height (1 px).
+- "the date D appears twice": exactly two `month-cell`s with `data-date` D (one in each neighbouring month block, the one outside
+  its month carrying `data-outside-month="true"`, greyed). "the day D is (not) greyed in the month M": the `month-cell` D inside
+  `month-block` M has (no) `data-outside-month`. "I tap the day D in the month M" taps that cell's day number. "every week of the
+  month view is N pixels tall": all week rows of the built months are N px (1 px); N = 96 on a phone.
+- "I note the scroll position of the calendar" stores the scroller's `scrollTop`; "the calendar is at the noted scroll position" compares
+  it after going back, with 0 px tolerance (the position is saved when a day is tapped and restored on return, pixel-exact).
+- "I flick the calendar up / down": a touch flick (fast 300 px swipe up / down) on the scroller, then waits until it has settled. "the month
+  header H is at the top of the calendar": the header's top is within 1 px of the bottom of the pinned weekday row (snap mode: after
+  settling). "... is not at the top": the opposite.
 - "I scroll the calendar to the month M": sets the scroller's `scrollTop` so M's header is at the top, as a person's swipe or flick would
   end, then waits until the URL path and period title have settled. "I scroll the calendar down / up by N pixels": a touch or wheel scroll
   of the scroller by N px (shared with feature nav-expressive: input counts as the person's own, so the bottom bar reacts). "I scroll the
