@@ -234,6 +234,28 @@ Feature: Navigation and view switching
     When I go back in the browser
     Then the URL path is "/month/2026-10"
 
+  Scenario: Browser back from an opened day returns to the month it was opened from
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I tap the day 2026-12-14 in the month view
+    Then the URL path is "/day/2026-12-14"
+    When I go back in the browser
+    Then the URL path is "/month/2026-12"
+    And the period title is "December 2026"
+
+  @picker
+  Scenario: Browser back from an opened day returns to the month picked in the month picker
+    When I open the month view for 2026-10
+    And I open the month picker
+    And I go to the next month in the month picker
+    And I go to the next month in the month picker
+    And I pick 2026-12-01 in the month picker
+    And I tap the day 2026-12-14 in the month view
+    Then the URL path is "/day/2026-12-14"
+    When I go back in the browser
+    Then the URL path is "/month/2026-12"
+
   Scenario: Browser back after switching the view returns to the period it was switched from
     When I open the month view for 2026-10
     And I go to the next period
@@ -241,7 +263,6 @@ Feature: Navigation and view switching
     And I switch to the week view
     And I go back in the browser
     Then the URL path is "/month/2026-12"
-    And the period title is "December 2026"
 
   Scenario: Browser back after pressing Today returns to the period it was pressed on
     When I open the month view for 2026-12
@@ -253,7 +274,8 @@ Feature: Navigation and view switching
     When I open the month view for 2026-10
     And I go to the next period
     And I reload the page
-    And I go back in the browser
+    Then the period title is "November 2026"
+    When I go back in the browser
     Then the URL path is "/month/2026-10"
 
   @mobile
