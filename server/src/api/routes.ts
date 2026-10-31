@@ -392,7 +392,10 @@ export function apiRoutes(ctx: Ctx): Hono {
   // ---- settings / categories ----
   r.get('/settings', (c) => c.json(settings.get()));
   r.patch('/settings', async (c) => {
-    const patch = parse(settingsPatchSchema, await body(c));
+    // an app not yet updated may still send the retired `defaultEventColorId`: dropped, so its other settings still save
+    const rest = { ...((await body(c)) as Record<string, unknown>) };
+    delete rest.defaultEventColorId;
+    const patch = parse(settingsPatchSchema, rest);
     const im = c.req.header('If-Match');
     if (im !== undefined && String(settings.get().version) !== im.replaceAll('"', '').trim()) throw preconditionFailed('Settings were changed elsewhere. Reload and try again.');
     return c.json(
