@@ -142,6 +142,7 @@ The raw task list event has `extendedProperties.private.kind = "tasklist"` but n
 
 ```
 I open the app
+I open the app {int} minutes later
 the browser window is {int} by {int} pixels wide and high
 I open the path {string}
 I open the month view for {month}

@@ -225,6 +225,60 @@ Feature: Navigation and view switching
     Then the URL path is "/month/2026-10"
     And the period title is "October 2026"
 
+  Scenario: Browser back after two moves returns one period at a time
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I go back in the browser
+    Then the URL path is "/month/2026-11"
+    When I go back in the browser
+    Then the URL path is "/month/2026-10"
+
+  Scenario: Browser back after switching the view returns to the period it was switched from
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I go to the next period
+    And I switch to the week view
+    And I go back in the browser
+    Then the URL path is "/month/2026-12"
+    And the period title is "December 2026"
+
+  Scenario: Browser back after pressing Today returns to the period it was pressed on
+    When I open the month view for 2026-12
+    And I go to today
+    And I go back in the browser
+    Then the URL path is "/month/2026-12"
+
+  Scenario: Browser back after reloading the page returns to the previous period
+    When I open the month view for 2026-10
+    And I go to the next period
+    And I reload the page
+    And I go back in the browser
+    Then the URL path is "/month/2026-10"
+
+  @mobile
+  Scenario: Browser back after moving with the open tasks tray expanded returns to the previous period
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I open the open tasks tray
+    And I go to the next period
+    And I go back in the browser
+    Then the URL path is "/month/2026-10"
+    And the period title is "October 2026"
+
+  Scenario: Reopening the app soon after leaving it returns to the period that was open
+    When I open the month view for 2026-12
+    And I open the app
+    Then the URL path is "/month/2026-12"
+    And the period title is "December 2026"
+
+  # unit: web/test/last-period.test.ts:offers nothing after the window, so a fresh opening shows today
+  @unit
+  Scenario: Reopening the app after more than 30 minutes shows the current period
+    When I open the month view for 2026-12
+    And I open the app 31 minutes later
+    Then the URL path is "/month/2026-10"
+
   @month @desktop
   Scenario: Clicking a day number in the month view opens that day
     When I open the month view for 2026-10

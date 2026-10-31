@@ -1,3 +1,4 @@
+import { rememberPeriod, resumePath } from '@/lib/lastPeriod';
 import { bindRouterToOverlays } from '@/lib/overlayHistory';
 import type { Component } from 'vue';
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router';
@@ -64,6 +65,9 @@ export const routes: RouteRecordRaw[] = [
       // back to the page the person wanted before being sent to /signin
       const back = takeReturn();
       if (back) return back;
+      // reopened soon after the system ended the page: back to the period left, not today
+      const resumed = resumePath();
+      if (resumed) return resumed;
       const view = useSettingsStore().settings.defaultView;
       return { path: routePath(view, useClockStore().todayDate), query: to.query };
     },
@@ -117,6 +121,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     const d0 = to.meta.lab && to.params.param ? parseParam('day', to.params.param as string) : null;
     if (d0) useCalendarStore().setFromRoute('day', d0);
     if (!view) return;
+    rememberPeriod(to.fullPath);
     const d = parseParam(view, to.params.param as string);
     if (d) useCalendarStore().setFromRoute(view, d);
   });
