@@ -61,10 +61,11 @@ Feature: Labs: handwritten lists
       to fit the phone window. A phone without a pen keeps the unchanged dialog.
   G1. Offline: the feature is built AFTER the device-first outbox (ADR 0025, branch docs/adr-device-first). Ink is
       writable offline and synced later like everything else.
-  G2. Places that cannot show the app UI: the Android home-screen widget and the e-ink door board show a small picture
-      of the ink where possible; notifications and Google Calendar show the placeholder "Handwritten item".
+  G2. Places that cannot show the app UI show the placeholder text "Handwritten item" for an ink item: Google Calendar
+      and the Android home-screen widget. (owner 2026-10-30: no ink picture in the widget; notifications never show item
+      text (reminders), and the door board is dropped as the door is deactivated.)
   G3. Screen readers read an ink item as "Handwritten item 2 of 5" plus its ticked state. Ink is not searchable:
-      search and filter find the list by its title only.
+      (owner 2026-10-30: no new search field in Tasks) the existing Archive search finds a finished list by its title only.
   G4. The list title always stays text (keyboard or the device's own handwriting recognition).
   G5. Conflicts: two devices change the same list -> merged per item: new strokes and items from both devices are
       kept; only when the same line was erased on one device and extended on the other does the later change win.
@@ -75,6 +76,8 @@ Feature: Labs: handwritten lists
       left-handed tester.
   G8. Ink is stored relative to the line height and scaled to the line on every screen, so the same ink looks the same
       on phone, tablet and desktop (smaller on a smaller line, never cut off).
+  A10. (owner OK, 2026-10-30) In TEXT mode the item fields are ruled on every device (the person chose that mode); the
+       dialog's size and the ink lines still depend on pen support (R4).
   M1. Calendar cards (owner, mockup review): an ink item shows on a card only where the card shows item lines today
       (the card is long enough); a card's behaviour does not change: same height, collapse levels, done count and
       grown card as with text items, an ink line simply takes the place of a title line.
@@ -82,8 +85,6 @@ Feature: Labs: handwritten lists
   ASSUMPTIONS (not yet confirmed by the owner)
   A7. The chosen ink colour is remembered per device, like the writing mode (A4).
   A8. Deleting an ink item or a whole list removes its ink from the server (not kept as an orphan).
-  A10. In TEXT mode the item fields are ruled on every device (the person chose that mode); the dialog's size and the ink
-       lines still depend on pen support (R4).
   A9. For G5, "erased" means the strokes of the line are removed (the item stays); a seeded ink item holds one stroke.
 
   Background:
@@ -503,26 +504,17 @@ Feature: Labs: handwritten lists
       And I open the Tasks view
       Then the task list "Groceries" shows 3 ink items, scaled down
 
-  Rule: Where the app UI cannot be shown, ink is a small picture or a placeholder (decision G2)
+  Rule: Where the app UI cannot be shown, an ink item is the text "Handwritten item" (decision G2)
 
     Background:
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
 
-    @backlog
-    Scenario: The Android home-screen widget shows a small picture of the ink
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/WeekDataTest.java:inkItemIsListedAsHandwrittenItem
+    @unit
+    Scenario: The Android home-screen widget names an ink item "Handwritten item"
       When the home-screen widget lists the task list "Groceries"
-      Then the widget shows 2 small ink pictures for the task list "Groceries"
-
-    @backlog
-    Scenario: The door board shows a small picture of the ink
-      When the door board shows the task list "Groceries"
-      Then the door board shows 2 small ink pictures for the task list "Groceries"
-
-    @backlog
-    Scenario: A notification names an ink item "Handwritten item"
-      When the notification for the task list "Groceries" is shown
-      Then the notification text mentions "Handwritten item"
+      Then the widget shows "Handwritten item" 2 times for the task list "Groceries"
 
   Rule: Screen readers read ink items by position, and search finds the list by its title only (decision G3)
 
@@ -538,15 +530,19 @@ Feature: Labs: handwritten lists
       When I tick the item number 2
       Then a screen reader reads the item number 2 as "Handwritten item 2 of 5, ticked"
 
-    @backlog
-    Scenario: Search finds the list by its title
-      When I filter the Tasks view by "Groceries"
-      Then the Tasks view shows the task list "Groceries"
+  Rule: The Archive search finds a finished list by its title only, not by its ink (decision G3)
 
-    @backlog
-    Scenario: Search does not look into the ink or its placeholder
-      When I filter the Tasks view by "Handwritten"
-      Then the Tasks view does not show the task list "Groceries"
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" finished on 2026-10-10 with the ink items "Milk, Eggs"
+
+    Scenario: The Archive search finds the list by its title
+      When I search the Archive for "Groceries"
+      Then the Archive lists "Groceries"
+
+    Scenario: The Archive search does not look into the ink or its placeholder
+      When I search the Archive for "Handwritten"
+      Then the Archive does not list "Groceries"
 
   Rule: The list title always stays text (decision G4)
 

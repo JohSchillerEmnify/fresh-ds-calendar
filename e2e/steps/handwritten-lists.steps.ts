@@ -2,6 +2,7 @@
 import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { Given, Step, Then, When } from './fixtures.js';
 import { call } from './sharing.steps.js';
+import { finishedList } from './tasks-archive.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
 import { box } from './support/ui.js';
 import type { World } from './support/world.js';
@@ -68,6 +69,10 @@ Given('the calendar contains a task list {string} on {date} with the ink items {
     await this.page.goto('/');
     await this.calendarShown();
   }
+});
+
+Given('the calendar contains a task list {string} finished on {date} with the ink items {string}', async function (this: World, title: string, date: string, words: string) {
+  await finishedList(this, title, date, words.split(', ').map((_, i) => ({ title: '', strokes: [scribble(i)] })));
 });
 
 When('I open the new task list form', async function (this: World) {
