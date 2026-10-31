@@ -36,5 +36,6 @@ describe('the event dialog calendar colour', () => {
     const w = await open();
     await w.get('[data-testid=event-calendar]').setValue('work@example.test');
     expect(swatch(w)).toBe('#0b8043');
+    expect(w.get('[data-testid=event-color-option]').attributes('aria-checked')).toBe('true');
   });
 });

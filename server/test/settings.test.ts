@@ -90,6 +90,12 @@ describe('settings', () => {
     expect(await t.json('GET', '/api/settings')).toMatchObject({ body: { sounds: true } });
   });
 
+  it('still rejects a malformed or null settings body', async () => {
+    const bad = await t.app.request('/api/settings', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{nope' });
+    expect(bad.status).toBe(400);
+    expect((await t.json('PATCH', '/api/settings', null)).status).toBe(400);
+  });
+
   it('works during an outage', async () => {
     await t.json('POST', '/api/__test/outage', { down: true });
     expect((await t.json('PATCH', '/api/settings', { sounds: true })).status).toBe(200);
