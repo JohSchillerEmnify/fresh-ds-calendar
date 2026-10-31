@@ -10,8 +10,10 @@ Feature: Month view that scrolls up and down
   `vertical` | `vertical-snap`) that follows the person to every device, phone, tablet and desktop alike.
   Owner decisions, 2026-10-31:
   1. Continuous scrolling and snapping are both offered, as one setting with three values.
-  2. Days of the neighbouring month in a month's first and last week are shown greyed, as in the sideways month, so
-     a date appears twice in the stacked list; tapping a greyed day opens that day.
+  2. Continuous "Up and down" has no greyed days: a month header cannot sit in the middle of a week, so each month
+     starts on a new week row and the cells of the neighbouring month in its first and last week stay empty. Every
+     date appears exactly once. Only "Up and down, one month at a time", where each month is a page, shows the
+     neighbouring month's days greyed as in the sideways month; tapping a greyed day opens that day.
   3. The week height is fixed.
   4. The title and URL follow the month in view using replace, so there is no back step per month. Leaving the list
      by tapping a day saves the exact scroll position; going back returns to exactly that position (same month and
@@ -83,14 +85,13 @@ Feature: Month view that scrolls up and down
       And the weekday row is pinned at the top of the calendar
 
     @backlog @mobile
-    Scenario: Days of the neighbouring month are shown greyed and open their day
+    Scenario: Every date appears exactly once and the cells of the neighbouring month stay empty
       Given the month view scrolls up and down
       When I open the month view for 2026-10
-      Then the date 2026-10-31 appears twice in the month view
-      And the day 2026-11-01 is greyed in the month 2026-10
-      And the day 2026-11-01 is not greyed in the month 2026-11
-      When I tap the day 2026-11-01 in the month 2026-10
-      Then the URL path is "/day/2026-11-01"
+      Then the date 2026-10-31 appears exactly once in the month view
+      And the date 2026-11-01 appears exactly once in the month view
+      And the day 2026-11-01 is empty in the month 2026-10
+      And no day is greyed in the month view
 
     @backlog @mobile
     Scenario: Weeks keep one height and entries are shown as in the sideways month
@@ -116,6 +117,14 @@ Feature: Month view that scrolls up and down
       And the day 2026-12-24 is in view
 
   Rule: One month at a time snaps to the month headers
+
+    @backlog @mobile
+    Scenario: Days of the neighbouring month are shown greyed and open their day
+      Given the month view scrolls up and down one month at a time
+      When I open the month view for 2026-10
+      Then the day 2026-11-01 is greyed in the month 2026-10
+      When I tap the day 2026-11-01 in the month 2026-10
+      Then the URL path is "/day/2026-11-01"
 
     @backlog @mobile
     Scenario: A flick lands on the next month's header

@@ -2732,9 +2732,10 @@ the month {month} is below the month {month}
 the month {month} is the month most in view
 the day {date} is in view
 the weekday row is pinned at the top of the calendar
-the date {date} appears twice in the month view
+the date {date} appears exactly once in the month view
+the day {date} is empty in the month {month}
+no day is greyed in the month view
 the day {date} is greyed in the month {month}
-the day {date} is not greyed in the month {month}
 I tap the day {date} in the month {month}
 every week of the month view is {int} pixels tall
 I note the scroll position of the calendar
@@ -2766,10 +2767,12 @@ the month {month} is not built in the month view
 - "the month M is the month most in view": M's block has the largest visible height in the scroller; the URL path and period title are
   checked by the existing steps. "the day D is in view": its `month-cell` is fully inside the scroller's visible area. "the weekday row is
   pinned": its top equals the scroller's top after scrolling.
-- "the date D appears twice": exactly two `month-cell`s with `data-date` D (one in each neighbouring month block, the one outside
-  its month carrying `data-outside-month="true"`, greyed). "the day D is (not) greyed in the month M": the `month-cell` D inside
-  `month-block` M has (no) `data-outside-month`. "I tap the day D in the month M" taps that cell's day number. "every week of the
-  month view is N pixels tall": all week rows of the built months are N px (1 px); N = 96 on a phone.
+- "the date D appears exactly once": exactly one `month-cell` with `data-date` D in the whole list (continuous mode: a neighbouring month's
+  cells in a month's first/last week are empty placeholders without `data-date`). "the day D is empty in the month M": `month-block` M
+  has an empty placeholder (`data-empty="true"`) where D would be. "no day is greyed": no `month-cell` has `data-outside-month`.
+  Snap mode keeps `data-outside-month="true"` (greyed) on neighbouring-month days: "the day D is greyed in the month M" = the cell D
+  inside `month-block` M has it. "I tap the day D in the month M" taps that cell's day number. "every week of the month view is N
+  pixels tall": all week rows of the built months are N px (1 px); N = 96 on a phone.
 - "I note the scroll position of the calendar" stores the scroller's `scrollTop`; "the calendar is at the noted scroll position" compares
   it after going back, with 0 px tolerance (the position is saved when a day is tapped and restored on return, pixel-exact).
 - "I flick the calendar up / down": a touch flick (fast 300 px swipe up / down) on the scroller, then waits until it has settled. "the month
