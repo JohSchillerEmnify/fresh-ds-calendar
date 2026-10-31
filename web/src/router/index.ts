@@ -1,3 +1,4 @@
+import { forgetPeriod, rememberPeriod, resumePath } from '@/lib/lastPeriod';
 import { bindRouterToOverlays } from '@/lib/overlayHistory';
 import type { Component } from 'vue';
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router';
@@ -62,10 +63,9 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     redirect: (to) => {
       // back to the page the person wanted before being sent to /signin
-      const back = takeReturn();
-      if (back) return back;
       const view = useSettingsStore().settings.defaultView;
-      return { path: routePath(view, useClockStore().todayDate), query: to.query };
+      const target = homeTarget(takeReturn(), resumePath(), null);
+      return target ?? { path: routePath(view, useClockStore().todayDate), query: to.query };
     },
   },
   ...CAL_VIEWS.map(viewRoute),
@@ -86,6 +86,11 @@ export const routes: RouteRecordRaw[] = [
   { path: '/lab', name: 'lab', component: () => import('@/features/motivation/MotionLab.vue'), meta: { settings: true } },
   { path: '/:pathMatch(.*)*', redirect: (to) => ({ path: routePath('month', useClockStore().todayDate), query: to.query }) },
 ];
+
+/** Where `/` leads: the page wanted before sign-in, else the period left (reopened soon after), else null (the default view). */
+export function homeTarget(back: string | null, resumed: string | null, fallback: string | null): string | null {
+  return back ?? resumed ?? fallback;
+}
 
 /** Takes (and forgets) the remembered return; only a path of this app counts (no `//host` or `scheme:` URL). */
 function takeReturn(): string | null {
@@ -109,14 +114,20 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     if (!useDeviceStore().ready) await asked;
     if (auth.status !== 'out') return true;
     try { if (to.fullPath !== '/') sessionStorage.setItem(RETURN_KEY, to.fullPath); } catch { /* private mode: no deep link */ }
+    forgetPeriod();
     return { path: '/signin', replace: true };
   });
+  // a page ended after a long stay on one period still resumes there: stamp the period as the page goes away
+  const stamp = () => rememberPeriod(router.currentRoute.value.fullPath);
+  window.addEventListener('pagehide', stamp);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stamp(); });
   router.afterEach((to) => {
     const view = to.meta.view as ViewKind | undefined;
     // A dated Labs view loads the items of its day like the day view does.
     const d0 = to.meta.lab && to.params.param ? parseParam('day', to.params.param as string) : null;
     if (d0) useCalendarStore().setFromRoute('day', d0);
     if (!view) return;
+    rememberPeriod(to.fullPath);
     const d = parseParam(view, to.params.param as string);
     if (d) useCalendarStore().setFromRoute(view, d);
   });

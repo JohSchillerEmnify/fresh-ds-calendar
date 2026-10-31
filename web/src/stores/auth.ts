@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import { dropPushSubscription } from '@/pwa/push';
 import { wipeDevice } from '@/lib/deviceDb';
+import { forgetPeriod } from '@/lib/lastPeriod';
 
 /** Where to go once signed in (set when the router sends a deep link to /signin). */
 export const RETURN_KEY = 'signin-return';
@@ -65,6 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
         const { pathname, search, hash } = window.location;
         const full = pathname + search + hash;
         try { if (full !== '/') sessionStorage.setItem(RETURN_KEY, full); } catch { /* private mode: no deep link */ }
+        forgetPeriod();
         window.location.assign('/signin');
       }
     });
@@ -81,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     const endpoint = await dropPushSubscription();
     try { await end(endpoint); } catch { /* already signed out (401) or the server is down: leave anyway */ }
     clearPersonalStorage();
+    forgetPeriod();
     // the calendar this device kept for the person goes too (feature last-known-state)
     await wipeDevice();
     window.location.replace('/signin');

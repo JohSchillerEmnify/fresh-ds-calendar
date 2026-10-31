@@ -127,6 +127,13 @@ When('I swipe right on the calendar', async function (this: World) {
   await swipe(this, 200, 0);
 });
 
+/** What iOS delivers to the page for the system back gesture: a finger from the very edge dragged to the right. */
+When('I swipe right from the left edge of the screen', async function (this: World) {
+  const y = Math.round((await viewport(this.page)).height / 2);
+  await touchDrag(this.page, { x: 3, y }, { x: 203, y }, { durationMs: 150 });
+  await this.page.waitForTimeout(800); // a period change, if any, has happened by now
+});
+
 When('I swipe up on the calendar', async function (this: World) {
   await swipe(this, 0, -300);
 });
