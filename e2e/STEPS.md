@@ -2687,7 +2687,7 @@ the view switcher is above the calendar
 the view switcher is on the {string} side of the screen
 there is no bottom bar
 the open tasks tray is at the bottom of the screen
-the open tasks tray is above the bottom bar
+the open tasks row is inside the bottom bar
 the add button is above the open tasks tray
 ```
 

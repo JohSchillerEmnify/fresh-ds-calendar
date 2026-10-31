@@ -145,7 +145,9 @@ function toggleFold(id: string) {
 .tray { flex: none; background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); display: flex; flex-direction: column; min-width: 0; }
 .bar { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 88px 0 16px; width: 100%; text-align: left; }
 /* in the bottom bar: a slim row on top of the view switcher; the + stands beside the bar, so no room is kept for it */
-.bar.row2 { min-height: 40px; height: 40px; padding: 0 12px; flex: none; }
+.bar.row2 { min-height: 40px; height: 40px; padding: 0 12px; flex: none; flex-direction: row-reverse; }
+/* the toggle chip sits on the thumb side: right, or left in left-handed mode */
+html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
 .chip { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 999px; padding: 4px 12px; font: var(--md-sys-typescale-label-large); }
 .chip.none { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .chip { display: inline-flex; align-items: center; gap: 4px; flex: none; }
@@ -201,6 +203,7 @@ function toggleFold(id: string) {
 @media (max-width: 767.98px) {
   html[data-hand='left'][data-touch] .bar:not(.row2) { padding: 0 16px 0 88px; }
   html[data-hand='left'][data-touch] .chev:not(.in) { order: -1; margin-left: 0; }
+  html[data-hand='left'][data-touch] .bar:not(.row2) .chev.in { order: -1; }
   html[data-hand='left'][data-touch] .head { padding: 0 12px 0 0; }
   html[data-hand='left'][data-touch] .mv { order: -1; }
 }

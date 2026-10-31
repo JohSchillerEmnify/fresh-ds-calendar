@@ -140,6 +140,8 @@ const group = (w: World) => w.page.getByTestId('tasks-view').getByRole('group', 
 
 Then('the button group shows {string} as one connected group', async function (this: World, labels: string) {
   const g = group(this);
+  // allInnerTexts does not wait: the lazy Tasks view may not have rendered the group yet
+  await expect(g.getByRole('button')).toHaveCount(labels.split(', ').length);
   expect((await g.getByRole('button').allInnerTexts()).map((t) => t.trim()).join(', ')).toBe(labels);
   // connected: the buttons touch each other inside one rounded container
   const boxes = await g.getByRole('button').evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
