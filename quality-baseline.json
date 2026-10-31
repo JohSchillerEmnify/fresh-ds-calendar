@@ -176,7 +176,6 @@
    "@typescript-eslint/no-explicit-any|web/test/tasklists.test.ts": 10,
    "@typescript-eslint/no-unused-expressions|server/test/motivation.test.ts": 1,
    "@typescript-eslint/no-unused-vars|e2e/steps/events.steps.ts": 1,
-   "@typescript-eslint/no-unused-vars|e2e/steps/mobile.steps.ts": 1,
    "@typescript-eslint/no-unused-vars|e2e/steps/perf.steps.ts": 2,
    "@typescript-eslint/no-unused-vars|e2e/steps/settings.steps.ts": 2,
    "@typescript-eslint/no-unused-vars|e2e/steps/signin.steps.ts": 1,
