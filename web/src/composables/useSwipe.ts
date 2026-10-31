@@ -1,5 +1,11 @@
 import { listen } from '@/lib/timers';
 
+/** Width (px) of the screen edges the system keeps for its back gesture (iOS left edge; Android gesture navigation both). */
+const SYSTEM_EDGE_PX = 24;
+
+/** Whether a touch starting at `x` begins in a system gesture edge, so it belongs to the system and not to a swipe. */
+export const inSystemEdge = (x: number): boolean => x <= SYSTEM_EDGE_PX || x >= window.innerWidth - SYSTEM_EDGE_PX;
+
 export interface SwipeOptions {
   onLeft?: () => void;
   onRight?: () => void;
@@ -16,7 +22,7 @@ export function bindSwipe(el: HTMLElement, o: SwipeOptions): () => void {
   const stops = [
     listen(el, 'touchstart', (e) => {
       const te = e as TouchEvent;
-      if (te.touches.length !== 1 || o.disabled?.()) { active = false; return; }
+      if (te.touches.length !== 1 || o.disabled?.() || inSystemEdge(te.touches[0].clientX)) { active = false; return; }
       active = true;
       x = te.touches[0].clientX;
       y = te.touches[0].clientY;
@@ -31,6 +37,8 @@ export function bindSwipe(el: HTMLElement, o: SwipeOptions): () => void {
       (dx < 0 ? o.onLeft : o.onRight)?.();
     }, { passive: true }),
     listen(el, 'touchcancel', () => { active = false; }, { passive: true }),
+    // a history step (the system back) ends a swipe still in progress
+    listen(window, 'popstate', () => { active = false; }),
   ];
   return () => stops.forEach((s) => s());
 }

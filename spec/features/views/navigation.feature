@@ -301,6 +301,27 @@ Feature: Navigation and view switching
     And I open the app 31 minutes later
     Then the URL path is "/month/2026-10"
 
+  @mobile
+  Scenario: A swipe from the left screen edge does not change the period
+    Given I am using a phone
+    When I open the month view for 2026-11
+    And I swipe right from the left edge of the screen
+    Then the URL path is "/month/2026-11"
+
+  @mobile
+  Scenario: Going back twice from a swiped day returns to the day, then to the month it belongs to
+    Given I am using a phone
+    When I open the month view for 2026-11
+    And I tap the day 2026-11-19 in the month view
+    Then the URL path is "/day/2026-11-19"
+    When I swipe left on the calendar
+    Then the URL path is "/day/2026-11-20"
+    When I go back in the browser
+    Then the URL path is "/day/2026-11-19"
+    When I go back in the browser
+    Then the URL path is "/month/2026-11"
+    And the period title is "November 2026"
+
   @month @desktop
   Scenario: Clicking a day number in the month view opens that day
     When I open the month view for 2026-10

@@ -5,6 +5,7 @@
  * Passive listeners only, so vertical scrolling is never blocked (`touch-action: pan-y` on the area).
  */
 import { listen } from '@/lib/timers';
+import { inSystemEdge } from './useSwipe';
 import { createVelocityTracker } from '@/motion/spring';
 
 /** Movement (px) before the axis is decided. */
@@ -88,7 +89,7 @@ export function bindSwipeCarousel(el: HTMLElement, h: CarouselHooks): () => void
   const stops = [
     listen(el, 'touchstart', (e) => {
       const te = e as TouchEvent;
-      if (te.touches.length !== 1 || h.disabled()) { abort(); return; }
+      if (te.touches.length !== 1 || h.disabled() || inSystemEdge(te.touches[0].clientX)) { abort(); return; }
       phase = 'pending';
       sx = te.touches[0].clientX;
       sy = te.touches[0].clientY;
@@ -129,6 +130,8 @@ export function bindSwipeCarousel(el: HTMLElement, h: CarouselHooks): () => void
       h.end(releaseTarget(dx, vx, width), vx);
     }, { passive: true }),
     listen(el, 'touchcancel', abort, { passive: true }),
+    // a history step (the system back) takes the gesture away
+    listen(window, 'popstate', abort),
   ];
   return () => stops.forEach((s) => s());
 }

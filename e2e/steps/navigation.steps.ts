@@ -86,7 +86,7 @@ When('I tap the day {date} in the month view', async function (this: World, date
   const cell = this.byTestId('month-cell', attr('data-date', date));
   if (this.testInfo.project.use.hasTouch) {
     // Chrome drops the click of a tap that lands within a moment of a swipe; a person's next tap comes later
-    await this.page.waitForTimeout(600);
+    await this.page.waitForTimeout(1200);
     await cell.tap();
   } else await cell.getByTestId('month-cell-day-number').click(); // desktop: a cell body does not open the day
 });

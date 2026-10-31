@@ -653,6 +653,7 @@ the create button is at the bottom of the screen
 the navigation, view switcher and create buttons are at least {int} by {int} pixels
 I swipe left on the calendar
 I swipe right on the calendar
+I swipe right from the left edge of the screen
 I swipe up on the calendar
 I start swiping left on the calendar by a quarter of the width
 I start swiping left on the calendar by half the width
@@ -691,6 +692,8 @@ the text on the page can be selected by a long press
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
+- "I swipe right from the left edge of the screen": touch at x = 3 px, 200 px to the right in 150 ms (what iOS delivers during
+  its back gesture), then waits 800 ms.
 - "start swiping … by a quarter/half of the width": touchstart + slow touchmoves (≥ 400 ms, so no flick) to that
   fraction of `calendar-swipe-area`'s width, finger kept down; "I let go" sends touchend. "shown beside": a
   `swipe-neighbour` element with `data-period-start` = that date is visible and sits right of the current view.
