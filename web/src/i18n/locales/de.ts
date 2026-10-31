@@ -126,8 +126,6 @@ export default {
     },
     calendar: {
       defaultView: 'Standardansicht',
-      defaultEventColor: 'Standardfarbe für Termine',
-      calendarColor: 'Farbe des Kalenders',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
       approachTimeLeft: { label: 'Restzeit', hint: 'Die Restzeit des laufenden Termins in der Karte „Gleich“; aus, steht sie am Termin selbst' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },

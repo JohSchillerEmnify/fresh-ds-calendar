@@ -10,7 +10,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
-import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
 import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, HeaderLayout, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
@@ -38,7 +37,7 @@ import { useSaveSettings } from '@/composables/useSaveSettings';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { shownVersion } from '@/pwa/version';
-import { googleColorLabel, presetLabel, themeLabel as nameOfTheme } from '@/theme/labels';
+import { presetLabel, themeLabel as nameOfTheme } from '@/theme/labels';
 import { automaticPreset } from '@/theme/presets';
 import { LANGUAGE_NAMES, LANGUAGES, t, type LanguagePref } from '@/i18n';
 
@@ -89,7 +88,6 @@ function jump(id: SectionId) {
 }
 
 const views = computed(() => [{ value: 'month', label: t('views.month') }, { value: 'week', label: t('views.week') }, { value: 'day', label: t('views.day') }]);
-const colorOptions = computed(() => [{ value: '', label: t('settings.calendar.calendarColor') }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: googleColorLabel(c) }))]);
 /** 3, 6 and 12 hours, plus "Custom…" which reveals the hours field. */
 const PRESET_WINDOWS = [3, 6, 12];
 const approachWindows = computed(() => [...PRESET_WINDOWS.map((v) => ({ value: String(v), label: t('settings.calendar.approachWindow.hours', { count: v }, v) })), { value: 'custom', label: t('settings.calendar.approachWindow.custom') }]);
@@ -249,7 +247,6 @@ async function resetDemo() {
         <section id="s-calendar" class="card" data-testid="settings-section" data-section="calendar" aria-labelledby="h-cal">
           <h2 id="h-cal">{{ title('calendar') }}</h2>
           <div class="row"><Select class="fw" :model-value="s.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
-          <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" :label="t('settings.calendar.defaultEventColor')" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.minEventLength.label') }}</span><span class="sub">{{ t('settings.calendar.minEventLength.hint') }}</span><SegmentedButton :model-value="String(labs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.day') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.daySideBySide)" :options="daySideOptions" :label="t('settings.calendar.sideBySide.day')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>

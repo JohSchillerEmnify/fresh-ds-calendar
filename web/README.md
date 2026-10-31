@@ -124,7 +124,7 @@ decides, scrolling before it works, and `.main` keeps `touch-action: pan-y`.
 - Multi-day bars (feature event-display): `lib/spans.ts` (`barRange`, `computeBars(items, dates)` -> startCol/endCol/lane/continuedFromPrev/continuesToNext per week row, `barSegment` for drags); `EventBar.vue` (`event-bar` testid with `data-event-id/start/end/lane`) is placed by MonthView (per week row, above the chips, lanes beyond the chip limit join "+n") and TimeGrid (all-day row). `useDaySegments` leaves bar events out of the per-day chips; `itemSegments` is unchanged.
 - Drag: timed stays timed, all-day stays all-day (feature drag-to-reschedule); a bar moves by whole days (drop cell minus the cell grabbed), other multi-day events by the delta of the dragged day; moves in the time grid are in wall-clock minutes (a DST day still has 24 rows). Month cells on phones are not draggable (a tap there opens the day).
 - Time inputs are native `type=time/date`, so the 12/24 h display follows the browser locale; values are always `HH:mm`.
-- "Calendar color" swatch uses the selected calendar's color; the default event color comes from settings.
+- "Calendar color" swatch uses the selected calendar's color.
 - Day scroll: today scrolls so now is in the upper third, other days 07:00 at the top.
 - The minute ticker fires exactly on the minute (was +20 ms) so "N minutes pass" in a fake-clock test always lands the tick.
 - Transition warnings only see the loaded range, so they work while a calendar view showing today is cached (not in settings/year); updated text counts down ("starts in 7 min"), auto-hides at the start. Dismissal is per event.

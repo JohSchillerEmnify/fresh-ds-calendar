@@ -18,7 +18,7 @@ const cats = [
   { id: 'home', name: 'Home', color: '#f4511e', icon: '🏠', googleColorId: '6' },
 ];
 let settings = {
-  themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false,
+  themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', animationLevel: 'full', sounds: false,
   calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10, sunflowers: 'grow', scene: 'sunflowers', categories: cats,
   updated: NOW, version: 1,
 };

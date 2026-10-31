@@ -14,7 +14,7 @@ describe('settings', () => {
   it('has the documented defaults and the four categories', async () => {
     const { body: s } = await t.json('GET', '/api/settings');
     expect(s).toMatchObject({
-      themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
+      themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
       sunflowers: 'grow', version: 1,
     });
     expect(s).not.toHaveProperty('scene');
@@ -34,11 +34,9 @@ describe('settings', () => {
   });
 
   it('validates values', async () => {
-    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { defaultEventColorId: '12' }, { garden: 'plant' }, { plant: true }, { streakFlame: false }, { plant: 'yes' }, { sunflowers: 'many' }, { nope: 1 }, { categories: [] }];
+    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { garden: 'plant' }, { plant: true }, { streakFlame: false }, { plant: 'yes' }, { sunflowers: 'many' }, { nope: 1 }, { categories: [] }];
     for (const b of bad) expect((await t.json('PATCH', '/api/settings', b)).status, JSON.stringify(b)).toBe(400);
     expect((await t.json('PATCH', '/api/settings', { seedColor: 'red' })).body.error.message).toBe('Enter a color like #1a73e8');
-    expect((await t.json('PATCH', '/api/settings', { defaultEventColorId: '5' })).body.defaultEventColorId).toBe('5');
-    expect((await t.json('PATCH', '/api/settings', { defaultEventColorId: null })).body.defaultEventColorId).toBeNull();
   });
 
   it('If-Match uses the settings version', async () => {
@@ -74,6 +72,28 @@ describe('settings', () => {
     expect(saved).not.toHaveProperty('streakFlame');
     expect(saved).not.toHaveProperty('plant');
     again.close();
+  });
+
+  it('ignores a stored default event colour: new events follow their calendar', async () => {
+    const file = path.join(t.dir, 'settings.json');
+    fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), defaultEventColorId: '11' }));
+    const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
+    expect(await (await again.request('/api/settings')).json()).not.toHaveProperty('defaultEventColorId');
+    again.close();
+  });
+
+  it('accepts and drops the retired defaultEventColorId sent by an older app', async () => {
+    const r = await t.json('PATCH', '/api/settings', { defaultEventColorId: '5', sounds: true });
+    expect(r.status).toBe(200);
+    expect(r.body.sounds).toBe(true);
+    expect(r.body).not.toHaveProperty('defaultEventColorId');
+    expect(await t.json('GET', '/api/settings')).toMatchObject({ body: { sounds: true } });
+  });
+
+  it('still rejects a malformed or null settings body', async () => {
+    const bad = await t.app.request('/api/settings', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{nope' });
+    expect(bad.status).toBe(400);
+    expect((await t.json('PATCH', '/api/settings', null)).status).toBe(400);
   });
 
   it('works during an outage', async () => {

@@ -145,7 +145,6 @@ interface Settings {
   themeMode: ThemeMode;              // default 'system'
   seedColor: string;                 // '#rrggbb', default '#1a73e8'
   defaultView: ViewName;             // default 'month'
-  defaultEventColorId: string | null; // Google colorId '1'..'11' or null (= calendar color), default null
   animationLevel: 'full' | 'reduced' | 'off';    // default 'full'; the system "reduce motion" caps it at 'reduced'
   ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
