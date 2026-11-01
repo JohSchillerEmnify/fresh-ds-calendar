@@ -233,6 +233,27 @@ Feature: Open tasks stay in sight
     Then I see the task list "Bills" on 2026-10-05
     And the task list "Bills" is not flagged as overdue
 
+  # owner, 2026-11-01: a list made for a day that had already ended stays on that day; only a list made before its day ended is carried
+  Scenario: An open list made after its day had ended stays on that day
+    Given today is 2026-11-01
+    And the calendar contains a task list "Late" on 2026-10-31 made on 2026-11-01 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-31
+    Then I see the task list "Late" on 2026-10-31
+    When I open the day view for 2026-11-01
+    Then I do not see the task list "Late"
+
+  Scenario: An open list made before its day ended is carried to today
+    Given today is 2026-11-01
+    And the calendar contains a task list "Early" on 2026-10-31 made on 2026-10-30 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-11-01
+    Then I see the task list "Early" on 2026-11-01
+    When I open the day view for 2026-10-31
+    Then I do not see the task list "Early"
+
   Scenario: Open task lists older than 30 days stay on their own day
     When I open the month view for 2026-09
     Then I see the task list "Old" on 2026-09-01

@@ -138,6 +138,13 @@ Given(
 );
 
 Given(
+  'the calendar contains a task list {string} on {date} made on {date} with items:',
+  async function (this: World, title: string, date: string, madeOn: string, table: DataTable) {
+    await createTaskList(this, { title, date, time: null, createdOn: madeOn, items: itemsFrom(table) });
+  },
+);
+
+Given(
   'the calendar contains a task list {string} on {date} at {time} with items:',
   async function (this: World, title: string, date: string, time: string, table: DataTable) {
     await createTaskList(this, { title, date, time, items: itemsFrom(table) });

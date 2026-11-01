@@ -125,6 +125,7 @@ the calendar contains an event {string} from {date} {time} to {date} {time}
 the calendar contains an all-day event {string} on {date}
 the calendar contains an all-day event {string} from {date} to {date}
 the calendar contains a task list {string} on {date} with items:
+the calendar contains a task list {string} on {date} made on {date} with items:
 the calendar contains a task list {string} on {date} at {time} with items:
 the calendar contains a task list {string} on {date} at {time} for {int} minutes with items:
 the calendar contains an empty task list {string} on {date}
@@ -136,6 +137,7 @@ Google contains a raw task list event {string} on {date} with the description:
 All-day ranges in steps are inclusive (`from 2026-10-17 to 2026-10-20` = 4 days); the API uses an exclusive end.
 Generated items are titled exactly `Generated item 1` … `Generated item N`, all not done. Generated long items are the same titles padded with `x` to 150 characters. 40 such items serialize to
 more than 1024 characters of JSON, which forces chunking (see API.md "Storage in Google").
+A task list set up through the API without "made on" counts as made on its own day (`createdOn` = its date); "made on D" sends `createdOn: D`.
 The raw task list event has `extendedProperties.private.kind = "tasklist"` but no `items` property (doc string = description).
 
 ## Navigation

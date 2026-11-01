@@ -27,6 +27,17 @@ describe('task lists CRUD', () => {
     expect(g.colorId).toBeUndefined();
   });
 
+  it('stores the day it was made on: the input\'s, else today; it survives an update', async () => {
+    const a = await mk();
+    expect(a.createdOn).toBe('2026-10-12');
+    const b = await mk({ createdOn: '2026-10-09' });
+    expect(b.createdOn).toBe('2026-10-09');
+    const u = await t.json('PATCH', `/api/tasklists/${b.id}`, { title: 'Renamed' });
+    expect(u.body.createdOn).toBe('2026-10-09');
+    expect((await t.json('GET', `/api/tasklists/${b.id}`)).body.createdOn).toBe('2026-10-09');
+    expect((await t.json('POST', '/api/tasklists', { title: 'x', date: null, createdOn: 'yesterday' })).status).toBe(400);
+  });
+
   it('timed lists last estimate minutes (default 30) in Berlin time', async () => {
     const a = await mk({ time: '09:15' });
     expect(a.time).toBe('09:15');

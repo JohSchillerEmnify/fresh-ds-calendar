@@ -57,7 +57,12 @@ export class Api {
   }
 
   get<T = unknown>(path: string) { return this.call<T>('GET', path); }
-  post<T = unknown>(path: string, body?: unknown) { return this.call<T>('POST', path, body ?? {}); }
+  /** A task list set up through the API counts as made on its own day (unless the step says otherwise), so past lists carry over as before. */
+  post<T = unknown>(path: string, body?: unknown) {
+    const b = (body ?? {}) as { date?: unknown; createdOn?: unknown };
+    const own = path === '/api/tasklists' && typeof b.date === 'string' && b.createdOn === undefined;
+    return this.call<T>('POST', path, own ? { ...b, createdOn: b.date } : body ?? {});
+  }
   patch<T = unknown>(path: string, body: unknown) { return this.call<T>('PATCH', path, body); }
   put<T = unknown>(path: string, body: unknown) { return this.call<T>('PUT', path, body); }
   delete(path: string) { return this.call('DELETE', path); }

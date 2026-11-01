@@ -123,6 +123,7 @@ interface TaskList {
   color: string;               // category color, else calendar color
   completedOn: LocalDate | null; // read-only: app-clock date of the write that ticked the last open item; null while
                                  // an item is open (also for lists completed in the Google app); ignored on input
+  createdOn?: LocalDate;       // app-clock day the list was made (create input may send it: an offline create keeps its day); absent on older lists
   canvas: { x: number; y: number } | null;  // place on the Canvas in canvas units (integers 0-10000); null = Unsorted
   etag: string;
   updated: DateTime;
@@ -711,7 +712,7 @@ Only days with at least one item are listed. Multi-day items count on every cove
 task lists with at least one unticked item dated in `[today − days, today]` (inclusive). `finishedToday`: task lists
 in the same date window with `completedOn = today` (finished today, shown struck through in the tray). Order of both:
 date ascending, then untimed before timed, then time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
-date); lists with no open items are never carried. `days` max 90, default 30.
+date); lists with no open items are never carried, and neither is a list made after its own day had ended (`createdOn` later than `date`; absent `createdOn` = carried). `days` max 90, default 30.
 
 ### All open task lists (Tasks view)
 
@@ -1139,6 +1140,7 @@ these events, so this encoding is a contract like the REST API above.
 | `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
+| `createdOn` | `extendedProperties.private.createdOn` = `YYYY-MM-DD`, written on create (the input's, else the app clock's today). Absent on older lists. |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
 | `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (the Canvas of the Tasks view); both absent = no place yet |
 | undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |

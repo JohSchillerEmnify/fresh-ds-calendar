@@ -175,6 +175,11 @@ describe('collapsed card', () => {
     expect(seg(tl('c', { date: '2026-09-11', done: [false] })).date).toBe('2026-09-11');
     expect(seg(tl('d', { date: '2026-10-14', done: [false] })).date).toBe('2026-10-14');
   });
+  it('an open list made after its own day ended stays on that day; one made before it is carried', () => {
+    expect(seg({ ...tl('e', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-11' }).date).toBe('2026-10-10');
+    expect(seg({ ...tl('f', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-10' }).date).toBe('2026-10-12');
+    expect(seg({ ...tl('g', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-09' }).date).toBe('2026-10-12');
+  });
   it('a timed list is a block sized by its estimate', () => {
     const s = seg(tl('Tidy', { time: '18:00', estimateMinutes: 45 }));
     expect([s.startMin, s.endMin]).toEqual([1080, 1125]);
@@ -575,7 +580,7 @@ describe('dialog', () => {
     await flushPromises();
     expect(created[0]).toEqual({
       title: 'Groceries', date: '2026-10-14', time: '18:00', estimateMinutes: 45, categoryId: 'shopping',
-      items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly',
+      items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly', createdOn: '2026-10-12',
     });
     expect(w.emitted('close')).toHaveLength(1);
   });

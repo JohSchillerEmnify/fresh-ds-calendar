@@ -219,7 +219,7 @@ export class CalendarService {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, ...(ev.recurringEventId ? { seriesId: ev.recurringEventId, seriesKey: ev.extendedProperties?.private?.series ?? ev.recurringEventId } : {}),
       categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas,
+      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, ...(d.createdOn ? { createdOn: d.createdOn } : {}), canvas: d.canvas,
       reminders: this.remindersView(ev, this.defaultsSync(ev.calendarId)), etag: ev.etag, updated: ev.updated,
     };
   }
@@ -233,7 +233,7 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: SHARED_PREFIX + doc.id, calendarId: SHARED_CALENDAR, title: d.title, date: d.date, time: d.time, items: d.items,
       doneCount: done, totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: null, categoryId: d.categoryId, tags: d.tags,
-      color: info?.color ?? fallbackColor, calendarColor: fallbackColor, completedOn: d.completedOn, canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
+      color: info?.color ?? fallbackColor, calendarColor: fallbackColor, completedOn: d.completedOn, ...(d.createdOn ? { createdOn: d.createdOn } : {}), canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
       shared: this.shared!.info(doc, this.sub), categoryInfo: info,
     };
   }
@@ -493,6 +493,7 @@ export class CalendarService {
       items: (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...(i.strokes ? { ink: true as const } : {}) })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       canvas: null,
+      createdOn: input.createdOn ?? localDateOf(this.clock.nowMs(), this.tz), // an offline create keeps the day it was made
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
     };
     this.checkTaskData(d);
