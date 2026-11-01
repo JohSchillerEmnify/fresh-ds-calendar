@@ -29,18 +29,18 @@
     "node": ">=24.11"
   },
   "devDependencies": {
-    "@capacitor/android": "8.5.3",
-    "@capacitor/cli": "8.5.3",
-    "@capacitor/core": "8.5.3",
+    "@capacitor/android": "8.6.0",
+    "@capacitor/cli": "8.6.0",
+    "@capacitor/core": "8.6.0",
     "@eslint/js": "^10.0.1",
     "dependency-cruiser": "^18.7.0",
     "eslint": "^10.13.0",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-vue": "^10.12.0",
     "globals": "^17.13.0",
-    "jscpd": "^5.4.1",
+    "jscpd": "^5.4.2",
     "knip": "^6.43.0",
-    "typescript-eslint": "^8.71.2",
+    "typescript-eslint": "^8.72.1",
     "vue-eslint-parser": "^10.4.1"
   },
   "license": "AGPL-3.0-only"
