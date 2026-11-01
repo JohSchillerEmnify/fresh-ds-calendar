@@ -15,7 +15,8 @@ const savedPatch = (w: World) => w.page.waitForResponse((r) => ['/api/prefs', '/
 const controlOf = (r: Locator) => r.locator('[role=switch], [role=group], select, button, input').first();
 
 Then('the settings groups are {string}', async function (this: World, list: string) {
-  await expect(this.page.getByTestId('settings-home')).toBeVisible();
+  // read on the settings home; from a group page Back leads there inside the app (no reload)
+  if (!(await this.page.getByTestId('settings-home').isVisible())) await openSettingsHome(this);
   await expectJoined(this.page.getByTestId('settings-group'), list, 'data-group');
 });
 

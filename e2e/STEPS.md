@@ -935,6 +935,8 @@ the setting {string} is highlighted
   (`settingControl` in `support/settings.ts`, a test id → page table), and leave the settings with Back until no
   settings page is shown. `I turn on S in the settings` and `the S switch in the settings is off` reach row S through
   the settings search.
+- `the settings groups are L` reads the `data-group` of the home's groups in order; from a group page it goes Back to
+  the home first (inside the app, no reload).
 - `the settings page shows the setting S` = a visible `settings-row` with `data-setting` S on the open group page.
 - `I turn on|off S in the settings` toggles the switch inside the `settings-row` S and waits for the save response.
 - A search result is `settings-search-result` with `data-setting` (name) and `data-path` (group, or
