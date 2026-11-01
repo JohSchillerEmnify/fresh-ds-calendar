@@ -57,8 +57,10 @@ describe('InkLine', () => {
     usePrefsStore().labsDrawWithFinger = true;
     draw(svg, { pointerType: 'touch' });
     expect(w.emitted('change')).toHaveLength(1);
-    draw(svg, { pointerType: 'touch', width: 60 });
-    expect(w.emitted('change')).toHaveLength(1);
+    draw(svg, { pointerType: 'touch', width: 50 });
+    expect(w.emitted('change')).toHaveLength(2);
+    draw(svg, { pointerType: 'touch', width: 80 });
+    expect(w.emitted('change')).toHaveLength(2);
   });
 
   it('ignores a finger that comes right after the pen (a resting palm)', () => {
@@ -112,7 +114,7 @@ describe('InkLine', () => {
   it('a palm moving or lifting while the pen writes does not add to the pen stroke or end it', () => {
     const { w, svg } = setup();
     const pen = { pointerType: 'pen' };
-    const palm = { pointerType: 'touch', width: 60 };
+    const palm = { pointerType: 'touch', width: 80 };
     svg.dispatchEvent(ev('pointerdown', 150, 30, palm));
     svg.dispatchEvent(ev('pointerdown', 10, 20, pen));
     svg.dispatchEvent(ev('pointermove', 150, 35, palm));

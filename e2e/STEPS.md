@@ -3394,6 +3394,9 @@ I move the pen away from the writing area
 the writing area does not let the browser pan
 the writing area lets a finger pan the list up and down
 I touch the ink item number {int} with a finger
+I switch the Labs setting {string} on
+I drag one finger along the writing area
+I drag one broad finger along the writing area
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls

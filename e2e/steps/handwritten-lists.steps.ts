@@ -33,6 +33,11 @@ async function off(w: World, name: string) {
   if (!(await w.page.getByTestId('settings-view').isVisible().catch(() => false))) return setSwitch(w, name, false);
   await expect(await labsRow(w, name)).toHaveAttribute('aria-checked', 'false');
 }
+When('I switch the Labs setting {string} on', async function (this: World, name: string) {
+  const row = await labsRow(this, name);
+  await row.click();
+  await expect(row).toHaveAttribute('aria-checked', 'true');
+});
 Step('the Labs switch {string} is off', async function (this: World, name: string) { await off(this, name); });
 Step('the Labs setting {string} is off', async function (this: World, name: string) { await off(this, name); });
 
@@ -414,6 +419,24 @@ async function swipeUp(w: World, fingers: 1 | 2) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await cdp.detach().catch(() => {});
 }
+/** One finger dragged sideways along the open writing line with real touch input (CDP), as a person writes; `radius` is the contact radius in px. */
+async function dragFinger(w: World, radius: number) {
+  const open = nextLine(w);
+  const line = (await open.count()) ? open : formLines(w).first();
+  await line.scrollIntoViewIfNeeded();
+  const b = await box(line);
+  const cdp = await w.context.newCDPSession(w.page);
+  const at = (dx: number) => [{ x: Math.round(b.x + 20 + dx), y: Math.round(b.y + b.height / 2), id: 1, radiusX: radius, radiusY: radius }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(0) });
+  for (let i = 1; i <= 12; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(i * 12) });
+    await w.page.waitForTimeout(16);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach().catch(() => {});
+}
+When('I drag one finger along the writing area', async function (this: World) { await dragFinger(this, 4); });
+When('I drag one broad finger along the writing area', async function (this: World) { await dragFinger(this, 24); });
 When('I swipe up on the writing area with a finger', async function (this: World) { await swipeUp(this, 1); });
 When('I swipe up on the writing area with two fingers', async function (this: World) { await swipeUp(this, 2); });
 Then('the list scrolls', async function (this: World) {

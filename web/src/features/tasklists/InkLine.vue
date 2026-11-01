@@ -35,7 +35,7 @@ watch(() => props.editable, (v) => { if (!v) setPenOver(false); });
 /** A pen was last at work at this time (ms); a touch right after it is a palm (decision R1). */
 let penAt = 0;
 const PALM_MS = 800;
-const PALM_WIDTH = 40;
+const PALM_WIDTH = 64;
 const ERASE_RADIUS = 0.35;
 
 const shown = computed(() => erasing.value ?? props.strokes);
