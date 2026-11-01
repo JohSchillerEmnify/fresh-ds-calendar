@@ -39,6 +39,25 @@ describe('InkLine', () => {
     expect(useInkStore().penSeen).toBe(true);
   });
 
+  it('takes the next stroke when the pen-up of the last one was lost', () => {
+    const { w, svg } = setup();
+    svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'pen' }));
+    svg.dispatchEvent(ev('pointermove', 40, 22, { pointerType: 'pen' }));
+    draw(svg, { pointerType: 'pen' });
+    // the stroke that lost its up is kept, and the new one is drawn as well
+    expect(w.emitted('change')).toHaveLength(2);
+  });
+
+  it('ends a stroke when the browser takes the pointer away', () => {
+    const { w, svg } = setup();
+    svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'pen' }));
+    svg.dispatchEvent(ev('pointermove', 40, 22, { pointerType: 'pen' }));
+    svg.dispatchEvent(ev('lostpointercapture', 40, 22, { pointerType: 'pen' }));
+    expect(w.emitted('change')).toHaveLength(1);
+    draw(svg, { pointerType: 'pen' });
+    expect(w.emitted('change')).toHaveLength(2);
+  });
+
   it('never draws with the mouse; a click that drew nothing is a tap', () => {
     const { w, svg } = setup();
     draw(svg, { pointerType: 'mouse' });

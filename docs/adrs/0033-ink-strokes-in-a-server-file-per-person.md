@@ -7,7 +7,7 @@ Status: accepted (feature handwritten-lists, owner decision 2026-10-30)
 The strokes of a handwritten item are stored in `users/<sub>/ink.json` (one document per person, keyed by list id and
 item id), with a copy on the device like every other per-person file (ADR 0025). In Google the item keeps only a flag
 (`k: 1`) and the placeholder `Handwritten item` in the event description. Strokes are stored relative to the line height,
-as `[x, y, pressure]` points, and a list holds about 200 KB of ink. The web app draws them with `perfect-freehand`.
+as `[x, y, pressure]` points, and a list holds about 1 MB of ink (strokes are stored smoothed to within half a pixel, so a word takes a few KB). The web app draws them with `perfect-freehand`.
 
 ## Alternatives
 

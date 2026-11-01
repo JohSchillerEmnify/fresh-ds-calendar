@@ -2,7 +2,7 @@
 /** One line of ink (feature handwritten-lists): SVG in line-height units; editable takes pen strokes and erasing, `change` reports all strokes. */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { InkPoint, InkStroke } from '@/api/types';
-import { eraseAt, flattenColours, parseColour, penRole, readableInk, readableOn, strokePath, toLineUnits, type Rgba } from '@/lib/ink';
+import { compactPoints, eraseAt, flattenColours, parseColour, penRole, readableInk, readableOn, strokePath, toLineUnits, type Rgba } from '@/lib/ink';
 import { useInkStore } from '@/stores/ink';
 
 const props = defineProps<{
@@ -78,7 +78,7 @@ const paths = computed(() => shown.value.map((s) => ({
   colour: s.c ?? 'theme',
   style: s.c ? (props.onCard ? cardInk(s.c) : { '--l': readableInk(s.c, false), '--d': readableInk(s.c, true) }) : {},
 })));
-const livePath = computed(() => (live.value && !live.value.erase ? strokePath(live.value.points) : ''));
+const livePath = computed(() => (live.value && !live.value.erase ? strokePath(compactPoints(live.value.points)) : ''));
 const liveColour = computed(() => (live.value?.colour ? { '--l': readableInk(live.value.colour, false), '--d': readableInk(live.value.colour, true) } : {}));
 
 let observer: ResizeObserver | null = null;
@@ -109,8 +109,8 @@ function down(e: PointerEvent): void {
   moved = false;
   const role = penRole(e);
   if (role === 'ignore') return;
-  // a stroke is going on: the other pointer is a palm or a second hand and must not capture it
-  if (live.value) return;
+  // a pen has one tip: a stroke still going on lost its pointerup, so it ends here instead of locking the line
+  if (live.value) commitLive();
   try { svg.value?.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer cannot be captured */ }
   activeId = e.pointerId;
   const erase = role === 'erase' || ink.eraser;
@@ -134,24 +134,32 @@ function move(e: PointerEvent): void {
 function penLifted(): void {
   if (typeof matchMedia === 'function' && matchMedia('(any-hover: none)').matches) setPenOver(false);
 }
+/** Ends the stroke going on with what it holds (a drawn one becomes a stroke, an erase stands). */
+function commitLive(): void {
+  const l = live.value;
+  live.value = null;
+  const kept = erasing.value;
+  erasing.value = null;
+  if (!l) return;
+  if (l.erase) {
+    if (kept && kept.length !== props.strokes.length) emit('change', kept);
+  } else if (l.points.length > 1) emit('change', [...props.strokes, { p: compactPoints(l.points), ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
+}
 function up(e: PointerEvent): void {
   if (e.pointerType === 'pen') penLifted();
   if (live.value && e.pointerId !== activeId) return;
   const l = live.value;
-  live.value = null;
   if (!l) {
     // a click that drew nothing
     if (props.editable && !moved && e.pointerType !== 'pen') emit('tap');
     return;
   }
   if (!l.erase) l.points.push(point(e));
-  const kept = erasing.value;
-  erasing.value = null;
-  if (l.erase) {
-    if (kept && kept.length !== props.strokes.length) emit('change', kept);
-    return;
-  }
-  emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
+  commitLive();
+}
+/** The browser took the pointer away (the pen left range, the window lost it) without an up: the stroke ends there. */
+function lost(e: PointerEvent): void {
+  if (e.pointerId === activeId) commitLive();
 }
 /** The pen came into or left the line (hovering counts); a finger coming in clears it, anything else changes nothing. */
 function penAbove(e: PointerEvent, over: boolean): void {
@@ -201,7 +209,7 @@ onBeforeUnmount(() => {
   <svg
     ref="svg" class="ink" :class="{ oncard: onCard, outlined: onCard && pointCount <= OUTLINE_MAX_POINTS, editable, pen: editable && penOver }" :viewBox="viewBox" preserveAspectRatio="xMinYMid meet"
     data-testid="ink-line" :data-strokes="shown.length" :role="label ? 'img' : undefined" :aria-label="label" :aria-hidden="label ? undefined : 'true'"
-    @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancelled"
+    @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancelled" @lostpointercapture="lost"
     @pointerenter="penAbove($event, true)" @pointerleave="penAbove($event, false)"
   >
     <path v-for="(p, i) in paths" :key="i" class="p" :d="p.d" :style="p.style" data-testid="ink-stroke" :data-colour="p.colour" />

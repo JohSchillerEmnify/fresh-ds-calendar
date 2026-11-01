@@ -1,5 +1,6 @@
 /** Pure rules of handwritten items (feature handwritten-lists): pointers, line-height units, outlines, erasing, colours. */
 import { getStroke } from 'perfect-freehand';
+import simplify from 'simplify-js';
 import type { InkDoc, InkPoint, InkStroke } from '@calendar/shared/api';
 import { contrastRatio } from '../api/colors';
 import { keptItems, type OutboxEntry } from './outbox';
@@ -31,9 +32,49 @@ const SIZE = 1.05;
 /** How much the width follows the pressure: a light touch is a hairline, full pressure about 4 times as thick. */
 const THINNING = 0.7;
 
+/** How far a stored stroke may stray from the pen's path: half a pixel of a 24 px line. */
+const TOLERANCE = 0.5 / PX;
+
+/** Steps longer than this (3 px of a 24 px line) are a fast move or a corner and stay as drawn. */
+const SLOW_STEP = 3 / PX;
+
+/** One [1 2 1] pass over x and y of the slow part of a stroke: pen noise is a few pixels at most, a corner is a long step. Ends stay put. */
+function relax(points: InkPoint[]): InkPoint[] {
+  return points.map((c, i) => {
+    const [a, b] = [points[i - 1], points[i + 1]];
+    if (!a || !b || Math.hypot(c[0] - a[0], c[1] - a[1]) > SLOW_STEP || Math.hypot(b[0] - c[0], b[1] - c[1]) > SLOW_STEP) return c;
+    return [(a[0] + 2 * c[0] + b[0]) / 4, (a[1] + 2 * c[1] + b[1]) / 4, c[2]];
+  });
+}
+
+/** The points of a stroke to store: the pen reports 100-250 points a second, so the slow part is smoothed, the path thinned to {@link TOLERANCE} and the numbers rounded (a list holds many lines). */
+export function compactPoints(points: InkPoint[]): InkPoint[] {
+  const pts = relax(relax(relax(relax(relax(relax(points)))))).map(([x, y, p]) => ({ x, y, p }));
+  // simplify-js hands back the same objects it was given, so the pressure survives
+  const kept = (points.length > 2 ? simplify(pts, TOLERANCE, true) : pts) as typeof pts;
+  return kept.map((k) => [Math.round(k.x * 1000) / 1000, Math.round(k.y * 1000) / 1000, Math.round(k.p * 100) / 100]);
+}
+
+/** Longest gap between points handed to perfect-freehand: it needs pen-like spacing, or a thinned stroke renders with thin gaps and cut corners (1 px of a 24 px line). */
+const MAX_GAP = 1 / PX;
+
+/** The stroke with straight pieces filled in at pen-like spacing (pressure interpolated); a stroke that is already dense is unchanged. */
+function densify(points: InkPoint[]): InkPoint[] {
+  const out: InkPoint[] = [];
+  points.forEach((b, i) => {
+    const a = points[i - 1];
+    if (a) {
+      const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / MAX_GAP);
+      for (let k = 1; k < n; k++) out.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n, a[2] + ((b[2] - a[2]) * k) / n]);
+    }
+    out.push(b);
+  });
+  return out;
+}
+
 /** SVG path data of a stroke in line-height units; the width follows the pressure (decision Q4). */
 export function strokePath(points: InkPoint[]): string {
-  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: SIZE, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
+  const outline = getStroke(densify(points).map(([x, y, p]) => [x * PX, y * PX, p]), { size: SIZE, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
     .map(([x, y]) => [x! / PX, y! / PX] as [number, number]);
   if (outline.length < 4) return '';
   let [a, b] = [outline[0]!, outline[1]!];

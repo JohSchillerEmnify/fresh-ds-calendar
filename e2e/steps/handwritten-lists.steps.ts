@@ -257,14 +257,15 @@ When('I touch the first stroke with the eraser end of the pen', async function (
 });
 When('I touch the first stroke with the pen', async function (this: World) { await stroke(formLines(this).first(), 'pen'); });
 When('I press the eraser button', async function (this: World) { await this.page.getByTestId('ink-eraser').click(); });
-Given('the task list {string} holds about 200 KB of ink', async function (this: World, title: string) {
-  // three strokes of ~66 KB: just under the 200 KB the server allows, so one more stroke is too much
+Given('the task list {string} holds about 1 MB of ink', async function (this: World, title: string) {
+  // strokes of ~66 KB: just under the 1 MB the server allows, so one more stroke is too much
   const pts = (n: number) => ({ p: Array.from({ length: n }, (_, i) => [1 + (i % 9) / 10, 0.5, 0.5]), c: '#d32f2f' });
   // the server counts the JSON of each item's strokes: grow the last stroke until the list is just under the limit
   const measure = (items: { strokes: unknown[] }[]) => JSON.stringify(items.map((i) => i.strokes)).length;
-  let n = 4700;
-  let items = [{ title: '', strokes: [pts(4750), pts(4750)] }, { title: '', strokes: [pts(n)] }];
-  while (measure(items) < 199_800) items = [items[0]!, { title: '', strokes: [pts(++n)] }];
+  let n = 100;
+  const filler = Array.from({ length: 7 }, () => ({ title: '', strokes: [pts(4750), pts(4750)] }));
+  let items = [...filler, { title: '', strokes: [pts(4750), pts(n)] }];
+  while (measure(items) < 999_800) items = [...filler, { title: '', strokes: [pts(4750), pts(n += 20)] }];
   await this.api.post('/api/tasklists', { title, date: '2026-10-14', time: null, items });
   if (!this.page.url().startsWith('http')) { await this.page.goto('/'); await this.calendarShown(); }
 });
@@ -797,6 +798,10 @@ Then('both devices show the ink item number {int} with {int} stroke(s)', async f
 When('I draw a stroke with the pen at the pressure {float}', async function (this: World, pressure: number) {
   await stroke(nextLine(this), 'pen', { pressure });
 });
+
+// proven by web/test/ink-lib.test.ts (@unit scenario)
+When('I write {int} words of {int} strokes with a pen that reports {int} points per stroke', async () => { throw new Error('unit test only'); });
+Then('the list is not full', async () => { throw new Error('unit test only'); });
 
 /** A trusted pen pointer (pointerType "pen") through the browser's own input: hover, press and move. */
 async function penInput(w: World, steps: { type: 'mouseMoved' | 'mousePressed' | 'mouseReleased'; x: number; y: number }[]) {

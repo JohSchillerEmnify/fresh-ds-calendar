@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { keptItems, type OutboxEntry } from '../src/lib/outbox';
-import { eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
+import { compactPoints, eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
+import simplify from 'simplify-js';
+import { INK_LIST_MAX_BYTES, inkListBytes } from '@calendar/shared/limits';
+import type { InkPoint } from '@calendar/shared/api';
 
 describe('penRole', () => {
   it('lets only a pen draw: the mouse never does, a finger never does', () => {
@@ -154,5 +157,70 @@ describe('flattenColours', () => {
   it('is null when no layer has a colour', async () => {
     const { flattenColours } = await import('@/lib/ink');
     expect(flattenColours([null, null])).toBeNull();
+  });
+});
+
+/** A word of 8 strokes the way a Windows pen reports it: about 150 raw points per stroke, full float precision, a little sensor jitter. */
+function penWord(seed: number): InkPoint[][] {
+  let s = seed;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296 - 0.5);
+  return Array.from({ length: 8 }, (_, k) => Array.from({ length: 150 }, (_, i) => [
+    0.3 + k * 0.7 + (i / 150) * 0.6 + rnd() * 0.002,
+    0.5 + 0.3 * Math.sin(i / 12 + k) + rnd() * 0.002,
+    0.3 + 0.4 * Math.abs(Math.sin(i / 30)) + rnd() * 0.01,
+  ] as InkPoint));
+}
+const distToPolyline = (pt: InkPoint, line: InkPoint[]): number => Math.min(...line.map((b, i) => (i === 0 ? Math.hypot(pt[0] - b[0], pt[1] - b[1]) : segDist(pt, line[i - 1]!, b))));
+const segDist = (p: InkPoint, a: InkPoint, b: InkPoint): number => {
+  const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
+  const t = Math.min(1, Math.max(0, dx || dy ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy) : 0));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+};
+
+describe('strokePath of a thinned stroke', () => {
+  it('draws the same outline as the dense stroke it was thinned from (no gaps in long straight pieces)', () => {
+    const dense: InkPoint[] = Array.from({ length: 49 }, (_, i) => [i / 24, 0.5, 0.5]);
+    const box = (d: string) => { const n = [...d.matchAll(/-?\d+\.\d+/g)].map((m) => Number(m[0])); const xs = n.filter((_, i) => i % 2 === 0); const ys = n.filter((_, i) => i % 2 === 1); return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]; };
+    box(strokePath([dense[0]!, dense[48]!])).forEach((v, i) => expect(v).toBeCloseTo(box(strokePath(dense))[i]!, 1));
+    // the unthinned piece would be a bare 2-point stroke: the outline has to reach as far as the dense one
+    expect(strokePath([dense[0]!, dense[48]!]).split(' ').length).toBeGreaterThan(20);
+  });
+});
+
+describe('compactPoints', () => {
+  it('keeps a stroke within half a pixel of what was drawn with far fewer points', () => {
+    for (const raw of penWord(1)) {
+      const out = compactPoints(raw);
+      expect(out.length).toBeLessThan(raw.length / 3);
+      expect(out[0]![0]).toBeCloseTo(raw[0]![0], 2);
+      expect(out.at(-1)![0]).toBeCloseTo(raw.at(-1)![0], 2);
+      for (const p of raw) expect(distToPolyline(p, out)).toBeLessThanOrEqual(0.5 / 24 + 0.002);
+    }
+  });
+  it('holds at least 50 words of handwriting in one list', () => {
+    const items = Array.from({ length: 50 }, (_, n) => penWord(n + 1).map((raw) => ({ p: compactPoints(raw), t: 1_700_000_000_000 + n })));
+    expect(inkListBytes(items)).toBeLessThanOrEqual(INK_LIST_MAX_BYTES - INK_LIST_MAX_BYTES / 10);
+  });
+  it('smooths the noise of a slow pen but keeps a corner of a fast move', () => {
+    let seed = 9;
+    const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296 - 0.5);
+    const slow: InkPoint[] = Array.from({ length: 300 }, (_, i) => [i * 0.012, 0.5 + (rnd() * 2.4) / 24, 0.5]);
+    // thinning alone keeps the noise of a straight line as vertices
+    const unsmoothed = simplify(slow.map(([x, y]) => ({ x, y })), 0.5 / 24, true).length;
+    expect(compactPoints(slow).length).toBeLessThan(unsmoothed / 2);
+    const corner = compactPoints([[0, 0, 0.5], [1, 0, 0.5], [2, 0, 0.5], [0, 1, 0.5], [1, 1, 0.5]]);
+    expect(corner).toEqual([[0, 0, 0.5], [2, 0, 0.5], [0, 1, 0.5], [1, 1, 0.5]]);
+  });
+  it('keeps a single tap as one point', () => {
+    expect(compactPoints([[1.23456, 0.5, 0.5]])).toEqual([[1.235, 0.5, 0.5]]);
+  });
+});
+
+describe('the list that was reported full', () => {
+  it('holds the four items of the report (176 KB at 52 bytes a point) well within the limit', () => {
+    const word = (points: number) => [{ p: Array.from({ length: points }, (_, i) => [0.123456789012345 + i * 1e-4, 0.5234567890123456, 0.4123456789012345]), t: 1_700_000_000_000 }];
+    const raw = [997, 797, 396, 1207].map(word);
+    expect(inkListBytes(raw)).toBeGreaterThan(150_000);
+    expect(inkListBytes(raw)).toBeLessThan(INK_LIST_MAX_BYTES - INK_LIST_MAX_BYTES / 10);
   });
 });
