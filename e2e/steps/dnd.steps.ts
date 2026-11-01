@@ -145,14 +145,19 @@ async function drag(
   const cardBox = await box(card);
   const mid = (cardBox.y + cardBox.height / 2 + toFirst.y) / 2;
   // scroll when the card is outside the viewport or outside its scroll container's visible part (a banner above the
-  // grid on a short screen hides cards that are still inside the viewport)
+  // grid on a short screen hides cards that are still inside the viewport; the floating bottom bar and + button cover
+  // the grid's lower part, nav-expressive)
   await card.evaluate((el, midY) => {
     const b = el.getBoundingClientRect();
+    const floating = [...document.querySelectorAll('[data-testid="bottom-bar"]:not([data-hidden="true"]), [data-testid="create-button"]')]
+      .filter((f) => getComputedStyle(f).position === 'fixed').map((f) => f.getBoundingClientRect()).filter((f) => f.height > 0);
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
       if (n.scrollHeight > n.clientHeight && getComputedStyle(n).overflowY !== 'visible') {
         const r = n.getBoundingClientRect();
-        if (b.top >= Math.max(0, r.top) && b.bottom <= Math.min(innerHeight, r.bottom)) return;
-        n.scrollTop += midY - (r.top + r.height / 2);
+        const top = Math.max(0, r.top);
+        const bottom = Math.min(innerHeight, r.bottom, ...floating.map((f) => f.top));
+        if (b.top >= top && b.bottom <= bottom) return;
+        n.scrollTop += midY - (top + bottom) / 2;
         return;
       }
     }
@@ -424,6 +429,10 @@ async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Poin
   await w.page.waitForTimeout(100);
   const from = await grabPoint(w, card);
   const dest = await to(from);
+  // noted now: once in an edge zone every lookup delays leaving it, and a turn may be due within a few hundred ms
+  const e = await columnsEdges(w);
+  const sc = await box(w.page.locator('[data-scroll-area]').first());
+  w.heldMiddle = { x: (e.left + e.right) / 2, y: sc.y + sc.height / 2 };
   // an edge hold stops `approach` px short of the zone first, then enters it in one move: the hold counts from there
   const near = { x: dest.x - approach, y: dest.y };
   if (useTouch(w)) {
@@ -516,8 +525,9 @@ Then('{string} is still being dragged', async function (this: World, title: stri
 async function dropAt(w: World, to: Point | (() => Promise<Point>)) {
   if (!w.held || !w.heldMove) throw new Error('nothing is held');
   // out of an edge zone at once (no further turn while the target is looked up), then to the target
-  const e = await columnsEdges(w);
-  await w.heldMove({ x: (e.left + e.right) / 2, y: w.heldAt?.y ?? (await w.page.viewportSize())!.height / 2 }, 1, 0);
+  let midX = w.heldMiddle?.x;
+  if (midX === undefined) { const e = await columnsEdges(w); midX = (e.left + e.right) / 2; }
+  await w.heldMove({ x: midX, y: w.heldAt?.y ?? (await w.page.viewportSize())!.height / 2 }, 1, 0);
   await w.heldMove(typeof to === 'function' ? await to() : to, 10, 300);
   const saved = w.page.waitForResponse((r) => isPersist(r.url(), r.request().method()));
   await w.held();
