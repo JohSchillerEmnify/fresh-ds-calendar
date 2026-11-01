@@ -2,6 +2,7 @@
 import type { Messages } from '../schema';
 import calendarDe from './de/calendar.ts';
 import outboxDe from './de/outbox.ts';
+import deviceLogDe from './de/deviceLog.ts';
 import backupDe from './de/backup.ts';
 import canvasDe from './de/canvas.ts';
 import inkDe from './de/ink.ts';
@@ -16,6 +17,7 @@ export default {
   settingsNav: settingsNavDe,
   calendar: calendarDe,
   outbox: outboxDe,
+  deviceLog: deviceLogDe,
   backup: backupDe,
   canvas: canvasDe,
   ink: inkDe,

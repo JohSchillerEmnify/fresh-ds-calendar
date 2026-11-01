@@ -80,6 +80,7 @@ export default {
     bedtimeReminder: 'Schlafenszeit-Erinnerung, Erinnerung vor dem Schlafen',
     labs: 'experimentell, Beta',
     backup: 'Google Drive, wiederherstellen, Sicherung',
+    errorLog: 'Fehler, Absturz, Probleme, Diagnose',
     version: 'Build, Über',
   },
   calendar: { hidden: 'Ausgeblendet' },

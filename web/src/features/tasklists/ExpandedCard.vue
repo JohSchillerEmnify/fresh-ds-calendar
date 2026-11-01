@@ -4,8 +4,10 @@
  * to the body at exactly the collapsed `anchor` card's left, top and width, holding the same `TaskListCard` rendering in its
  * `grown` mode (full height, every item). It is placed by `placeExpanded` (down, up or scrolling inside, within the visible
  * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
- * Escape, the system back, a tap elsewhere or on its title, a change of view or date, or when a dialog opens (a fixed one also when a
- * scroll takes it out of sight, and so does a zoom that moves both the card and its time out of view; one inside the time grid scrolls natively with it). The focus moves in and returns to the card.
+ * Escape, a tap elsewhere in the calendar or on its title, or when a dialog opens (a fixed one also when a scroll takes it out of
+ * sight, and so does a zoom that moves both the card and its time out of view; one inside the time grid scrolls natively with it).
+ * It is remembered on the device (`ui.expandedCard`), so a change of view or date, the system back or a reload only unmount it with
+ * its card, and taps on the app's bars and menus leave it open. The focus moves in and returns to the card.
  * A time block of the week/day grid is placed in time units instead (see `timed`): teleported into its day column, its top and
  * the real layer's height come from the list's minutes and the shared `hourHeight` (as `TimeGrid` lays a block out), so it follows
  * the zoom preview and every zoom commit by construction; only grow direction and max height are measured.
@@ -13,11 +15,9 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { t } from '@/i18n';
-import { useOverlayHistory } from '@/lib/overlayHistory';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { blockGeometry, displayTitle, neutralName, TITLE_ROW_PX } from '@/lib/items';
 import { useEffectiveHourHeight } from '@/composables/useHourHeight';
-import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { anchorVisible, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
@@ -28,9 +28,6 @@ const props = defineProps<{ id: string; anchor: HTMLElement; segment: ItemRender
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const ui = useUiStore();
-const calendar = useCalendarStore();
-// the system back closes the expansion first (feature navigation)
-useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
 // follows the host grid's hour height: the shared zoom height normally, a fit grid's own height in the two-row overview
 const hourHeight = useEffectiveHourHeight();
@@ -109,11 +106,11 @@ onMounted(() => {
   void nextTick(() => (panel.value?.querySelector('button') as HTMLElement | null)?.focus({ preventScroll: true }));
   stops.push(
     listen(document, 'keydown', (e) => { if (e.key === 'Escape') emit('close'); }),
-    // capture: a tap elsewhere closes, while the tapped control still does its own thing; the close waits until that control's
-    // own handler ran, so a navigation it starts lands before the overlay's history entry is given back
+    // capture: a tap elsewhere in the calendar closes, while the tapped control still does its own thing (the close waits for its
+    // handler); the app's bars and menus are outside the calendar's `main` and leave the remembered expansion open
     listen(document, 'click', (e) => {
-      const target = e.target as Node | null;
-      if (target && !panel.value?.contains(target) && !props.anchor.contains(target)) stops.push(appTimeout(() => emit('close'), 0));
+      const target = e.target as Element | null;
+      if (target && !panel.value?.contains(target) && !props.anchor.contains(target) && target.closest?.('main')) stops.push(appTimeout(() => emit('close'), 0));
     }, { capture: true }),
     // fixed overlay only: one inside the scrolling content moves with it
     ...(host ? [] : [listen(window, 'scroll', place, { capture: true, passive: true })]),
@@ -131,8 +128,7 @@ onBeforeUnmount(() => {
   if ((!active || active === document.body || panel.value?.contains(active)) && props.anchor.isConnected) props.anchor.focus({ preventScroll: true });
 });
 
-// Another period or view, or a dialog opening over it, ends the expansion.
-watch(() => [calendar.view, calendar.anchor.getTime()], () => emit('close'));
+// A dialog opening over it ends the expansion (another view or period only unmounts it: it stays remembered).
 watch(() => ui.dialog, (d) => { if (d) emit('close'); });
 // The card moved on screen (the calendar re-laid out): follow it.
 watch(() => props.anchor, place);

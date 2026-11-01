@@ -80,6 +80,7 @@ export default {
     bedtimeReminder: 'bedtime reminder, sleep reminder',
     labs: 'experimental, beta',
     backup: 'google drive, restore',
+    errorLog: 'errors, crash, problems, diagnostics',
     version: 'build, about',
   },
   calendar: { hidden: 'Hidden' },

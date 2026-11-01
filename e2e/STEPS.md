@@ -3696,6 +3696,15 @@ the writing mode is {string} and the switch shows the keyboard icon
 the item writing area offers no writing mode switch
 I write an ink item with the pen
 I write an ink item on the note {string} with the pen
+I write on the new line with the pen
+I lift the pen for {int} seconds
+I tap the done button of the new line
+the new line holds {int} stroke(s)
+the new line shows the done button {string}
+the new line shows no done button
+the ink item number {int} has {int} stroke(s)
+I count the requests that send ink
+the app has sent {int} ink request(s)
 I draw a stroke with the pen
 I drag with the mouse over the writing area
 I click the ink item number {int} with the mouse
@@ -3708,10 +3717,11 @@ typing in the item field works as without the feature
 I swipe up on the writing area with a finger
 I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
-the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
 I draw a stroke with the pen at the pressure {float}
-the harder stroke is thicker, but at most {float} times as thick as the lighter one
+the stroke at pressure {float} is at most half as thick as before: at most {float} of a line height
+the stroke at pressure {float} is at most {float} of a line height
+the stroke at pressure {float} is at least {float} times as thick as the stroke at pressure {float}
 I draw a stroke {int} pixels downwards with the pen on the ink item number {int}
 the list has not scrolled
 I hold the pen over the ink item number {int}
@@ -3719,12 +3729,6 @@ I move the pen away from the writing area
 the writing area does not let the browser pan
 the writing area lets a finger pan the list up and down
 I touch the ink item number {int} with a finger
-I switch the Labs setting {string} on
-I drag one finger along the writing area
-I drag one broad finger along the writing area
-I drag one finger along the writing area after resting it for {int} ms
-I drag one finger along the ink item number {int}
-I drag one finger along the ink item number {int} after resting it for {int} ms
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3753,11 +3757,7 @@ the device's handwriting recognition enters the text {string} in the item field
 the collapsed task list shows the items {string}
 the backup to Drive runs
 the backup holds the ink of the task list {string}
-the Labs setting {string} is on
-the Labs setting {string} is off
 the dialog fits the window
-I draw a stroke with a finger
-I swipe up on the writing area with two fingers
 I draw {int} stroke(s) with the pen
 I have drawn {int} stroke(s) with the pen
 I press the undo button
@@ -3819,19 +3819,24 @@ the server holds no ink for the task list {string}
 - "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
 - Pen and finger strokes are dispatched as Pointer Events with the matching `pointerType`; a mouse drag (`pointerType` mouse) over the writing area must leave the ink unchanged (decision R1); the grip handle is the item's drag handle (`Drag <item> to reorder`), a pen drag on it moves the item, a pen drag elsewhere on the line draws (R3); "pen support" is the
   `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
+- The new line (decision W1): "I write on the new line with the pen" draws one pen stroke on the `ink-line` of
+  `ink-next-line`; "I lift the pen for N seconds" waits N s of real time with the pen up; "the new line holds N
+  stroke(s)" is that line's `data-strokes`; the done button is `ink-next-done` beside it, "shows the done button T" =
+  visible with the accessible name T. "I write an ink item with the pen" (and "... on the note X ...", "the first device
+  writes an ink item ...") is writing on the new line and tapping its done button. "the ink item number N has M
+  stroke(s)" is the `data-strokes` of that item's `ink-line`.
+- Sending ink (decision W2): "I count the requests that send ink" starts counting the page's `POST /api/tasklists/<id>/items`
+  and `PUT /api/tasklists/<id>/items/<item>/ink` requests; "the app has sent N ink request(s)" waits until the count is N
+  and checks it stays N for another second (for 0: that it is still 0 after a second).
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
 - "the add button covers no control of the writing area" is an added panel name of the existing step.
-- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
-  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
-  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
 - Pen width and panning (Windows pen): "at the pressure P" is a synthetic `pen` stroke with that constant pressure; "the harder stroke
   is thicker, but at most R times as thick as the lighter one" measures each stroke path across its middle (`isPointInFill`, line
   heights). "I draw a stroke D pixels downwards with the pen on the ink item N" and "I hold the pen over / move the pen away from"
   use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
   scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
   "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`). "I touch the ink item N with a finger" sends one synthetic `touch` `pointerdown` to the line.
-- "I drag one finger along the writing area" is a real touch (CDP) of 12 moves of 12 px; "broad" has a contact radius of 24 px; "after resting it for N ms" first creeps 1 px and waits N ms (a hesitant start), then drags.
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
@@ -3860,3 +3865,34 @@ the server holds no ink for the task list {string}
   off" = the ink's box lies inside the line's box.
 - Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
 
+
+## Error log on the device (`@id:device-log`)
+
+```
+I open the error log in the settings
+the error log has an entry {string}
+the error log does not contain {string}
+an unexpected error {string} happens in the app
+this device's error log holds:
+the error log shows {string}
+I clear the error log
+the error log is empty
+I download the error log
+I share the error log
+this device cannot share files
+the downloaded error log holds {int} entries
+```
+
+- The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &
+  app); "I open the error log in the settings" opens the settings first when they are not open. Entries are
+  `device-log-entry` (newest first), each with its one-line summary `device-log-summary`; the empty state is
+  `device-log-empty`. Buttons: `device-log-copy`, `device-log-share`, `device-log-download`, `device-log-clear`.
+- "has an entry X": one `device-log-summary` contains X. "does not contain X": the page text and the stored log (the
+  JSON that Download would save) do not contain X. "shows X": the summaries in order, `, `-separated, equal X.
+- "an unexpected error X happens in the app": the page throws `new TypeError(X)` from a timer, so nothing catches it.
+- "this device's error log holds:" writes the table into the log's storage (`localStorage` key `calendar.deviceLog`)
+  before the app loads, as `error` entries with that time (local) and message `Name: text` split into name and text.
+- "I clear the error log": `device-log-clear`. "is empty": no `device-log-entry` and `device-log-empty` is shown.
+- "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
+  "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
+  downloaded error log holds N entries": the downloaded file is JSON with N `entries`.

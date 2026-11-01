@@ -63,7 +63,7 @@ describe('where a result leads', () => {
 
   it('a Labs feature leads to the Labs switch while Labs is off', () => {
     expect(resolveTarget('handwriting', on([]))?.id).toBe('labs');
-    expect(resolveTarget('drawWithFinger', on(['labs']))?.id).toBe('handwriting');
+    expect(resolveTarget('weekTwoRowSplit', on(['labs']))?.id).toBe('weekTwoRow');
   });
 
   it('routes to the group page or its sub-page with the setting to highlight', () => {

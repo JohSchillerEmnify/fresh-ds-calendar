@@ -102,6 +102,7 @@ async function resetDemo() {
     <Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button>
   </SettingRow>
   <SettingRow id="whatsNew" link :label="t('settings.account.whatsNew.label')" :hint="t('settings.account.whatsNew.hint')" testid="settings-whats-new" @open="ui.openDialog('whats-new')" />
+  <SettingRow id="errorLog" to="/settings/error-log" :label="t('deviceLog.row.label')" :hint="t('deviceLog.row.hint')" testid="settings-error-log" />
   <SettingRow id="version" :label="t('settings.account.version', { version: build.version })" :hint="build.sha || undefined" testid="settings-version" />
   <SettingRow v-if="clock.config.apk?.certSha256" id="appCert" :label="t('settings.account.appCert.label')" :hint="t('settings.account.appCert.hint')">
     <template #sub><span class="cert" data-testid="settings-app-cert">{{ clock.config.apk.certSha256 }}</span></template>

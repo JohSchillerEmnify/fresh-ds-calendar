@@ -3,16 +3,14 @@ import { keptItems, type OutboxEntry } from '../src/lib/outbox';
 import { eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
 
 describe('penRole', () => {
-  it('lets only a pen draw: the mouse never does, a finger only with the setting', () => {
-    expect(penRole({ pointerType: 'pen', buttons: 1 }, false)).toBe('draw');
-    expect(penRole({ pointerType: 'mouse', buttons: 1 }, false)).toBe('ignore');
-    expect(penRole({ pointerType: 'mouse', buttons: 1 }, true)).toBe('ignore');
-    expect(penRole({ pointerType: 'touch', buttons: 1 }, false)).toBe('ignore');
-    expect(penRole({ pointerType: 'touch', buttons: 1 }, true)).toBe('draw');
+  it('lets only a pen draw: the mouse never does, a finger never does', () => {
+    expect(penRole({ pointerType: 'pen', buttons: 1 })).toBe('draw');
+    expect(penRole({ pointerType: 'mouse', buttons: 1 })).toBe('ignore');
+    expect(penRole({ pointerType: 'touch', buttons: 1 })).toBe('ignore');
   });
   it('erases with the eraser end (buttons 32) or the barrel button (2) of a pen', () => {
-    expect(penRole({ pointerType: 'pen', buttons: 32 }, false)).toBe('erase');
-    expect(penRole({ pointerType: 'pen', buttons: 3 }, false)).toBe('erase');
+    expect(penRole({ pointerType: 'pen', buttons: 32 })).toBe('erase');
+    expect(penRole({ pointerType: 'pen', buttons: 3 })).toBe('erase');
   });
 });
 
@@ -30,6 +28,14 @@ describe('strokePath', () => {
     expect(light).toMatch(/^M.*Z$/);
     const span = (d: string) => { const ys = [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1])); return Math.max(...ys) - Math.min(...ys); };
     expect(span(heavy)).toBeGreaterThan(span(light));
+  });
+  it('a normal stroke is thin and pressing hard makes it clearly thicker', () => {
+    const span = (d: string) => { const ys = [...d.matchAll(/,(-?[\d.]+)/g)].map((m) => Number(m[1])); return Math.max(...ys) - Math.min(...ys); };
+    // path data is in line heights
+    const at = (p: number) => span(strokePath([[0, 0.5, p], [1, 0.5, p], [2, 0.5, p]]));
+    expect(at(1)).toBeLessThanOrEqual(0.075);
+    expect(at(0.5)).toBeLessThanOrEqual(0.05);
+    expect(at(1)).toBeGreaterThanOrEqual(at(0.1) * 2.5);
   });
   it('draws a single point as a dot', () => {
     expect(strokePath([[1, 0.5, 0.5]])).toMatch(/^M.*Z$/);

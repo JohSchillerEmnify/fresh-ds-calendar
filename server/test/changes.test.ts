@@ -1,8 +1,9 @@
 /** `GET /api/changes` (ADR 0025, spec/API.md): the device's "changes since" read, against the mock provider. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeCursor } from '../src/api/changesRoutes.js';
-import { ProviderError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, ProviderError, ProviderForbiddenError, SyncTokenExpiredError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
 import { mockSub } from '../src/auth/people.js';
+import { calHash, setDiagSink } from '../src/lib/diag.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 let t: TestApp;
@@ -276,6 +277,90 @@ describe('robustness', () => {
     expect(retry.body.events.failed).toEqual([]);
     expect(retry.body.events.replace).toEqual(['anna@example.org']);
     expect(decodeCursor(retry.body.cursor)!.to).toBe('2027-10-21');
+  });
+
+  describe('a calendar Google keeps refusing is left alone for a while, not asked every poll', () => {
+    let now = 1_000_000;
+    beforeEach(() => { now = 1_000_000; t.app.ctx.clock.real = () => now; });
+    const lookups = (spy: { mock: { calls: unknown[][] } }, id: string) => spy.mock.calls.filter((c) => c[0] === id).length;
+
+    it('a fresh sync token refused again (410): listed in full once, then no call for a minute, then one full read', async () => {
+      await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new SyncTokenExpiredError('Sync token expired');
+        return real(id, tok);
+      });
+      const c0 = (await changes()).cursor;
+      // the first refusal is an ordinary expiry: listed in full
+      const r1 = await changes(c0);
+      expect(r1.events.replace).toEqual(['work']);
+      // the token that full read just got is refused too: the calendar is skipped, its data on the device stays
+      const logged: Record<string, unknown>[] = [];
+      const restore = setDiagSink((l) => logged.push(JSON.parse(l)));
+      const r2 = await changes(r1.cursor).finally(restore);
+      expect(logged.filter((l) => l.event === 'google_calendar_backoff')).toEqual([expect.objectContaining({ calHash: calHash('work'), cause: 'tokenRefused', strikes: 1, backoffMs: 60_000 })]);
+      expect(lookups(spy, 'work')).toBe(2);
+      expect(r2.events.failed).toEqual([]);
+      expect(r2.events.replace).toEqual([]);
+      for (let i = 0, c = r2.cursor; i < 3; i++) c = (await changes(c)).cursor;
+      expect(lookups(spy, 'work')).toBe(2);
+      // after the back-off: listed in full (no token was kept), so nothing missed while skipped is lost
+      now += 61_000;
+      const back = await changes(r2.cursor);
+      expect(back.events.replace).toEqual(['work']);
+      expect(titles(back.events.upserts)).toEqual(['Holiday']);
+      // refused once more: left alone at once, for twice as long
+      await changes(back.cursor);
+      expect(lookups(spy, 'work')).toBe(3);
+      now += 61_000;
+      await changes(back.cursor);
+      expect(lookups(spy, 'work')).toBe(3);
+    });
+
+    it('a calendar that is gone (404) is tried again only after the back-off, which grows', async () => {
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new NotFoundError('gone');
+        return real(id, tok);
+      });
+      const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken');
+      let c = (await changes()).cursor;
+      const first = (await changes(c)).events;
+      expect(first.failed).toEqual(['work']);
+      c = (await changes(c)).cursor;
+      for (let i = 0; i < 3; i++) c = (await changes(c)).cursor;
+      expect(lookups(spy, 'work')).toBe(1);
+      now += 61_000;
+      walk.mockImplementation(async (id) => { if (id === 'work') throw new NotFoundError('gone'); return 'sync-x'; });
+      expect((await changes(c)).events.failed).toEqual(['work']);
+      const tries = lookups(spy, 'work') + lookups(walk, 'work');
+      now += 61_000; // still inside the doubled back-off
+      await changes(c);
+      expect(lookups(spy, 'work') + lookups(walk, 'work')).toBe(tries);
+    });
+
+    it('a calendar the person may no longer read (403) is left alone too', async () => {
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new ProviderForbiddenError('forbidden');
+        return real(id, tok);
+      });
+      let c = (await changes()).cursor;
+      for (let i = 0; i < 4; i++) c = (await changes(c)).cursor;
+      expect(lookups(spy, 'work')).toBe(1);
+    });
+
+    it('an ordinary expired token (another device\'s old cursor) is listed in full and not backed off', async () => {
+      const c0 = (await changes()).cursor;
+      t.app.ctx.mock!.expireSyncTokens();
+      const fresh = (await changes()).cursor;
+      const old = (await changes(c0)).events;
+      expect(old.replace).toEqual(expect.arrayContaining(['primary', 'work']));
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges');
+      expect((await changes(fresh)).events.replace).toEqual([]);
+      expect(lookups(spy, 'work')).toBe(1);
+    });
   });
 
   it('does not swallow a bug into "failed": an unexpected error fails the request', async () => {

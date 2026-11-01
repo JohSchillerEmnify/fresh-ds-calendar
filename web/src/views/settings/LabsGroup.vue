@@ -35,9 +35,6 @@ const weekSplitOptions = [
     <SettingRow id="handwriting" :label="t('ink.settings.label')" :hint="t('ink.settings.hint')">
       <Switch :model-value="prefs.labsHandwriting" :label="t('ink.settings.label')" data-testid="settings-labs-handwriting" @update:model-value="savePrefs({ labsHandwriting: $event })" />
     </SettingRow>
-    <SettingRow v-if="prefs.labsHandwriting" id="drawWithFinger" :label="t('ink.settings.finger.label')" :hint="t('ink.settings.finger.hint')">
-      <Switch :model-value="prefs.labsDrawWithFinger" :label="t('ink.settings.finger.label')" data-testid="settings-labs-draw-with-finger" @update:model-value="savePrefs({ labsDrawWithFinger: $event })" />
-    </SettingRow>
     <SettingRow id="ownThemes" :label="t('settings.ownThemes.label')" :hint="t('settings.ownThemes.hint')">
       <Switch :model-value="prefs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" />
     </SettingRow>

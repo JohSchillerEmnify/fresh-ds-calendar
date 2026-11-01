@@ -524,7 +524,6 @@
    "long|web/src/views/TemplatesView.vue": 1,
    "long|web/src/views/ThemeView.vue": 1,
    "long|web/src/views/WeekView.vue": 1,
-   "owner|server/src/api/routes.ts": 1,
    "owner|server/src/providers/CalendarProvider.ts": 1,
    "owner|server/src/services/calendar.ts": 5,
    "owner|server/src/services/ownership.ts": 1,

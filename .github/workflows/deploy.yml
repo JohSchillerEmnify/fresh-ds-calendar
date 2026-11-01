@@ -1,0 +1,76 @@
+name: Deploy
+
+# Continuous delivery of main: after a green CI push run, build the image, push it to GHCR and tell the VPS to run it.
+# Inert until the repository variable DEPLOY_ENABLED is 'true' (docs/DEPLOYMENT.md "Automatic deploy", ADR 0036).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# deploys queue one after another and are never cancelled half way: the VPS script also serialises with a lock
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'root' }}
+      DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0 # scripts/version.sh counts commits since the last tag
+          persist-credentials: false
+
+      - name: Build and push the image to GHCR
+        id: image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          version="$(scripts/version.sh)+$(git rev-parse --short "$SHA")"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          docker build -q --build-arg "APP_VERSION=$version" -t "$repo:$SHA" .
+          docker push -q "$repo:$SHA"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$SHA")"
+          digest="${digest#*@}"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Pushed $repo:$SHA ($digest), version $version"
+
+      - name: Run the digest on the VPS (forced command, health check and rollback happen there)
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          : "${DEPLOY_HOST:?set the repository variable DEPLOY_HOST}" "${DEPLOY_KNOWN_HOSTS:?set DEPLOY_KNOWN_HOSTS}" "${DEPLOY_SSH_KEY:?set the secret DEPLOY_SSH_KEY}"
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          ssh -i "$RUNNER_TEMP/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" "$DEPLOY_USER@$DEPLOY_HOST" "$DIGEST"
+
+      - name: Check the public health endpoint
+        run: |
+          : "${APP_URL:?set the repository variable APP_URL, e.g. https://cal.example.org}"
+          curl --retry 10 --retry-delay 3 --retry-all-errors -fsS "${APP_URL%/}/api/health"

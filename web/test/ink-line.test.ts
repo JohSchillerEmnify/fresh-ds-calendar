@@ -4,7 +4,6 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import InkLine from '@/features/tasklists/InkLine.vue';
 import { useInkStore } from '@/stores/ink';
-import { usePrefsStore } from '@/stores/prefs';
 
 /** A pointer event as a pen, a finger or a mouse sends it. */
 const ev = (type: string, x: number, y: number, o: { pointerType: string; buttons?: number; pressure?: number; width?: number }) => {
@@ -50,22 +49,15 @@ describe('InkLine', () => {
     expect(w2.emitted('tap')).toHaveLength(1);
   });
 
-  it('does not draw with a finger unless "Draw with finger" is on, and never with a palm', () => {
+  it('never draws with a finger', () => {
     const { w, svg } = setup();
     draw(svg, { pointerType: 'touch' });
-    expect(w.emitted('change')).toBeUndefined();
-    usePrefsStore().labsDrawWithFinger = true;
-    draw(svg, { pointerType: 'touch' });
-    expect(w.emitted('change')).toHaveLength(1);
-    draw(svg, { pointerType: 'touch', width: 50 });
-    expect(w.emitted('change')).toHaveLength(2);
     draw(svg, { pointerType: 'touch', width: 80 });
-    expect(w.emitted('change')).toHaveLength(2);
+    expect(w.emitted('change')).toBeUndefined();
   });
 
   it('ignores a finger that comes right after the pen (a resting palm)', () => {
     const { w, svg } = setup();
-    usePrefsStore().labsDrawWithFinger = true;
     svg.dispatchEvent(ev('pointerdown', 10, 20, { pointerType: 'pen' }));
     svg.dispatchEvent(ev('pointerdown', 50, 30, { pointerType: 'touch' }));
     svg.dispatchEvent(ev('pointerup', 50, 30, { pointerType: 'touch' }));

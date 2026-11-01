@@ -1,5 +1,5 @@
 /** Ink writes in the outbox (ADR 0031): a newer rewrite replaces an unsent older one. */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
@@ -14,6 +14,45 @@ beforeEach(() => { setDeviceDb(memoryKv()); freshPinia(); useItemsStore(); useDe
 afterEach(() => setDeviceDb(null));
 
 describe('outbox ink', () => {
+  it('holds the strokes of a line on the device and sends them once, with the first base, when released', async () => {
+    const { calls } = mockFetch({ 'PUT /api/tasklists/L/items/a/ink': () => new Promise(() => undefined) });
+    const out = useOutboxStore();
+    out.setInk('L', 'a', [s(1), s(2)], [s(1)]);
+    out.setInk('L', 'a', [s(1), s(2), s(3)], [s(1), s(2)]);
+    await out.flush();
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(0);
+    expect(useInkStore().strokes('a')).toHaveLength(3);
+    out.sendInk('L');
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1));
+    const put = calls.find((c) => c.method === 'PUT')!;
+    expect(put.body.strokes).toHaveLength(3);
+    expect(put.body.base).toHaveLength(1);
+  });
+
+  it('sends a held line 10 seconds after its last stroke', async () => {
+    vi.useFakeTimers();
+    try {
+      const { calls } = mockFetch({ 'PUT /api/tasklists/L/items/a/ink': () => new Promise(() => undefined) });
+      const out = useOutboxStore();
+      out.setInk('L', 'a', [s(1)], []);
+      await vi.advanceTimersByTimeAsync(6000);
+      out.setInk('L', 'a', [s(1), s(2)], [s(1)]);
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(1500);
+      expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('sends other changes while a line is held', async () => {
+    const { calls } = mockFetch({ 'PATCH /api/tasklists/L/items/b': () => new Promise(() => undefined) });
+    const out = useOutboxStore();
+    out.setInk('L', 'a', [s(1)], []);
+    out.patchItem('L', 'b', { done: true });
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(1));
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(0);
+  });
+
   it('folds rewrites of one item into its unsent add and into an unsent rewrite, and keeps other items apart', () => {
     mockFetch({ 'POST /api/tasklists/L/items': () => new Promise(() => undefined) });
     const out = useOutboxStore();

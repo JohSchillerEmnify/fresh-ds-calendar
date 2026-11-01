@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
 import { deviceDb, devicePerson, OUTBOX_KEY } from './deviceDb';
+import { errorFacts, logDevice } from './deviceLog';
 import {
   applyEntry, editable, localTaskList, newDeviceId, newItemId, newKey, renameId, renameItems, withPending, type Change, type OutboxEntry,
 } from './outbox';
@@ -19,6 +20,8 @@ const RETRY_FIRST_MS = 1000;
 const RETRY_MAX_MS = 30_000;
 /** A 412 is answered by reading the item again at most this often per entry and try. */
 const MAX_REFETCH = 3;
+/** The strokes of a line are sent at the latest this long after its last stroke (decision W2 of handwritten-lists). */
+const INK_IDLE_MS = 10_000;
 
 type Outcome = 'sent' | 'retry' | 'refused';
 
@@ -36,6 +39,10 @@ export interface OutboxState {
   epoch: number;
   /** Keys of the entries already shown on the device. */
   shown: Set<string>;
+  /** Lines (`list/item`) still being written: their changes are kept but not sent yet; each with its idle timer. */
+  held: Map<string, Disposer>;
+  /** The key of the entry on its way to the server. */
+  sending: string | null;
 }
 
 const items = () => ports.items!;
@@ -125,7 +132,7 @@ function foldInk(s: OutboxState, listId: string, itemId: string, strokes: InkStr
   const mine = (e: OutboxEntry) => e.change.id === listId && 'itemId' in e.change && e.change.itemId === itemId;
   let at = -1;
   s.entries.value.forEach((e, i) => { if (mine(e) && (e.change.op === 'item.ink' || (e.change.op === 'item.add' && !!e.change.strokes))) at = i; });
-  if (at < 0 || (s.running && at === 0)) return false;
+  if (at < 0 || s.entries.value[at]!.key === s.sending) return false;
   // a later delete or order of the item leaves nothing to fold into
   if (s.entries.value.slice(at + 1).some((e) => e.change.id === listId && e.change.op === 'item.delete' && e.change.itemId === itemId)) return false;
   commit(s, s.entries.value.map((e, i) => (i === at ? { ...e, change: { ...e.change, strokes, ...(e.change.op === 'item.ink' ? { at: Date.now() } : {}) } as Change } : e)));
@@ -169,8 +176,9 @@ export function writes(s: OutboxState) {
       add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
       return itemId;
     },
-    /** The new strokes of a handwritten item (all of them) and the strokes they started from, so the server can merge them with another device's. */
+    /** The new strokes of a handwritten item (all of them) and the strokes they started from, so the server can merge them with another device's. Held until the line is done (`sendInk`). */
     setInk(listId: string, itemId: string, strokes: InkStroke[], before: InkStroke[]): void {
+      holdInk(s, `${listId}/${itemId}`);
       if (!foldInk(s, listId, itemId, strokes)) add(s, { op: 'item.ink', id: listId, itemId, strokes, base: before.map(inkKey), at: Date.now() }, { title: items().get(listId)?.title ?? '' });
     },
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
@@ -179,6 +187,20 @@ export function writes(s: OutboxState) {
     orderItems: (listId: string, itemIds: string[]): void => add(s, { op: 'item.order', id: listId, itemIds }, { title: items().get(listId)?.title ?? '' }),
   };
 }
+
+// --- held ink ---------------------------------------------------------------------------------------------------------
+/** A line is being written: its changes wait, at most `INK_IDLE_MS` after the latest one. */
+function holdInk(s: OutboxState, line: string): void {
+  s.held.get(line)?.();
+  s.held.set(line, appTimeout(() => { s.held.delete(line); void flush(s); }, INK_IDLE_MS));
+}
+/** The lines of a list (all lists without `listId`) are done: what they hold is sent now. */
+export function sendInk(s: OutboxState, listId?: string): void {
+  for (const [line, stop] of s.held) if (!listId || line.startsWith(`${listId}/`)) { stop(); s.held.delete(line); }
+  void flush(s);
+}
+/** An entry of a line that is still being written waits. */
+const waits = (s: OutboxState, e: OutboxEntry): boolean => 'itemId' in e.change && s.held.has(`${e.change.id}/${e.change.itemId}`);
 
 // --- sending ---------------------------------------------------------------------------------------------------------
 /** Once the create of an event or list was sent its device id is replaced by the server's, everywhere. */
@@ -285,17 +307,31 @@ async function onNewestVersion(s: OutboxState, e: OutboxEntry): Promise<OutboxEn
   return next;
 }
 
+/** The device log gets what the client saw and what was decided (feature device-log); no ids, no title. */
+function note(e: OutboxEntry, decision: string, err: unknown): void {
+  const facts = err instanceof ApiError ? { ...err.seen, status: err.status, code: err.code } : errorFacts(err);
+  logDevice('outbox', { op: e.change.op, decision, ...facts });
+}
+
+/** A 412: the entry goes on the newest version; refused when the thing is gone meanwhile. */
+async function onConflict(s: OutboxState, e: OutboxEntry, err: ApiError): Promise<Outcome | OutboxEntry> {
+  note(e, 'refetch', err);
+  try { return await onNewestVersion(s, e); } catch (again) {
+    const gone = again instanceof ApiError && again.status === 404 && (await refuse(s, e, again));
+    note(e, gone ? 'refused' : 'retry', again);
+    return gone ? 'refused' : 'retry';
+  }
+}
+
 /** What an error of the server means for an entry; a 412 returns the entry to try again on the newest version. */
 async function answer(s: OutboxState, e: OutboxEntry, err: unknown): Promise<Outcome | OutboxEntry> {
-  if (!(err instanceof ApiError)) return 'retry';
-  if (err.status === 404 && isDelete(e.change)) { sent(s, e, undefined); return 'sent'; }
-  if (err.status === 412 && versioned(e.change)) {
-    try { return await onNewestVersion(s, e); } catch (again) {
-      return again instanceof ApiError && again.status === 404 && (await refuse(s, e, again)) ? 'refused' : 'retry';
-    }
-  }
-  if (retriable(err)) return 'retry';
-  return (await refuse(s, e, err)) ? 'refused' : 'retry';
+  if (!(err instanceof ApiError)) { note(e, 'retry-unexpected', err); return 'retry'; }
+  if (err.status === 404 && isDelete(e.change)) { note(e, 'gone-as-sent', err); sent(s, e, undefined); return 'sent'; }
+  if (err.status === 412 && versioned(e.change)) return onConflict(s, e, err);
+  if (retriable(err)) { note(e, 'retry', err); return 'retry'; }
+  const refused = await refuse(s, e, err);
+  note(e, refused ? 'refused' : 'retry-rollback-failed', err);
+  return refused ? 'refused' : 'retry';
 }
 
 /** One try of an entry, a 412 answered by reading the version again. */
@@ -338,14 +374,17 @@ export async function flush(s: OutboxState, resync = true): Promise<void> {
     const who = ports.device?.person();
     if (!who) return;
     settle(s, who);
-    while (s.entries.value.length) {
-      const r = await attempt(s, s.entries.value[0]);
+    // in order, passing over the lines still being written
+    for (let e = s.entries.value.find((x) => !waits(s, x)); e; e = s.entries.value.find((x) => !waits(s, x))) {
+      s.sending = e.key;
+      const r = await attempt(s, e);
       if (r === 'retry') { scheduleRetry(s); return; }
       any ||= r === 'sent';
     }
     s.backoff = 0;
   } finally {
     s.running = false;
+    s.sending = null;
     if (any && resync) ports.resync?.();
   }
 }

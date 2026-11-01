@@ -80,6 +80,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/tasks', name: 'tasks', component: () => import('@/features/tasklists/TasksView.vue'), meta: { tasks: true } },
   { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },
+  { path: '/settings/error-log', name: 'error-log', component: () => import('@/views/ErrorLogView.vue'), meta: { settings: true } },
   { path: '/settings/templates', name: 'templates', component: () => import('@/views/TemplatesView.vue'), meta: { settings: true } },
   { path: '/settings/theme', name: 'theme', component: () => import('@/views/ThemeView.vue'), meta: { settings: true } },
   { path: '/settings/:group(calendars|views|tasklists|reminders|appearance|focus|labs|account)', name: 'settings-group', component: () => import('@/views/SettingsGroupView.vue'), props: true, meta: { settings: true } },

@@ -17,11 +17,16 @@
   next success removes it. The sync error banner is not shown for a failed send.
 - **People.** The outbox is bound to its person and never sent under another. An expired session keeps it for the same
   person; signing out asks first when it holds changes. No dialog for another person signing in over it.
+- **Ink is held per line (handwritten lists, W2).** The rewrites of one ink line are kept on the device at once but not
+  sent while the line is being written: a newer rewrite folds into the unsent one (keeping its first `base`), and the
+  line goes once on the done button, when the list closes or the page goes away, or 10 s after its last stroke. Other
+  entries pass a held line; the hold lives in memory only, so after a restart everything is sent.
 
 ## Alternatives
 - *Order by the time of making* — needs trustworthy device clocks; arrival order is Google's own behaviour.
 - *Whole-item overwrite* — loses the other side's unrelated fields; Google's PATCH already merges.
 - *Stop the outbox on a refusal and ask* — one bad entry would hold every later change on a phone.
 - *A mark per item or a counter* — constant noise for a normal state; the owner wants offline writing to look normal.
-- *Merge entries per item* — fewer requests but more rules; sending as made is simple and exact.
+- *Merge entries per item* — fewer requests but more rules; sending as made is simple and exact. Ink lines are the
+  one exception: one request per stroke was too many (owner, 2026-11-01).
 - *A sync library* — see 0025: the server of record is Google behind our API.

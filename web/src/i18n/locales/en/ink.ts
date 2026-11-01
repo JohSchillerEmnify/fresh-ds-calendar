@@ -3,7 +3,6 @@ export default {
   settings: {
     label: 'Handwritten lists',
     hint: 'Write the items of a task list by hand with a pen; the mouse never draws',
-    finger: { label: 'Draw with finger', hint: 'A finger draws in the writing area too; two fingers scroll. A resting palm never draws' },
   },
   mode: { ink: 'Writing by hand, switch to keyboard', text: 'Writing with the keyboard, switch to handwriting' },
   undo: 'Undo last stroke',
@@ -13,6 +12,7 @@ export default {
     custom: 'Custom colour',
     preset: { default: 'Text colour', red: 'Red', blue: 'Blue', green: 'Green', orange: 'Orange' },
   },
+  done: 'Done',
   area: 'Writing area',
   grip: 'Move item',
   item: 'Handwritten item {n} of {total}',

@@ -90,12 +90,12 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('labs', 'more', 'weekTwoRow', 'settings.labs.weekTwoRow.label', { hint: 'settings.labs.weekTwoRow.hint', labs: true }),
   e('labs', 'more', 'weekTwoRowSplit', 'settings.labs.weekTwoRow.split', { parent: 'weekTwoRow', labs: true }),
   e('labs', 'more', 'handwriting', 'ink.settings.label', { hint: 'ink.settings.hint', labs: true }),
-  e('labs', 'more', 'drawWithFinger', 'ink.settings.finger.label', { hint: 'ink.settings.finger.hint', parent: 'handwriting', labs: true }),
   e('labs', 'more', 'ownThemes', 'settings.ownThemes.label', { hint: 'settings.ownThemes.hint', labs: true }),
 
   e('account', 'account', 'signOutAll', 'settings.account.signOutAll.label', { hint: 'settings.account.signOutAll.hint' }),
   e('account', undefined, 'backup', 'backup.label', { hint: 'backup.hint', synonyms: 'settingsNav.synonyms.backup' }),
   e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label', { hint: 'settings.account.whatsNew.hint' }),
+  e('account', 'app', 'errorLog', 'deviceLog.row.label', { hint: 'deviceLog.row.hint', synonyms: 'settingsNav.synonyms.errorLog' }),
   e('account', 'app', 'version', 'settingsNav.labels.version', { synonyms: 'settingsNav.synonyms.version' }),
 ];
 

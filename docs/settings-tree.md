@@ -93,7 +93,7 @@ Settings  [search bar: "Search settings"]
 │  ├─ Show Labs features                switch  (renamed from "Experimental views": it gates more than views)
 │  ├─ Views:  Clock, Clock rings, Timeline, Strip, Zoom, Horizontal, Runway, Now & next   switches
 │  ├─ Two-row week overview             switch → Days on the top row 4/3 3/4
-│  ├─ Handwritten lists                 switch → Draw with a finger
+│  ├─ Handwritten lists                 switch
 │  └─ Generate themes with AI           switch
 │
 └─ Account & app                                "Google account, backup, install, version"
@@ -105,6 +105,7 @@ Settings  [search bar: "Search settings"]
    ├─ App
    │  ├─ Install this app (iOS) / Android app   tonal button
    │  ├─ What's new  ›                  (row opens the sheet; no "Show" button)
+   │  ├─ Error log  ›                   (page /settings/error-log, feature device-log)
    │  ├─ Version                        info
    │  └─ App signing certificate        info (only when the server offers an app)
    └─ Reset demo data                   (demo server only)
