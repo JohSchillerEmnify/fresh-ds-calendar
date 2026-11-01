@@ -176,6 +176,13 @@ When('I drag the event {string} to {date}', async function (this: World, title: 
   await drag(this, eventHandle(this, title), (c, f) => targetPoint(this, c, f, date));
 });
 
+/** One occurrence of a repeating event: dragged in the month view of its date to the other day. */
+When('I move the {string} of {date} to {date}', async function (this: World, title: string, date: string, to: string) {
+  await this.page.goto(`/month/${date.slice(0, 7)}`);
+  await this.settled();
+  await drag(this, this.eventChip(title, date), (c, f) => targetPoint(this, c, f, to));
+});
+
 When('I drag the event {string} down by {int} minutes', async function (this: World, title: string, minutes: number) {
   const dy = (minutes / 60) * (await hourHeight(this));
   await drag(this, this.eventChip(title), async (_c, f) => ({ x: f.x, y: f.y + dy }));

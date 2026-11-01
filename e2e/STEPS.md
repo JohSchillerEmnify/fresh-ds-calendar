@@ -498,6 +498,11 @@ I do not see the sync error banner
 once the slow-down is over I see the event {string} on {date}
 ```
 
+- "Google has an event T repeating every week from D from A to B": the mock Google gets one series (A–B on D, Berlin
+  time) with `recurrence: ["RRULE:FREQ=WEEKLY"]` and none of the app's properties, as Google Calendar creates it.
+- "I see the event T on each of D1, D2 …": for each date, opens its month view (if not already on screen) and the
+  event's chip on that date is visible. "I move the T of D to D2": opens the month view of D and drags T's chip on D
+  to the cell of D2 (like "I drag the event T to D").
 - Network: `context.setOffline(true|false)`.
 - `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
   the latest), then for the event chip within the poll interval + 5 s.

@@ -349,3 +349,15 @@ Then('the calendar color swatch is {string}', async function (this: World, hex: 
 Then('the event color options are {string}', async function (this: World, list: string) {
   await expect.poll(async () => (await optionLabels(dialog(this).getByTestId('event-color'))).join(', ')).toBe(list);
 });
+
+/** Looks in the month view of each date (opened when another period is on screen). */
+Then('I see the event {string} on each of {datelist}', async function (this: World, title: string, dates: string[]) {
+  for (const d of dates) {
+    const month = `/month/${d.slice(0, 7)}`;
+    if (new URL(this.page.url()).pathname !== month) {
+      await this.page.goto(month);
+      await this.settled();
+    }
+    await expect(this.eventChip(title, d), `${title} on ${d}`).toBeVisible();
+  }
+});
