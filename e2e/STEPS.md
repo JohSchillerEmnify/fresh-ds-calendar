@@ -381,6 +381,8 @@ I zoom the time grid in far from the grown card
 the real time block of the expanded task list matches the card {string}
 ```
 
+- "the titleless task list on D is labelled L": the one `tasklist-card` with `data-untitled="true"` on D has no
+  `tasklist-card-title`, and its `tasklist-card-items` is visible with exactly the text L.
 - Item drag (`tasklists-items.feature`): "I drag the item X above the item Y" = a mouse presses the item's `tasklist-item-grip`, moves in
   10 steps to just above Y's row (when X moves down: to the place of the item before Y) and releases; on the phone project the finger
   long-presses X's row (500 ms hold, CDP touch, as the calendar's drag steps) and moves the same way. It waits for the saved order
@@ -2923,6 +2925,9 @@ no title in the {string} is covered by another entry
   none of its items visible.
 - "I tap the band's section switch": taps the first grid's `tasks-section-toggle` and waits until its `data-mode`
   changed. The switch has two levels, `titles` and `full`, so two taps come back to the start.
+- "I tap the band's section switch twice": the step above, two times. "no day in the band shows a task count instead
+  of its lists": the first grid's band shows task-list cards, and no text holding a digit is visible in the band outside
+  the cards and the switch (whose own total is not a day's count).
 - "the band's lists show their items": the first grid's toggle is in `full` mode and every task-list card in its band
   shows at least one item.
 - "the list of the expanded task list stands out from the grid behind it": the grown card's extension layer
