@@ -101,6 +101,8 @@ export class World {
   heldAt?: { x: number; y: number };
   /** Moves the held pointer or finger to a point in steps over a time (set by the hold steps that can move on). */
   heldMove?: (to: { x: number; y: number }, steps: number, ms: number) => Promise<void>;
+  /** Middle of the time grid's day columns, noted before an edge hold, so leaving the edge zone needs no lookup first. */
+  heldMiddle?: { x: number; y: number };
   /** Scroll position of the time grid noted by "I swipe up quickly starting on the event ...". */
   gridScrollBefore?: number;
   /** The next finger drag holds perfectly still during the long press (iPhone model: no small moves). */

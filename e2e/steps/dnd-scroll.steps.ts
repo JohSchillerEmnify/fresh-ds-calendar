@@ -31,9 +31,12 @@ When('I hold the event {string} at the bottom edge of the time grid for {int} ms
 
 When('I move the dragged event to the middle of the time grid', async function (this: World) {
   if (!this.held) throw new Error('nothing is picked up');
-  const sc = await box(this.page.locator('[data-scroll-area]').first());
-  const b = await box(this.page.locator('[data-dragging="true"]').first());
-  const to = { x: b.x + b.width / 2, y: sc.y + sc.height / 2 };
+  // an edge hold noted the middle beforehand: looking it up now would keep the finger in the zone past the turn
+  const to = this.heldMiddle ?? await (async () => {
+    const sc = await box(this.page.locator('[data-scroll-area]').first());
+    const b = await box(this.page.locator('[data-dragging="true"]').first());
+    return { x: b.x + b.width / 2, y: sc.y + sc.height / 2 };
+  })();
   // a finger held by a hold step moves itself; else the mouse
   if (this.heldMove) await this.heldMove(to, 5, 200);
   else await this.page.mouse.move(to.x, to.y, { steps: 5 });
