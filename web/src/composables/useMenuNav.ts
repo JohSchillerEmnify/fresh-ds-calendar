@@ -16,7 +16,7 @@ export interface MenuNavOptions {
 }
 
 /** The index to focus after `key` from item `at` of `count` (-1: none focused); null when the key moves nothing. */
-export function nextIndex(key: string, at: number, count: number): number | null {
+function nextIndex(key: string, at: number, count: number): number | null {
   if (!count) return null;
   if (key === 'ArrowDown') return (at + 1) % count;
   if (key === 'ArrowUp') return at < 0 ? count - 1 : (at - 1 + count) % count;
