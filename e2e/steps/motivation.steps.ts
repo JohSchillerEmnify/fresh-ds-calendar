@@ -84,7 +84,7 @@ const field = (w: World) => w.page.getByTestId('sunflower-field');
 
 Then('the streak shows {int}', async function (this: World, count: number) {
   // in the settings the current streak is on the Focus & calm page
-  if ((await this.page.getByTestId('settings-view').isVisible()) && !(await flame(this).isVisible())) await openSettingsPage(this, 'focus');
+  if (new URL(this.page.url()).pathname.startsWith('/settings')) await openSettingsPage(this, 'focus');
   await expect(flame(this)).toHaveText(exactText(String(count)));
 });
 

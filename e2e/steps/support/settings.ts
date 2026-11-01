@@ -77,6 +77,8 @@ export async function openSettingsHome(world: World) {
     await page.goto('/');
     await world.calendarShown();
   }
+  // a settings path that was just opened may still be rendering: wait for it before deciding where we are
+  if (new URL(page.url()).pathname.startsWith('/settings')) await expect(page.getByTestId('settings-view').or(page.getByTestId('theme-view')).first()).toBeVisible();
   if (await page.getByTestId('theme-view').isVisible()) await page.getByTestId('theme-back').click();
   if (!(await page.getByTestId('settings-view').isVisible())) await page.getByTestId('settings-button').click();
   await expect(page.getByTestId('settings-view')).toBeVisible();
