@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** One line of ink (feature handwritten-lists): SVG in line-height units; editable takes pen strokes and erasing, `change` reports all strokes. */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { InkPoint, InkStroke } from '@/api/types';
 import { eraseAt, penRole, readableInk, strokePath, toLineUnits } from '@/lib/ink';
 import { useInkStore } from '@/stores/ink';
@@ -26,10 +26,16 @@ const live = ref<{ points: InkPoint[]; colour: string | null; erase: boolean } |
 const erasing = ref<InkStroke[] | null>(null);
 /** A pen is over or on the line: the browser must not pan from it (a pen is panned like a finger unless `touch-action` says no). */
 const penOver = ref(false);
+/** Sets `penOver` and the line's `touch-action` at once: the browser reads it when the next pointer goes down, before a re-render. */
+function setPenOver(on: boolean): void {
+  penOver.value = on;
+  if (svg.value) svg.value.style.touchAction = on && props.editable ? 'none' : '';
+}
+watch(() => props.editable, (v) => { if (!v) setPenOver(false); });
 /** A pen was last at work at this time (ms); a touch right after it is a palm (decision R1). */
 let penAt = 0;
 const PALM_MS = 800;
-const PALM_WIDTH = 40;
+const PALM_WIDTH = 64;
 const ERASE_RADIUS = 0.35;
 
 const shown = computed(() => erasing.value ?? props.strokes);
@@ -81,7 +87,8 @@ function scroller(): HTMLElement | null {
 let activeId = -1;
 let moved = false;
 function down(e: PointerEvent): void {
-  if (e.pointerType === 'pen') { ink.notePen(); penAt = Date.now(); penOver.value = true; }
+  // a finger or mouse touching proves the pen is gone (a pen that leaves range does not always say so)
+  if (e.pointerType === 'pen') { ink.notePen(); penAt = Date.now(); setPenOver(true); } else setPenOver(false);
   if (!props.editable) return;
   moved = false;
   if (e.pointerType === 'touch') {
@@ -119,9 +126,14 @@ function move(e: PointerEvent): void {
     if (l.erase) erasing.value = eraseAt(erasing.value ?? props.strokes, p[0], p[1], ERASE_RADIUS);
   }
 }
+/** A pen without hover is gone when it lifts. */
+function penLifted(): void {
+  penAt = Date.now();
+  if (typeof matchMedia === 'function' && matchMedia('(any-hover: none)').matches) setPenOver(false);
+}
 function up(e: PointerEvent): void {
   fingers.delete(e.pointerId);
-  if (e.pointerType === 'pen') penAt = Date.now();
+  if (e.pointerType === 'pen') penLifted();
   if (live.value && e.pointerId !== activeId) return;
   const l = live.value;
   live.value = null;
@@ -139,13 +151,15 @@ function up(e: PointerEvent): void {
   }
   emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
 }
-/** The pen came into or left the line (hovering counts); a finger or mouse changes nothing. */
+/** The pen came into or left the line (hovering counts); a finger coming in clears it, anything else changes nothing. */
 function penAbove(e: PointerEvent, over: boolean): void {
-  if (e.pointerType === 'pen') penOver.value = over;
+  if (e.pointerType === 'pen') setPenOver(over);
+  // a mouse enters too when a pen hovers (some hosts send both), only a finger proves the pen is gone
+  else if (over && e.pointerType === 'touch') setPenOver(false);
 }
 /** A pen the browser cancelled keeps what it wrote so far; any other cancel drops the stroke. */
 function cancelled(e: PointerEvent): void {
-  if (e.pointerType === 'pen' && live.value && e.pointerId === activeId) up(e);
+  if (e.pointerType === 'pen' && live.value && e.pointerId === activeId && live.value.points.length > 1) up(e);
   else cancel(e);
 }
 function cancel(e?: PointerEvent): void {
@@ -165,6 +179,7 @@ onMounted(() => {
   svg.value?.addEventListener('touchstart', stylusTouch, { passive: false });
 });
 onBeforeUnmount(() => {
+  setPenOver(false);
   observer?.disconnect();
   svg.value?.removeEventListener('touchstart', stylusTouch);
 });
