@@ -118,6 +118,8 @@ jobs:
         run: |
           # appium and the driver share this package.json, so Appium finds the driver without an install step
           npx appium driver list --installed
+          # build WebDriverAgent up front: on a fresh runner it takes minutes, longer than a session request waits
+          npx appium driver run xcuitest build-wda --sdk="$PLATFORM_VERSION" --name="$DEVICE_NAME"
           nohup npx appium --port 4723 --log-level info --log "$ARTIFACTS/appium.log" > /dev/null 2>&1 &
           curl --retry 60 --retry-delay 1 --retry-connrefused -fsS http://127.0.0.1:4723/status
       - name: Start the screen recording

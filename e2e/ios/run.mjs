@@ -159,7 +159,7 @@ async function main() {
     'appium:safariIgnoreFraudWarning': true, 'appium:newCommandTimeout': 300, 'appium:connectHardwareKeyboard': false,
   };
   for (const k of Object.keys(caps)) if (caps[k] === undefined) delete caps[k];
-  browser = await remote({ hostname: APPIUM.hostname, port: Number(APPIUM.port), path: '/', logLevel: 'warn', capabilities: caps, connectionRetryCount: 1 });
+  browser = await remote({ hostname: APPIUM.hostname, port: Number(APPIUM.port), path: '/', logLevel: 'warn', capabilities: caps, connectionRetryCount: 1, connectionRetryTimeout: 600000 });
   try {
     await runCase('sheet-menu', { url: `/day/${DAY}`, title: 'Groceries', steps: sheetSteps('Groceries') });
     await runCase('card-menu', {
