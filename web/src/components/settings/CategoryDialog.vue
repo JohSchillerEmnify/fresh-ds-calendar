@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { api } from '@/api/client';
 import { GOOGLE_COLORS, isHexColor } from '@/api/colors';
-import type { Category, Person } from '@/api/types';
+import type { Category } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
+import { usePeople } from '@/composables/usePeople';
 import { t } from '@/i18n';
 import { useDeviceStore } from '@/stores/device';
 import { useSyncStore } from '@/stores/sync';
@@ -28,14 +29,14 @@ const { busy: saving, error, run: submit } = useAsyncSubmit({ onDone: () => emit
 const run = (fn: () => Promise<unknown>) => submit(fn, 'theme.categoryDialog.failed');
 const confirming = ref(false);
 /** "Share with" (feature shared-lists): who this category's lists are shared with, '' = nobody. */
-const people = ref<Person[]>([]);
+const { people, refresh: refreshPeople } = usePeople();
 const sharedWith = ref('');
 let sharedBefore = '';
 onMounted(async () => {
   if (!props.category) return;
+  void refreshPeople();
   try {
-    const [p, s] = await Promise.all([device.read('people', () => api.people()), device.read('categoryShares', () => api.categoryShares())]);
-    people.value = p.people;
+    const s = await device.read('categoryShares', () => api.categoryShares());
     sharedWith.value = sharedBefore = s.shares[props.category.id]?.sub ?? '';
   } catch { /* sharing stays hidden: nobody to pick */ }
 });
