@@ -16,7 +16,7 @@ function isTemplate(x: unknown): x is TaskTemplate {
 }
 
 /** How many templates one person may keep. */
-export const MAX_TEMPLATES = 100;
+const MAX_TEMPLATES = 100;
 
 interface TemplateDoc { version: 1; templates: TaskTemplate[] }
 

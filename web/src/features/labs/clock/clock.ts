@@ -15,7 +15,7 @@ export const SNAP_MIN = 15;
 
 /**
  * Shortest arc the dial draws, in minutes (its snap step): at 24 hours per turn a shorter one would be a dot, too small
- * to see or tap (owner, 2026-10-23). The entry's real times never change.
+ * to see or tap. The entry's real times never change.
  */
 export const MIN_ARC_MIN = SNAP_MIN;
 
@@ -62,7 +62,7 @@ export function tappedTime(m: number): string {
 }
 
 /**
- * Timed entries that can stand in the middle: timed events and timed task lists (owner, 2026-10-24), never all-day ones.
+ * Timed entries that can stand in the middle: timed events and timed task lists, never all-day ones.
  * Today an entry that began the day before counts too (it is running).
  */
 const timedEntries = (segs: Segment[]) => segs.filter((s) => !s.allDay && s.startTime !== null);

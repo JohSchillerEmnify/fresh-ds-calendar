@@ -8,10 +8,10 @@ export interface ExchangeEntry { sessionId: string; redirect: string; challenge:
 
 /** Shape of a challenge (base64url of a SHA-256) and of a verifier (base64url of 32 random bytes, RFC 7636 allows up to 128). */
 export const CHALLENGE_RE = /^[A-Za-z0-9_-]{43}$/;
-export const VERIFIER_RE = /^[A-Za-z0-9_-]{43,128}$/;
+const VERIFIER_RE = /^[A-Za-z0-9_-]{43,128}$/;
 
 /** Whether the verifier belongs to the challenge: base64url(SHA-256(verifier)) equals it (RFC 7636 S256), compared in constant time. */
-export function verifierMatches(verifier: string | undefined, challenge: string): boolean {
+function verifierMatches(verifier: string | undefined, challenge: string): boolean {
   if (!verifier || !VERIFIER_RE.test(verifier)) return false;
   const a = Buffer.from(createHash('sha256').update(verifier).digest('base64url'));
   const b = Buffer.from(challenge);

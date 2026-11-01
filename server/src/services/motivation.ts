@@ -4,13 +4,13 @@ import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import type { Clock } from '../lib/clock.js';
 import { diffDays, localDateOf } from '../lib/time.js';
 
-export const DAILY_CAP = 30;
-export const POINTS = { checkin: 10, create: 5, tick: 2 } as const;
+const DAILY_CAP = 30;
+const POINTS = { checkin: 10, create: 5, tick: 2 } as const;
 export type AwardKind = keyof typeof POINTS;
-export const STAGES: { name: PlantStage; at: number }[] = [
+const STAGES: { name: PlantStage; at: number }[] = [
   { name: 'Seed', at: 0 }, { name: 'Sprout', at: 20 }, { name: 'Small plant', at: 60 }, { name: 'Leafy', at: 140 }, { name: 'Flowering', at: 280 },
 ];
-export const MESSAGES: Record<PlantMood, string> = {
+const MESSAGES: Record<PlantMood, string> = {
   happy: 'Your plant is happy',
   thirsty: 'Your plant is a little thirsty',
   dry: 'Your plant could use some water',

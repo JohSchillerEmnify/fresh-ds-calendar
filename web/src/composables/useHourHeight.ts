@@ -13,7 +13,7 @@ export const MIN_HOUR_PX = 24;
 export const MAX_HOUR_PX = 160;
 export const HOUR_HEIGHT_KEY = 'cal.hourHeight';
 /** Ctrl+wheel: `exp(-deltaY * WHEEL_ZOOM_RATE)`; a 100 px mouse notch is about x1.5, a trackpad pinch (deltaY ~ 1-10) is smooth. */
-export const WHEEL_ZOOM_RATE = 0.004;
+const WHEEL_ZOOM_RATE = 0.004;
 
 /** Clamp an hour height to the allowed range, rounded to 0.01 px (keeps `data-hour-height` tidy). */
 export function clampHourHeight(px: number): number {

@@ -20,7 +20,7 @@ const particles = Array.from({ length: 9 }, (_, i) => ({
   left: `${6 + i * 11}%`, top: `${6 + ((i * 37) % 46)}%`, delay: `${-(i * 1.3) % 7}s`, dur: `${7 + (i % 4) * 1.6}s`, size: `${5 + (i % 3) * 2}px`,
 }));
 
-/** How long the particles take to glide to their resting spots (owner, 2026-10-26). */
+/** How long the particles take to glide to their resting spots. */
 const GLIDE_MS = 1000;
 
 const root = ref<HTMLElement | null>(null);

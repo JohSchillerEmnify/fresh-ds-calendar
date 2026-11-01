@@ -65,7 +65,7 @@ const cols = computed(() => props.dates.map((d) => {
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
-// every grid, the two-row overview included, has the same two levels: titles only and expanded (owner, 2026-10-20)
+// every grid, the two-row overview included, has the same two levels: titles only and expanded
 const smode = computed(() => sectionMode(props.mode, isPhone.value));
 provide(sectionKey, () => smode.value);
 const isList = (s: { item: { kind: string } }) => s.item.kind === 'tasklist';
@@ -82,7 +82,7 @@ const band = computed(() => {
 });
 /**
  * The all-day row shows only when it has something in it (any day of the week); its switch only when task lists are in
- * it (feature header-layout, owner 2026-10-26). The two-row overview (`fit`) keeps its band as built.
+ * it (feature header-layout). The two-row overview (`fit`) keeps its band as built.
  */
 const rowShown = computed(() => !!props.fit || bars.value.length > 0 || cols.value.some((c) => c.top.length > 0));
 const switchShown = computed(() => !!props.fit || taskTotal.value > 0);

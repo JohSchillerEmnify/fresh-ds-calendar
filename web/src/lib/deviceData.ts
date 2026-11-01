@@ -66,7 +66,7 @@ const touches = (it: CalendarItem, from: LocalDate, to: LocalDate): boolean => i
 const inSeries = (id: string, seriesId: string): boolean => id === seriesId || (id.startsWith(`${seriesId}_`) && /^\d{8}(T\d{6}Z)?$/.test(id.slice(seriesId.length + 1)));
 
 /** Keeps the events that touch the window; task lists are never pruned. */
-export function pruneWindow(data: DeviceData, w: DeviceWindow): DeviceData {
+function pruneWindow(data: DeviceData, w: DeviceWindow): DeviceData {
   return { ...data, window: w, events: data.events.filter((e) => touches(e, w.from, w.to)) };
 }
 

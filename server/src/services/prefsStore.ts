@@ -16,7 +16,7 @@ export interface ThemePref { preset: string; overrides: ThemeOverrides; seasonal
 /** What `prefs.json` stores: the theme plus markers that the retired top bar scene and garden style were folded into it. */
 interface StoredTheme extends Omit<ThemePref, 'seasonal'> { seasonal?: string; sceneUnified?: true; gardenMigrated?: true; seasonalMigrated?: true }
 /** A new person starts with the season's colours and header on base Default. */
-export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seasonal: 'all' };
+const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seasonal: 'all' };
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
 interface StoredPrefs extends Prefs {

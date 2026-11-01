@@ -54,8 +54,9 @@ export function openItem(item: CalendarItem): void {
 }
 
 // --- 4. top app bar widgets (flame, plant, ...) ----------------------------------------------------
-export type WidgetSlot = 'leading' | 'trailing';
+type WidgetSlot = 'leading' | 'trailing';
 export const topBarWidgets = reactive<{ leading: Component[]; trailing: Component[] }>({ leading: [], trailing: [] });
+/** @public extension seam documented in web/README.md; no built-in feature registers one today */
 export function registerTopBarWidget(slot: WidgetSlot, c: Component): void {
   const l = topBarWidgets[slot];
   if (!l.includes(markRaw(c))) l.push(c);

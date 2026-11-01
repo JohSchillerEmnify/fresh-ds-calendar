@@ -1,6 +1,6 @@
 /**
  * Coldmirror locale in the voice of "Fresh Dumbledore" (Fresh D.), the ancient headmaster who tries far too hard to be a
- * rapper. Complete: it covers every key of `de`. Never "Ich bin voll geil" (owner).
+ * rapper. Complete: it covers every key of `de`. Never "Ich bin voll geil".
  */
 import type { Messages } from '../schema';
 import outboxDe from './de/outbox.ts';

@@ -25,7 +25,7 @@ const APP_PACKAGE = 'lan.mordor.calendar';
  * navigation (the tap on Google's consent), but blocks a script-started launch without a gesture; `package=` pins the
  * target app and `S.browser_fallback_url` is where Chrome goes when it cannot launch (the page with the manual button).
  */
-export function appIntentUrl(code: string, fallbackUrl: string): string {
+function appIntentUrl(code: string, fallbackUrl: string): string {
   return `intent://auth?code=${code}#Intent;scheme=${APP_PACKAGE};package=${APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
 }
 

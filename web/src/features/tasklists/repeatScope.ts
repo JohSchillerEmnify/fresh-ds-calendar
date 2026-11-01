@@ -1,6 +1,6 @@
 /**
- * The "This task list / This and all following task lists" question of a repeating task list (feature tasklist-repeating,
- * owner 2026-10-24): renaming the list or adding, renaming or removing an item of a list with a `seriesId` asks first, as
+ * The "This task list / This and all following task lists" question of a repeating task list (feature tasklist-repeating):
+ * renaming the list or adding, renaming or removing an item of a list with a `seriesId` asks first, as
  * Google asks for a repeating event. One question at a time per host; `RepeatScopeDialog` shows it while `asking` is set.
  */
 import { ref } from 'vue';

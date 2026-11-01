@@ -3,7 +3,7 @@ import type { InjectionKey } from 'vue';
 
 /**
  * Section-level display mode of the task lists in a calendar view (week / day): 'full' = compact cards with open items,
- * 'titles' = one line per list. Two levels only: the third "k tasks" count level is gone for good (owner, 2026-10-20).
+ * 'titles' = one line per list. Two levels only: the third "k tasks" count level is gone for good.
  * Persisted per view in localStorage only (not a server setting); a stored 'count' from before falls back to the default.
  */
 export type SectionMode = 'full' | 'titles';

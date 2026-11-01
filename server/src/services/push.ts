@@ -13,12 +13,11 @@ import { listUserSubs, userDir } from '../auth/people.js';
 /** A planned push may be sent this late (server was down, loop was busy); later ones are dropped. */
 export const CATCH_UP_MS = 10 * 60_000;
 /** How often the loop looks for due pushes. */
-export const TICK_MS = 30_000;
+const TICK_MS = 30_000;
 /** Sent keys are remembered this long, so a re-sent plan never repeats a push. */
 const SENT_KEEP_MS = 24 * 3_600_000;
 /** Most subscriptions (browsers) one person can have, and most plan entries per browser. */
-export const MAX_SUBSCRIPTIONS = 10;
-export const MAX_PLAN = 500;
+const MAX_SUBSCRIPTIONS = 10;
 
 /** The browser's push endpoint and its encryption keys, as `PushSubscription.toJSON()` returns them. */
 export interface PushTarget { endpoint: string; keys: { p256dh: string; auth: string } }
@@ -56,9 +55,9 @@ export function loadVapid(dataDir: string, env: NodeJS.ProcessEnv = process.env)
 /** Every push to a push service gives up after this long. */
 export const SEND_TIMEOUT_MS = 10_000;
 /** One tick stops waiting for slow endpoints after this long; what finished is saved, the rest is tried again next tick. */
-export const TICK_BUDGET_MS = 25_000;
+const TICK_BUDGET_MS = 25_000;
 /** The only host a TEST_MODE server also accepts (the e2e fake push service; it is never contacted). */
-export const TEST_PUSH_HOST = 'push.example.test';
+const TEST_PUSH_HOST = 'push.example.test';
 
 /** The push services of the browsers: Chrome/Edge (FCM), Firefox, Safari and the legacy Windows one. */
 const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^([a-z0-9-]+\.)*push\.services\.mozilla\.com$/, /^web\.push\.apple\.com$/, /^([a-z0-9-]+\.)*notify\.windows\.com$/];

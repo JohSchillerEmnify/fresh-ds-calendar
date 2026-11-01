@@ -15,7 +15,7 @@ import { turnedStart } from './clock';
 import { minuteAt, wrapDelta } from './geometry';
 
 /** Hold time that picks an arc up (the time grid's long press). */
-export const LONG_PRESS_MS = 350;
+const LONG_PRESS_MS = 350;
 const TOUCH_SLOP = 8;
 const MOUSE_SLOP = 4;
 

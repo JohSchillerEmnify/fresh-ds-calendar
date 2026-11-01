@@ -1,6 +1,6 @@
 /**
  * Coldmirror messages of the Tasks view's Canvas, in the voice of "Fresh Dumbledore" (Fresh D.). Complete: it covers
- * every key of `de`. Crude humour only about the Harry Potter characters (owner).
+ * every key of `de`. Crude humour only about the Harry Potter characters.
  */
 import type { PartialMessages } from '../../schema';
 

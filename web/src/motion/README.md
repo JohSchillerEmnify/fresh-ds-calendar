@@ -35,7 +35,7 @@ Settings page: best streak = `store.motivation.streak.best`.
 
 - `useAnimationLevel(setting?, calm?) -> ComputedRef<MotionLevel>`, `getMotionLevel()`, `setAnimationSetting`, `setCalmMode`.
 - `springs` presets, `springAt`, `springEasing(p, v0)` (CSS `linear()` + duration), `Spring1D`, `createVelocityTracker`.
-- `animate(el, frames, { spring?, reduced: 'fade'|'skip'|'same' })` (level aware, null at Off), `pop`, `pressRelease`
+- `animate(el, frames, { spring?, reduced: 'fade'|'skip'|'same' })` (level aware, null at Off), `pop`
   (use for FAB press, sheets, dialogs).
 - Effects (Full only; one `.reward-layer`; `data-testid="reward-effect"` + `data-kind`; <= 3 concurrent, <= 48
   particles, hard 1200 ms removal): `spawnSparkle(at, {kind})` (tick/bloom/perk-up/grow/streak),
@@ -43,7 +43,7 @@ Settings page: best streak = `store.motivation.streak.best`.
   `clearEffects()`. `at` = `{x,y}` client px or an Element.
   The shell must call `spawnSparkle`/`spawnBling` only through these; `eye-open`, `butterfly`, `streak`, `bloom`,
   `grow`, `perk-up`, `water` are spawned by the motivation components themselves.
-- `haptic(ms|pattern)` (guarded `navigator.vibrate`), `setHapticsEnabled`.
+- `haptic(ms|pattern)` (guarded `navigator.vibrate`).
 - `<RewardCheckbox v-model label disabled>`: emits `update:modelValue` + `change` synchronously; sparkle only on
   user tick; testid `reward-checkbox`.
 - `<ProgressRing :done :total | :value :size>`: `tasklist-progress-ring`, `data-percent`, `role=progressbar`.
@@ -61,7 +61,6 @@ Settings page: best streak = `store.motivation.streak.best`.
   })
   createSlotGrid({ rect, columns, pxPerMinute, gutter?, step = 15, startMinutes? })  // key {column, minutes}
   createCellGrid({ cells: () => [{ el, key }] })                                     // month/all-day cells
-  useDropGrid({ kind: 'slots' | 'cells', ... }) -> { hitTest }
   isGestureClaimed()   // true while a drag owns the pointer; also window event 'gesture-claim' on pick-up
   ```
   Give draggable cards `touch-action: none` only if scrolling inside is not needed; on touch the long-press

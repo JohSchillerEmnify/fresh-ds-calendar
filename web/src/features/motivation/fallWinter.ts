@@ -1,6 +1,6 @@
 /**
  * Where the Fall and Winter props, the cat, the kite, the visitors and the resting particles sit (feature
- * theme-scenes, round 3 mockups approved 2026-10-26; art and spots from `fwart.cjs` / `fw.cjs`). The spots are pixels
+ * theme-scenes, round 3 mockups approved; art and spots from `fwart.cjs` / `fw.cjs`). The spots are pixels
  * of the bar at the mockup's width per layout: on a phone the header layout `H1` one row (390 px wide, 52 px tall) or
  * `H2` two rows (390 x 84, the default), `T` the tablet (820 x 60) and `D` the desktop (1280 x 60). On another width a spot keeps its distance to the nearer bar edge, as
  * the controls do (title and arrows at the left, widgets and buttons at the right); see {@link anchor}.
@@ -28,7 +28,7 @@ export interface Prop { kind: PropKind; x: number; h: number; side?: Side; botto
 export type Side = 'left' | 'right';
 
 /** Width / height of each drawing. */
-export const ASPECT: Record<PropKind, number> = { 'autumn-tree': 0.8, 'snowy-tree': 0.8, 'leaf-pile': 3, snowman: 26 / 32, sledge: 34 / 13 };
+const ASPECT: Record<PropKind, number> = { 'autumn-tree': 0.8, 'snowy-tree': 0.8, 'leaf-pile': 3, snowman: 26 / 32, sledge: 34 / 13 };
 
 const tree = (x: number, h: number): Prop => ({ kind: 'autumn-tree', x, h });
 const pile = (x: number, bottom?: number): Prop => ({ kind: 'leaf-pile', x, h: 13, bottom });

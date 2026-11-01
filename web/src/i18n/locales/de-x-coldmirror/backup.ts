@@ -1,6 +1,6 @@
 /**
  * Coldmirror messages of the Google Drive backup, in the voice of "Fresh Dumbledore" (Fresh D.). Complete: it covers
- * every key of `de`. Crude humour only about the Harry Potter characters (owner).
+ * every key of `de`. Crude humour only about the Harry Potter characters.
  */
 import type { Messages } from '../../schema';
 

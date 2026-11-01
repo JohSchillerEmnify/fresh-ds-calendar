@@ -65,7 +65,7 @@ export function listen(target: EventTarget, type: string, fn: (e: Event) => void
 }
 
 /** Runs the disposer when the current component/effect scope is disposed. Returns it for early disposal. */
-export function autoDispose(d: Disposer): Disposer {
+function autoDispose(d: Disposer): Disposer {
   if (getCurrentScope()) onScopeDispose(d);
   return d;
 }

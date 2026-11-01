@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The edge band while a dragged entry rests at the side of the day or week view (feature drag-to-reschedule, owner
- * 2026-10-25, design A1-A3): a tinted strip over the edge zone and a pill naming the day or week the view turns to.
+ * The edge band while a dragged entry rests at the side of the day or week view (feature drag-to-reschedule, design A1-A3):
+ * a tinted strip over the edge zone and a pill naming the day or week the view turns to.
  * Fixed to the viewport at the place `edgeBand` reports; it never takes a pointer.
  */
 import { computed } from 'vue';

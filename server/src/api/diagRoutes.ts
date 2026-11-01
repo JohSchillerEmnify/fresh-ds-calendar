@@ -14,7 +14,7 @@ import { parse } from '../lib/validation.js';
 import type { AuthEnv } from '../auth/middleware.js';
 
 /** At most one beacon per client in this window. */
-export const BEACON_EVERY_MS = 60_000;
+const BEACON_EVERY_MS = 60_000;
 const MAX_BODY_BYTES = 1024;
 
 const beaconSchema = v.strictObject({

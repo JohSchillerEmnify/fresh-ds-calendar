@@ -15,7 +15,7 @@ import { clampZoom, pinchView, zoomAt, type Point, type View } from './canvas';
 export type DragKind = 'note' | 'area-head' | 'area-body' | 'area-resize';
 
 /** Touch long-press delay, the calendar's (`motion/drag.ts`). */
-export const LONG_PRESS_MS = 350;
+const LONG_PRESS_MS = 350;
 /** A mouse picks up after this much movement (px). */
 const MOUSE_SLOP = 4;
 /** A touch that moves this far (px) before the long press is a pan. */

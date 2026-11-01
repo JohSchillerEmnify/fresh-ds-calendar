@@ -13,10 +13,10 @@ import { playBling, playTick } from './sound';
 export type EffectKind =
   | 'tick' | 'list-complete' | 'drop' | 'streak' | 'water' | 'grow' | 'perk-up' | 'bloom' | 'butterfly' | 'eye-open';
 
-export interface Point { x: number; y: number }
+interface Point { x: number; y: number }
 export type Origin = Point | Element;
 
-export const HARD_TIMEOUT_MS = 1200;
+const HARD_TIMEOUT_MS = 1200;
 export const MAX_EFFECTS = 3;
 export const MAX_PARTICLES = 48;
 
@@ -35,7 +35,7 @@ let layer: HTMLElement | null = null;
 const GOLD = '#ffc83d';
 const PALETTE = [GOLD, 'var(--md-sys-color-primary, #6750a4)', 'var(--md-sys-color-tertiary, #7d5260)', '#ff6fa5', '#5bd6a4', '#5bb8ff'];
 
-export function pointOf(o: Origin): Point {
+function pointOf(o: Origin): Point {
   if ('x' in o && typeof o.x === 'number' && !(o instanceof Element)) return o as Point;
   const r = (o as Element).getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -74,7 +74,7 @@ export function clearEffects(): void {
 }
 
 /** Create the effect element. Returns null when effects are disabled. */
-export function openEffect(kind: EffectKind, at: Origin, ttl = HARD_TIMEOUT_MS): Live | null {
+function openEffect(kind: EffectKind, at: Origin, ttl = HARD_TIMEOUT_MS): Live | null {
   if (!canSpawn()) return null;
   while (live.size >= MAX_EFFECTS) [...live][0].end();
   const p = pointOf(at);

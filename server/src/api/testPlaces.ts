@@ -51,7 +51,7 @@ function addressProps(address: string): Record<string, string> {
  * @param limit The requested number of results.
  * @returns Photon's GeoJSON FeatureCollection.
  */
-export function photonAnswer(places: TestPlace[], q: string, limit: number) {
+function photonAnswer(places: TestPlace[], q: string, limit: number) {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const hits = words.length ? places.filter((p) => words.every((w) => `${p.name} ${p.address}`.toLowerCase().includes(w))) : [];
   return {

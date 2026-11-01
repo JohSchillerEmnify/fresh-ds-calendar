@@ -9,7 +9,7 @@ import { absMinutes, pieceTime, tonight, type BedtimeWindow, type SegmentSource 
 import { packColumns, taskListSpan, type Segment } from '@/lib/items';
 
 /** One entry on the runway, in minutes from now; `col` of `cols` side-by-side lanes. */
-export interface RunwayEntry {
+interface RunwayEntry {
   seg: Segment;
   top: number;
   height: number;

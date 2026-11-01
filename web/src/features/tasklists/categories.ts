@@ -20,7 +20,7 @@ export const effectiveFilter = (f: TasksFilter, on: boolean): TasksFilter => (on
 export const listColor = (l: Pick<TaskList, 'color' | 'calendarColor'>, on: boolean): string => (on ? l.color : l.calendarColor ?? l.color);
 
 /** Colour of any calendar item: events keep theirs, task lists follow {@link listColor}. */
-export const itemColor = (i: CalendarItem, on: boolean): string => (i.kind === 'tasklist' ? listColor(i, on) : i.color);
+const itemColor = (i: CalendarItem, on: boolean): string => (i.kind === 'tasklist' ? listColor(i, on) : i.color);
 
 /** Category of a list as the UI sees it: none while categories are off. */
 export const listCategoryId = (l: Pick<TaskList, 'categoryId'>, on: boolean): string | null => (on ? l.categoryId : null);

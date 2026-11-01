@@ -1,5 +1,5 @@
 /**
- * Turning the day or week while dragging (feature drag-to-reschedule, owner 2026-10-25): the pure parts. While an entry
+ * Turning the day or week while dragging (feature drag-to-reschedule): the pure parts. While an entry
  * is dragged in the day or week view, the outer {@link EDGE_ZONE_PX} of the day columns on each side are edge zones; a
  * band names the day or week a turn leads to, and resting there for {@link EDGE_HOLD_MS} turns the view (again after
  * each such wait). The week view waits longer so a drop on Sunday or Monday is never stolen.

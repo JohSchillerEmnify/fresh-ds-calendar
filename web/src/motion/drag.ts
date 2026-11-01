@@ -4,7 +4,6 @@
  *  createDragController(el, opts)  framework-free state machine (testable)
  *  useDraggable(elRef, opts)       Vue wrapper, cleans up on scope dispose / element change
  *  createSlotGrid / createCellGrid hit-test factories (15-minute slots, day cells)
- *  useDropGrid(opts)               wrapper returning { hitTest }
  *  watchDrags(fn)                  read-only per-frame drag state for passive followers (drag helper cat)
  *
  * State machine:  idle -> pending (touch long-press / mouse slop) -> dragging -> dropping -> idle
@@ -21,7 +20,7 @@ import { haptic } from './haptics';
 import { spawnBling } from './effects';
 import { Spring1D, createVelocityTracker, clamp, springs } from './spring';
 
-export type DragState = 'idle' | 'pending' | 'dragging' | 'dropping' | 'returning';
+type DragState = 'idle' | 'pending' | 'dragging' | 'dropping' | 'returning';
 
 export interface DragContext {
   /** Element rect at pick-up. */
@@ -70,7 +69,7 @@ let claimed = 0;
 export function isGestureClaimed(): boolean {
   return claimed > 0;
 }
-export const GESTURE_CLAIM_EVENT = 'gesture-claim';
+const GESTURE_CLAIM_EVENT = 'gesture-claim';
 
 /** Claims the gesture for a drag that does not use the controller (the clock dial) until the returned release runs. */
 export function claimGesture(): () => void {
@@ -868,7 +867,7 @@ export interface SlotKey { column: number; minutes: number }
 /**
  * Hit-test for time grids. The card's top edge snaps to the slot; dx/dy move it there. Sideways it moves by whole
  * columns only: a card drawn in the right part of its column (side by side, cascaded) keeps that place and stays under
- * the finger instead of jumping to the column's left edge (owner, 2026-10-23).
+ * the finger instead of jumping to the column's left edge.
  */
 export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: DragContext) => DropTarget<SlotKey> | null {
   const step = o.step ?? 15;
@@ -906,14 +905,4 @@ export function createCellGrid<K>(o: CellGridOptions<K>): (x: number, y: number,
     }
     return null;
   };
-}
-
-export type DropGridOptions<K> =
-  | ({ kind: 'slots' } & SlotGridOptions)
-  | ({ kind: 'cells' } & CellGridOptions<K>);
-
-/** Convenience wrapper: `const { hitTest } = useDropGrid({ kind: 'slots', ... })`. */
-export function useDropGrid<K = SlotKey>(o: DropGridOptions<K>) {
-  const hitTest = (o.kind === 'slots' ? createSlotGrid(o) : createCellGrid<K>(o)) as DragOptions<K>['hitTest'];
-  return { hitTest };
 }

@@ -9,10 +9,6 @@ export function setSoundsEnabled(v: boolean): void {
   on = v;
   if (!v) closeAudio();
 }
-export function soundsEnabled(): boolean {
-  return on;
-}
-
 function getCtx(): AudioContext | null {
   if (ctx) return ctx;
   const AC = (globalThis as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
@@ -26,7 +22,7 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
-export function closeAudio(): void {
+function closeAudio(): void {
   const c = ctx;
   ctx = null;
   try {

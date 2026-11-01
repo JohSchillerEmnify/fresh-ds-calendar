@@ -12,7 +12,7 @@ export type MotionLevel = 'full' | 'reduced' | 'off';
 
 const ORDER: Record<MotionLevel, number> = { off: 0, reduced: 1, full: 2 };
 
-export function minLevel(a: MotionLevel, b: MotionLevel): MotionLevel {
+function minLevel(a: MotionLevel, b: MotionLevel): MotionLevel {
   return ORDER[a] <= ORDER[b] ? a : b;
 }
 
@@ -53,7 +53,7 @@ export function setCalmMode(on: boolean): void {
   calm.value = !!on;
 }
 
-export function setIgnoreSystemMotion(on: boolean): void {
+function setIgnoreSystemMotion(on: boolean): void {
   ignoreSystem.value = !!on;
 }
 

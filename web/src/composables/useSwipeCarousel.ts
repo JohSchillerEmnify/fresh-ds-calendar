@@ -9,13 +9,13 @@ import { inSystemEdge } from './useSwipe';
 import { createVelocityTracker } from '@/motion/spring';
 
 /** Movement (px) before the axis is decided. */
-export const AXIS_SLOP = 10;
+const AXIS_SLOP = 10;
 /** Release past this fraction of the width settles on the neighbour. */
-export const SETTLE_FRACTION = 1 / 3;
+const SETTLE_FRACTION = 1 / 3;
 /** A flick toward the neighbour faster than this (px/ms) settles on it whatever the distance. */
-export const FLICK_PX_PER_MS = 0.5;
+const FLICK_PX_PER_MS = 0.5;
 /** Velocity is only trusted when the last move is this recent (ms) at release; a finger that rested has none. */
-export const VELOCITY_STALE_MS = 100;
+const VELOCITY_STALE_MS = 100;
 
 /** 1 = next period (finger pulls left), -1 = previous (pulls right). */
 export type SwipeDir = 1 | -1;
@@ -27,7 +27,7 @@ export function lockAxis(dx: number, dy: number): 'h' | 'v' | null {
 }
 
 /** Which neighbour a horizontal offset reveals. */
-export const dirOf = (dx: number): SwipeDir => (dx < 0 ? 1 : -1);
+const dirOf = (dx: number): SwipeDir => (dx < 0 ? 1 : -1);
 
 /** Offset the views follow: the finger's dx, never more than one width either way. */
 export function followOffset(dx: number, width: number): number {

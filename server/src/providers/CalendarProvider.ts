@@ -1,6 +1,6 @@
 /** One Google reminder: `popup` ones are shown and edited by the app, every other method (`email`) is only carried along. */
 export interface GoogleReminder { method: string; minutes: number }
-export interface GoogleEventDateTime { date?: string; dateTime?: string; timeZone?: string }
+interface GoogleEventDateTime { date?: string; dateTime?: string; timeZone?: string }
 export interface GoogleEvent {
   id: string; calendarId: string; etag: string; status: 'confirmed' | 'tentative' | 'cancelled';
   summary?: string; description?: string; location?: string; colorId?: string;

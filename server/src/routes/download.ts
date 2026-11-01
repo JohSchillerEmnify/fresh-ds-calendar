@@ -5,13 +5,13 @@ import { Readable } from 'node:stream';
 import { Hono } from 'hono';
 
 /** The Android app, built by `scripts/android-build.sh` and put into `DATA_DIR/downloads/` by hand (never part of the image). */
-export const APK_FILE = 'app.apk';
+const APK_FILE = 'app.apk';
 
 /**
  * Sidecar of the APK, written next to it by `scripts/android-build.sh` after it checked the signer:
  * `{ "versionCode": 7, "versionName": "1.1.7", "certSha256": "<64 hex>" }`.
  */
-export const APK_INFO_FILE = 'app.json';
+const APK_INFO_FILE = 'app.json';
 
 /** Version of the published APK, as the app compares it with the installed one, and the pinned fingerprint of its signing certificate. */
 export interface ApkInfo { versionCode: number; versionName: string; certSha256?: string }
