@@ -33,6 +33,8 @@ Feature: Labs: the timeline view
     Then the timeline runs from top to bottom
     And the title of "Dentist" on the timeline reads left to right in one line
 
+  # owner, 2026-11-01: "after scrolling a while there's no way back to today": the Today button comes back (scenarios
+  # under the rule below); this scenario changes to "has no arrows" when they are built.
   Scenario: The top bar names the timeline instead of a date
     When I open the timeline view
     Then the top bar names the view "Timeline"
@@ -42,3 +44,38 @@ Feature: Labs: the timeline view
     Given the calendar contains an event "Review" on 2026-10-14 from 09:30 to 10:30
     When I open the timeline view
     Then on the timeline "Dentist" and "Review" are side by side
+
+  # owner, 2026-11-01: "after scrolling a while there's no way back to today". The timeline gets the Today button of the
+  # other views, same look and place; it brings now back to where the timeline opens (about a third from the top).
+  # The timeline still has no date and no previous / next arrows.
+  Rule: The Today button brings the timeline back to now
+
+    @backlog
+    Scenario: The top bar of the timeline has Today but no arrows
+      When I open the timeline view
+      Then the top bar names the view "Timeline"
+      And the Today button is an icon with the label "Today"
+      And the top bar shows no arrows
+
+    @backlog
+    Scenario Outline: After scrolling far away, Today goes back to now
+      Given the time is 2026-10-14 08:00
+      When I open the timeline view
+      And I scroll the timeline <days> days <direction>
+      Then I do not see the now marker
+      And the Today button does not show that today is on screen
+      When I go to today
+      Then the now marker is visible on screen
+      And "Dentist" is visible on the timeline
+      And the Today button shows that today is on screen
+
+      Examples:
+        | days | direction |
+        | 5    | ahead     |
+        | 9    | back      |
+
+    @backlog
+    Scenario: The Today button lights up while now is on screen
+      Given the time is 2026-10-14 08:00
+      When I open the timeline view
+      Then the Today button shows that today is on screen
