@@ -467,11 +467,7 @@ export class CalendarService {
   }
 
   // ---------- task lists ----------
-  /**
-   * Validates a list before it is written. With `before` (an update) a rule only judges what this write changes: a field
-   * stored earlier that a rule would no longer accept (a deleted category, tags of an older version) never blocks a tick
-   * or a delete, and an untitled list may lose its last item.
-   */
+  /** Validates a list before it is written; with `before` (an update) a rule judges only what this write changes, so an older stored field never blocks a tick or a delete. */
   private checkTaskData(d: TaskListData, before?: TaskListData): void {
     const changed = (f: (x: TaskListData) => unknown) => !before || JSON.stringify(f(d)) !== JSON.stringify(f(before));
     if (changed((x) => x.title.trim()) && !d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title', 'tasklist.titleOrItem');
