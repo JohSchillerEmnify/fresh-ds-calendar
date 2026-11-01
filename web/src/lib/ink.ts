@@ -88,6 +88,48 @@ export function readableOn(hex: string, grounds: string[], on: string, min = 3):
   return toHex(target);
 }
 
+/** A colour as red, green, blue (0-255) and alpha (0-1). */
+export type Rgba = [number, number, number, number];
+
+/** A 1x1 canvas context: the browser itself turns any CSS colour (oklch, display-p3, color-mix) into sRGB pixels. */
+type PixelCtx = Pick<CanvasRenderingContext2D, 'clearRect' | 'fillRect' | 'getImageData' | 'fillStyle'>;
+let sharedCtx: PixelCtx | null | undefined;
+const canvasCtx = (): PixelCtx | null => {
+  if (sharedCtx === undefined) {
+    try { sharedCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); } catch { sharedCtx = null; }
+  }
+  return sharedCtx;
+};
+
+/** A computed CSS colour as RGBA; rgb() and color(srgb) are read directly, anything else goes through the canvas. */
+export function parseColour(css: string, ctx: PixelCtx | null = canvasCtx()): Rgba | null {
+  const s = css.trim().toLowerCase();
+  if (!s) return null;
+  if (s === 'transparent') return [0, 0, 0, 0];
+  const direct = s.match(/^(rgba?|color\(srgb)[\s(]+([^)]*)\)?$/);
+  if (direct) {
+    const n = direct[2]!.split(/[\s,/]+/).filter(Boolean).map(Number);
+    if (n.length >= 3 && n.every((v) => !Number.isNaN(v))) {
+      const k = direct[1] === 'color(srgb' ? 255 : 1;
+      return [Math.round(n[0]! * k), Math.round(n[1]! * k), Math.round(n[2]! * k), n[3] ?? 1];
+    }
+  }
+  if (!ctx) return null;
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = css;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return [r!, g!, b!, a! / 255];
+}
+
+/** The #rrggbb a stack of layers shows (bottom first, over white), so a see-through card gives the ground the user sees. */
+export function flattenColours(layers: (Rgba | null)[]): string | null {
+  if (!layers.some(Boolean)) return null;
+  let acc = [255, 255, 255];
+  for (const l of layers) if (l) acc = acc.map((v, i) => l[i]! * l[3] + v * (1 - l[3]));
+  return toHex(acc);
+}
+
 /** The ink of items by id, with the unsent changes of the outbox on top (writing offline shows at once; ADR 0031). */
 export function withPendingInk(items: InkDoc['items'], entries: OutboxEntry[]): InkDoc['items'] {
   let out = items;

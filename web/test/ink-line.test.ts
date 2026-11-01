@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import InkLine from '@/features/tasklists/InkLine.vue';
@@ -26,7 +27,7 @@ const draw = (svg: Element, o: { pointerType: string; width?: number }) => {
   svg.dispatchEvent(ev('pointerup', 80, 20, o));
 };
 
-beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); });
+beforeEach(() => { document.body.innerHTML = ''; document.documentElement.removeAttribute('style'); localStorage.clear(); });
 
 describe('InkLine', () => {
   it('takes a pen stroke in line heights with its pressure and remembers that a pen is in use', () => {
@@ -121,5 +122,63 @@ describe('InkLine', () => {
     svg.dispatchEvent(ev('pointerup', 80, 20, pen));
     const out = w.emitted('change')![0]![0] as { p: number[][] }[];
     expect(out[0]!.p.every((q) => q[0]! < 3)).toBe(true);
+  });
+});
+
+describe('InkLine on a card', () => {
+  const stroke = [{ p: [[0.2, 0.5, 0.5], [2, 0.5, 0.5]] as [number, number, number][], c: '#444444' }];
+  /** A card (`.tl`) with the given look around an ink line. */
+  function onCard(style: string, props: Record<string, unknown> = { onCard: '#ffffff' }) {
+    setActivePinia(createPinia());
+    const card = document.createElement('div');
+    card.className = 'tl';
+    card.setAttribute('style', style);
+    document.body.appendChild(card);
+    const w = mount(InkLine, { props: { strokes: stroke, ...props }, attachTo: card });
+    return { w, card, ink: () => w.find('[data-testid=ink-stroke]').attributes('style') };
+  }
+
+  it('lays a see-through card over what is behind it, so the ink reads on the ground the user sees', async () => {
+    document.documentElement.style.backgroundColor = 'rgb(0, 0, 0)';
+    const { ink, card } = onCard('color: rgb(255, 255, 255); background-color: rgba(255, 255, 255, 0.2)');
+    await nextTick();
+    expect(ink()).not.toContain('#444444');
+    card.remove();
+  });
+
+  it('keeps the colour on a ground it already reads on', () => {
+    const { ink } = onCard('color: rgb(255, 255, 255); background-color: rgb(255, 255, 255)');
+    expect(ink()).toContain('#444444');
+  });
+
+  it('reads the ground again when the card colour (onCard) changes, and once after mount', async () => {
+    const { w, card, ink } = onCard('color: rgb(255, 255, 255); background-color: rgb(255, 255, 255)');
+    expect(ink()).toContain('#444444');
+    card.style.background = 'rgb(51, 51, 51)';
+    await w.setProps({ onCard: '#333333' });
+    await nextTick();
+    expect(ink()).not.toContain('#444444');
+  });
+
+  it('watches only the attributes that change the theme on <html>', () => {
+    const spy = vi.spyOn(MutationObserver.prototype, 'observe');
+    const { card } = onCard('');
+    const opts = spy.mock.calls.find((c) => c[0] === document.documentElement)?.[1];
+    spy.mockRestore();
+    expect(opts?.attributeFilter).toEqual(expect.arrayContaining(['data-theme', 'data-theme-name', 'style']));
+    card.remove();
+  });
+
+  it('re-reads on the card\'s own background-color transition end only', async () => {
+    const { card, ink } = onCard('color: rgb(255, 255, 255); background-color: rgb(255, 255, 255)');
+    card.style.background = 'rgb(51, 51, 51)';
+    const end = (target: Element, propertyName: string) => { const e = Object.assign(new Event('transitionend', { bubbles: true }), { propertyName }); target.dispatchEvent(e); };
+    end(card, 'opacity');
+    end(card.querySelector('svg')!, 'background-color');
+    await nextTick();
+    expect(ink()).toContain('#444444');
+    end(card, 'background-color');
+    await nextTick();
+    expect(ink()).not.toContain('#444444');
   });
 });

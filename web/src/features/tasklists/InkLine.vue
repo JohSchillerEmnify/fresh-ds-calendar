@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /** One line of ink (feature handwritten-lists): SVG in line-height units; editable takes pen strokes and erasing, `change` reports all strokes. */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { InkPoint, InkStroke } from '@/api/types';
-import { eraseAt, penRole, readableInk, readableOn, strokePath, toLineUnits } from '@/lib/ink';
+import { eraseAt, flattenColours, parseColour, penRole, readableInk, readableOn, strokePath, toLineUnits, type Rgba } from '@/lib/ink';
 import { useInkStore } from '@/stores/ink';
 import { usePrefsStore } from '@/stores/prefs';
 
@@ -50,18 +50,23 @@ const viewBox = computed(() => {
 /** The card's text colour and painted background (#rrggbb) as the theme sets them; chosen ink is adjusted to read on that. */
 const textOn = ref('#000000');
 const ground = ref(props.onCard ?? '#ffffff');
-const hexOf = (css: string): string | null => {
-  const m = css.match(/[\d.]+/g)?.map(Number);
-  if (!m || m.length < 3 || (m[3] ?? 1) < 0.5) return null;
-  const k = css.startsWith('color(') ? 255 : 1;
-  return `#${m.slice(0, 3).map((v) => Math.round(v * k).toString(16).padStart(2, '0')).join('')}`;
-};
+/** The `<html>` attributes that change the theme's colours (see `applyAttrs`/`applyThemeMode`); `style` carries the fine-tuning variables. */
+const THEME_ATTRS = ['data-theme', 'data-theme-name', 'data-entries', 'data-corners', 'style'];
 const readText = (): void => {
-  if (!svg.value) return;
-  textOn.value = hexOf(getComputedStyle(svg.value).color) ?? textOn.value;
-  const card = svg.value.closest('.tl');
-  const layers = card ? [card, ...Array.from(card.querySelectorAll('.gl'))] : [];
-  ground.value = layers.map((e) => hexOf(getComputedStyle(e).backgroundColor)).find(Boolean) ?? ground.value;
+  const el = svg.value;
+  if (!el) return;
+  const text = flattenColours([parseColour(getComputedStyle(el).color)]);
+  if (text) textOn.value = text;
+  const card = el.closest('.tl');
+  if (!card) return;
+  // top-first: the card's glow layers, the card, then its ancestors until one is opaque
+  const stack: (Rgba | null)[] = [...Array.from(card.querySelectorAll('.gl')).reverse(), card].map((e) => parseColour(getComputedStyle(e).backgroundColor));
+  for (let e = card.parentElement; e && !stack.some((c) => c && c[3] >= 1); e = e.parentElement) stack.push(parseColour(getComputedStyle(e).backgroundColor));
+  ground.value = flattenColours(stack.reverse()) ?? ground.value;
+};
+/** The card repaints through a transition: read its final colour when the card's own background ends. */
+const onTransitionEnd = (e: TransitionEvent): void => {
+  if (e.target === e.currentTarget && e.propertyName === 'background-color') readText();
 };
 let themeWatch: MutationObserver | undefined;
 const OUTLINE_MAX_POINTS = 3000;
@@ -196,15 +201,17 @@ onMounted(() => {
   if (props.onCard && typeof MutationObserver !== 'undefined') {
     readText();
     themeWatch = new MutationObserver(readText);
-    themeWatch.observe(document.documentElement, { attributes: true });
-    // the card repaints through a transition: read its final colour when it ends
-    svg.value?.closest('.tl')?.addEventListener('transitionend', readText);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: THEME_ATTRS });
+    svg.value?.closest('.tl')?.addEventListener('transitionend', onTransitionEnd as EventListener);
+    // the card's styles may land a tick after mount
+    void nextTick(readText);
   }
 });
+watch(() => props.onCard, () => { if (props.onCard) readText(); }, { flush: 'post' });
 onBeforeUnmount(() => {
   observer?.disconnect();
   themeWatch?.disconnect();
-  svg.value?.closest('.tl')?.removeEventListener('transitionend', readText);
+  svg.value?.closest('.tl')?.removeEventListener('transitionend', onTransitionEnd as EventListener);
   svg.value?.removeEventListener('touchstart', stylusTouch);
 });
 </script>
