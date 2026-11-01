@@ -381,6 +381,8 @@ I zoom the time grid in far from the grown card
 the real time block of the expanded task list matches the card {string}
 ```
 
+- "the titleless task list on D is labelled L": the one `tasklist-card` with `data-untitled="true"` on D has no
+  `tasklist-card-title`, and its `tasklist-card-items` is visible with exactly the text L.
 - Item drag (`tasklists-items.feature`): "I drag the item X above the item Y" = a mouse presses the item's `tasklist-item-grip`, moves in
   10 steps to just above Y's row (when X moves down: to the place of the item before Y) and releases; on the phone project the finger
   long-presses X's row (500 ms hold, CDP touch, as the calendar's drag steps) and moves the same way. It waits for the saved order
@@ -496,6 +498,11 @@ I do not see the sync error banner
 once the slow-down is over I see the event {string} on {date}
 ```
 
+- "Google has an event T repeating every week from D from A to B": the mock Google gets one series (A–B on D, Berlin
+  time) with `recurrence: ["RRULE:FREQ=WEEKLY"]` and none of the app's properties, as Google Calendar creates it.
+- "I see the event T on each of D1, D2 …": for each date, opens its month view (if not already on screen) and the
+  event's chip on that date is visible. "I move the T of D to D2": opens the month view of D and drags T's chip on D
+  to the cell of D2 (like "I drag the event T to D").
 - Network: `context.setOffline(true|false)`.
 - `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
   the latest), then for the event chip within the poll interval + 5 s.
@@ -675,6 +682,9 @@ the text in the open dialog can be selected by a long press
 the text on the page can be selected by a long press
 ```
 
+- "no neighbouring period is shown beside the current one": 200 ms after the last move, no `swipe-neighbour` is visible.
+- "one hour of the time grid has its default height": within 10 % of the hour height measured before the scenario's
+  first pinch.
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
 - "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
   page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
@@ -2920,6 +2930,9 @@ no title in the {string} is covered by another entry
   none of its items visible.
 - "I tap the band's section switch": taps the first grid's `tasks-section-toggle` and waits until its `data-mode`
   changed. The switch has two levels, `titles` and `full`, so two taps come back to the start.
+- "I tap the band's section switch twice": the step above, two times. "no day in the band shows a task count instead
+  of its lists": the first grid's band shows task-list cards, and no text holding a digit is visible in the band outside
+  the cards and the switch (whose own total is not a day's count).
 - "the band's lists show their items": the first grid's toggle is in `full` mode and every task-list card in its band
   shows at least one item.
 - "the list of the expanded task list stands out from the grid behind it": the grown card's extension layer

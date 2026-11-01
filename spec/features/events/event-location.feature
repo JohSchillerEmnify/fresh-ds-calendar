@@ -198,7 +198,6 @@ Feature: Places for an event's location
 
   Rule: The map opens the place in a maps app
 
-    @backlog
     Scenario: Tapping the map opens the place on OpenStreetMap in the browser
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
       When I open the week view for 2026-10-12

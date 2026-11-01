@@ -141,7 +141,6 @@ Feature: Mobile-first layout
     When I reload the page
     Then one hour of the time grid is still about twice as tall as at the start
 
-  @backlog
   Scenario: The time grid zoom stays on the device it was set on
     Given I open the week view for 2026-10-12
     And I pinch out on the time grid to twice the size
@@ -149,13 +148,11 @@ Feature: Mobile-first layout
     And I open the week view for 2026-10-12
     Then one hour of the time grid has its default height
 
-  @backlog
   Scenario: Pinching the time grid never changes the week
     Given I open the week view for 2026-10-12
     When I pinch out on the time grid to twice the size
     Then the URL path is "/week/2026-10-12"
 
-  @backlog
   Scenario: With reduced animations the next period does not follow the finger
     Given the animation level is "Reduced"
     And I open the week view for 2026-10-12
