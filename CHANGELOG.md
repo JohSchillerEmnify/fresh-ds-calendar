@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-31
+- Labs, handwritten lists: "Draw with finger" works again (a broad fingertip was mistaken for a resting palm), and after writing with a pen the list always scrolls with a finger again.
 - iPhone: going back with the swipe from the left screen edge no longer also flips the calendar one month (or week or day) back. Reopening the app within 30 minutes brings you back to where you were.
 - Tapping a task list now follows your setting again: with "Tapping a task list: Grows in place" the list grows right where it is; with "Opens the list sheet" the sheet opens. A hidden extra switch had overridden it.
 - New events now always take the colour of the calendar you choose; you can still pick another colour for a single event. The "Default event color" setting is gone.
