@@ -13,7 +13,7 @@ import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 // jsdom has no layout: the real grown card would see its zero-size anchor as out of sight and close itself
-vi.mock('@/features/tasklists/ExpandedCard.vue', () => ({ default: { name: 'ExpandedCard', render: () => null } }));
+vi.mock('@/features/tasklists/ExpandedCard.vue', () => ({ __esModule: true, default: { name: 'ExpandedCard', render: () => null } }));
 
 function list(id: string, date: string, done: boolean[] = [false, false]): TaskList {
   const items = done.map((d, i) => ({ id: `${id}-i${i}`, title: `Item ${i}`, done: d }));
