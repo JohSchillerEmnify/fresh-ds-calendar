@@ -1,0 +1,217 @@
+name: Nightly
+
+# Everything, once a night, but only when main changed since the last nightly run: full verify, goldens, the whole e2e suite
+# (mobile, desktop, tablet and the @perf, @visual, @slow scenarios; sharded), the Android unit tests, the leak check and the
+# iOS jobs on a Mac. A failure opens (or updates) one "Nightly e2e failed" issue. Not a required check.
+on:
+  schedule:
+    # 03:47 UTC: off the top of the hour, in the quietest global window, so GitHub's scheduled-run delays stay short
+    - cron: '47 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even when main has not changed since the last nightly run
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-e2e
+  cancel-in-progress: false
+
+jobs:
+  # The only job that always runs: nothing else starts unless main moved past the sha the last nightly run tested.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: |
+          # The last run that really tested something (success or failure; skipped and cancelled runs do not count).
+          last="$(gh run list --workflow nightly-e2e.yml --branch main --status completed --limit 30 \
+            --json headSha,conclusion --jq '[.[] | select(.conclusion == "success" or .conclusion == "failure")][0].headSha // ""')"
+          echo "this run: $GITHUB_SHA, last tested: ${last:-none}"
+          if [ "$FORCE" = true ] || [ "$last" != "$GITHUB_SHA" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; echo "main has not changed: skipping" >> "$GITHUB_STEP_SUMMARY"; fi
+
+  verify:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # tsc + unit (web and server) + i18n + steps + quality gates
+      - run: pnpm verify
+
+  goldens:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Vitest here, the browser in the pinned Playwright docker image (scripts/goldens.sh).
+      - run: pnpm goldens
+
+  # The whole suite: no tag is left out (@perf, @visual and @slow run in mobile; desktop and tablet take their own scenarios).
+  # The pinned Playwright image is the one the visual baselines were made in, so the pixels match.
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:7852dc5a7d72f5fe458a597d690f6c42fbc8e9e26ddfa95f8e6ef552558d9bbf # keep in step with e2e's @playwright/test and scripts/goldens.sh
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run build:e2e
+      - name: Run shard ${{ matrix.shard }} of 4
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: |
+          # Same environment as e2e/run.sh: loopback only, mock provider, test endpoints on.
+          HOST=127.0.0.1 PORT=3000 TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR="$RUNNER_TEMP/data" \
+            POLL_INTERVAL_MS=30000 TZ=Europe/Berlin NODE_ENV=production ALLOW_INSECURE_MOCK=1 \
+            node --expose-gc server/dist/index.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
+          cd e2e
+          pnpm exec bddgen
+          pnpm exec playwright test --project=mobile --project=desktop --project=tablet --workers=1 --shard=${{ matrix.shard }}/4
+      - name: Upload the report and results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-e2e-results-${{ matrix.shard }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            e2e/results.json
+            ${{ runner.temp }}/server.log
+          if-no-files-found: ignore
+
+  android-unit:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17 # the app's sourceCompatibility (android/build.gradle)
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;35.0.0 # compileSdk in android/variables.gradle
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('android/app/build.gradle') }}
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec cap sync android
+      - run: ./gradlew testDebugUnitTest
+        working-directory: android
+
+  leaks:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # gitleaks rules over the whole history plus the private denylist (LEAK_DENYLIST secret), as in leaks.yml
+      - run: scripts/leak-check.sh all
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+
+  # The Mac jobs of ios-safari.yml: Playwright @iphone on macOS WebKit and Mobile Safari in an iPhone simulator.
+  ios:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    uses: ./.github/workflows/ios-safari.yml
+    permissions:
+      contents: read
+
+  # One issue for the whole night: every failed job and scenario. The only job with a write permission.
+  report:
+    needs: [changes, verify, goldens, e2e, android-unit, leaks, ios]
+    if: always() && needs.changes.outputs.changed == 'true' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: '*results*'
+          path: results
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NEEDS: ${{ toJSON(needs) }}
+          RESULTS_DIR: results
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: DATE="$(date -u +%F)" node .github/scripts/nightly-issue.mjs
