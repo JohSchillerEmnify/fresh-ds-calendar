@@ -111,6 +111,8 @@ function toggleFilters() {
 /* the m3 button's size rule and the ripple's position: relative outrank the global .sr-only: restate them so the arrows take no room */
 .nav .sr-only { position: absolute; width: 1px; height: 1px; }
 .today { padding: 0 16px; }
+/* Today is the one filled button while today is on screen: the primary container, like the phone's pill (the tonal kit button is the secondary one) */
+.today:not(.off) { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 /* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
 .today.off { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
