@@ -14,6 +14,7 @@ export default {
     custom: 'Eigene Farbe, Digga',
     preset: { default: 'Textfarbe, langweilig', red: 'Rot wie Rons Ohren', blue: 'Blau, Ravenclaw', green: 'Grün, Slytherin-Style', orange: 'Orange, Kürbissaft' },
   },
+  done: 'Fertig, Schinken',
   area: 'Schreibfeld, yo',
   grip: 'Eintrag rumschubsen',
   item: 'Handgeschriebener Eintrag {n} von {total}, Schinken',

@@ -1,17 +1,15 @@
-/** Writing on the open list (feature handwritten-lists): a draft line becomes an item after a pause; all writes go to the outbox, with undo. */
+/** Writing on the open list (feature handwritten-lists): the new line becomes an item on the done button or when the list or page goes away; all writes go to the outbox, with undo. */
 import { computed, onBeforeUnmount, ref, type Ref } from 'vue';
 import type { InkStroke } from '@/api/types';
 import { inkKey } from '@calendar/shared/ink';
 import { INK_LIST_MAX_BYTES, inkListBytes } from '@calendar/shared/limits';
-import { appTimeout, type Disposer } from '@/lib/timers';
+import { listen } from '@/lib/timers';
 import { t } from '@/i18n';
 import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
 import { useInkStore } from '@/stores/ink';
 import { usePenDoubleTap } from './usePenDoubleTap';
 
-/** Idle time after the last stroke on the empty line before it becomes an item. */
-const DRAFT_MS = 1200;
 /** Room left for what other devices wrote meanwhile (the server measures the merged item). */
 const INK_MARGIN_BYTES = INK_LIST_MAX_BYTES / 10;
 
@@ -25,7 +23,6 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
   const draft = ref<InkStroke[]>([]);
   const history = ref<Step[]>([]);
   const created = new Set<string>();
-  let stop: Disposer | null = null;
 
   /** Whether the list can take the strokes of one item (`null`: the draft) in place of what it has; says so when it cannot. Same measure as the server's. */
   function room(itemId: string | null, strokes: InkStroke[]): boolean {
@@ -37,28 +34,21 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     return false;
   }
 
-  /** The draft becomes an item now (a pause, the list closes, another line is written). */
+  /** Writing is done (the done button, the list closes, the page goes away): the draft becomes an item and the list's ink is sent. */
   function flush(): void {
-    stop?.();
-    stop = null;
-    if (!draft.value.length) return;
-    const id = outbox.addInkItem(listId(), draft.value);
-    created.add(id);
-    history.value = history.value.map((s) => (s.itemId === null ? { ...s, itemId: id } : s));
-    draft.value = [];
+    if (draft.value.length) {
+      const id = outbox.addInkItem(listId(), draft.value);
+      created.add(id);
+      history.value = history.value.map((s) => (s.itemId === null ? { ...s, itemId: id } : s));
+      draft.value = [];
+    }
+    outbox.sendInk(listId());
   }
   function changeDraft(strokes: InkStroke[]): void {
     if (strokes.length > draft.value.length && !room(null, strokes)) return;
     if (strokes.length > draft.value.length) history.value.push({ itemId: null });
     else history.value.push({ itemId: null, before: draft.value });
     draft.value = strokes;
-    stop?.();
-    stop = appTimeout(flush, DRAFT_MS);
-  }
-  /** A stroke on the draft line started: the pause that makes an item restarts when it ends, not mid-letter. */
-  function holdDraft(): void {
-    stop?.();
-    stop = null;
   }
   /** The new strokes of an existing ink item (a stroke added, or an erase). */
   function change(itemId: string, strokes: InkStroke[]): void {
@@ -83,6 +73,8 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
   }
 
   usePenDoubleTap(undo, () => active.value);
-  onBeforeUnmount(flush);
-  return { draft, changeDraft, holdDraft, change, undo, flush, canUndo: computed(() => active.value && history.value.length > 0) };
+  // a page that goes away (closed, or put in the background where it may be ended) keeps every stroke
+  const stops = [listen(window, 'pagehide', flush), listen(document, 'visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); })];
+  onBeforeUnmount(() => { stops.forEach((s) => s()); flush(); });
+  return { draft, changeDraft, change, undo, flush, canUndo: computed(() => active.value && history.value.length > 0) };
 }

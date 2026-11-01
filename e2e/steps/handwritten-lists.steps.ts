@@ -165,7 +165,40 @@ async function stroke(line: Locator, pointerType: 'pen' | 'touch' | 'mouse', opt
 }
 const nextLine = (w: World) => w.expanded.getByTestId('ink-next-line').getByTestId('ink-line');
 
-When('I write an ink item with the pen', async function (this: World) { await stroke(nextLine(this), 'pen'); });
+const nextDone = (w: World) => w.expanded.getByTestId('ink-next-done');
+/** An ink item is written on the new line and finished with its done button (decision W1). */
+async function writeItem(w: World, scope: Locator) {
+  await stroke(scope.getByTestId('ink-next-line').getByTestId('ink-line'), 'pen');
+  await scope.getByTestId('ink-next-done').click();
+}
+
+When('I write an ink item with the pen', async function (this: World) { await writeItem(this, this.expanded); });
+When('I write on the new line with the pen', async function (this: World) { await stroke(nextLine(this), 'pen'); });
+When('I lift the pen for {int} seconds', async function (this: World, s: number) { await this.page.waitForTimeout(s * 1000); });
+When('I tap the done button of the new line', async function (this: World) { await nextDone(this).click(); });
+Then('the new line holds {int} stroke(s)', async function (this: World, n: number) {
+  await expect(nextLine(this)).toHaveAttribute('data-strokes', String(n));
+});
+Then('the new line shows the done button {string}', async function (this: World, label: string) {
+  await expect(nextDone(this)).toBeVisible();
+  await expect(nextDone(this)).toHaveAccessibleName(label);
+});
+const inkRequests = new WeakMap<World, { n: number }>();
+When('I count the requests that send ink', async function (this: World) {
+  const count = { n: 0 };
+  inkRequests.set(this, count);
+  this.page.on('request', (r) => {
+    const path = new URL(r.url()).pathname;
+    if ((r.method() === 'POST' && /^\/api\/tasklists\/[^/]+\/items$/.test(path)) || (r.method() === 'PUT' && /^\/api\/tasklists\/[^/]+\/items\/[^/]+\/ink$/.test(path))) count.n++;
+  });
+});
+Then('the app has sent {int} ink request(s)', async function (this: World, n: number) {
+  const count = inkRequests.get(this)!;
+  await expect.poll(() => count.n).toBe(n);
+  await this.page.waitForTimeout(1000);
+  expect(count.n).toBe(n);
+});
+Then('the new line shows no done button', async function (this: World) { await expect(nextDone(this)).toHaveCount(0); });
 When('I drag with the mouse over the writing area', async function (this: World) { await stroke(nextLine(this), 'mouse'); });
 Then('nothing is drawn', async function (this: World) {
   await expect(nextLine(this)).toHaveAttribute('data-strokes', '0');
@@ -345,7 +378,7 @@ Then('the task list {string} shows {int} ink items, scaled down', async function
 });
 const note = (w: World, title: string) => w.page.locator(`[data-testid="canvas-note"][data-title="${title}"]`);
 When('I write an ink item on the note {string} with the pen', async function (this: World, title: string) {
-  await stroke(note(this, title).getByTestId('ink-next-line').getByTestId('ink-line'), 'pen');
+  await writeItem(this, note(this, title));
 });
 Then('the note {string} shows {int} ink items', async function (this: World, title: string, n: number) {
   await expect(note(this, title).getByTestId('tasklist-item-ink')).toHaveCount(n);
@@ -401,6 +434,9 @@ Then('the item number {int} is ticked and nothing is drawn', async function (thi
 When('I draw a stroke with the pen on the ink item number {int}', async function (this: World, n: number) {
   strokesBefore.set(this, Number(await inkOf(this, n).getAttribute('data-strokes')));
   await stroke(inkOf(this, n), 'pen');
+});
+Then('the ink item number {int} has {int} stroke(s)', async function (this: World, n: number, strokes: number) {
+  await expect(inkOf(this, n)).toHaveAttribute('data-strokes', String(strokes));
 });
 Then('the ink item number {int} has one more stroke', async function (this: World, n: number) {
   await expect(inkOf(this, n)).toHaveAttribute('data-strokes', String((strokesBefore.get(this) ?? 1) + 1));
@@ -719,7 +755,7 @@ Given('two devices have the task list {string} open', async function (this: Worl
 When('the first device writes an ink item while offline', async function (this: World) {
   await on(this, 'first', async () => {
     await this.context.setOffline(true);
-    await stroke(nextLine(this), 'pen');
+    await writeItem(this, this.expanded);
     await expect(rows(this)).toHaveCount(3);
   });
 });

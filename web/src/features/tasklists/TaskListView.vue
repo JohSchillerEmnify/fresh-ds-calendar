@@ -10,7 +10,7 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconBookmarkAdd, IconArchiveOutline as IconArchive } from '@/components/icons';
+import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconBookmarkAdd, IconArchiveOutline as IconArchive, IconCheck } from '@/components/icons';
 import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -345,7 +345,11 @@ defineExpose({ root, busy });
           </li>
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
-          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @stroking="inkWriting.holdDraft" @tap="openAdd" />
+          <InkLine class="draft" :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
+          <!-- the room for the done button is always kept, so the line does not move when it appears (decision W1) -->
+          <span class="done-slot">
+            <IconButton v-if="inkWriting.draft.value.length" variant="tonal" :label="t('ink.done')" data-testid="ink-next-done" @click="inkWriting.flush"><IconCheck /></IconButton>
+          </span>
         </div>
         <p v-if="!tl.items.length && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 
@@ -420,6 +424,8 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .inkcell { padding: 0; min-height: 0; position: relative; }
 .ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
 .nextline { padding-left: 44px; }
+.nextline .draft { flex: 1; min-width: 0; }
+.done-slot { flex: none; width: 44px; display: inline-flex; }
 /* where a pen is used the lines are ruled and a little taller, so a word fits on one */
 /* left-handed: checkbox on the right, grip on the left and a free strip before the writing, so the palm rests on the screen (decision G7) */
 html[data-hand='left'][data-touch] .mirror .row { flex-direction: row-reverse; }

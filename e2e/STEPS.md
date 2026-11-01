@@ -3641,6 +3641,15 @@ the writing mode is {string} and the switch shows the keyboard icon
 the item writing area offers no writing mode switch
 I write an ink item with the pen
 I write an ink item on the note {string} with the pen
+I write on the new line with the pen
+I lift the pen for {int} seconds
+I tap the done button of the new line
+the new line holds {int} stroke(s)
+the new line shows the done button {string}
+the new line shows no done button
+the ink item number {int} has {int} stroke(s)
+I count the requests that send ink
+the app has sent {int} ink request(s)
 I draw a stroke with the pen
 I drag with the mouse over the writing area
 I click the ink item number {int} with the mouse
@@ -3755,6 +3764,15 @@ the server holds no ink for the task list {string}
 - "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
 - Pen and finger strokes are dispatched as Pointer Events with the matching `pointerType`; a mouse drag (`pointerType` mouse) over the writing area must leave the ink unchanged (decision R1); the grip handle is the item's drag handle (`Drag <item> to reorder`), a pen drag on it moves the item, a pen drag elsewhere on the line draws (R3); "pen support" is the
   `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
+- The new line (decision W1): "I write on the new line with the pen" draws one pen stroke on the `ink-line` of
+  `ink-next-line`; "I lift the pen for N seconds" waits N s of real time with the pen up; "the new line holds N
+  stroke(s)" is that line's `data-strokes`; the done button is `ink-next-done` beside it, "shows the done button T" =
+  visible with the accessible name T. "I write an ink item with the pen" (and "... on the note X ...", "the first device
+  writes an ink item ...") is writing on the new line and tapping its done button. "the ink item number N has M
+  stroke(s)" is the `data-strokes` of that item's `ink-line`.
+- Sending ink (decision W2): "I count the requests that send ink" starts counting the page's `POST /api/tasklists/<id>/items`
+  and `PUT /api/tasklists/<id>/items/<item>/ink` requests; "the app has sent N ink request(s)" waits until the count is N
+  and checks it stays N for another second (for 0: that it is still 0 after a second).
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
 - "the add button covers no control of the writing area" is an added panel name of the existing step.

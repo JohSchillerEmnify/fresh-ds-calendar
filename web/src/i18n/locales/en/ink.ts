@@ -12,6 +12,7 @@ export default {
     custom: 'Custom colour',
     preset: { default: 'Text colour', red: 'Red', blue: 'Blue', green: 'Green', orange: 'Orange' },
   },
+  done: 'Done',
   area: 'Writing area',
   grip: 'Move item',
   item: 'Handwritten item {n} of {total}',

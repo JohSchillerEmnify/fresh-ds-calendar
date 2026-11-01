@@ -2,17 +2,19 @@ import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { onDeviceWipe } from '@/lib/deviceDb';
 import type { OutboxEntry } from '@/lib/outbox';
-import { add, flush, load, setEntries, writes, type OutboxState } from '@/lib/outboxEngine';
+import { add, flush, load, sendInk, setEntries, writes, type OutboxState } from '@/lib/outboxEngine';
 
 /** The outbox of unsent changes (ADR 0031): shown on the device at once, kept per person, sent in order (`lib/outboxEngine.ts`). */
 export const useOutboxStore = defineStore('outbox', () => {
   const entries = shallowRef<OutboxEntry[]>([]);
   const lastSent = ref<{ wall: number; app: number } | null>(null);
-  const s: OutboxState = { entries, lastSent, seq: 0, running: false, backoff: 0, retry: null, loaded: null, epoch: 0, shown: new Set() };
+  const s: OutboxState = { entries, lastSent, seq: 0, running: false, backoff: 0, retry: null, loaded: null, epoch: 0, shown: new Set(), held: new Map(), sending: null };
 
   onDeviceWipe((keep) => {
     s.retry?.();
     s.retry = null;
+    s.held.forEach((stop) => stop());
+    s.held.clear();
     if (keep) return;
     s.epoch++;
     s.shown.clear();
@@ -23,5 +25,7 @@ export const useOutboxStore = defineStore('outbox', () => {
   return {
     entries, lastSent, count: computed(() => entries.value.length),
     load: () => load(s), flush: (resync = true) => flush(s, resync), add: (...a: Parameters<typeof add> extends [unknown, ...infer R] ? R : never) => add(s, ...a), ...writes(s),
+    /** The ink lines of a list (or all) are done: send them now. */
+    sendInk: (listId?: string) => sendInk(s, listId),
   };
 });

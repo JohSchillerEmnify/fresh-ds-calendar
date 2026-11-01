@@ -81,6 +81,15 @@ Feature: Labs: handwritten lists
       (the card is long enough); a card's behaviour does not change: same height, collapse levels, done count and
       grown card as with text items, an ink line simply takes the place of a title line.
 
+  W1. (owner, 2026-11-01) Writing on the new line becomes an item ONLY when I tap the done button (a check mark, labelled
+      "Done") beside that line; it shows only while the line holds writing. No pause turns it into an item, so lifting the
+      pen for a while keeps writing on the same line. No ink is ever lost: when the list closes, the sheet is dismissed
+      or the page goes away, the writing on the new line becomes an item as well.
+  W2. (owner, 2026-11-01) Ink is not sent stroke by stroke. Every stroke is kept on the device at once (nothing is lost
+      offline), and the strokes of one line are sent together once I am done with it: when I tap the done button, when
+      the list closes, when the page goes away, or at the latest 10 seconds after the last stroke or erase on that line.
+      Other devices get the line when it is sent.
+
   ASSUMPTIONS (not yet confirmed by the owner)
   A7. The chosen ink colour is remembered per device, like the writing mode (A4).
   A8. Deleting an ink item or a whole list removes its ink from the server (not kept as an orphan).
@@ -117,7 +126,8 @@ Feature: Labs: handwritten lists
       And I expand the task list "Groceries"
 
     Scenario: A pen stroke on a ruled line becomes an ink item
-      When I write an ink item with the pen
+      When I write on the new line with the pen
+      And I tap the done button of the new line
       Then the expanded task list has 4 items
       And the task list "Groceries" shows the done count "0/4"
 
@@ -133,6 +143,72 @@ Feature: Labs: handwritten lists
     Scenario: An ink item is removed
       When I delete the item number 2
       Then the task list "Groceries" shows the done count "0/2"
+
+  Rule: Writing on the new line becomes an item only when I tap the done button (decision W1)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+
+    Scenario: Writing stays on the line until I tap the done button
+      Then the new line shows no done button
+      When I write on the new line with the pen
+      And I lift the pen for 3 seconds
+      Then the expanded task list has 2 items
+      And the new line holds 1 stroke
+      And the new line shows the done button "Done"
+      When I tap the done button of the new line
+      Then the expanded task list has 3 items
+      And the new line holds 0 strokes
+      And the new line shows no done button
+
+    Scenario: Lifting the pen for a few seconds keeps writing on the same line
+      When I write on the new line with the pen
+      And I lift the pen for 3 seconds
+      And I write on the new line with the pen
+      And I tap the done button of the new line
+      Then the expanded task list has 3 items
+      And the ink item number 3 has 2 strokes
+
+    Scenario: Closing the list keeps the draft as an item
+      When I write on the new line with the pen
+      And I collapse the task list
+      And I expand the task list "Groceries"
+      Then the expanded task list has 3 items
+      And the ink item number 3 has 1 stroke
+
+  Rule: The strokes of a line are sent once when I am done with it, not one by one (decision W2)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+      And I count the requests that send ink
+
+    Scenario: Strokes on the new line are sent once when I tap the done button
+      When I write on the new line with the pen
+      And I write on the new line with the pen
+      And I write on the new line with the pen
+      Then the app has sent 0 ink requests
+      When I tap the done button of the new line
+      Then the app has sent 1 ink request
+
+    Scenario: Strokes on an ink item are sent once when I close the list
+      When I draw a stroke with the pen on the ink item number 1
+      And I draw a stroke with the pen on the ink item number 1
+      And I draw a stroke with the pen on the ink item number 1
+      Then the app has sent 0 ink requests
+      When I collapse the task list
+      Then the app has sent 1 ink request
+
+    Scenario: Strokes on an ink item are sent at the latest 10 seconds after the last stroke
+      When I draw a stroke with the pen on the ink item number 1
+      And I draw a stroke with the pen on the ink item number 1
+      And I lift the pen for 5 seconds
+      Then the app has sent 0 ink requests
+      When I lift the pen for 6 seconds
+      Then the app has sent 1 ink request
 
   Rule: Only a pen draws, the mouse never does, a finger and a resting palm do not (decision R1)
 
