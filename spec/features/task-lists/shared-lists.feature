@@ -114,7 +114,7 @@ Feature: Sharing task lists with another person
     Then I can share only with "anna@example.com"
 
   # unit: web/test/share-people.test.ts:asks the server when it opens, so a person who signed in later is offered although the device copy had nobody
-  # unit: server/test/shared-lists.test.ts:tells every device to sync, so Share with offers the newcomer at once
+  # unit: server/test/shared-lists.test.ts:Share with offers the newcomer at once
   @unit
   Scenario: A person who signed in after the device copy was made is offered in Share with
     Given "bob@example.com" has never signed in
