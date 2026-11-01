@@ -419,14 +419,16 @@ describe('server-wide files', () => {
     return { t, h };
   }
 
-  it('puts settings, motivation, people and share rules into the bundle under server/', async () => {
+  it('puts people and share rules under server/, and the person\'s settings and streak with their own files', async () => {
     const { t, h } = await backedUp();
     try {
       await t.json('POST', '/api/streak/checkin', undefined, h);
       await t.json('POST', '/api/backup', undefined, h);
       const [f] = (await t.json('GET', `/api/__test/backup/drive?owner=${JO}`)).body.files;
       const files = JSON.parse(await t.app.ctx.mockDrive!.forPerson(mockSub(JO)).get(f.id)).files;
-      expect(Object.keys(files).filter((k) => k.startsWith('server/')).sort()).toEqual(['server/motivation.json', 'server/people.json', 'server/settings.json']);
+      expect(Object.keys(files).filter((k) => k.startsWith('server/')).sort()).toEqual(['server/people.json']);
+      expect(JSON.parse(files[`users/${mockSub(JO)}/settings.json`]).categories.map((c: any) => c.name)).toContain('Garden');
+      expect(JSON.parse(files[`users/${mockSub(JO)}/motivation.json`]).current).toBe(1);
     } finally { t.cleanup(); }
   });
 
@@ -443,15 +445,40 @@ describe('server-wide files', () => {
     } finally { t.cleanup(); }
   });
 
-  it('never overwrites server-wide files that are in use', async () => {
+  it('a restore brings back the person\'s own categories and leaves another person\'s alone', async () => {
     const { t, h } = await backedUp();
     try {
-      await t.json('POST', '/api/categories', { name: 'Kids', color: '#0b8043' }, h);
-      await t.json('POST', '/api/backup', undefined, h);
+      const anna = { cookie: await signIn(t, 'anna@example.com') };
+      await t.json('POST', '/api/categories', { name: 'Hers', color: '#0b8043' }, anna);
       await t.json('POST', '/api/categories', { name: 'Later', color: '#d93025' }, h);
       await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon' }, h);
       await t.json('POST', '/api/backup/restore', undefined, h);
-      expect(await cats(t, h)).toContain('Later');
+      expect(await cats(t, h)).toContain('Garden');
+      expect(await cats(t, h)).not.toContain('Later');
+      expect(await cats(t, anna)).toContain('Hers');
+      expect(await cats(t, anna)).not.toContain('Garden');
+    } finally { t.cleanup(); }
+  });
+
+  it('a backup from before per-person settings gives its server settings and streak to the person', async () => {
+    const { t, h } = await backedUp();
+    try {
+      const drive = t.app.ctx.mockDrive!.forPerson(mockSub(JO));
+      const [f] = (await t.json('GET', `/api/__test/backup/drive?owner=${JO}`)).body.files;
+      const b = JSON.parse(await drive.get(f.id));
+      const own = `users/${mockSub(JO)}/settings.json`;
+      b.files['server/settings.json'] = b.files[own];
+      b.files['server/motivation.json'] = JSON.stringify({ checkIns: ['2026-10-01'], current: 3, best: 5, lastCheckIn: '2026-10-01', growth: 42 });
+      delete b.files[own];
+      delete b.files[`users/${mockSub(JO)}/motivation.json`];
+      await drive.delete(f.id);
+      await drive.create(f.name, JSON.stringify(b));
+      await t.json('POST', '/api/categories', { name: 'Later', color: '#d93025' }, h);
+      await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon' }, h);
+      expect((await t.json('POST', '/api/backup/restore', undefined, h)).status).toBe(200);
+      expect(await cats(t, h)).toContain('Garden');
+      expect(await cats(t, h)).not.toContain('Later');
+      expect((await t.json('GET', '/api/motivation', undefined, h)).body.streak.best).toBe(5);
     } finally { t.cleanup(); }
   });
 });

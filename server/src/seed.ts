@@ -66,7 +66,7 @@ export async function seedDemo(cal: CalendarService, motivation: MotivationServi
     });
   }
   // History: a 6 day streak ending yesterday, a growing plant and a few sunflowers.
-  motivation.setState({
+  motivation.setState(cal.sub, {
     checkIns: [-14, -13, -12, -5, -4, -3, -2, -1].map((n) => addDays(today, n)),
     plant: { growth: 190, lastWatered: addDays(today, -1), todayPoints: 0 },
   });

@@ -60,8 +60,8 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
 
     // per-person files: a version each, the file itself only when the version moved
     const sources: Record<string, () => unknown> = {
-      settings: () => ctx.settings.get(), prefs: () => ctx.prefs.labsPrefs(sub), theme: () => v.theme(sub), themes: () => v.themes(sub),
-      templates: () => ({ templates: ctx.templates.list(sub) }), canvas: () => ctx.canvas.get(sub), ink: () => ctx.inks.doc(sub), motivation: () => ctx.motivation.get(),
+      settings: () => ctx.settings.get(sub), prefs: () => ctx.prefs.labsPrefs(sub), theme: () => v.theme(sub), themes: () => v.themes(sub),
+      templates: () => ({ templates: ctx.templates.list(sub) }), canvas: () => ctx.canvas.get(sub), ink: () => ctx.inks.doc(sub), motivation: () => ctx.motivation.get(sub),
       categoryShares: () => ({ shares: ctx.shared.rulesOf(sub) }), people: () => ({ people: ctx.shared.candidates(sub) }),
     };
     const files: Record<string, unknown> = {};

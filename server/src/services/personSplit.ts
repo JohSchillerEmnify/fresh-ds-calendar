@@ -1,0 +1,41 @@
+/** Moves the retired server-wide `settings.json` and `motivation.json` into every person's folder, once, on start. */
+import fs from 'node:fs';
+import path from 'node:path';
+import { listUserSubs, userDir } from '../auth/people.js';
+import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+
+/** The files that were one per server and are one per person now (same name, below `users/<sub>/`). */
+export const SPLIT_FILES = ['settings.json', 'motivation.json'] as const;
+
+/**
+ * Copies each old server-wide file to every known person who has no file of their own yet, then renames it to
+ * `<name>.bak`. Idempotent: without the old file nothing happens, and an interrupted run finishes on the next start.
+ *
+ * @param dataDir The data directory.
+ * @param subs Every person known to the server (people.json, the folders under `users/`, and `local`).
+ * @param log One line per moved file.
+ */
+export function splitServerWideFiles(dataDir: string, subs: string[], log: (m: string) => void = () => {}): void {
+  for (const name of SPLIT_FILES) {
+    const file = path.join(dataDir, name);
+    if (!fs.existsSync(file)) continue;
+    const doc = readJson<unknown>(file);
+    // an unreadable old file is kept as it is rather than copied or retired
+    if (doc === null) continue;
+    let copied = 0;
+    for (const sub of new Set(subs)) {
+      const own = path.join(userDir(dataDir, sub), name);
+      if (fs.existsSync(own)) continue;
+      writeJsonAtomic(own, doc);
+      copied++;
+    }
+    const bak = fs.existsSync(`${file}.bak`) ? `${file}.bak-${Date.now()}` : `${file}.bak`;
+    fs.renameSync(file, bak);
+    log(`${name}: copied to ${copied} people, kept as ${path.basename(bak)}`);
+  }
+}
+
+/** Every person the start-up split copies to: those in `people.json`, those with a folder, and `local` (sign-in off). */
+export function knownSubs(dataDir: string, peopleSubs: string[], local: string): string[] {
+  return [...new Set([...peopleSubs, ...listUserSubs(dataDir), local])];
+}

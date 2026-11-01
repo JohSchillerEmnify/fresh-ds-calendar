@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
+import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, refuseNextWriteSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
@@ -74,7 +75,9 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json({ now: ctx.clock.now().toISOString(), clockFrozen: ctx.clock.frozen });
   });
 
-  t.post('/motivation', async (c) => c.json(ctx.motivation.setState(parse(testMotivationSchema, await body(c)))));
+  // the signed-in person's streak and plant (the local person's while sign-in is off)
+  const person = (c: Context) => (ctx.auth.on ? (c.get('person') as { sub: string } | undefined)?.sub : undefined) ?? LOCAL_PERSON;
+  t.post('/motivation', async (c) => c.json(ctx.motivation.setState(person(c), parse(testMotivationSchema, await body(c)))));
 
   t.post('/config', async (c) => {
     const b = parse(testConfigSchema, await body(c));
@@ -179,15 +182,16 @@ export function testRoutes(ctx: Ctx): Hono {
   t.post('/tasklists', async (c) => {
     const b = (await body(c)) as { owner?: unknown; title?: unknown; items?: unknown; category?: unknown; date?: unknown; tags?: unknown } | undefined;
     if (typeof b?.owner !== 'string' || typeof b.title !== 'string') throw validation('owner and title are required');
-    const category = typeof b.category === 'string' ? ctx.settings.categories().find((k) => k.name === b.category) : undefined;
+    const owner = calendarOf(b.owner);
+    const category = typeof b.category === 'string' ? ctx.settings.categories(owner.sub).find((k) => k.name === b.category) : undefined;
     if (typeof b.category === 'string' && !category) throw validation('Unknown category', 'category');
     const items = Array.isArray(b.items) ? b.items.map((title) => ({ title: String(title) })) : [];
     const date = typeof b.date === 'string' ? b.date : null;
     const tags = Array.isArray(b.tags) ? b.tags.map(String) : [];
     // a fixture is not user activity: the plant state stays as it was
-    const { plant } = ctx.motivation.get();
-    const list = await calendarOf(b.owner).createTaskList({ title: b.title, date, items, categoryId: category?.id ?? null, ...(tags.length ? { tags } : {}) });
-    ctx.motivation.setState({ plant: { growth: plant.growth, lastWatered: plant.lastWatered, todayPoints: plant.todayPoints } });
+    const { plant } = ctx.motivation.get(owner.sub);
+    const list = await owner.createTaskList({ title: b.title, date, items, categoryId: category?.id ?? null, ...(tags.length ? { tags } : {}) });
+    ctx.motivation.setState(owner.sub, { plant: { growth: plant.growth, lastWatered: plant.lastWatered, todayPoints: plant.todayPoints } });
     return c.json(list, 201);
   });
 

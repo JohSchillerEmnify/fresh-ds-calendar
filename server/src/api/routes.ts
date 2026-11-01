@@ -143,7 +143,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     const shown = (await c.res.clone().json().catch(() => null)) as { id?: unknown } | null;
     const own = [me, ...before, ...sharedPeople(me, listId), ...sharedPeople(me, typeof shown?.id === 'string' ? shown.id : undefined),
       ...rulePeople()];
-    for (const k of kinds) ctx.changes.emit(k === 'settings' ? [...own, ...ctx.people.all().map((p) => p.sub)] : own, k);
+    for (const k of kinds) ctx.changes.emit(own, k);
   });
 
   // ---- health / config ----
@@ -205,8 +205,8 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   // ---- per-person theme ----
   const themeOf = (sub: string) => {
-    ctx.prefs.migrateScene(sub, settings.legacyTopBarScene());
-    ctx.prefs.migrateGarden(sub, settings.legacyGarden());
+    ctx.prefs.migrateScene(sub, settings.legacyTopBarScene(sub));
+    ctx.prefs.migrateGarden(sub, settings.legacyGarden(sub));
     return ctx.prefs.theme(sub);
   };
   const themesOf = (sub: string) => ({ themes: ctx.themes.list(sub).map(({ id, doc, picture }) => ({ id, doc, ...(picture ? { picture } : {}) })) });
@@ -390,7 +390,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
 
   // ---- settings / categories ----
-  r.get('/settings', (c) => c.json(settings.get()));
+  r.get('/settings', (c) => c.json(settings.get(person(c))));
   r.patch('/settings', async (c) => {
     // an app not yet updated may still send the retired `defaultEventColorId`: dropped, so its other settings still save
     const raw = await body(c);
@@ -399,9 +399,9 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (isObject) delete (rest as Record<string, unknown>).defaultEventColorId;
     const patch = parse(settingsPatchSchema, rest);
     const im = c.req.header('If-Match');
-    if (im !== undefined && String(settings.get().version) !== im.replaceAll('"', '').trim()) throw preconditionFailed('Settings were changed elsewhere. Reload and try again.');
+    if (im !== undefined && String(settings.get(person(c)).version) !== im.replaceAll('"', '').trim()) throw preconditionFailed('Settings were changed elsewhere. Reload and try again.');
     return c.json(
-      settings.update((d) => {
+      settings.update(person(c), (d) => {
         for (const [k, v] of Object.entries(patch)) {
           if (v === undefined) continue;
           (d as unknown as Record<string, unknown>)[k] = k === 'seedColor' ? (v as string).toLowerCase() : v;
@@ -418,9 +418,9 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   r.post('/categories', async (c) => {
     const b = parse(categoryCreateSchema, await body(c));
-    uniqueName(settings.categories(), b.name);
+    uniqueName(settings.categories(person(c)), b.name);
     return c.json(
-      settings.update((d) => {
+      settings.update(person(c), (d) => {
         d.categories.push(withGoogleColor({ id: nanoid(), name: b.name, color: b.color.toLowerCase(), icon: b.icon ?? null }));
       }),
       201,
@@ -428,18 +428,18 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.put('/categories/order', async (c) => {
     const { categoryIds } = parse(categoryOrderSchema, await body(c));
-    const cur = settings.categories();
+    const cur = settings.categories(person(c));
     if (categoryIds.length !== cur.length || new Set(categoryIds).size !== cur.length || categoryIds.some((i) => !cur.some((x) => x.id === i))) {
       throw validation('categoryIds must contain every category id exactly once', 'categoryIds');
     }
-    return c.json(settings.update((d) => { d.categories = categoryIds.map((i) => d.categories.find((x) => x.id === i)!); }));
+    return c.json(settings.update(person(c), (d) => { d.categories = categoryIds.map((i) => d.categories.find((x) => x.id === i)!); }));
   });
   r.patch('/categories/:id', async (c) => {
     const id = c.req.param('id');
     const b = parse(categoryPatchSchema, await body(c));
-    if (!settings.categories().some((x) => x.id === id)) throw notFound('Category not found');
-    if (b.name !== undefined) uniqueName(settings.categories(), b.name, id);
-    const saved = settings.update((d) => {
+    if (!settings.categories(person(c)).some((x) => x.id === id)) throw notFound('Category not found');
+    if (b.name !== undefined) uniqueName(settings.categories(person(c)), b.name, id);
+    const saved = settings.update(person(c), (d) => {
       const cat = d.categories.find((x) => x.id === id)!;
       if (b.name !== undefined) cat.name = b.name;
       if (b.color !== undefined) { cat.color = b.color.toLowerCase(); cat.googleColorId = nearestGoogleColorId(cat.color); }
@@ -452,14 +452,14 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.delete('/categories/:id', (c) => {
     const id = c.req.param('id');
-    if (!settings.categories().some((x) => x.id === id)) throw notFound('Category not found');
+    if (!settings.categories(person(c)).some((x) => x.id === id)) throw notFound('Category not found');
     ctx.shared.refreshCategory(person(c), id, null);
-    return c.json(settings.update((d) => { d.categories = d.categories.filter((x) => x.id !== id); }));
+    return c.json(settings.update(person(c), (d) => { d.categories = d.categories.filter((x) => x.id !== id); }));
   });
 
   // ---- motivation ----
-  r.get('/motivation', (c) => c.json(motivation.get()));
-  r.post('/streak/checkin', (c) => c.json(motivation.checkIn()));
+  r.get('/motivation', (c) => c.json(motivation.get(person(c))));
+  r.post('/streak/checkin', (c) => c.json(motivation.checkIn(person(c))));
 
   // ---- demo reset (mock mode only; documented in README) ----
   r.post('/demo/reset', async (c) => {

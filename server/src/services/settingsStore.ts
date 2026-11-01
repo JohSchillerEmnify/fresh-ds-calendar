@@ -1,6 +1,6 @@
-import path from 'node:path';
+import fs from 'node:fs';
 import type { Category, Settings } from '../api/types.js';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 import type { Clock } from '../lib/clock.js';
 import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { formatInZone } from '../lib/time.js';
@@ -30,77 +30,100 @@ function defaultSettings(now: string): Settings {
   };
 }
 
-/** Settings and categories in DATA_DIR/settings.json (atomic writes, versioned). Independent of the provider. */
-export class SettingsStore {
-  private s!: Settings;
-  private readonly file: string | null;
-  /** The retired `Settings.scene`, kept on disk (not served) until every person's theme has absorbed it. */
-  private legacyScene: string | undefined;
-  /** The retired `Settings.garden`, kept on disk (not served) until every person's theme has absorbed it. */
-  private legacyGardenStyle: string | undefined;
+/** What a person's `settings.json` holds: the {@link Settings} plus the retired scene and garden style still to migrate. */
+type Stored = Partial<Settings> & Record<string, unknown>;
 
-  constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
-    this.file = dataDir ? path.join(dataDir, 'settings.json') : null;
-    this.reload();
+/** One person's settings as read: what is served, and the retired values kept on disk for the theme migration. */
+interface Loaded { s: Settings; scene?: string; garden?: string }
+
+/**
+ * Settings and categories per person in `DATA_DIR/users/<sub>/settings.json` (atomic writes, versioned, ADR 0035).
+ * Independent of the provider. A person without a file reads the defaults; nothing is written until they change
+ * something, so opening the app creates no data of the person's own (backup and its restore at sign-in, ADR 0035).
+ */
+export class SettingsStore {
+  private readonly files: PersonJsonStore<Stored | null>;
+  /** The `updated` of never-saved defaults: fixed while the server runs, so the change feed does not resend them. */
+  private readonly started: string;
+
+  constructor(dataDir: string, private readonly clock: Clock, private readonly tz: string) {
+    // only a file that is not an object is set aside; every missing field takes its default
+    this.files = new PersonJsonStore<Stored | null>(dataDir, 'settings.json', (r) => (isRecord(r) ? (r as Stored) : null), () => null);
+    this.started = this.stamp();
   }
 
-  /** Reads the file again (start, and after a backup restore replaced it). */
-  reload(): void {
-    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown; streakFlame?: unknown; plant?: unknown; defaultEventColorId?: unknown }>(this.file) : null;
+  /** The person's file as last parsed, by file identity: categories are read for every task list in a sync. */
+  private readonly cache = new Map<string, { key: string; l: Loaded }>();
+
+  private load(sub: string): Loaded {
+    let key: string | null = null;
+    try {
+      const st = fs.statSync(this.files.path(sub));
+      key = `${st.ino}:${st.mtimeMs}:${st.size}`;
+    } catch { /* no file yet: the defaults */ }
+    const hit = key ? this.cache.get(sub) : undefined;
+    if (hit && hit.key === key) return hit.l;
+    const l = this.parse(sub);
+    if (key) this.cache.set(sub, { key, l });
+    return l;
+  }
+
+  private parse(sub: string): Loaded {
+    const raw = this.files.read(sub);
     // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders); the shared `streakFlame` and
     // `plant` switches by the person pref `streak`, Off for everyone, so they are dropped, not carried over (API.md)
-    const { scene, garden, transitionWarningMinutes: _retired, streakFlame: _flame, plant: _plant, ...loaded } = raw ?? {};
-    // the retired `defaultEventColorId` (new events follow their calendar) is dropped on read
-    delete (loaded as { defaultEventColorId?: unknown }).defaultEventColorId;
-    this.legacyScene = typeof scene === 'string' ? scene : undefined;
-    this.legacyGardenStyle = typeof garden === 'string' ? garden : undefined;
-    const defaults = defaultSettings(this.stamp());
-    this.s = raw ? { ...defaults, ...loaded } : defaults;
-    if (!raw) this.save(false);
+    const { scene, garden, transitionWarningMinutes: _retired, streakFlame: _flame, plant: _plant, defaultEventColorId: _color, ...loaded } = raw ?? {};
+    const defaults = defaultSettings(this.started);
+    return {
+      s: raw ? { ...defaults, ...(loaded as Partial<Settings>) } : defaults,
+      ...(typeof scene === 'string' && { scene }),
+      ...(typeof garden === 'string' && { garden }),
+    };
   }
 
-  /** The retired garden style (`plant`, `sunflowers` or `off`), or undefined when none was ever stored. */
-  legacyGarden(): string | undefined {
-    return this.legacyGardenStyle;
+  /** The person's retired garden style (`plant`, `sunflowers` or `off`), or undefined when none was ever stored. */
+  legacyGarden(sub: string): string | undefined {
+    return this.load(sub).garden;
   }
 
-  /** The retired top bar scene (`sunflowers`, `mordor` or `none`), or undefined when none was ever stored. */
-  legacyTopBarScene(): string | undefined {
-    return this.legacyScene;
+  /** The person's retired top bar scene (`sunflowers`, `mordor` or `none`), or undefined when none was ever stored. */
+  legacyTopBarScene(sub: string): string | undefined {
+    return this.load(sub).scene;
   }
 
   private stamp(): string {
     return formatInZone(this.clock.real(), this.tz);
   }
 
-  get(): Settings {
-    return structuredClone(this.s);
+  /** The person's settings as `GET /api/settings` answers them. */
+  get(sub: string): Settings {
+    return structuredClone(this.load(sub).s);
   }
 
-  categories(): Category[] {
-    return this.s.categories;
+  /** The person's categories. */
+  categories(sub: string): Category[] {
+    return this.load(sub).s.categories;
   }
 
-  /** Applies a mutation to a copy, bumps version/updated, persists. */
-  update(fn: (draft: Settings) => void): Settings {
-    const draft = structuredClone(this.s);
+  /** Applies a mutation to a copy of the person's settings, bumps version/updated, persists. */
+  update(sub: string, fn: (draft: Settings) => void): Settings {
+    const cur = this.load(sub);
+    const draft = structuredClone(cur.s);
     fn(draft);
-    draft.version = this.s.version + 1;
+    draft.version = cur.s.version + 1;
     draft.updated = this.stamp();
-    this.s = draft;
-    this.save(false);
-    return this.get();
+    this.save(sub, { ...cur, s: draft });
+    return structuredClone(draft);
   }
 
+  /** Forgets every person's settings (test reset) and returns the defaults a person then reads. */
   reset(): Settings {
-    this.s = defaultSettings(this.stamp());
-    this.legacyGardenStyle = undefined;
-    this.save(false);
-    return this.get();
+    this.files.reset();
+    this.cache.clear();
+    return defaultSettings(this.stamp());
   }
 
-  private save(_bump: boolean): void {
-    if (!this.file) return;
-    writeJsonAtomic(this.file, { ...this.s, ...(this.legacyScene && { scene: this.legacyScene }), ...(this.legacyGardenStyle && { garden: this.legacyGardenStyle }) });
+  private save(sub: string, l: Loaded): void {
+    this.files.write(sub, { ...l.s, ...(l.scene && { scene: l.scene }), ...(l.garden && { garden: l.garden }) });
   }
 }
