@@ -399,8 +399,8 @@ describe('transition warnings as Android notifications', () => {
 
   it("plans tomorrow's morning overview once today's time has passed, summing up tomorrow", async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string }) => Promise.resolve()),
-      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+      schedule: vi.fn<(o: { id: string; at: number; title: string; body: string }) => Promise<void>>(() => Promise.resolve()),
+      cancel: vi.fn(() => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { items } = await boot('20:00', false);
