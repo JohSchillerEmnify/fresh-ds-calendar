@@ -30,17 +30,15 @@ import { remindersPlugin, type ReminderKind } from '@/native/reminders';
 import { localToIso } from './zone';
 import { pushEndpoint, pushSupported, refreshPushState, sendPushPlan } from '@/pwa/push';
 
-/** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
-export const warningText = reminderText;
 
 /** Prefix of the native reminder ids of event and task list reminders. */
 export const NATIVE_REMINDER_PREFIX = 'reminder:';
 /** Prefix of the ids the single transition warning scheduled before reminder lists existed; cancelled on start. */
 export const NATIVE_LEGACY_PREFIX = 'transition:';
 /** At most this many reminders are scheduled ahead, nearest first. */
-export const NATIVE_REMINDER_LIMIT = 24;
+const NATIVE_REMINDER_LIMIT = 24;
 /** The plan covers this many days from today (a lead can be a day). */
-export const PLAN_DAYS = 8;
+const PLAN_DAYS = 8;
 
 /** Native reminder id of the morning overview (one pending at a time). */
 export const NATIVE_MORNING_ID = 'morning';
@@ -72,7 +70,7 @@ export function morningOverview(segs: Segment[]): { title: string; body: string 
  * @param tz The calendar time zone.
  * @returns The push plan entries, kind `summary`.
  */
-export function morningPushPlan(days: ReadonlyArray<{ date: string; segs: Segment[] }>, time: string, nowMs: number, tz: string): PushPlanEntry[] {
+function morningPushPlan(days: ReadonlyArray<{ date: string; segs: Segment[] }>, time: string, nowMs: number, tz: string): PushPlanEntry[] {
   const minuteStart = nowMs - (nowMs % 60_000);
   const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
   return days.flatMap(({ date, segs }) => {

@@ -6,8 +6,8 @@ import { t } from '@/i18n';
 import { runningVersion } from '@/pwa/update';
 import { useUiStore } from '@/stores/ui';
 
-export const LAST_VERSION_KEY = 'cal.lastVersion';
-export const NOTES_SEEN_KEY = 'cal.notesSeen';
+const LAST_VERSION_KEY = 'cal.lastVersion';
+const NOTES_SEEN_KEY = 'cal.notesSeen';
 /** Longest note text shown in the snackbar before it is cut. */
 const MAX_TEXT = 70;
 

@@ -25,7 +25,7 @@ const FONT_STACKS: Record<Exclude<ThemeFont, 'system'>, string> = {
   mono: "ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
 };
 
-export function prefersDark(): boolean {
+function prefersDark(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 }
 /** `system` resolves to the current OS preference (the caller re-applies when it changes). */

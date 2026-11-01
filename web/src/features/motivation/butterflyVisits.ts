@@ -17,8 +17,8 @@ declare global {
 }
 
 export const BUTTERFLY_VISIT_MS = 10_000;
-export const FIRST_VISIT_MS = { min: 20_000, max: 60_000 } as const;
-export const NEXT_VISIT_MS = { min: 180_000, max: 300_000 } as const;
+const FIRST_VISIT_MS = { min: 20_000, max: 60_000 } as const;
+const NEXT_VISIT_MS = { min: 180_000, max: 300_000 } as const;
 /** A visitor's rhythm: wait before the first visit, wait between visits (ms, uniform in [min, max]) and visit length. */
 export interface VisitRhythm {
   first: { min: number; max: number };
@@ -30,7 +30,7 @@ export const BUTTERFLY_RHYTHM: VisitRhythm = { first: FIRST_VISIT_MS, next: NEXT
 export const GHOST_RHYTHM: VisitRhythm = { first: { min: 480_000, max: 720_000 }, next: { min: 480_000, max: 720_000 }, lengthMs: 8_000 };
 
 /** Share of Full visits that rest briefly on a flower on the way through. */
-export const REST_CHANCE = 0.4;
+const REST_CHANCE = 0.4;
 
 /** How a visit moves: fly straight through, fly through with a short rest, or (Reduced) only rest in place. */
 export type ButterflyFlight = 'fly' | 'fly-rest' | 'rest';

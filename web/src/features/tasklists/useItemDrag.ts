@@ -10,7 +10,7 @@ import { getMotionLevel } from '@/motion/level';
 import { dropIndex, rowShifts, slotOffset } from './reorder';
 
 /** Selector of the drag handle (`data-item-grip` in `TaskListView`); the Canvas leaves a press on it to the item. */
-export const ITEM_GRIP = '[data-item-grip]';
+const ITEM_GRIP = '[data-item-grip]';
 /** The writing area of an ink item (`InkLine`). */
 const INK_LINE = '[data-testid="ink-line"]';
 const ROW = '[data-testid="tasklist-item"]';

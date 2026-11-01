@@ -18,7 +18,7 @@ Visual checks: `pnpm build && node scripts/mock-api.mjs 4173` (serves `dist/` pl
 | `src/views/` | `MonthView`, `WeekView`, `DayView` (eager chunks per route), `YearView`, `SettingsView` (lazy) |
 | `src/extensions/` | `registry.ts` (all extension points), `create.ts` (new-item defaults), `builtin.ts` |
 
-All "now"/"today" go through `useClock()` (`clock.today`, `clock.todayDate`, `clock.minutesNow`, `clock.nowMs()`).
+All "now"/"today" go through `useClockStore()` (`clock.today`, `clock.todayDate`, `clock.minutesNow`, `clock.nowMs()`).
 Every timer or listener goes through `lib/timers.ts`; `window.__appTimers` counts live timers when `config.testMode`.
 Exactly one polling timer exists (sync store), paused while hidden.
 

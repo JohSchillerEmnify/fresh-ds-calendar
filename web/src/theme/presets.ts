@@ -7,9 +7,9 @@ import { holidayOf, type Holiday } from './holidays';
 import { FINE_KEYS, sanitizeFine, type ThemeFine } from './fine';
 import type { ThemeMode } from './index';
 
-export type Glow = 'off' | 'soft' | 'neon';
-export type Entries = 'solid' | 'tinted' | 'outline';
-export type Corners = 'square' | 'round' | 'pill';
+type Glow = 'off' | 'soft' | 'neon';
+type Entries = 'solid' | 'tinted' | 'outline';
+type Corners = 'square' | 'round' | 'pill';
 /** `custom` = the theme's own SVG picture (only ever set by an imported theme, never an override). */
 export type ThemeScene = 'none' | 'sunflowers' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween'
   | 'easter' | 'summerholidays' | 'christmas' | 'newyearseve' | 'newyear' | 'custom';

@@ -24,7 +24,8 @@
       "entry": [
         "goldens/*.ts",
         "vitest.goldens.config.ts",
-        "scripts/*.{mjs,ts}"
+        "scripts/*.{mjs,ts}",
+        "src/plugins/index.ts"
       ]
     }
   }

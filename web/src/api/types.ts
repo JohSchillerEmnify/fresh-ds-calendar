@@ -1,4 +1,4 @@
-import type { ApiError, ConfigResponse, DateTime, HealthResponse, LocalDate, SummaryDay } from '@calendar/shared/api';
+import type { ConfigResponse, DateTime, HealthResponse, LocalDate, SummaryDay } from '@calendar/shared/api';
 import type { SupportCat } from '@calendar/shared/prefs';
 
 /** REST contract types (spec/API.md) live in `shared/api.d.ts`; this file re-exports them plus the web-only ones below. */
@@ -7,7 +7,6 @@ export type * from '@calendar/shared/prefs';
 /** How often the emotional support cat comes by (per person, `GET/PATCH /api/prefs`). */
 export type SupportCatSetting = SupportCat;
 
-export type ApiErrorBody = ApiError;
 
 /** `GET /api/backup` (API.md "Backups"). */
 export interface BackupStatus {
@@ -48,7 +47,6 @@ export interface ReleaseNote {
   text: string;
 }
 
-export type Density = SummaryDay['density'];
 export type DaySummary = SummaryDay;
 export interface SummaryResponse {
   days: Record<LocalDate, DaySummary>;

@@ -10,7 +10,7 @@ import { useDeviceStore } from './device';
 import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 
-export const DEFAULT_CATEGORIES: Category[] = [
+const DEFAULT_CATEGORIES: Category[] = [
   { id: 'shopping', name: 'Shopping', color: '#0b8043', icon: '🛒', googleColorId: '10' },
   { id: 'todo', name: 'To-do', color: '#3f51b5', icon: '✅', googleColorId: '9' },
   { id: 'work', name: 'Work', color: '#8e24aa', icon: '💼', googleColorId: '3' },

@@ -5,7 +5,7 @@ import type { Clock } from '../lib/clock.js';
 import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { formatInZone } from '../lib/time.js';
 
-export const DEFAULT_CATEGORIES: Omit<Category, 'googleColorId'>[] = [
+const DEFAULT_CATEGORIES: Omit<Category, 'googleColorId'>[] = [
   { id: 'shopping', name: 'Shopping', color: '#0b8043', icon: '🛒' },
   { id: 'todo', name: 'To-do', color: '#3f51b5', icon: '✅' },
   { id: 'work', name: 'Work', color: '#8e24aa', icon: '💼' },
@@ -14,7 +14,7 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'googleColorId'>[] = [
 
 export const withGoogleColor = (c: Omit<Category, 'googleColorId'>): Category => ({ ...c, googleColorId: nearestGoogleColorId(c.color) });
 
-export function defaultSettings(now: string): Settings {
+function defaultSettings(now: string): Settings {
   return {
     themeMode: 'system',
     seedColor: '#1a73e8',

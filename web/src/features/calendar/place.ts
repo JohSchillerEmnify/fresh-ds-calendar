@@ -11,9 +11,9 @@ export interface PlacePick extends Place {
 }
 
 /** At most this many suggestions (owner: a short list under the field). */
-export const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 5;
 /** Side of one map picture in px (OpenStreetMap's raster tiles). */
-export const TILE = 256;
+const TILE = 256;
 
 /**
  * The language the place search answers in: German for every German language of the app, else English.

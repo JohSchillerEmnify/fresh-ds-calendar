@@ -12,22 +12,22 @@ export const WORLD_H = 3000;
 /** Width of a note; its height follows its items. */
 export const NOTE_W = 240;
 /** Height of the strip at a note's top edge that a note's anchor point sits in. */
-export const NOTE_ANCHOR_Y = 24;
+const NOTE_ANCHOR_Y = 24;
 /** Zoom range (owner: "such as 0.3-2"). */
 export const MIN_ZOOM = 0.3;
 export const MAX_ZOOM = 2;
 /** At least this many screen pixels of the board stay in view when panning. */
-export const KEEP_VISIBLE = 120;
+const KEEP_VISIBLE = 120;
 /** The Unsorted stack: first note at (24, 24), each next one 14 units further, the 11th and later share the last offset. */
-export const STACK_ORIGIN = 24;
-export const STACK_STEP = 14;
-export const STACK_MAX = 10;
+const STACK_ORIGIN = 24;
+const STACK_STEP = 14;
+const STACK_MAX = 10;
 /** Area sizes (canvas units); the server accepts the same bounds (API.md "Canvas"). */
-export const AREA_MIN_W = 160;
-export const AREA_MIN_H = 120;
-export const AREA_MAX = 4000;
-export const AREA_W = 320;
-export const AREA_H = 240;
+const AREA_MIN_W = 160;
+const AREA_MIN_H = 120;
+const AREA_MAX = 4000;
+const AREA_W = 320;
+const AREA_H = 240;
 /** Eight area colours, in the order new areas take them. */
 export const AREA_COLORS = [
   { id: 'red', hex: '#e53935' }, { id: 'orange', hex: '#fb8c00' }, { id: 'yellow', hex: '#fdd835' }, { id: 'green', hex: '#43a047' },
@@ -37,7 +37,7 @@ export const AREA_COLORS = [
 export const VIEW_KEY = 'cal.canvasView';
 
 export interface Point { x: number; y: number }
-export interface Size { w: number; h: number }
+interface Size { w: number; h: number }
 export type Rect = Point & Size;
 /** The pan (screen px of the board's top-left corner) and zoom of the board in its viewport. */
 export interface View { x: number; y: number; zoom: number }

@@ -10,8 +10,8 @@ import type { Segment } from '@/lib/items';
 /** The three sample days (a Monday to a Wednesday). */
 export const SAMPLE_DAYS = ['2030-01-07', '2030-01-08', '2030-01-09'] as const;
 /** Minutes after midnight where the sample time grid starts, and the pixels one hour takes in it. */
-export const GRID_START_MIN = 8 * 60;
-export const GRID_HOUR_PX = 30;
+const GRID_START_MIN = 8 * 60;
+const GRID_HOUR_PX = 30;
 /** Height of the sample time grid in pixels (four hours). */
 export const GRID_HEIGHT_PX = 4 * GRID_HOUR_PX;
 

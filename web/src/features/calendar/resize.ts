@@ -19,9 +19,9 @@ import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 
 export type ResizeEdge = 'top' | 'bottom';
 
-export const RESIZE_STEP = 15;
-export const RESIZE_MIN = 15;
-export const TASKLIST_MAX_MINUTES = ESTIMATE_MAX;
+const RESIZE_STEP = 15;
+const RESIZE_MIN = 15;
+const TASKLIST_MAX_MINUTES = ESTIMATE_MAX;
 /** Minutes a drag may fall short of a slot line and still snap to it. */
 const LENIENCY = 2;
 
@@ -82,7 +82,7 @@ export function planResize(seg: Segment, edge: ResizeEdge, deltaMin: number, tz:
 /**
  * Queues a finished handle drag in the outbox, like `applyMove`: the block keeps the dragged size.
  */
-export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void> {
+async function commitResize(seg: Segment, plan: ResizePlan): Promise<void> {
   const items = useItemsStore();
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;

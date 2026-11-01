@@ -11,7 +11,7 @@ export interface ReadOnlyReason { kind: 'invitation' | 'calendar'; by: string }
 const GOOGLE_CALENDAR_DOMAIN = /@(?:[a-z0-9-]+\.)*calendar\.google\.com$/i;
 
 /** True when a calendar id is a person's email address (the primary calendar of someone who shared it). */
-export function isPersonAddress(id: string): boolean {
+function isPersonAddress(id: string): boolean {
   return /^[^@\s]+@[^@\s]+$/.test(id) && !GOOGLE_CALENDAR_DOMAIN.test(id);
 }
 

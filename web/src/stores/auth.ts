@@ -12,7 +12,7 @@ export const RETURN_KEY = 'signin-return';
 const KEEP_PREFIX = 'cal.theme';
 
 /** Removes the app's `cal.*` entries from local and session storage, except the theme and (outside `cal.*`) the language. */
-export function clearPersonalStorage(): void {
+function clearPersonalStorage(): void {
   for (const store of [() => localStorage, () => sessionStorage]) {
     try {
       const s = store();

@@ -10,9 +10,9 @@ import { isComplete } from './format';
 
 /** The time buckets, in display order. */
 export type TimeGroup = 'overdue' | 'today' | 'week' | 'later' | 'nodate';
-export const TIME_GROUPS: readonly TimeGroup[] = ['overdue', 'today', 'week', 'later', 'nodate'];
+const TIME_GROUPS: readonly TimeGroup[] = ['overdue', 'today', 'week', 'later', 'nodate'];
 /** The heading of a time bucket in the active language. */
-export const timeGroupTitle = (g: TimeGroup): string => t(`tasks.view.timeGroup.${g}`);
+const timeGroupTitle = (g: TimeGroup): string => t(`tasks.view.timeGroup.${g}`);
 
 /** One heading of the Tasks view with its lists, already sorted. */
 export interface TaskGroup {
@@ -54,7 +54,7 @@ const share = (l: TaskList): number => (l.totalCount ? l.doneCount / l.totalCoun
  * A comparator for the chosen sort; ties fall back to date, then name. `dir` is relative to the key's own default
  * direction (feature tasks-view): `reversed` flips the key only, not the tie-break.
  */
-export function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>[], dir: TasksSortDir = 'default'): (a: TaskList, b: TaskList) => number {
+function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>[], dir: TasksSortDir = 'default'): (a: TaskList, b: TaskList) => number {
   // no category (or an unknown one) sorts after every category
   const rank = (l: TaskList) => { const i = categories.findIndex((c) => c.id === l.categoryId); return i < 0 ? categories.length : i; };
   const primary: Record<TasksSortBy, (a: TaskList, b: TaskList) => number> = {

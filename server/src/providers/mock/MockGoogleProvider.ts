@@ -10,7 +10,7 @@ import {
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 
-export const MOCK_CALENDARS: ProviderCalendar[] = [
+const MOCK_CALENDARS: ProviderCalendar[] = [
   { id: 'primary', summary: 'Personal', backgroundColor: '#039be5', primary: true, accessRole: 'owner' },
   { id: 'work', summary: 'Work', backgroundColor: '#0b8043', primary: false, accessRole: 'owner' },
 ];

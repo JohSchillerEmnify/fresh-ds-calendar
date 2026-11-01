@@ -28,7 +28,7 @@ export interface Prop { kind: PropKind; x: number; h: number; side?: Side; botto
 export type Side = 'left' | 'right';
 
 /** Width / height of each drawing. */
-export const ASPECT: Record<PropKind, number> = { 'autumn-tree': 0.8, 'snowy-tree': 0.8, 'leaf-pile': 3, snowman: 26 / 32, sledge: 34 / 13 };
+const ASPECT: Record<PropKind, number> = { 'autumn-tree': 0.8, 'snowy-tree': 0.8, 'leaf-pile': 3, snowman: 26 / 32, sledge: 34 / 13 };
 
 const tree = (x: number, h: number): Prop => ({ kind: 'autumn-tree', x, h });
 const pile = (x: number, bottom?: number): Prop => ({ kind: 'leaf-pile', x, h: 13, bottom });

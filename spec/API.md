@@ -275,7 +275,7 @@ outage is simulated).
 If `clockFrozen` the app's clock is the constant `now`. Otherwise it stores `offset = Date.parse(now) - Date.now()` at
 fetch time and uses `Date.now() + offset`. "Today" is the date of that instant in `timeZone`. If `/api/config` fails
 (offline), the app uses the device clock, `Europe/Berlin`, Monday, 30 s polling. All date logic in `web/` goes through
-one `useClock()` composable; nothing else calls `new Date()` for "now".
+one `useClockStore()` composable; nothing else calls `new Date()` for "now".
 
 ### `GET /api/release-notes` → 200
 

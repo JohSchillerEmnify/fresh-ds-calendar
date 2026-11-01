@@ -54,7 +54,7 @@ function suppressed(target: string): boolean {
 }
 
 /** Show the persistent "new version" snackbar once; it never reloads by itself, except on a preview build. */
-export function offerUpdate(): void {
+function offerUpdate(): void {
   if (suppressed(latest)) return;
   if (isPreviewBuild()) { reload(); return; }
   const ui = useUiStore();

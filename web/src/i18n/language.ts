@@ -12,7 +12,7 @@ export const LANGUAGES = LANGUAGE_VALUES;
 export type Language = (typeof LANGUAGES)[number];
 
 /** The per-person `language` preference: `auto` follows the device, anything else is a fixed language. */
-export const LANGUAGE_PREFS = ['auto', ...LANGUAGES] as const;
+const LANGUAGE_PREFS = ['auto', ...LANGUAGES] as const;
 export type LanguagePref = (typeof LANGUAGE_PREFS)[number];
 
 /** Each language in its own name, shown in the Settings select (never translated). */

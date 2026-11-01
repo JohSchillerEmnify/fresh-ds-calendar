@@ -2,9 +2,9 @@
 import { taskListSpan, type Segment } from '@/lib/items';
 
 /** Tick steps in minutes, tried from the finest; the first whose labels do not collide wins. */
-export const TICK_STEPS = [15, 30, 60, 120, 180] as const;
+const TICK_STEPS = [15, 30, 60, 120, 180] as const;
 /** The track never grows beyond this many chip rows (owner: "don't take too much space"). */
-export const MAX_ROWS = 2;
+const MAX_ROWS = 2;
 
 export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 

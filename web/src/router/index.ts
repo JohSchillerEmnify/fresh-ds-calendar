@@ -58,7 +58,7 @@ const labDated = (
   beforeEnter: (to) => (parseParam('day', to.params.param as string) ? true : { path: `/${name}/${toIsoDate(useClockStore().todayDate)}`, replace: true }),
 });
 
-export const routes: RouteRecordRaw[] = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: (to) => {
@@ -135,4 +135,3 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
   return router;
 }
 
-export { toIsoDate };

@@ -1,5 +1,5 @@
 export type Mood = 'happy' | 'thirsty' | 'dry' | 'droopy';
-export type StageName = 'Seed' | 'Sprout' | 'Small plant' | 'Leafy' | 'Flowering';
+type StageName = 'Seed' | 'Sprout' | 'Small plant' | 'Leafy' | 'Flowering';
 
 /** Mirrors spec/API.md `Motivation`. */
 export interface Motivation {

@@ -16,7 +16,7 @@ const FALLBACK: ClientConfig = {
 };
 
 /**
- * App clock and `/api/config` (API.md). Everything that needs "now" or "today" goes through `useClock()`;
+ * App clock and `/api/config` (API.md). Everything that needs "now" or "today" goes through `useClockStore()`;
  * nothing else calls `new Date()` for that. `now` ticks once per minute (aligned), paused while hidden.
  */
 export const useClockStore = defineStore('clock', () => {
@@ -121,5 +121,3 @@ export const useClockStore = defineStore('clock', () => {
   return { config, loaded, timeZone, pollIntervalMs, nowTick, today, todayDate, minutesNow, nowMs, load, restore, startTicker, stopTicker };
 });
 
-/** Composable alias used across the app (API.md: "one useClock() composable"). */
-export const useClock = useClockStore;

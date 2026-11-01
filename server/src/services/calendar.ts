@@ -1119,7 +1119,6 @@ const onlyReminders = (input: UpdateEventInput): boolean => {
   return keys.length === 1 && keys[0] === 'reminders';
 };
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');
-export { ApiException };
 
 /** The RRULE line of a series (other lines, e.g. EXDATE, may come first). */
 const ruleLine = (m: GoogleEvent): string => m.recurrence?.find((l) => l.startsWith('RRULE:')) ?? '';

@@ -8,9 +8,9 @@ import type { AppConfig } from '../config.js';
 import { ApiException } from '../lib/errors.js';
 
 /** Largest request body of any `/api/*` call, in bytes. */
-export const MAX_BODY_BYTES = 256 * 1024;
+const MAX_BODY_BYTES = 256 * 1024;
 /** Largest body of `POST /api/themes` (a 200 KB theme plus its own pictures), in bytes. */
-export const MAX_THEME_BODY_BYTES = 400 * 1024;
+const MAX_THEME_BODY_BYTES = 400 * 1024;
 
 const READ_ONLY = new Set(['GET', 'HEAD', 'OPTIONS']);
 

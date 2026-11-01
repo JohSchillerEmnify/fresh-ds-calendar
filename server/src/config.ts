@@ -6,7 +6,7 @@ import { isValidTimeZone } from './lib/time.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-export type ProviderKind = 'mock' | 'google';
+type ProviderKind = 'mock' | 'google';
 
 export interface AppConfig {
   port: number;

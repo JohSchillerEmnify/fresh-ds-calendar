@@ -6,7 +6,7 @@ import { addDays, differenceInCalendarDays, parseIsoDate, timeToMinutes, toIsoDa
 import type { CalendarItem, LocalDate } from '@/api/types';
 import { t } from '@/i18n';
 
-export const TASKLIST_BLOCK_MINUTES = 30;
+const TASKLIST_BLOCK_MINUTES = 30;
 
 /** Title as shown in the UI: an untitled task list has none (""), so no row is drawn and no task stands in for it. */
 export function displayTitle(item: Pick<CalendarItem, 'kind' | 'title'>): string {
@@ -104,11 +104,11 @@ function hhmm(m: number): string {
 }
 
 /** Ordering in a day: all-day events, untimed task lists, then timed by start; ties by title. */
-export function daySortKey(s: Segment): [number, number, string] {
+function daySortKey(s: Segment): [number, number, string] {
   const rank = s.allDay ? 0 : s.item.kind === 'tasklist' && s.startTime === null ? 1 : 2;
   return [rank, s.startMin, s.item.title.toLowerCase()];
 }
-export function compareSegments(a: Segment, b: Segment): number {
+function compareSegments(a: Segment, b: Segment): number {
   const [ra, ma, ta] = daySortKey(a), [rb, mb, tb] = daySortKey(b);
   return ra - rb || ma - mb || (ta < tb ? -1 : ta > tb ? 1 : 0);
 }
@@ -130,14 +130,14 @@ export function segmentsByDate(
 }
 
 /** Overlapping blocks whose starts are at least this far apart cascade (the later one drawn on top, indented). */
-export const OVERLAP_STACK_MIN_START_GAP_MIN = 15;
+const OVERLAP_STACK_MIN_START_GAP_MIN = 15;
 /** One title row of a block (px): top border, 1 px padding, the 16 px title line. A cascade leaves at least this much of the
  * earlier block visible, so its title is never cut (owner, 2026-10-20). */
 export const TITLE_ROW_PX = 18;
 /** Indent (px) per cascade level. */
 export const STACK_INDENT_PX = 10;
 /** Deepest cascade level; beyond it blocks fall back to side-by-side columns of the last group. */
-export const MAX_STACK_DEPTH = 3;
+const MAX_STACK_DEPTH = 3;
 
 export interface PlacedSegment {
   seg: Segment;

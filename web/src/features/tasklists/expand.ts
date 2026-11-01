@@ -12,7 +12,7 @@ export interface Placement {
 }
 
 /** Room kept between the card and the edge of the area it must stay in. */
-export const EXPAND_MARGIN = 8;
+const EXPAND_MARGIN = 8;
 
 /**
  * Place the expanded card over its collapsed `anchor` inside `bounds` (the visible part of the scroll area).
@@ -56,13 +56,6 @@ export interface Cut {
 export function growPlan(c: Cut): { grow: boolean; wide: boolean } {
   const cut = c.title || c.names || c.rows;
   return { grow: cut, wide: cut };
-}
-
-/** Measure what the collapsed card `card` cuts off: ellipsised title or names (scrollWidth) and its fit (`data-fit`). */
-export function measureCut(card: HTMLElement): Cut {
-  const over = (e: Element | null) => !!e && e.scrollWidth > e.clientWidth + 1;
-  const names = over(card.querySelector('[data-testid="tasklist-card-items"]')) || Array.from(card.querySelectorAll('.it:not(.over)')).some(over);
-  return { title: over(card.querySelector('.title')) || over(card.querySelector('.tx')), names, rows: card.dataset.fit !== 'all' };
 }
 
 /**

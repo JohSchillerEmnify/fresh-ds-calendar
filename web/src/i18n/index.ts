@@ -9,7 +9,6 @@ import en from './locales/en';
 import type { Messages, PartialMessages } from './schema';
 import { htmlLang, isLanguagePref, language, resolveLanguage, type Language, type LanguagePref } from './language';
 
-export type { Messages };
 export * from './language';
 
 /** Dotted paths of all leaves of `T` (`settings.language.label`). */
@@ -25,7 +24,7 @@ const loaders: Record<Exclude<Language, 'en'>, () => Promise<PartialMessages>> =
 };
 
 /** The vue-i18n instance (`legacy: false`); install it with `app.use(i18n)` only if components need `useI18n`. */
-export const i18n = createI18n<[PartialMessages], Language, false>({
+const i18n = createI18n<[PartialMessages], Language, false>({
   legacy: false,
   locale: 'en',
   fallbackLocale: { 'de-x-mainfr': ['de', 'en'], 'de-x-coldmirror': ['de', 'en'], de: ['en'], default: ['en'] },

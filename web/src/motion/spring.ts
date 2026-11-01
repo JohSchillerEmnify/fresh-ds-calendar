@@ -116,7 +116,7 @@ export function springEasing(p: SpringParams, v0 = 0): { easing: string; duratio
 }
 
 let linearSupport: boolean | null = null;
-export function supportsLinearEasing(): boolean {
+function supportsLinearEasing(): boolean {
   if (linearSupport === null) {
     try {
       linearSupport =

@@ -23,6 +23,7 @@ const lively = (scene: Exclude<SceneName, 'sunflowers' | 'none' | 'custom'>, bac
 /**
  * Builds the scene registry from its pieces (unit tests pass the pieces eagerly so a mounted scene is complete at once).
  * Add a scene = add an entry (+ the name to SceneName). `none` renders nothing.
+ * @public used through `vi.mock` in test/setup/eager-scenes.ts, which knip cannot follow
  */
 export function buildScenes(p: ScenePieces): Record<SceneName, Component | null> {
   const season = (s: BackdropScene): Component => lively(s, () => h(p.SeasonScene, { season: s, bar: true }), p);
