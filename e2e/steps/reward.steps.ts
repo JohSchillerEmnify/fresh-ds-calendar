@@ -1,7 +1,7 @@
 /** Reward effect and micro-interaction steps (STEPS.md "Reward effects"). */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { itemById } from './support/tasklist.js';
+import { expandTaskList, itemById } from './support/tasklist.js';
 import { splitList } from './support/tables.js';
 import type { ProbeWindow, RewardLogEntry } from './support/world.js';
 import { attr, type World } from './support/world.js';
@@ -178,6 +178,30 @@ Then('the title of the task list {string} is struck through', async function (th
   }
   const deco = await el.evaluate((e) => getComputedStyle(e).textDecorationLine);
   expect(deco, 'title text decoration').toContain('line-through');
+});
+
+/** The title element is not marked struck, has no strike line and no `line-through` decoration. */
+Then('the title of the task list {string} is not struck through', async function (this: World, title: string) {
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const el = (await expanded.isVisible())
+    ? expanded.getByTestId('tasklist-expanded-title')
+    : this.taskCard(title).getByTestId('tasklist-card-title');
+  await expect(el, 'title not marked as struck through').not.toHaveAttribute('data-struck', 'true');
+  await expect(el.getByTestId('strike-line'), 'no strike line over the title').toHaveCount(0);
+  expect(await el.evaluate((e) => getComputedStyle(e).textDecorationLine), 'title text decoration').not.toContain('line-through');
+});
+
+/** Opens the day, expands the list and ticks every open item, as a person finishes it. */
+When('I finish the task list {string} on {date}', async function (this: World, title: string, date: string) {
+  await this.page.goto(`/day/${date}`);
+  await this.settled();
+  await expandTaskList(this, title);
+  const open = this.expanded.locator(`[data-testid="tasklist-item"]:not([data-done="true"])`);
+  while (await open.count()) {
+    const before = await open.count();
+    await open.first().getByTestId('tasklist-item-checkbox').click();
+    await expect(open).toHaveCount(before - 1);
+  }
 });
 
 // ---- The drag helper cat (STEPS.md "Drag helper cat") ----
