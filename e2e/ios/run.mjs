@@ -72,21 +72,54 @@ const shot = async (name) => {
 const find = (css) => browser.$(css);
 const waitFor = async (css, ms = 8000) => { try { await find(css).waitForExist({ timeout: ms }); return true; } catch { return false; } };
 
+/** Runs a native-context action and returns to the web view afterwards. */
+async function inNative(fn) {
+  const web = await browser.getContext();
+  await browser.switchContext('NATIVE_APP');
+  try { return await fn(); } finally { await browser.switchContext(web); }
+}
+
+/** A real finger tap at a native screen point (points), given in the native context. */
+const nativeTap = (x, y) => inNative(() => browser.execute('mobile: tap', { x, y }));
+
+/** The web view's frame in screen points (native context): CSS px map onto it from the page's top-left. */
+const webViewFrame = () => inNative(async () => {
+  const wv = await browser.$('-ios class chain:**/XCUIElementTypeWebView');
+  return wv.getElementRect();
+});
+
+/** Safari's one-time tip bubble sits over the bottom bar and swallows taps: close it when it shows. */
+async function dismissSafariTip() {
+  await inNative(async () => {
+    writeFileSync(`${OUT}/native-source.xml`, await browser.getPageSource());
+    const tip = await browser.$('-ios predicate string:label CONTAINS "View Bookmarks" OR name CONTAINS "View Bookmarks"');
+    if (!(await tip.isExisting())) { console.log('  no Safari tip bubble'); return; }
+    const close = await browser.$('-ios predicate string:type == "XCUIElementTypeButton" AND (label == "Close" OR name == "Close" OR label == "Dismiss")');
+    if (await close.isExisting()) { await close.click(); console.log('  closed the Safari tip bubble'); return; }
+    const { width, height } = await browser.getWindowSize();
+    await browser.execute('mobile: tap', { x: Math.round(width * 0.906), y: Math.round(height * 0.71) });
+    console.log('  tapped the Safari tip bubble close by position');
+  });
+}
+
 /** A real touch tap on an element: one finger down and up in the middle of it. Logs the hit test of the tap point first. */
 async function tap(log, label, css, { scroll = true } = {}) {
   const el = await find(css);
   await el.waitForExist({ timeout: 8000 });
   if (scroll) await browser.execute((e) => e.scrollIntoView({ block: 'center' }), el);
-  const rect = await browser.execute((e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width, h: b.height }; }, el);
+  const rect = await browser.execute((e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width, h: b.height, iw: innerWidth }; }, el);
   const hit = await browser.execute(probeAt, el, rect.x, rect.y);
   await browser.execute(() => { window.__diag.length = 0; });
-  await browser.action('pointer', { parameters: { pointerType: 'touch' } })
-    .move({ origin: el, x: 0, y: 0 }).down().pause(60).up().perform();
+  // the touch goes through the native layer at screen coordinates: web view origin + CSS point (scaled by points per CSS px)
+  const frame = await webViewFrame();
+  const k = frame.width / rect.iw;
+  const screen = { x: Math.round(frame.x + rect.x * k), y: Math.round(frame.y + rect.y * k) };
+  await nativeTap(screen.x, screen.y);
   await sleep(600);
   const events = await browser.execute(() => window.__diag.splice(0));
-  const entry = { step: label, css, point: { x: Math.round(rect.x), y: Math.round(rect.y) }, size: { w: Math.round(rect.w), h: Math.round(rect.h) }, ...hit, events };
+  const entry = { step: label, css, point: { x: Math.round(rect.x), y: Math.round(rect.y) }, screen, webView: frame, size: { w: Math.round(rect.w), h: Math.round(rect.h) }, ...hit, events };
   log.push(entry);
-  console.log(`  tap ${label}: point ${entry.point.x},${entry.point.y} under ${hit.under} (target hit: ${hit.hitsTarget}) events: ${events.map((e) => `${e.type}>${e.target}@${e.x},${e.y}`).join(' ') || 'NONE'}`);
+  console.log(`  tap ${label}: point ${entry.point.x},${entry.point.y} screen ${screen.x},${screen.y} (webview ${JSON.stringify(frame)}) under ${hit.under} (target hit: ${hit.hitsTarget}) events: ${events.map((e) => `${e.type}>${e.target}@${e.x},${e.y}`).join(' ') || 'NONE'}`);
   return entry;
 }
 
@@ -110,14 +143,19 @@ async function runCase(name, { url, title, forceInside = false, informational = 
   results.push(res);
   try {
     await seed(title);
+    // the "Add to Home Screen" banner is dismissed through its own persisted flag, set before the app loads
+    await browser.url(`${BASE}/`);
+    await browser.execute(() => { try { localStorage.setItem('cal.iosHintDismissed', '1'); } catch { /* ignore */ } });
     await browser.url(BASE + url);
+    await dismissSafariTip();
     await browser.execute(installRecorder, forceInside);
     await sleep(1500);
     await shot(`${name}-1-loaded`);
     await steps(log, res);
     await shot(`${name}-9-end`);
   } catch (e) {
-    res.notes.push(`error: ${e.message}`);
+    const titled = await browser.execute(() => [...document.querySelectorAll('[data-title]')].map((n) => `${n.getAttribute('data-testid')}:${n.getAttribute('data-title')}`)).catch(() => []);
+    res.notes.push(`error: ${e.message} (titled elements: ${titled.join(', ') || 'none'})`);
     console.log(`  ERROR ${e.message}`);
     await shot(`${name}-error`);
   }
@@ -143,7 +181,7 @@ async function overflowDelete(log, res, overflowCss, title) {
 }
 
 const sheetSteps = (title) => async (log, res) => {
-  await tap(log, 'card', `[data-testid="tasklist-card"][data-title="${title}"]`);
+  await tap(log, 'card', `[data-title="${title}"]:is([data-testid="tasklist-card"], [data-testid="tasks-item"])`);
   const sheet = '[data-testid="tasklist-expanded"]:not([data-presentation="overlay"])';
   if (!(await waitFor(sheet))) { res.notes.push('list sheet did not open'); return; }
   await sleep(800);
@@ -157,6 +195,7 @@ async function main() {
     'appium:deviceName': process.env.DEVICE_NAME ?? 'iPhone', 'appium:udid': process.env.UDID,
     'appium:platformVersion': process.env.PLATFORM_VERSION, 'appium:wdaLaunchTimeout': 300000, 'appium:wdaConnectionTimeout': 300000,
     'appium:safariIgnoreFraudWarning': true, 'appium:newCommandTimeout': 300, 'appium:connectHardwareKeyboard': false,
+    'appium:showSafariConsoleLog': true,
   };
   for (const k of Object.keys(caps)) if (caps[k] === undefined) delete caps[k];
   browser = await remote({ hostname: APPIUM.hostname, port: Number(APPIUM.port), path: '/', logLevel: 'warn', capabilities: caps, connectionRetryCount: 1, connectionRetryTimeout: 600000 });
@@ -168,7 +207,7 @@ async function main() {
     });
     // the pre-fix behaviour: the menu is hosted inside the sheet again. Shows whether the simulator can see the bug at all.
     await runCase('sheet-menu-forced-inside', { url: `/day/${DAY}`, title: 'Errands', forceInside: true, informational: true, steps: sheetSteps('Errands') });
-    for (const lt of ['safariConsole', 'syslog']) {
+    for (const lt of ['syslog']) {
       const lines = await browser.getLogs(lt).catch((e) => [`unavailable: ${e.message}`]);
       writeFileSync(`${OUT}/${lt}.log`, lines.map((l) => (typeof l === 'string' ? l : JSON.stringify(l))).join('\n'));
     }
