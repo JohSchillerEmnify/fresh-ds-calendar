@@ -3712,7 +3712,9 @@ I double tap the pen
 I touch the first stroke with the eraser end of the pen
 I touch the first stroke with the pen
 I press the eraser button
-the task list {string} holds about 200 KB of ink
+the task list {string} holds about 1 MB of ink
+I write {int} words of {int} strokes with a pen that reports {int} points per stroke
+the list is not full
 the app says the list is full and suggests starting a new list
 the stroke has the theme's text colour
 I choose the ink colour preset {string}
@@ -3785,7 +3787,8 @@ the server holds no ink for the task list {string}
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
-- "holds about 200 KB of ink" creates strokes through the API until the list is just under the 200 KB limit.
+- "holds about 1 MB of ink" creates strokes through the API until the list is just under the 1 MB limit.
+- "I write 50 words ..." / "the list is not full" are proven by a unit test only (`@unit`).
 - "the dialog … without the feature": compared with the dialog size measured with the switch off.
 - Offline / sync (G1): "the network connection is lost / restored" are the existing steps; the ink is written into the
   device outbox and pushed on reconnect. "two devices" = two browser contexts of the same person; "the first / second

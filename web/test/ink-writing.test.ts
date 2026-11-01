@@ -11,17 +11,31 @@ import { useOutboxStore } from '@/stores/outbox';
 import { freshPinia, mockFetch } from './helpers';
 
 const stroke = (n: number) => ({ p: Array.from({ length: n }, (_, i) => [1 + (i % 9) / 10, 0.5, 0.5] as [number, number, number]), c: '#d32f2f' });
+const many = (k: number, n: number) => Array.from({ length: k }, () => stroke(n));
 
 beforeEach(() => { setDeviceDb(memoryKv()); freshPinia(); useItemsStore(); useDeviceStore(); mockFetch({ 'POST /api/tasklists/L/items': () => new Promise(() => undefined), 'PUT /api/tasklists/L/items/a/ink': () => new Promise(() => undefined) }); });
 afterEach(() => setDeviceDb(null));
 
 describe('useInkWriting', () => {
   it('refuses a stroke that takes the list over the limit and says so, and takes one that fits', () => {
-    useInkStore().fromDevice({ version: 1, items: { a: [stroke(47500), stroke(47500)], b: [stroke(49900)] } });
+    useInkStore().fromDevice({ version: 1, items: { a: many(10, 4750), b: many(5, 4990) } });
     const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
     w.changeDraft([stroke(20)]);
     expect(w.draft.value).toEqual([]);
     expect(useUiStore().snackbars.length).toBe(1);
+  });
+  it('keeps taking lines on an existing list: write, done, write, done, with no waiting in between', () => {
+    useInkStore().fromDevice({ version: 1, items: { a: [stroke(30)], b: [stroke(30)] } });
+    const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
+    for (let n = 0; n < 6; n++) {
+      w.changeDraft([stroke(30)]);
+      expect(w.draft.value).toHaveLength(1);
+      w.flush();
+    }
+    // an existing line written on right after is taken too, and the notice never showed
+    w.change('a', [stroke(30), stroke(30)]);
+    expect(useUiStore().snackbars.length).toBe(0);
+    expect(useOutboxStore().entries.filter((e) => e.change.op === 'item.add')).toHaveLength(6);
   });
   it('makes an item of the draft and sends it', () => {
     const w = useInkWriting(() => 'L', ref(true), () => []);
@@ -85,7 +99,7 @@ describe('useInkWriting', () => {
   });
   it('keeps a margin below the server limit for what other devices may have added', () => {
     // about 189 KB: the server would still take a small stroke, but a merge with unseen strokes might not
-    useInkStore().fromDevice({ version: 1, items: { a: [stroke(47500), stroke(47500)], b: [stroke(40000)] } });
+    useInkStore().fromDevice({ version: 1, items: { a: many(10, 4750), b: many(5, 4000) } });
     const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
     w.changeDraft([stroke(10)]);
     expect(w.draft.value).toEqual([]);

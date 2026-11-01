@@ -47,7 +47,7 @@ Feature: Labs: handwritten lists
       tap = undo as well, best effort where the device passes it to the browser.
   Q2. Eraser: the pen's eraser end (e.g. Surface pen, pointer eraser button) erases the strokes it touches; an eraser
       button toggles erase mode (for the Apple Pencil, which has no eraser end).
-  Q3. Limit: about 200 KB of ink per list; when reached the app says the list is full and suggests a new list; no more
+  Q3. Limit: about 1 MB of ink per list; when reached the app says the list is full and suggests a new list; no more
       strokes are taken.
   Q4. Colour: default is the theme's text colour; a few fixed presets plus "custom" (colour picker) can be chosen; every
       colour is adjusted so it stays readable in light and dark. The line width follows the pen pressure.
@@ -492,15 +492,26 @@ Feature: Labs: handwritten lists
       And I draw a stroke with the pen
       Then the writing area shows 2 strokes
 
-  Rule: A list holds about 200 KB of ink (decision Q3)
+  Rule: A list holds about 1 MB of ink (decision Q3)
 
     Scenario: A full list says so and takes no more strokes
       Given the Labs switch "Handwritten lists" is on
-      And the task list "Notes" holds about 200 KB of ink
+      And the task list "Notes" holds about 1 MB of ink
       And I expand the task list "Notes"
       When I draw a stroke with the pen
       Then the app says the list is full and suggests starting a new list
       And nothing is drawn
+
+  Rule: A list holds at least 50 handwritten items (owner, 2026-11-01: four items were reported as full)
+
+    A stroke is stored smoothed to within half a pixel of what the pen drew, with rounded numbers, so a word of
+    handwriting takes a few KB, not tens of KB, and a list takes at least 50 of them with room to spare.
+
+    # unit: web/test/ink-lib.test.ts:holds at least 50 words of handwriting in one list
+    @unit
+    Scenario: A list holds at least 50 handwritten items
+      When I write 50 words of 8 strokes with a pen that reports 150 points per stroke
+      Then the list is not full
 
   Rule: Ink colour and width (decision Q4, assumption A7)
 

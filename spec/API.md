@@ -760,7 +760,7 @@ Labs switch. A retired `labsDrawWithFinger` in a stored document or a patch is i
 | `POST` | `/api/tasklists/:id/items[?scope=following]` | `{ strokes, id?, index? }` (instead of `title`) | `201` the list, with a new ink item (in every following list with `scope=following`) |
 | `PUT` | `/api/tasklists/:id/items/:itemId/ink` | `{ strokes: InkStroke[], base?: string[], at?: number }` | `200` the list; without `base` it replaces the item's strokes (`[]` clears them, the item stays). With `base` (the keys of the strokes the device started from) and `at` (ms) the change is merged with what other devices wrote meanwhile: strokes added are kept, a stroke taken away is gone, a line cleared as a whole removes everything drawn before `at` (an erase mark, a stroke without points, keeps it from coming back); a stroke's `t` (ms) is its identity |
 
-A text item given strokes, or an ink item given a title → `400`; unknown item → `404`; a list holds at most about 200 KB
+A text item given strokes, or an ink item given a title → `400`; unknown item → `404`; a list holds at most about 1 MB
 of ink (`INK_LIST_MAX_BYTES` in `shared/limits`, measured by `inkListBytes` as the JSON of the strokes of each ink item;
 the web app uses the same helper) → `413 PAYLOAD_TOO_LARGE` (key `tasklist.inkFull`). A repeated `POST` with the same item
 `id` stores the ink once. Deleting an item deletes its ink (not for `scope=this` on one occurrence of a repeating list, which

@@ -5,10 +5,15 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import type { AppConfig } from '../config.js';
+import { INK_LIST_MAX_BYTES } from '@calendar/shared/limits';
 import { ApiException } from '../lib/errors.js';
 
 /** Largest request body of any `/api/*` call, in bytes. */
 const MAX_BODY_BYTES = 256 * 1024;
+/** Largest body of a call that can carry a list's ink: a whole list's ink plus the rest of the list, in bytes. */
+const MAX_INK_BODY_BYTES = INK_LIST_MAX_BYTES + 64 * 1024;
+/** The calls that carry ink: a new list or template, an item, one item's ink. */
+const INK_PATH = /^\/api\/(tasklists(\/[^/]+\/items(\/[^/]+\/ink)?)?|templates(\/[^/]+)?)$/;
 /** Largest body of `POST /api/themes` (a 200 KB theme plus its own pictures), in bytes. */
 const MAX_THEME_BODY_BYTES = 400 * 1024;
 
@@ -40,19 +45,20 @@ async function contentTypeOk(c: Context): Promise<boolean> {
 
 /**
  * Builds the guard middleware: non-GET requests need an allowed Origin (or none) and a JSON content type, and their
- * body must fit {@link MAX_BODY_BYTES} ({@link MAX_THEME_BODY_BYTES} for themes).
+ * body must fit {@link MAX_BODY_BYTES} ({@link MAX_THEME_BODY_BYTES} for themes, {@link MAX_INK_BODY_BYTES} for ink).
  */
 export function requestGuards(config: AppConfig): MiddlewareHandler {
   const tooLarge = (c: Context) => c.json({ error: { code: 'PAYLOAD_TOO_LARGE', message: 'The request is too large' } }, 413);
   const normal = bodyLimit({ maxSize: MAX_BODY_BYTES, onError: tooLarge });
   const theme = bodyLimit({ maxSize: MAX_THEME_BODY_BYTES, onError: tooLarge });
+  const ink = bodyLimit({ maxSize: MAX_INK_BODY_BYTES, onError: tooLarge });
   return async (c, next) => {
     if (READ_ONLY.has(c.req.method)) return next();
     // a cross-site page can make the browser send the cookie, but cannot hide where the request came from
     if (!originAllowed(config, c)) throw new ApiException('FORBIDDEN', 403, 'Request from an unknown origin');
     // a "simple" cross-site form post could carry JSON text as text/plain; only declared JSON is read
     // the size limit first, so reading an untyped body to see whether it is empty stays bounded
-    return (c.req.path === '/api/themes' ? theme : normal)(c, async () => {
+    return (c.req.path === '/api/themes' ? theme : INK_PATH.test(c.req.path) ? ink : normal)(c, async () => {
       if (!(await contentTypeOk(c))) throw new ApiException('UNSUPPORTED_MEDIA_TYPE', 415, 'Request body must be application/json');
       await next();
     });

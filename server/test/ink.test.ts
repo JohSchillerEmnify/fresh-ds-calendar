@@ -121,11 +121,11 @@ describe('ink items', () => {
     }
   });
 
-  it('says the list is full beyond about 200 KB of ink', async () => {
+  it('says the list is full beyond about 1 MB of ink', async () => {
     const l = await mk();
-    const big = Array.from({ length: 20 }, () => stroke(400));
+    const big = Array.from({ length: 20 }, () => stroke(1000));
     let status = 201;
-    for (let i = 0; i < 40 && status === 201; i++) status = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: big })).status;
+    for (let i = 0; i < 60 && status === 201; i++) status = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: big })).status;
     expect(status).toBe(413);
   });
 
