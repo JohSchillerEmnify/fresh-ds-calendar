@@ -364,9 +364,11 @@ Feature: Navigation and view switching
     Then the URL path is "/day/2026-10-16"
 
   Rule: Going back closes the topmost open overlay first
+    A task list grown in place is not an overlay for back: it is remembered on the device, so back goes back a view and
+    the list stays grown (owner, 2026-11-01). The list sheet still closes first.
 
     @mobile
-    Scenario: Going back closes the open task list instead of leaving the view
+    Scenario: Going back closes the open task list sheet instead of leaving the view
       Given I am using a phone
       And the calendar contains a task list "Groceries" on 2026-10-14 with items:
         | item | done |
@@ -376,6 +378,20 @@ Feature: Navigation and view switching
       And I go back in the browser
       Then the task list "Groceries" is collapsed
       And the URL path is "/week/2026-10-12"
+
+    @mobile
+    Scenario: Going back with a grown task list goes back a view and keeps it grown
+      Given I am using a phone
+      And tapping a task list grows it in place
+      And the calendar contains a task list "Groceries" on 2026-10-14 at 09:00 for 30 minutes with items:
+        | item | done |
+        | Milk | no   |
+      When I open the day view for 2026-10-14
+      And I switch to the week view
+      And I tap the task list "Groceries"
+      And I go back in the browser
+      Then the URL path is "/day/2026-10-14"
+      And the task list "Groceries" is expanded over the calendar
 
     @mobile
     Scenario: Going back with the open tasks tray expanded collapses the tray

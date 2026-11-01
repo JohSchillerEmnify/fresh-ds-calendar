@@ -394,5 +394,5 @@ Feature: A task list card grows in place over the calendar
       When I open the day view for 2026-10-14
       And I tap the task list "Groceries"
       And today is 2026-10-15
-      And I open the day view for 2026-10-14
+      And I open the day view for 2026-10-15
       Then the task list "Groceries" is collapsed
