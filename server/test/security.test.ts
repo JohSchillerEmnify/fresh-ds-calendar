@@ -520,4 +520,18 @@ describe('CSRF: Origin and Content-Type', () => {
       expect((await t.json('POST', '/api/streak/checkin')).status).toBe(200);
     } finally { t.cleanup(); }
   });
+
+  it('a bodyless write passes whatever its framing says (chunked, length 0); an untyped chunked body still gets 415', async () => {
+    const t = makeApp();
+    try {
+      const list = (await t.json('POST', '/api/tasklists', { title: 'Hallo', date: '2026-11-01', items: [{ title: 'Milk' }] })).body;
+      const chunked = { 'transfer-encoding': 'chunked' };
+      expect((await t.app.request('/api/streak/checkin', { method: 'POST', headers: chunked })).status).toBe(200);
+      expect((await t.app.request('/api/streak/checkin', { method: 'POST', headers: { 'content-length': '0' } })).status).toBe(200);
+      expect((await t.app.request(`/api/tasklists/${list.id}/items/${list.items[0].id}`, { method: 'DELETE', headers: chunked })).status).toBe(200);
+      expect((await t.app.request(`/api/tasklists/${list.id}`, { method: 'DELETE', headers: chunked })).status).toBe(204);
+      const untyped = await t.app.request('/api/settings', { method: 'PATCH', headers: chunked, body: '{"sounds":false}' });
+      expect(untyped.status).toBe(415);
+    } finally { t.cleanup(); }
+  });
 });

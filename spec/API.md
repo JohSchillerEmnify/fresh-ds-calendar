@@ -1091,7 +1091,7 @@ TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it unti
 Every `/api/*` request while auth is on re-checks `ALLOWED_EMAILS`: a person who was taken off the list gets **401** and loses all their sessions.
 
 All non-GET `/api/*` requests need an `Origin` header that is one of `PUBLIC_URL` / `ALLOWED_ORIGINS` (or none, as the Android widget sends; without a
-`PUBLIC_URL` the page's own host is accepted), else **403 `FORBIDDEN`**, and a body must be `application/json` (else **415**) and at most 256 KB (`POST /api/themes`
+`PUBLIC_URL` the page's own host is accepted), else **403 `FORBIDDEN`**, and a body must be `application/json` (else **415**; an empty body needs no type, also when it arrives chunked) and at most 256 KB (`POST /api/themes`
 400 KB; else **413**).
 
 While auth is on, every other `/api/*` route except `/api/health`, the two OAuth routes and `/api/auth/app-exchange` answers **401

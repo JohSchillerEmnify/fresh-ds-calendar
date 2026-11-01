@@ -467,14 +467,17 @@ export class CalendarService {
   }
 
   // ---------- task lists ----------
-  private checkTaskData(d: TaskListData, keepCategory?: string | null): void {
-    if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title', 'tasklist.titleOrItem');
-    if (d.items.length > LIST_ITEMS_MAX) throw validation(`A task list can have at most ${LIST_ITEMS_MAX} items`, 'items', 'tasklist.tooManyItems');
-    if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags', 'tasklist.tagsUnique');
-    if (d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
-    if (d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');
-    if (d.categoryId !== null && d.categoryId !== keepCategory && !this.settings.categories(this.sub).some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');
-    if (privateSize(encodePrivate(d)) > MAX_PRIVATE_BYTES) throw validation('Task list is too large', 'items');
+  /** Validates a list before it is written; with `before` (an update) a rule judges only what this write changes, so an older stored field never blocks a tick or a delete. */
+  private checkTaskData(d: TaskListData, before?: TaskListData): void {
+    const changed = (f: (x: TaskListData) => unknown) => !before || JSON.stringify(f(d)) !== JSON.stringify(f(before));
+    if (changed((x) => x.title.trim()) && !d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title', 'tasklist.titleOrItem');
+    if (d.items.length > LIST_ITEMS_MAX && d.items.length > (before?.items.length ?? 0)) throw validation(`A task list can have at most ${LIST_ITEMS_MAX} items`, 'items', 'tasklist.tooManyItems');
+    if (changed((x) => x.tags) && new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags', 'tasklist.tagsUnique');
+    if (changed((x) => x.date) && d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
+    if (changed((x) => [x.date, x.recurrence]) && d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');
+    if (changed((x) => x.categoryId) && d.categoryId !== null && !this.settings.categories(this.sub).some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');
+    const size = privateSize(encodePrivate(d));
+    if (size > MAX_PRIVATE_BYTES && (!before || size > privateSize(encodePrivate(before)))) throw validation('Task list is too large', 'items');
   }
 
   private colorFor(d: TaskListData): string | null {
@@ -518,7 +521,7 @@ export class CalendarService {
     // an undated list finished by this write is dated to today, so it shows where it was finished
     const finishedOn = dateOnCompletion(before, d, this.today(), this.prefs.labsPrefs(this.sub).undatedDone);
     if (finishedOn) { d.date = finishedOn; d.time = null; }
-    this.checkTaskData(d, before.categoryId);
+    this.checkTaskData(d, before);
   }
 
   /** Read-modify-write of a shared list: synchronous, so no other write can slip in; a pinned stale `If-Match` is a 412. */
@@ -732,8 +735,9 @@ export class CalendarService {
 
   /** A new series ("part") of the list from `start` on: the old series' data plus `change`, its RRULE and EXDATE lines, `series` = root. */
   private async newPart(master: GoogleEvent, start: string, root: string, change: (d: TaskListData) => TaskListData): Promise<GoogleEvent> {
-    const d = change({ ...decodeTaskList(master, this.tz), date: start, completedOn: null });
-    this.checkTaskData(d, d.categoryId);
+    const base = { ...decodeTaskList(master, this.tz), date: start, completedOn: null };
+    const d = change(base);
+    this.checkTaskData(d, base);
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
     // the rule and its exclusions; an RDATE (an extra date) belongs to the old series only
     g.recurrence = (master.recurrence ?? []).filter((l) => l.startsWith('RRULE:') || l.startsWith('EXDATE'));
