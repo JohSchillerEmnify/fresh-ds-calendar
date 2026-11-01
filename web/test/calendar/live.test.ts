@@ -396,4 +396,19 @@ describe('transition warnings as Android notifications', () => {
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_MORNING_ID });
   });
+
+  it("plans tomorrow's morning overview once today's time has passed, summing up tomorrow", async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { items } = await boot('20:00', false);
+    const next = '2026-10-13';
+    items.applyResponse(D, W, [ev('dentist', t(next, '10:00'), t(next, '11:00'), { title: 'Dentist' })], 's6');
+    usePrefsStore().notify = { bedtime: false, events: false, tasklists: false, morning: true, morningTime: '07:30' };
+    startTransitionWarnings();
+    expect(plugin.schedule.mock.calls.filter(([o]) => o.id === NATIVE_MORNING_ID).map(([o]) => [o.at, o.title, o.body]))
+      .toEqual([[new Date(`${next}T07:30:00+02:00`).getTime(), 'Your day', '1 appointment · no lists · first: Dentist 10:00']]);
+  });
 });

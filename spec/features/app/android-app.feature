@@ -7,7 +7,9 @@ Feature: The Android app
     Given the calendar is empty
     And the time is 2026-10-12 20:00
 
-  @backlog
+  # unit: web/test/calendar/live.test.ts:schedules them through the plugin, re-sends only changes and cancels what is gone
+  # unit: web/test/calendar/reminder-plan.test.ts:has one reminder per lead at start minus lead, soonest first
+  @unit
   Scenario: A reminder is planned as a phone notification
     Given the app runs inside the Android app
     And the calendar contains an event "Dentist" on 2026-10-13 from 11:00 to 11:30
@@ -15,7 +17,9 @@ Feature: The Android app
     When I open the week view for 2026-10-12
     Then a notification "Dentist" saying "11:00 – 11:30" is planned for 2026-10-13 10:30
 
-  @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/notify/ReminderNotificationTest.java:whenDueItCountsDownAndAtTheStartComesBackWithoutTheCountdown
+  # unit: android/app/src/test/java/lan/mordor/calendar/notify/ReminderNotificationTest.java:aStartAlarmAfterTheEndRemovesTheNotification
+  @unit
   Scenario: A reminder notification counts down to the start, then shows the times until the end
     It may be read long after it came: the phone keeps the time left right, the text gives the times, never "in 30 min".
     Given the app runs inside the Android app
@@ -25,7 +29,9 @@ Feature: The Android app
     Then the notification "Dentist" planned for 2026-10-13 10:30 counts down to 2026-10-13 11:00
     And from 2026-10-13 11:00 the notification "Dentist" shows no countdown and goes away at 2026-10-13 11:30
 
-  @backlog
+  # unit: web/test/bedtime-reminder.test.ts:schedules the next reminder as a notification, once, and the next night after it is due
+  # unit: android/app/src/test/java/lan/mordor/calendar/notify/ReminderNotificationTest.java:theBedtimeReminderCountsDownToBedtimeThenStaysUntilWakeUp
+  @unit
   Scenario: The bedtime notification gives the bedtime, counts down to it and goes away at wake-up
     Given the app runs inside the Android app
     And bedtime mode is on with fixed times 23:00 and 07:00
@@ -34,7 +40,8 @@ Feature: The Android app
     And the notification "Bedtime at 23:00" planned for 2026-10-12 22:30 counts down to 2026-10-12 23:00
     And from 2026-10-12 23:00 the notification "Bedtime at 23:00" shows no countdown and goes away at 2026-10-13 07:00
 
-  @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/notify/ReminderNotificationTest.java:eachKindHasItsOwnStatusBarIcon
+  @unit
   Scenario Outline: Each kind of notification has its own status bar icon
     Only the bedtime notification shows the moon.
     Given the app runs inside the Android app
@@ -48,7 +55,8 @@ Feature: The Android app
       | morning overview    | sunrise       |
       | bedtime reminder    | moon          |
 
-  @backlog
+  # unit: web/test/calendar/live.test.ts:plans tomorrow's morning overview once today's time has passed, summing up tomorrow
+  @unit
   Scenario: The morning overview sums up the next day
     Given the app runs inside the Android app
     And the morning overview is on at 07:30
