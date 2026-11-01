@@ -37,7 +37,7 @@ function reload(): void {
   waiting.postMessage({ type: 'SKIP_WAITING' });
 }
 
-/** Preview builds (`…-preview+<sha>`) are for looking at the newest state, so they reload by themselves (owner). */
+/** Preview builds (`…-preview+<sha>`) are for looking at the newest state, so they reload by themselves. */
 export function isPreviewBuild(version = runningVersion()): boolean {
   return version.includes('-preview');
 }

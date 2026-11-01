@@ -188,7 +188,7 @@ function radialRange(b: Rect): [number, number] {
 }
 
 /**
- * Places each arc's name on the plate beside its own arc, without overlaps (owner, 2026-10-23: names drawn badly). A
+ * Places each arc's name on the plate beside its own arc, without overlaps (names drawn badly). A
  * name is tried on minutes inside its arc's span (middle first), then a little beyond it, each time starting just inside
  * the innermost arc at that minute and moving inwards a few rows; its box must stay on the plate (`plate` radius), off
  * every arc band, off the `keepOut` boxes (the middle) and off names placed before. Text points inwards from the rim

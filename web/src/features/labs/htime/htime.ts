@@ -18,7 +18,7 @@ export const DEFAULT_ZOOM: Zoom2 = { x: 3, y: 1 };
 export const START_HOUR = 6;
 /** Rows (days of the week) that fit the viewport height at day zoom 1. */
 const FIT_ROWS = 7;
-/** A bare title chip (px): only decides lanes; a card is drawn at its real length, never wider (owner, 2026-10-21). */
+/** A bare title chip (px): only decides lanes; a card is drawn at its real length, never wider. */
 const MIN_CARD_PX = 28;
 /** Least height (px) of a lane of overlapping entries, and the height of an untimed bar. */
 export const MIN_LANE_PX = 22;

@@ -53,7 +53,7 @@ export function newForm(date: string, time: string | null, calendarId: string, c
 export const ownReminders = (ev: CalendarEvent): Reminders => (!ev.reminders || ev.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...ev.reminders.minutes] });
 
 export function formFromEvent(ev: CalendarEvent): EventForm {
-  // a picked place shows its name in the field and its address on the line under it (owner, Q9)
+  // a picked place shows its name in the field and its address on the line under it
   const place = placeFromEvent(ev);
   const where = { location: place ? place.name : ev.location, place };
   if (ev.allDay) {
@@ -70,7 +70,7 @@ export function formFromEvent(ev: CalendarEvent): EventForm {
   };
 }
 
-/** The location text Google gets: `"<name>, <address>"` for a picked place (owner, Q5), else the typed text. */
+/** The location text Google gets: `"<name>, <address>"` for a picked place, else the typed text. */
 const locationText = (f: EventForm): string => (f.place ? placeLocation(f.place) : f.location);
 
 const validDate = (s: string) => parseIsoDate(s) !== null;

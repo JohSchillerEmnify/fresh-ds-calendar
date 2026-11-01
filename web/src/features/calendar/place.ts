@@ -10,7 +10,7 @@ export interface PlacePick extends Place {
   address: string;
 }
 
-/** At most this many suggestions (owner: a short list under the field). */
+/** At most this many suggestions (a short list under the field). */
 const MAX_SUGGESTIONS = 5;
 /** Side of one map picture in px (OpenStreetMap's raster tiles). */
 const TILE = 256;
@@ -26,7 +26,7 @@ export function photonLang(lang: Language): 'de' | 'en' {
 }
 
 /**
- * The search request for typed text. Only the text, the app language and the limit are sent (owner, Q4/Q7).
+ * The search request for typed text. Only the text, the app language and the limit are sent.
  *
  * @param base The configured search endpoint (`placeSearchUrl`); a relative one resolves against the page.
  * @param q The typed text.
@@ -85,7 +85,7 @@ export async function searchPlaces(base: string, q: string, lang: string, signal
 }
 
 /**
- * The location text Google gets for a picked place (owner, Q5).
+ * The location text Google gets for a picked place.
  *
  * @param p The picked place.
  * @returns `"<name>, <address>"`, or the name alone when there is no address.

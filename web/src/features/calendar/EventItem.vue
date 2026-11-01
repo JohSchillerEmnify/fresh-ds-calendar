@@ -48,7 +48,7 @@ const past = computed(() => isToday.value && !props.segment.allDay && props.segm
 const current = computed(() => isToday.value && !props.segment.allDay && props.segment.startMin <= clock.minutesNow && clock.minutesNow < props.segment.endMin);
 const h = computed(() => props.height ?? 0);
 // only a time grid block's look depends on its width: chips are not observed (a month holds hundreds, and each mount read forces a layout)
-// One border-box observer per block (owner D3, 2026-10-25): the border box does not change with the padding or the entry
+// One border-box observer per block: the border box does not change with the padding or the entry
 // style's border, so the narrow look (tight padding and 11 px type together) cannot flip back and forth or disagree.
 const { width: boxWidth } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)), undefined, { box: 'border-box' });
 /** Narrow blocks (border box <= 84 px) use the tight padding and 11 px / 13 px type. */

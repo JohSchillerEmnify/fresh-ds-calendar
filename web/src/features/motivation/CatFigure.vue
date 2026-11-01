@@ -2,7 +2,7 @@
 /**
  * The one cat drawing (feature emotional-support-cat), shared by the support cat
  * (`SupportCat`) and the scene cat (`SceneCat`): a flat paper-cut cat seen from the front, "a small void in cat shape"
- * (owner) — an almost featureless black silhouette, a tall narrow body flowing into a small head without a neck, two
+ * — an almost featureless black silhouette, a tall narrow body flowing into a small head without a neck, two
  * front legs at the bottom and the tail rising straight up behind it with a hook at the tip. Only the features stand
  * out: yellow ring eyes set close together, pink-lined triangle ears, a tiny grey nose and long thin whiskers. No
  * outlines, no mouth, no inner markings; a very faint paper grain (SVG noise filter) on the black. Colours come from

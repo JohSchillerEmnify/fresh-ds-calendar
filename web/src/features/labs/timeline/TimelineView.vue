@@ -42,7 +42,7 @@ const dayCount = ref(DAYS_BEFORE + DAYS_AFTER);
 const pxPerHour = ref(90);
 const viewH = ref(600);
 const scroller = ref<HTMLElement | null>(null);
-// Owner: vertical on every device (a horizontal axis cannot show titles at scale).
+// Vertical on every device (a horizontal axis cannot show titles at scale).
 const vertical = computed(() => true);
 
 const pxPerMin = computed(() => pxPerHour.value / 60);
@@ -99,7 +99,7 @@ const timedTop = computed(() => HEAD_H + bandH.value);
 const laneH = computed(() => Math.min(MAX_LANE_H, Math.max(MIN_LANE_H, Math.floor((viewH.value - timedTop.value - 12) / lanes.value))));
 const axisH = computed(() => Math.max(viewH.value, timedTop.value + lanes.value * laneH.value + 12));
 
-/** Per day the all-day entries and the packed timed blocks: overlaps side by side, never cascaded (owner, 2026-10-22). */
+/** Per day the all-day entries and the packed timed blocks: overlaps side by side, never cascaded. */
 const vdays = computed(() => days.value.map((d) => {
   const iso = toIsoDate(d);
   const segs = segments.value.filter((s) => s.date === iso);

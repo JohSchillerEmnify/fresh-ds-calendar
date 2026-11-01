@@ -49,7 +49,7 @@ export interface Cut {
 }
 
 /**
- * Grow only what is needed (owner decision): a card that already shows its whole title and every open item does not grow at all;
+ * Grow only what is needed: a card that already shows its whole title and every open item does not grow at all;
  * one whose own slot cuts something (title, a name, or open items hidden / run inline) takes the full day column and as much
  * height as its items need.
  */

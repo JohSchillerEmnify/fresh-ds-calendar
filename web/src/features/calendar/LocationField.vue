@@ -18,9 +18,9 @@ import { photonLang, searchPlaces, type PlacePick } from './place';
 const props = defineProps<{ modelValue: string; place: PlacePick | null; label: string }>();
 const emit = defineEmits<{ 'update:modelValue': [v: string]; 'update:place': [p: PlacePick | null] }>();
 
-/** Typed characters before anything is asked (owner, Q4). */
+/** Typed characters before anything is asked. */
 const MIN_CHARS = 3;
-/** The pause after the last key before asking (owner, Q4: "a short pause"). */
+/** The pause after the last key before asking ("a short pause"). */
 const PAUSE_MS = 150;
 
 const clock = useClockStore();
@@ -166,7 +166,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
 
 <style scoped>
 .loc { display: flex; flex-direction: column; gap: 0; }
-/* the address of a picked place: like the field's supporting text, wrapping instead of being cut off (owner, Q9) */
+/* the address of a picked place: like the field's supporting text, wrapping instead of being cut off */
 .addr { margin: 4px 16px 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 .list { scroll-margin-bottom: 88px; margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
 .opt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }

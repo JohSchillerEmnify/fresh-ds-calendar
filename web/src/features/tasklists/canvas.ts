@@ -13,7 +13,7 @@ export const WORLD_H = 3000;
 export const NOTE_W = 240;
 /** Height of the strip at a note's top edge that a note's anchor point sits in. */
 const NOTE_ANCHOR_Y = 24;
-/** Zoom range (owner: "such as 0.3-2"). */
+/** Zoom range ("such as 0.3-2"). */
 export const MIN_ZOOM = 0.3;
 export const MAX_ZOOM = 2;
 /** At least this many screen pixels of the board stay in view when panning. */

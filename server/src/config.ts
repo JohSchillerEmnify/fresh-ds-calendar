@@ -42,7 +42,7 @@ export interface AppConfig {
   };
 }
 
-/** The public Photon instance (OpenStreetMap data, no key; owner, board item g6). */
+/** The public Photon instance (OpenStreetMap data, no key; board item g6). */
 export const DEFAULT_PLACE_SEARCH_URL = 'https://photon.komoot.io/api';
 /** The OpenStreetMap Foundation's standard tile server (tile usage policy: credit, Referer, no prefetching). */
 export const DEFAULT_MAP_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';

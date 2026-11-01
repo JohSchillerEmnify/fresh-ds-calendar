@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * "From template ▾" (feature tasklist-templates, owner's design canvas 2026-10-25, variant 4D): a tonal pill next to
+ * "From template ▾" (feature tasklist-templates, design variant 4D): a tonal pill next to
  * the new task list form's heading. A tap grows the pill in place into a panel whose top row is the pill itself
  * ("From template ▴", exactly where the pill was), then the templates, each with a details line ("2 items · ~45 min ·
  * Home"), a divider and "Manage templates". After a pick the pill shows the template's name. The panel is only as wide

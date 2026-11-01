@@ -1,5 +1,5 @@
 /**
- * Drawing a block on the empty time grid to create an event or a task list (feature event-editing, owner 2026-10-25,
+ * Drawing a block on the empty time grid to create an event or a task list (feature event-editing,
  * design C1-C3). A mouse presses on empty grid space and drags; a finger long-presses (haptic tick) and then drags, while a
  * plain swipe keeps scrolling. The block snaps to quarter hours, is at least 15 minutes long, may be drawn upwards, and in
  * the week view may reach into the next (or previous) day column. On release the "new" dialog opens with the drawn start

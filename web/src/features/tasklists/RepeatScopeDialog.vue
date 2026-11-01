@@ -2,7 +2,7 @@
 /**
  * "Change repeating list": This task list / This and all following task lists (radio list, the first preselected),
  * Cancel / OK — Google's "This event / This and following events" for a repeating event (feature tasklist-repeating).
- * The same words for every repeat rhythm (owner). Built like `ConfirmDialog`.
+ * The same words for every repeat rhythm. Built like `ConfirmDialog`.
  */
 import { ref, watch } from 'vue';
 import type { ChangeScope } from '@/api/types';

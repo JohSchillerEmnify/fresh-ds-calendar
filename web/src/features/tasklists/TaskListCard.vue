@@ -65,7 +65,7 @@ watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; })
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
 /**
  * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows — also a time block that already shows every item: the grown card is
- * the pill-and-list presentation the owner wants on a tap, never a detour to the sheet (owner, 2026-10-19).
+ * the pill-and-list presentation shown on a tap, never a detour to the sheet.
  */
 function toggle() {
   // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
@@ -267,7 +267,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block .items { min-height: 0; }
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title, at the TOP of the block: a later entry cascading over it leaves only the top
-   strip visible (feature event-display), so a centred title was cut in half (owner, 2026-10-20) */
+   strip visible (feature event-display), so a centred title was cut in half */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: flex-start; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
 .block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 3ch; }
 .block[data-fit='inline'] .meta { display: none; }
@@ -323,7 +323,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
 /* The two layers are two containers, never mixed (owner): the head row IS the pill — exactly the real block's height, one line,
    its extras dropped when the pill is short — and the items are the extension, starting at the seam, never inside the pill. */
-/* Two containers that never mix (owner, 2026-10-19): the head row IS the pill — at least the real block's height, the full card
+/* Two containers that never mix: the head row IS the pill — at least the real block's height, the full card
    width, the title wraps and stays readable, and over a short real block (`tight`) its extras are dropped — and the extension box
    holds the items, starting at the seam. Each layer is drawn inside its own container, so it follows that container's height. */
 .extbox { display: contents; }

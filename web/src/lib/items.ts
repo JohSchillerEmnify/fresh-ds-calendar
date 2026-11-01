@@ -132,7 +132,7 @@ export function segmentsByDate(
 /** Overlapping blocks whose starts are at least this far apart cascade (the later one drawn on top, indented). */
 const OVERLAP_STACK_MIN_START_GAP_MIN = 15;
 /** One title row of a block (px): top border, 1 px padding, the 16 px title line. A cascade leaves at least this much of the
- * earlier block visible, so its title is never cut (owner, 2026-10-20). */
+ * earlier block visible, so its title is never cut. */
 export const TITLE_ROW_PX = 18;
 /** Indent (px) per cascade level. */
 export const STACK_INDENT_PX = 10;
@@ -160,7 +160,7 @@ export interface PlacedSegment {
  * height never makes back-to-back or merely close items overlap. A block that lasts less than `minMinutes` is a bare title row,
  * so a truly overlapping later block cascades over it only when it starts at least `minMinutes` later; closer ones share columns.
  * The drawn box (`PlacedSegment.height`) is the real duration: never past the real end, so a short block never paints over
- * its neighbour and equal durations look equal (owner, 2026-10-21).
+ * its neighbour and equal durations look equal.
  * Touching items (end == start) do not overlap. With `stack` false nothing cascades:
  * a whole overlap cluster shares columns (lanes), as the horizontal Labs view needs.
  */
@@ -169,7 +169,7 @@ export interface PlacedSegment {
  * (a block shorter than it is a bare title row), never the drawn height.
  * `titleMinutes` is one title row ({@link TITLE_ROW_PX}) in minutes: a later block cascades over an earlier one only when it
  * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
- * `minLength` is the owner's minimum event length in minutes (0 = off): a shorter block is laid out as that long everywhere
+ * `minLength` is the person's minimum event length in minutes (0 = off): a shorter block is laid out as that long everywhere
  * here, drawn so and overlapping what starts within it (feature min-event-length); its real times stay untouched.
  * `limit` (> 0, with `stack`) is the owner's "events side by side" setting of the day or week grid: entries go side by
  * side up to that many columns before they cascade ({@link packSideBySide}); 0 keeps the start-group cascade above (Labs).
@@ -229,12 +229,12 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
 }
 
 /**
- * Side-by-side packing with a column limit (feature event-display, owner 2026-10-25: "Day/Week view: events side by side").
+ * Side-by-side packing with a column limit (feature event-display: "Day/Week view: events side by side").
  * Entries come sorted by start (same start: the longer first). Each takes the leftmost column free at its start, or opens
  * a new one while fewer than `limit` are used. When all are busy it is laid over the last column, one cascade level above
  * the topmost block there (capped at {@link MAX_STACK_DEPTH}), and that column stays busy until everything over it ends.
- * Titles stay readable (owner, 2026-10-20): when the topmost block of the last column starts less than its `gapOf` before
- * the entry, the entry opens one more column instead, beyond the limit, but at most one (owner, 2026-10-25): with
+ * Titles stay readable: when the topmost block of the last column starts less than its `gapOf` before
+ * the entry, the entry opens one more column instead, beyond the limit, but at most one: with
  * `limit + 1` columns in use, further near-simultaneous entries are laid over the last column even if a title is covered.
  *
  * @param timed The timed segments of one day, sorted by start, then the longer first.
@@ -274,7 +274,7 @@ function packSideBySide(timed: Segment[], limit: number, layoutEnd: (s: Segment)
       p.col = free;
       cols[free] = { busyUntil: end, top: p };
     } else if (cols.length < limit || (cols.length === limit && s.startMin - last.top.top < gapOf(last.top.seg))) {
-      // a new column: still under the limit, or (once, owner 2026-10-25) a cascade here would hide the title below
+      // a new column: still under the limit, or (once) a cascade here would hide the title below
       p.col = cols.length;
       cols.push({ busyUntil: end, top: p });
     } else {

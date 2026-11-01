@@ -50,7 +50,7 @@ export function dragCatPose(i: DragCatInput, prev: DragCatPose): DragCatPose {
 
 /**
  * Which side of the card the cat stands on when beside it: behind the movement (pushing sideways), else its default
- * side, away from the dragging thumb: the left, or the right in left-handed mode (owner, 2026-10-13: the thumb hid it).
+ * side, away from the dragging thumb: the left, or the right in left-handed mode (the thumb hid it).
  */
 export function dragCatSide(dx: number, pose: DragCatPose, leftHanded = false): 'left' | 'right' {
   if (pose === 'push-side' && dx !== 0) return dx > 0 ? 'left' : 'right';

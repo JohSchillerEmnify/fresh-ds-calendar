@@ -636,7 +636,7 @@ export class CalendarService {
   }
 
   /**
-   * A change for this and all following occurrences of a repeating list (owner, 2026-10-24, feature tasklist-repeating;
+   * A change for this and all following occurrences of a repeating list (feature tasklist-repeating;
    * Google's "This and following events"). Earlier occurrences never change. The Calendar API has no such operation:
    * like Google Calendar itself, the series is split. Every later part of the list (same `series` key) gets the change as a
    * whole; in the part holding the shown occurrence, the shown one gets it, a new series takes over the later ones (with

@@ -867,7 +867,7 @@ export interface SlotKey { column: number; minutes: number }
 /**
  * Hit-test for time grids. The card's top edge snaps to the slot; dx/dy move it there. Sideways it moves by whole
  * columns only: a card drawn in the right part of its column (side by side, cascaded) keeps that place and stays under
- * the finger instead of jumping to the column's left edge (owner, 2026-10-23).
+ * the finger instead of jumping to the column's left edge.
  */
 export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: DragContext) => DropTarget<SlotKey> | null {
   const step = o.step ?? 15;

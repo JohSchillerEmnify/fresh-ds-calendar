@@ -102,7 +102,7 @@ export function smooth(x: number, a: number, b: number): number {
 }
 
 /**
- * Cell (CSS px) at which the owner said the real-time grid should already be fully shown: about 3.5 day columns across a
+ * Cell (CSS px) at which the real-time grid should already be fully shown: about 3.5 day columns across a
  * phone (~400 px / 3.5 = 115 wide) in a month of five or six rows (~245 tall). The switch to the timeline is the same for
  * every cell, so it is measured on the cell size alone (no per-day decision) and finished by this size.
  */

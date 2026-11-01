@@ -46,7 +46,7 @@ const cats = useTaskCategories();
 const split = computed(() => clockSegments(segments.value, prefs.minEventMinutes, props.variant === 'rings' ? nameRoom : undefined));
 
 /**
- * The dial is a square as large as the space allows (owner, 2026-10-13). On a wide screen the chips stand beside it and
+ * The dial is a square as large as the space allows. On a wide screen the chips stand beside it and
  * it takes the area between them; stacked (a phone), it takes what the chips above and below leave, and dial and chips
  * are centred together, so the chips sit right at the dial instead of at the screen's edges.
  */
@@ -223,7 +223,7 @@ watch([isToday, tomorrowLoaded, tomorrow], ([on, loaded, d]) => {
 const lineY = (n: number) => CENTER + 56 + n * sizing.value.font * 1.3;
 /**
  * Today, under the time: the running or next entry's title (cut only when too long) over when and how long until, which
- * is never cut; or one line when nothing comes (owner, 2026-10-24).
+ * is never cut; or one line when nothing comes.
  */
 const middle = computed(() => {
   if (!isToday.value) return null;
