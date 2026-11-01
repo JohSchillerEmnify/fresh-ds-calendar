@@ -153,3 +153,28 @@ Feature: Settings
     When I choose "Week" as the default view
     Then the default view "Month" is selected
     And I see the sync error banner
+
+  # Each person who signs in has their own settings, categories, streak and plant (ADR 0035).
+  # unit: server/test/settings-per-person.test.ts:Anna changing view, calm mode, animations, sounds, motion, sunflowers and theme mode leaves Jo at the defaults
+  # unit: server/test/settings-per-person.test.ts:Anna adding, renaming and deleting categories leaves Jo with the four defaults
+  # unit: server/test/settings-per-person.test.ts:Anna checking in and earning plant points leaves Jo at zero
+  @unit
+  Scenario: Two people's settings are separate
+    Given "jo@example.com" and "anna@example.com" may use the calendar
+    When "anna@example.com" chooses the default view "Week", Calm mode, no animations, sounds, the theme mode "Dark" and the full sunflower field
+    And "anna@example.com" adds the category "Garden"
+    And "anna@example.com" checks in
+    Then "jo@example.com" has the default settings: the default view "Month", Calm mode off, full animations, no sounds, the theme mode "System" and growing sunflowers
+    And the categories of "jo@example.com" are "Shopping, To-do, Work, Home"
+    And the streak of "jo@example.com" is 0 days
+
+  # unit: server/test/settings-per-person.test.ts:copies the settings and the streak to every known person and keeps the old files as .bak
+  # unit: server/test/settings-per-person.test.ts:runs once: a second start changes nothing a person saved since
+  @unit
+  Scenario: Settings everyone shared before the update become each person's own
+    Given the server kept one set of settings for everybody with the default view "Week" and the category "Pets"
+    And "jo@example.com" and "anna@example.com" had signed in before
+    When the updated server starts
+    Then "jo@example.com" has the default view "Week" and the categories "Pets"
+    And "anna@example.com" has the default view "Week" and the categories "Pets"
+    And the old settings file is kept as "settings.json.bak"

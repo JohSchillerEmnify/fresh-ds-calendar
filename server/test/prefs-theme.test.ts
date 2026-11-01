@@ -110,12 +110,14 @@ describe('one scene choice (migration of the retired top bar scene)', () => {
 
   it('keeps the old scene on disk but does not serve it', () => {
     const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-scene-')); dirs.push(d);
-    fs.writeFileSync(path.join(d, 'settings.json'), JSON.stringify({ scene: 'mordor', garden: 'off', version: 3 }));
+    const f = path.join(d, 'users', 'local', 'settings.json');
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, JSON.stringify({ scene: 'mordor', garden: 'off', version: 3 }));
     const s = new SettingsStore(d, { real: () => new Date() } as never, 'UTC');
-    expect(s.get()).not.toHaveProperty('scene');
-    expect(s.legacyTopBarScene()).toBe('mordor');
-    s.update((x) => { x.sounds = true; });
-    expect(JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8')).scene).toBe('mordor');
+    expect(s.get('local')).not.toHaveProperty('scene');
+    expect(s.legacyTopBarScene('local')).toBe('mordor');
+    s.update('local', (x) => { x.sounds = true; });
+    expect(JSON.parse(fs.readFileSync(f, 'utf8')).scene).toBe('mordor');
   });
 });
 
@@ -123,40 +125,41 @@ describe('scene and plant (migration of the retired garden style)', () => {
   const dirs: string[] = [];
   const settingsWith = (stored: object) => {
     const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-garden-')); dirs.push(d);
-    fs.writeFileSync(path.join(d, 'settings.json'), JSON.stringify({ version: 3, ...stored }));
-    return { d, s: new SettingsStore(d, { real: () => new Date() } as never, 'UTC') };
+    const f = path.join(d, 'users', 'local', 'settings.json');
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, JSON.stringify({ version: 3, ...stored }));
+    return { d: path.dirname(f), s: new SettingsStore(d, { real: () => new Date() } as never, 'UTC') };
   };
   afterAll(() => dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
 
   it.each(['plant', 'sunflowers', 'off'])('stored garden %s is kept on disk for the scene migration but not served', (garden) => {
     const { d, s } = settingsWith({ garden });
-    expect(s.get()).toMatchObject({ sunflowers: 'grow' });
-    expect(s.get()).not.toHaveProperty('garden');
-    expect(s.legacyGarden()).toBe(garden);
-    s.update((x) => { x.sounds = true; });
+    expect(s.get('local')).toMatchObject({ sunflowers: 'grow' });
+    expect(s.get('local')).not.toHaveProperty('garden');
+    expect(s.legacyGarden('local')).toBe(garden);
+    s.update('local', (x) => { x.sounds = true; });
     expect(JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8'))).toMatchObject({ garden });
   });
 
   it('settings without a stored garden keep the defaults', () => {
     const { s } = settingsWith({});
-    expect(s.get()).toMatchObject({ sunflowers: 'grow' });
-    expect(s.legacyGarden()).toBeUndefined();
+    expect(s.get('local')).toMatchObject({ sunflowers: 'grow' });
+    expect(s.legacyGarden('local')).toBeUndefined();
   });
 
   // owner, 2026-10-26: the switches became the person pref `streak`, Off for everyone, so nothing is carried over
   it('drops the retired flame and plant switches on load and after a restored backup, and writes the file without them', () => {
     const { d, s } = settingsWith({ streakFlame: false, plant: true, garden: 'plant' });
-    expect(s.get()).not.toHaveProperty('streakFlame');
-    expect(s.get()).not.toHaveProperty('plant');
-    s.update((x) => { x.sounds = true; });
+    expect(s.get('local')).not.toHaveProperty('streakFlame');
+    expect(s.get('local')).not.toHaveProperty('plant');
+    s.update('local', (x) => { x.sounds = true; });
     const onDisk = () => JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8'));
     expect(onDisk()).not.toHaveProperty('streakFlame');
     expect(onDisk()).not.toHaveProperty('plant');
-    // a restored older backup puts them back on disk; the reload drops them again
+    // a restored older backup puts them back on disk; the next read drops them again
     fs.writeFileSync(path.join(d, 'settings.json'), JSON.stringify({ ...onDisk(), streakFlame: true, plant: true }));
-    s.reload();
-    expect(s.get()).not.toHaveProperty('streakFlame');
-    expect(s.get()).not.toHaveProperty('plant');
+    expect(s.get('local')).not.toHaveProperty('streakFlame');
+    expect(s.get('local')).not.toHaveProperty('plant');
   });
 
   it.each([

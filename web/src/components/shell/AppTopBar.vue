@@ -8,6 +8,7 @@ import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
+import { goToNow, nowShown } from '@/composables/useViewToday';
 import { useNavPosition } from '@/composables/useNavPosition';
 import { useNav } from '@/composables/useNav';
 import { useBarSize } from '@/composables/useBarSize';
@@ -44,11 +45,16 @@ const barSize = useBarSize();
 const layout = computed(() => (isPhone.value ? (barSize.top.value === 'expressive' ? 'two-rows' : 'one-row') : 'wide'));
 /** A phone's bar (Expressive or Compact): the short date and Today as an icon, one row of controls (feature header-expressive). */
 const oneRow = computed(() => layout.value !== 'wide');
-/** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout). */
-const todayShown = computed(() => inPeriod(cal.view, cal.anchor, clock.todayDate));
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
 /** A date-less Labs view (Now, Timeline): the title is the view's name and there is no moving through periods. */
 const dateless = computed(() => datelessLab(route.meta.lab as string | undefined));
+/** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout); a date-less view says whether now is on screen. */
+const todayShown = computed(() => (dateless.value ? nowShown.value : inPeriod(cal.view, cal.anchor, clock.todayDate)));
+/** Today: back to today's period, or in a date-less view with a Today button back to now. */
+function onToday(): void {
+  if (dateless.value) goToNow.value?.();
+  else void nav.today();
+}
 
 function toggleFilters() {
   if (filters.active.value) return; // always shown while a filter is active
@@ -68,11 +74,11 @@ function toggleFilters() {
         <span class="t">{{ oneRow ? cal.shortTitle : cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </Pressable>
       </div>
-      <div v-if="!route.meta.tasks && !dateless" class="nav">
+      <div v-if="!route.meta.tasks && (!dateless || dateless.today)" class="nav">
         <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
-        <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
-        <Button variant="tonal" class="today" :class="{ off: !todayShown }" data-testid="nav-today" :data-today-shown="todayShown" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="nav.today()"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
-        <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
+        <IconButton v-if="!dateless" :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
+        <Button variant="tonal" class="today" :class="{ off: !todayShown }" data-testid="nav-today" :data-today-shown="todayShown" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="onToday"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
+        <IconButton v-if="!dateless" :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
