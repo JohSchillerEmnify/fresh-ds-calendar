@@ -47,7 +47,7 @@ VERSION_NAME="1.1.$VERSION_CODE"
 export VERSION_CODE VERSION_NAME
 echo "==> versionCode $VERSION_CODE ($VERSION_NAME)"
 echo "==> pnpm install + cap sync"
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --ignore-scripts
 pnpm exec cap sync android
 
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -q -t "$IMAGE" - < "$REPO/android/build.Dockerfile"

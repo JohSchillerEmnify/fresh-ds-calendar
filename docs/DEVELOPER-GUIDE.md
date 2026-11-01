@@ -52,7 +52,7 @@ This is a hobby project, built for a household. Please know what you are getting
 You need Node ≥ 24.11 and pnpm (version pinned in `package.json`).
 
 ```sh
-pnpm install
+pnpm install --ignore-scripts
 pnpm build
 pnpm dev:server   # API with the mock provider and demo data, no sign-in
 pnpm dev:web      # opens the web app

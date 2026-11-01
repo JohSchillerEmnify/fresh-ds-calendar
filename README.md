@@ -26,7 +26,7 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 ## Run locally
 
 ```sh
-pnpm install
+pnpm install --ignore-scripts
 pnpm build            # web + server
 pnpm dev:server       # API (mock provider by default)
 pnpm dev:web          # Vite dev server
