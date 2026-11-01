@@ -40,6 +40,7 @@ export default {
   },
   filter: {
     label: 'Filter',
+    labelActive: 'Filter, {count} aktiv',
     when: 'Wann',
     clear: 'Filter zurücksetzen',
     category: "Kategorie",

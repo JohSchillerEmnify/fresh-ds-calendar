@@ -14,6 +14,7 @@ export default {
   },
   filter: {
     label: 'Filder',
+    labelActive: 'Filder, {count} aktiv',
     when: 'Wann',
     clear: 'Filder wegmachn',
     category: "Kadegorie",

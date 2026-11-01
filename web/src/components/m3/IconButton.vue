@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { vRipple } from '@/lib/ripple';
 
-defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?: boolean; disabled?: boolean }>();
+// `pressed` stays undefined unless given: a plain button must not announce itself as a toggle
+withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?: boolean; disabled?: boolean }>(), { pressed: undefined });
 </script>
 
 <template>

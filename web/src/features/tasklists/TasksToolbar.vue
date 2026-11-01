@@ -83,8 +83,8 @@ const orderDisabled = computed(() => props.tab !== 'open');
 <template>
   <div class="tb" data-testid="tasks-toolbar">
     <p v-if="!orderDisabled" class="summary" data-testid="tasks-sort-summary">{{ summary }}</p>
-    <div class="ftb" :class="{ away }" role="toolbar" :aria-label="t('tasks.view.toolbar')" data-testid="tasks-floating-toolbar" :data-hidden="away ? 'true' : 'false'" :inert="away">
-      <IconButton :label="t('tasks.filter.label')" :pressed="active" data-testid="tasks-filter-open" aria-haspopup="dialog" @click="filterOpen = true">
+    <div class="ftb" :class="{ away }" role="group" :aria-label="t('tasks.view.toolbar')" data-testid="tasks-floating-toolbar" :data-hidden="away ? 'true' : 'false'" :inert="away">
+      <IconButton :label="active ? t('tasks.filter.labelActive', { count: chips.length }) : t('tasks.filter.label')" :variant="active ? 'tonal' : undefined" data-testid="tasks-filter-open" aria-haspopup="dialog" @click="filterOpen = true">
         <IconFilter /><b v-if="active" class="badge" data-testid="tasks-filter-count">{{ chips.length }}</b>
       </IconButton>
       <IconButton :label="t('tasks.view.sortLabel')" :disabled="orderDisabled" data-testid="tasks-sort-open" aria-haspopup="dialog" @click="sortOpen = true"><IconSort /></IconButton>
