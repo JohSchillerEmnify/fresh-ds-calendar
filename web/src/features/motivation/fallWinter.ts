@@ -41,7 +41,7 @@ export const PROPS: Record<'fall' | 'winter', Record<SceneLayout, Prop[]>> = {
   fall: {
     // one row: the tree stands in the gap after the date (the cat moves to the bottom edge)
     H1: [tree(128.6, 52), pile(176, -1)],
-    H2: [tree(140, 43), pile(176), pile(226), tree(264, 56)],
+    H2: [tree(140, 43), pile(176), pile(226), tree(264, 36)],
     T: [tree(440, 46), pile(540), tree(572, 56), pile(603)],
     D: [tree(336, 46), tree(545, 56), tree(578, 46), pile(620), pile(678), tree(840, 56), pile(886), tree(960, 46), tree(990, 56), pile(1050)],
   },
@@ -49,7 +49,7 @@ export const PROPS: Record<'fall' | 'winter', Record<SceneLayout, Prop[]>> = {
     // one row: no gap is wide enough for the snowy tree; the snowman stands after the date
     H1: [snowman(132.4), sledge(176, -2)],
     // the snowman stays beside the cat (both from the left), so on a narrow phone it does not stand behind it
-    H2: [snowman(188, 'left'), sledge(224), stree(264, 56)],
+    H2: [snowman(188, 'left'), sledge(224), stree(264, 36)],
     T: [stree(440, 46), snowman(540), stree(578, 56), sledge(610)],
     D: [stree(336, 46), snowman(548), sledge(586), stree(660, 56), stree(692, 46), stree(820, 56), stree(930, 46), stree(960, 56), stree(1050, 46)],
   },
@@ -62,15 +62,15 @@ export const PROPS: Record<'fall' | 'winter', Record<SceneLayout, Prop[]>> = {
  * from under Today (336 px) to after it (440 px). Two particles per layout moved off the Today button for the same reason.
  */
 export const CAT_X: Record<'fall' | 'winter', Record<SceneLayout, number>> = {
-  fall: { H1: 216, H2: 240, T: 512, D: 717 },
+  fall: { H1: 204, H2: 240, T: 512, D: 717 },
   winter: { H1: 218, H2: 156, T: 512, D: 512 },
 };
 /** The cat's height (px; the as-built size of the 96 px scene box on phones) and how far it stands below the bar's
  * bottom edge: in one row the tree or the snowman has its gap, so only the cat's head shows at the bottom edge. */
-export const CAT_SIZE: Record<SceneLayout, { h: number; bottom: number }> = { H1: { h: 30, bottom: -19 }, H2: { h: 30, bottom: -1 }, T: { h: 26.4, bottom: -1 }, D: { h: 26.4, bottom: -1 } };
+export const CAT_SIZE: Record<SceneLayout, { h: number; bottom: number }> = { H1: { h: 30, bottom: -1 }, H2: { h: 30, bottom: -1 }, T: { h: 26.4, bottom: -1 }, D: { h: 26.4, bottom: -1 } };
 
 /** The kite's top-left corner (mockup px; 16 x 20 plus its tail); its string runs to the cat's front paw. */
-export const KITE: Record<SceneLayout, { x: number; y: number }> = { H1: { x: 236, y: 2 }, H2: { x: 276, y: 2 }, T: { x: 540, y: 2 }, D: { x: 790, y: 2 } };
+export const KITE: Record<SceneLayout, { x: number; y: number }> = { H1: { x: 224, y: 2 }, H2: { x: 222, y: 2 }, T: { x: 540, y: 2 }, D: { x: 790, y: 2 } };
 
 /** The height of the bird flock's flight above the bar's top edge (px): in the gap between the rows on a phone, above the title on wide bars. */
 export const FLOCK_Y: Record<SceneLayout, number> = { H1: 0, H2: 44, T: 4, D: 4 };
@@ -90,20 +90,20 @@ export type Spot = [number, number];
 export const STILL: Record<'fall' | 'winter' | 'christmas', Record<SceneLayout, Spot[]>> = {
   fall: {
     H1: [[371, 3], [164, 5], [304, 41], [245, 3], [308, 3], [122, 41], [338, 8], [323, 5], [233, 40]],
-    H2: [[290, 23], [14, 41], [161, 73], [371, 47], [233, 56], [305, 73], [356, 3], [119, 47], [215, 72]],
+    H2: [[290, 60], [14, 54], [161, 73], [371, 47], [233, 56], [305, 73], [356, 3], [119, 47], [215, 72]],
     T: [[563, 3], [320, 41], [14, 49], [800, 8], [683, 3], [167, 49], [452, 3], [623, 41], [485, 48]],
     D: [[767, 3], [1259, 5], [14, 49], [386, 3], [1025, 41], [575, 49], [887, 41], [1133, 3], [209, 48]],
   },
   winter: {
     H1: [[340, 42], [143, 5], [368, 2], [221, 2], [332, 8], [170, 2], [236, 4], [239, 8], [350, 2]],
-    H2: [[212, 47], [14, 41], [368, 2], [311, 65], [272, 2], [119, 47], [371, 44], [263, 35], [254, 65]],
+    H2: [[212, 47], [14, 41], [368, 2], [311, 65], [272, 58], [119, 47], [371, 44], [263, 62], [254, 65]],
     T: [[563, 2], [320, 41], [797, 5], [680, 2], [452, 2], [620, 41], [485, 41], [719, 41], [497, 2]],
     D: [[563, 2], [1259, 8], [911, 41], [320, 41], [731, 41], [1079, 2], [821, 2], [1169, 41], [635, 41]],
   },
   // the Christmas flakes (xm-still.png); the wide bars use the Winter spots
   christmas: {
     H1: [[113, 10], [176, 12], [226, 38], [248, 8], [178, 36], [316, 42], [304, 42], [246, 40], [380, 30]],
-    H2: [[140, 52], [212, 48], [160, 70], [262, 14], [296, 30], [210, 66], [284, 6], [300, 52], [304, 70]],
+    H2: [[140, 52], [212, 48], [160, 70], [262, 58], [336, 62], [210, 66], [336, 76], [300, 52], [304, 70]],
     T: [[563, 2], [320, 41], [797, 5], [680, 2], [452, 2], [620, 41], [485, 41], [719, 41], [497, 2]],
     D: [[563, 2], [1259, 8], [911, 41], [320, 41], [731, 41], [1079, 2], [821, 2], [1169, 41], [635, 41]],
   },

@@ -6,6 +6,7 @@
  * or "no reminders". The test ids carry `prefix`: `<prefix>-reminder` (chip, `data-minutes`), `-reminder-remove`,
  * `-reminder-add`, `-reminders-default`, `-reminder-option`, `-reminder-custom`.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref } from 'vue';
 import { IconAdd, IconClose } from '@/components/icons';
 import type { Reminders } from '@/api/types';
@@ -63,7 +64,7 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
     <ul v-else-if="list.length" class="chips">
       <li v-for="m in list" :key="m" class="chip" :data-testid="`${prefix}-reminder`" :data-minutes="m">
         <span class="txt">{{ formatLead(m) }}</span>
-        <button type="button" class="x" :aria-label="t('calendar.reminders.remove', { label: formatLead(m) })" :data-testid="`${prefix}-reminder-remove`" @click="remove(m)"><IconClose /></button>
+        <Pressable type="button" class="x" :aria-label="t('calendar.reminders.remove', { label: formatLead(m) })" :data-testid="`${prefix}-reminder-remove`" @click="remove(m)"><IconClose /></Pressable>
       </li>
     </ul>
     <p v-else class="state muted" :data-testid="`${prefix}-reminders-none`">{{ t('calendar.reminders.none') }}</p>
@@ -77,7 +78,7 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
 
     <div v-if="picking && !full" class="picker" role="group" :aria-label="t('calendar.reminders.pick')">
       <div class="opts">
-        <button v-for="m in options" :key="m" type="button" class="opt" :data-testid="`${prefix}-reminder-option`" :data-minutes="m" @click="add(m)">{{ formatLead(m) }}</button>
+        <Pressable v-for="m in options" :key="m" type="button" class="opt" :data-testid="`${prefix}-reminder-option`" :data-minutes="m" @click="add(m)">{{ formatLead(m) }}</Pressable>
       </div>
       <div class="cust">
         <TextField v-model="custom" class="grow" type="number" inputmode="numeric" min="0" max="40320" step="1" :label="t('calendar.reminders.customLabel')" :error="customError" :data-testid="`${prefix}-reminder-custom`" data-enter-skip @keydown.enter.prevent.stop="addCustom" />

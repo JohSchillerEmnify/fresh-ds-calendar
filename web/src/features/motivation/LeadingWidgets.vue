@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
+import { elOf } from '@/lib/elOf';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { t } from '@/i18n';
 import Plant from './Plant.vue';
@@ -20,7 +22,9 @@ const props = withDefaults(
 );
 const store = useMotivationStore();
 const cardOpen = ref(false);
-const plantBtn = ref<HTMLElement | null>(null);
+const plantBtnRef = ref<unknown>(null);
+/** The `Pressable`'s element (a template ref points at the component). */
+const plantBtn = computed(() => elOf(plantBtnRef.value));
 const plant = computed(() => store.motivation?.plant ?? null);
 const streakState = computed(() => store.motivation?.streak ?? null);
 const prefs = usePrefsStore();
@@ -35,10 +39,10 @@ onBeforeUnmount(() => store.stop());
   <div class="lw" data-testid="leading-widgets" :data-ready="ready ? 'true' : undefined">
     <StreakFlame v-if="props.streak === 'flame' && streakState" :count="streakState.current" :pulse="store.streakPulse" />
     <div v-if="props.streak === 'plant' && plant" class="lw-plant">
-      <button
+      <Pressable
         type="button"
         class="lw-btn"
-        ref="plantBtn"
+        ref="plantBtnRef"
         data-testid="plant-button"
         :data-stage="plant.stage"
         :data-mood="plant.mood"
@@ -47,7 +51,7 @@ onBeforeUnmount(() => store.stop());
         @click="cardOpen = !cardOpen"
       >
         <Plant :stage="plant.stageIndex" :mood="plant.mood" :size="30" :change="store.change" />
-      </button>
+      </Pressable>
       <PlantCard v-if="cardOpen" :anchor="plantBtn" :plant="plant" :change="store.change" @close="cardOpen = false" />
     </div>
     <StreakToast :message="store.message" @hide="store.dismissMessage()" />

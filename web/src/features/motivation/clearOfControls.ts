@@ -16,6 +16,11 @@ const CONTROLS = [
 
 interface Box { l: number; r: number; t: number; b: number }
 
+/** Whether a box meets any of the boxes (a part under a control). */
+function underAny(r: Box, boxes: Box[]): boolean {
+  return boxes.some((c) => Math.min(r.r, c.r) - Math.max(r.l, c.l) > 0 && Math.min(r.b, c.b) - Math.max(r.t, c.t) > 0);
+}
+
 /** The drawn box of a control: an icon's shapes rather than its square, otherwise the element. */
 function drawnBox(el: Element): Box | null {
   const shapes = el.tagName.toLowerCase() === 'svg' ? [...el.querySelectorAll('path, circle, rect, ellipse')] : [];
@@ -127,4 +132,42 @@ export function useClearOfControls(root: Ref<HTMLElement | null>, selector: stri
     mutate?.disconnect();
   });
   return later;
+}
+
+/** The visitors that fly or hop through a scene: the butterfly, the bat, the ghost, the bird flock and the robin. */
+const VISITORS = '[data-part=butterfly], [data-part=bat], [data-part=ghost], [data-part=bird-flock], [data-part=robin]';
+
+/** Hides (`data-hidden`) each frame any visitor that meets a control, so it passes behind the controls unseen; runs only while one is in the scene. */
+export function useVisitorsClear(root: Ref<HTMLElement | null>): void {
+  let frame = 0;
+  let disposed = false;
+  let watch: MutationObserver | null = null;
+
+  const step = () => {
+    frame = 0;
+    const el = root.value;
+    const bar = el?.closest('[data-testid="top-bar"]');
+    if (!el || !bar || disposed) return;
+    const visitors = [...el.querySelectorAll<HTMLElement | SVGElement>(VISITORS)];
+    if (!visitors.length) return;
+    const controls = [...bar.querySelectorAll(CONTROLS)].map(drawnBox).filter((b): b is Box => !!b);
+    for (const v of visitors) {
+      const r = v.getBoundingClientRect();
+      v.toggleAttribute('data-hidden', underAny({ l: r.left, r: r.right, t: r.top, b: r.bottom }, controls));
+    }
+    frame = requestAnimationFrame(step);
+  };
+  const start = () => { if (!frame && !disposed) frame = requestAnimationFrame(step); };
+
+  onMounted(() => {
+    if (!root.value || typeof MutationObserver === 'undefined') return;
+    watch = new MutationObserver(start);
+    watch.observe(root.value, { childList: true, subtree: true });
+    start();
+  });
+  onScopeDispose(() => {
+    disposed = true;
+    cancelAnimationFrame(frame);
+    watch?.disconnect();
+  });
 }

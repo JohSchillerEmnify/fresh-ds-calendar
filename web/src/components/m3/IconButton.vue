@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { vRipple } from '@/lib/ripple';
 
-defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?: boolean; disabled?: boolean }>();
+// `pressed` stays undefined unless given: a plain button must not announce itself as a toggle
+withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?: boolean; disabled?: boolean }>(), { pressed: undefined });
 </script>
 
 <template>
@@ -12,7 +13,7 @@ defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?
 
 <style scoped>
 .icon-btn {
-  width: 44px; height: 44px; border-radius: var(--md-sys-shape-corner-full); flex: none;
+  position: relative; width: 44px; height: 44px; border-radius: var(--md-sys-shape-corner-full); flex: none;
   display: inline-flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);
 }
 .icon-btn :deep(svg) { width: 24px; height: 24px; }

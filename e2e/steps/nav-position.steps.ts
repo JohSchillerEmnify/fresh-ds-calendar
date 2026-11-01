@@ -5,7 +5,8 @@ import { box, chooseOption, viewport } from './support/ui.js';
 import type { World } from './support/world.js';
 
 Given('the view switcher on phones is set to {string}', async function (this: World, position: string) {
-  await this.api.patch('/api/prefs', { navPhone: position });
+  // the side menu is stored as `drawer`
+  await this.api.patch('/api/prefs', { navPhone: position === 'side menu' ? 'drawer' : position });
 });
 
 Given('the view switcher on desktop and tablets is set to {string}', async function (this: World, position: string) {
@@ -51,10 +52,8 @@ Then('the open tasks tray is at the bottom of the screen', async function (this:
   await expect.poll(async () => { const b = await box(this.page.getByTestId('task-tray')); return Math.abs(b.y + b.height - h); }).toBeLessThanOrEqual(1);
 });
 
-Then('the open tasks tray is above the bottom bar', async function (this: World) {
-  const tray = await box(this.page.getByTestId('task-tray'));
-  const bar = await box(this.page.getByTestId('bottom-bar'));
-  expect(tray.y + tray.height, 'tray bottom above the bar top').toBeLessThanOrEqual(bar.y + 1);
+Then('the open tasks row is inside the bottom bar', async function (this: World) {
+  await expect(this.page.getByTestId('bottom-bar').getByTestId('task-tray-toggle')).toBeVisible();
 });
 
 Then('the add button is above the open tasks tray', async function (this: World) {

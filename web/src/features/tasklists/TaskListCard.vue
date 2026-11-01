@@ -13,6 +13,8 @@
  * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on it emits
  * `open-list` (the host opens the list sheet).
  */
+import Pressable from '@/components/m3/Pressable.vue';
+import { elOf } from '@/lib/elOf';
 import { badgeInitial } from './sharing';
 import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
@@ -45,7 +47,9 @@ const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a gro
 const emit = defineEmits<{ open: []; el: [el: HTMLElement]; openList: []; collapse: [] }>();
 const settings = useSettingsStore();
 const ui = useUiStore();
-const el = ref<HTMLElement | null>(null);
+const elRef = ref<unknown>(null);
+/** The `Pressable`'s element (a template ref points at the component). */
+const el = computed(() => elOf(elRef.value));
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
 // a preview copy (swipe neighbour) is inert: no drag handlers
@@ -139,8 +143,8 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 </script>
 
 <template>
-  <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+  <Pressable
+    ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
@@ -173,7 +177,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     </span>
     <ResizeHandles v-if="resizing" :segment="segment" />
     <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :segment="segment" :variant="variant" @close="ui.collapseCard(cardKey())" />
-  </button>
+  </Pressable>
 </template>
 
 <style scoped>

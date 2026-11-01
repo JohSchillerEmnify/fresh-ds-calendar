@@ -47,6 +47,8 @@ export default {
   },
   nav: {
     views: 'Ansichdn',
+    menu: 'Menü',
+    calendars: 'Kalender',
   },
   common: {
     off: 'Aus',
@@ -118,7 +120,7 @@ export default {
       resetDemo: { done: 'Demodaden sin widda da' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
-    navPosition: { label: 'Ansichdswechsl', hint: 'Wo Jahr, Monad, Woche un Dag liegn', phone: 'Aufm Handy', desktop: 'Am Desktop un Tablet', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn' },
+    navPosition: { label: 'Ansichdswechsl', hint: 'Wo Jahr, Monad, Woche un Dag liegn', phone: 'Aufm Handy', desktop: 'Am Desktop un Tablet', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn', drawer: 'Seidnmenü' },
     sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
     ownThemes: { label: 'Designs mit KI erzeuge', hint: 'Experimentell: a Prompt für a KI hole un des Design importiere, wo sie liefert' },
   },

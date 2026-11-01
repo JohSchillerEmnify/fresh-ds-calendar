@@ -23,21 +23,6 @@ Given('the header layout is set to {string}', async function (this: World, label
   await this.api.patch('/api/prefs', { headerLayout: layoutValue(label) });
 });
 
-When('I choose {string} as the header layout', async function (this: World, label: string) {
-  layoutValue(label);
-  const control = this.page.getByTestId('settings-header-layout');
-  const option = control.getByRole('button', { name: label, exact: true });
-  await expect(option).toBeVisible();
-  if ((await option.getAttribute('aria-pressed')) === 'true') return;
-  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
-  await option.click();
-  expect((await saved).status(), 'header layout saved').toBe(200);
-});
-
-Then('the header layout {string} is selected', async function (this: World, label: string) {
-  await expect(this.page.getByTestId('settings-header-layout').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
-});
-
 /** Vertical centre of a visible element. */
 const middle = async (loc: Locator) => { const b = await box(loc); return b.y + b.height / 2; };
 
@@ -53,8 +38,9 @@ Then('the top bar is in one row', async function (this: World) {
 });
 
 Then('the top bar is in two rows', async function (this: World) {
-  await expect.poll(async () => { const [t, n] = [await box(title(this)), await box(today(this))]; return Math.round(n.y - (t.y + t.height)); }, { message: 'Today below the title' })
-    .toBeGreaterThanOrEqual(0);
+  // Expressive: one row of controls over the full scene, the scene's strip below it (owner-approved mockups, feature header-expressive)
+  await expect(today(this)).toBeVisible();
+  await expect.poll(() => bar(this).evaluate((el) => el.getBoundingClientRect().height - parseFloat(getComputedStyle(el).paddingTop)), { message: 'top bar height' }).toBeGreaterThanOrEqual(80);
 });
 
 Then('the top bar is at most {int} pixels tall', async function (this: World, px: number) {
@@ -266,9 +252,9 @@ async function todayLook(w: World, token: string) {
 }
 
 Then('the Today button shows that today is on screen', async function (this: World) {
-  await expect.poll(() => todayLook(this, '--md-sys-color-secondary-container')).toMatchObject({ shown: 'true', border: 0 });
-  const look = await todayLook(this, '--md-sys-color-secondary-container');
-  expect(look.bg, 'filled with the secondary container colour').toBe(look.token);
+  await expect.poll(() => todayLook(this, '--md-sys-color-primary-container')).toMatchObject({ shown: 'true', border: 0 });
+  const look = await todayLook(this, '--md-sys-color-primary-container');
+  expect(look.bg, 'filled with the primary container colour').toBe(look.token);
 });
 
 Then('the Today button does not show that today is on screen', async function (this: World) {

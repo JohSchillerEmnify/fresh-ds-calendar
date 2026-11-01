@@ -24,7 +24,7 @@ describe('reset', () => {
     expect(r.body.items).toEqual([]);
     expect(r.body.calendars).toHaveLength(2);
     expect(r.body.settings.sunflowers).toBe('grow');
-    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ streak: 'off', syncIndicator: false, headerLayout: 'two-rows' });
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ streak: 'off', syncIndicator: false, headerLayout: 'auto' });
     const cfg = (await t.json('GET', '/api/config')).body;
     expect(cfg).toMatchObject({ clockFrozen: false, pollIntervalMs: 30000 });
     expect((await t.json('GET', '/api/health')).body.providerStatus).toBe('ok');

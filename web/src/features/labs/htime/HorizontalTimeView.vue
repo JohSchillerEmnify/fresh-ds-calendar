@@ -7,6 +7,7 @@
  * a CSS transform while a gesture runs (`zoomGestures.ts`), with the sticky hour axis and day labels following the same
  * transform on their own axis. Entries are the calendar's own components (`ItemView`: events, `TaskListCard`).
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, shallowRef, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
@@ -158,16 +159,16 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
 <template>
   <section class="ht-view" data-testid="htime-view" :data-zoom-x="zoom.x.toFixed(2)" :data-zoom-y="zoom.y.toFixed(2)">
     <header class="bar">
-      <button type="button" class="btn icon" data-testid="htime-prev" :aria-label="t('calendar.topBar.previous')" @click="shift(-1)">‹</button>
+      <Pressable type="button" class="btn icon" data-testid="htime-prev" :aria-label="t('calendar.topBar.previous')" @click="shift(-1)">‹</Pressable>
       <span class="title" data-testid="htime-title">{{ title }}</span>
-      <button type="button" class="btn icon" data-testid="htime-next" :aria-label="t('calendar.topBar.next')" @click="shift(1)">›</button>
+      <Pressable type="button" class="btn icon" data-testid="htime-next" :aria-label="t('calendar.topBar.next')" @click="shift(1)">›</Pressable>
       <span class="grp">
-        <button type="button" class="btn icon" data-testid="htime-time-out" :aria-label="t('horizontal.timeOut')" :disabled="atMin('x')" @click="zoomAxis('x', -1)">↔−</button>
-        <button type="button" class="btn icon" data-testid="htime-time-in" :aria-label="t('horizontal.timeIn')" :disabled="atMax('x')" @click="zoomAxis('x', 1)">↔+</button>
+        <Pressable type="button" class="btn icon" data-testid="htime-time-out" :aria-label="t('horizontal.timeOut')" :disabled="atMin('x')" @click="zoomAxis('x', -1)">↔−</Pressable>
+        <Pressable type="button" class="btn icon" data-testid="htime-time-in" :aria-label="t('horizontal.timeIn')" :disabled="atMax('x')" @click="zoomAxis('x', 1)">↔+</Pressable>
       </span>
       <span class="grp">
-        <button type="button" class="btn icon" data-testid="htime-day-out" :aria-label="t('horizontal.dayOut')" :disabled="atMin('y')" @click="zoomAxis('y', -1)">↕−</button>
-        <button type="button" class="btn icon" data-testid="htime-day-in" :aria-label="t('horizontal.dayIn')" :disabled="atMax('y')" @click="zoomAxis('y', 1)">↕+</button>
+        <Pressable type="button" class="btn icon" data-testid="htime-day-out" :aria-label="t('horizontal.dayOut')" :disabled="atMin('y')" @click="zoomAxis('y', -1)">↕−</Pressable>
+        <Pressable type="button" class="btn icon" data-testid="htime-day-in" :aria-label="t('horizontal.dayIn')" :disabled="atMax('y')" @click="zoomAxis('y', 1)">↕+</Pressable>
       </span>
     </header>
     <div class="frame">
@@ -176,10 +177,10 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
         <span v-for="h in hours" :key="h" class="hour" data-testid="htime-hour" :data-hour="h" :style="{ left: h * pph + 'px' }">{{ String(h).padStart(2, '0') }}:00</span>
       </div></div>
       <div class="labels"><div ref="labels" class="labelsin" :style="{ height: layout.height + 'px' }">
-        <button
+        <Pressable
           v-for="r in layout.rows" :key="r.date" type="button" class="dlabel" :class="{ today: r.date === today }" data-testid="htime-day-label" :data-date="r.date"
           :style="{ top: r.top + 'px', height: r.height + 'px' }" :aria-label="t('calendar.month.openDay', { date: r.date })" @click="openDay(r.date)"
-        ><span class="wd">{{ dayLabel(r.date).wd }}</span><span class="dn">{{ dayLabel(r.date).num }}</span></button>
+        ><span class="wd">{{ dayLabel(r.date).wd }}</span><span class="dn">{{ dayLabel(r.date).num }}</span></Pressable>
       </div></div>
       <!-- the viewport: nothing scrolls natively, the controller moves the world with a transform (pinch needs touch-action: none) -->
       <div ref="port" class="port" data-testid="htime-port">

@@ -11,7 +11,7 @@ export default {
     previous: 'Previous period',
     next: 'Next period',
     today: 'Today',
-    filters: 'Filters',
+    filters: 'Filter',
     settings: 'Settings',
   },
   picker: {

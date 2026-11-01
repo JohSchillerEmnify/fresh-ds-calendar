@@ -37,7 +37,7 @@ Feature: Navigation and view switching
     When I open the week view for 2026-10-12
     Then the week view is shown
     And the week columns are "Mon 12, Tue 13, Wed 14, Thu 15, Fri 16, Sat 17, Sun 18"
-    And the period title is "12 – 18 Oct 2026"
+    And the period title is "Oct 2026"
 
   @week
   Scenario: A week URL with a non-Monday date is normalised to its Monday
@@ -52,14 +52,23 @@ Feature: Navigation and view switching
 
     Examples:
       | monday     | title                      |
-      | 2026-09-28 | 28 Sep – 4 Oct 2026        |
-      | 2026-12-28 | 28 Dec 2026 – 3 Jan 2027   |
+      | 2026-09-28 | Oct 2026                   |
+      | 2026-12-28 | Dec 2026                   |
 
   @day
   Scenario: Day view shows a single day
     When I open the day view for 2026-10-14
     Then the day view is shown
-    And the period title is "Wednesday, 14 October 2026"
+
+  @day @desktop
+  Scenario: The day view's title names the whole date on desktop
+    When I open the day view for 2026-10-14
+    Then the period title is "Wednesday, 14 October 2026"
+
+  @day @mobile
+  Scenario: The day view's title is the short date on a phone
+    When I open the day view for 2026-10-14
+    Then the period title is "Wed, 14 Oct"
 
   Scenario Outline: Deep links open the right view directly
     When I open the path "<path>"
@@ -69,8 +78,7 @@ Feature: Navigation and view switching
     Examples:
       | path             | view  | title                   |
       | /month/2026-10   | month | October 2026            |
-      | /week/2026-10-12 | week  | 12 – 18 Oct 2026        |
-      | /day/2026-10-12  | day   | Monday, 12 October 2026 |
+      | /week/2026-10-12 | week  | Oct 2026                |
       | /month/2027-02   | month | February 2027           |
 
   Scenario Outline: Invalid deep links redirect to the current month
@@ -281,6 +289,9 @@ Feature: Navigation and view switching
   @mobile
   Scenario: Browser back after moving with the open tasks tray expanded returns to the previous period
     Given I am using a phone
+    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
+      | item | done |
+      | Milk | no   |
     When I open the month view for 2026-10
     And I open the open tasks tray
     And I go to the next period
@@ -365,6 +376,9 @@ Feature: Navigation and view switching
     @mobile
     Scenario: Going back with the open tasks tray expanded collapses the tray
       Given I am using a phone
+      And the calendar contains a task list "Groceries" on 2026-10-12 with items:
+        | item | done |
+        | Milk | no   |
       When I open the week view for 2026-10-12
       And I open the open tasks tray
       And I go back in the browser

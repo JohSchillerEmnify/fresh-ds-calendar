@@ -159,5 +159,6 @@ Then('the page is not scrolled', async function (this: World) {
 Then('the bottom bar ends at the bottom of the viewport', async function (this: World) {
   const b = await box(this.page.getByTestId('bottom-bar'));
   const h = await this.page.evaluate(() => window.innerHeight);
-  expect(Math.abs(b.y + b.height - h)).toBeLessThanOrEqual(1);
+  // the bar floats 8 px above the bottom edge (feature nav-expressive)
+  expect(Math.abs(b.y + b.height + 8 - h)).toBeLessThanOrEqual(1);
 });

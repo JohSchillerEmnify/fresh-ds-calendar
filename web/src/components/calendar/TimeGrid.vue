@@ -4,6 +4,7 @@
  * Extension points: `gridLayers` (rendered in every day column),
  * `itemRenderers` (block content), `time-slot` clicks (create), and the exposed `scrollToMinutes`.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, provide, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import EdgeBand from '@/features/calendar/EdgeBand.vue';
 import EventBar from '@/features/calendar/EventBar.vue';
@@ -168,17 +169,17 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
   <div ref="rootEl" class="tg" :class="[mode, { phone: isPhone, fit: !!fit, carrying: !!rootEl && carriedGrid === rootEl, 'allday-drop': !!rootEl && alldayDropGrid === rootEl }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
     <div v-if="mode === 'week'" class="heads">
       <div class="gutter" />
-      <button
+      <Pressable
         v-for="c in cols" :key="c.date" class="head" :class="{ today: c.today }" type="button" :data-testid="ids.header" :data-date="c.date"
         :data-today="c.today ? 'true' : undefined" @click="mode === 'week' && nav.openDay(c.d)"
       >
         <span class="dow">{{ formatDate(c.d, 'weekday') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
-      </button>
+      </Pressable>
     </div>
     <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap;
          its lists are one-line pills (allday in title form) that grow in place on a tap -->
     <div class="alldays" :class="{ empty: !rowShown, 'no-switch': !switchShown }" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
-      <div class="gutter"><button v-if="switchShown" class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+      <div class="gutter"><Pressable v-if="switchShown" class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></Pressable></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
         <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si] + 1 }" />
@@ -190,7 +191,7 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
         </div>
         <div v-for="c in cols" :key="c.date" class="col" :class="{ today: c.today }" :data-testid="ids.col" :data-date="c.date">
-          <button
+          <Pressable
             v-for="h in HOURS" :key="h" class="slot" type="button" data-testid="time-slot" :data-date="c.date" :data-hour="h"
             :aria-label="t('calendar.grid.createAt', { date: c.date, time: hourLabel(h) })" @click="fit ? nav.openDay(c.d) : openNew(c.date, hourLabel(h))"
           />
@@ -242,7 +243,7 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
 .adcol { display: grid; grid-template-rows: subgrid; row-gap: 2px; align-content: start; min-width: 0; padding: 0 1px 4px; min-height: 6px; }
 /* an entry keeps its own height (18 px on phones) instead of stretching to the row's 20 px bar height */
 .adcol > * { align-self: start; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: var(--scroll-end); }
 .grid { position: relative; display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); height: calc(24 * var(--hh)); }
 .hours { display: flex; flex-direction: column; }
 .hl { height: var(--hh); font: var(--md-sys-typescale-label-small); font-size: 10px; color: var(--md-sys-color-on-surface-variant); text-align: right; padding-right: 4px; transform: translateY(-7px); }
@@ -261,7 +262,7 @@ html[data-motion='off'] .blk.settle { transition: none; }
 .day .head { flex-direction: row; min-height: 36px; gap: 8px; }
 .day.phone .head { min-height: 36px; }
 /* fit-to-height (two-row overview): the window fills the area, nothing scrolls, heads and band stay compact */
-.tg.fit .scroll { overflow: hidden; }
+.tg.fit .scroll { overflow: hidden; padding-bottom: 0; }
 .tg.fit .head { min-height: 30px; flex-direction: row; gap: 5px; }
 .tg.fit .dn { width: 22px; height: 22px; font: var(--md-sys-typescale-label-large); font-size: 12px; }
 .tg.fit .dow { font-size: 11px; }

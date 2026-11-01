@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday } from '@/components/icons';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday, IconMenu } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
+import { useNavPosition } from '@/composables/useNavPosition';
 import { useNav } from '@/composables/useNav';
+import { useBarSize } from '@/composables/useBarSize';
 import { inPeriod } from '@/lib/dates';
 import { isPhone, isSwipeScreen } from '@/composables/useViewport';
 import { topBarWidgets } from '@/extensions/registry';
@@ -29,13 +32,18 @@ const ui = useUiStore();
 const settings = useSettingsStore();
 const prefs = usePrefsStore();
 const nav = useNav();
+const { position: navPosition } = useNavPosition();
+/** The view switcher is the side menu: a menu button opens it and it replaces the filter and settings buttons (feature nav-expressive). */
+const drawer = computed(() => navPosition.value === 'drawer');
 const clock = useClockStore();
 const router = useRouter();
 const route = useRoute();
 const filters = useFilters();
 /** The header layout in force: the person's choice on a phone; desktop and tablets keep their own one row (feature header-layout). */
-const layout = computed(() => (isPhone.value ? prefs.headerLayout : 'wide'));
-const oneRow = computed(() => layout.value === 'one-row');
+const barSize = useBarSize();
+const layout = computed(() => (isPhone.value ? (barSize.top.value === 'expressive' ? 'two-rows' : 'one-row') : 'wide'));
+/** A phone's bar (Expressive or Compact): the short date and Today as an icon, one row of controls (feature header-expressive). */
+const oneRow = computed(() => layout.value !== 'wide');
 /** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout). */
 const todayShown = computed(() => inPeriod(cal.view, cal.anchor, clock.todayDate));
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
@@ -49,14 +57,17 @@ function toggleFilters() {
 </script>
 
 <template>
-  <TopAppBar :data-layout="layout">
+  <TopAppBar :data-layout="layout" :data-size="barSize.top.value">
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
+      <div class="lead">
+      <IconButton v-if="drawer" class="menu" :label="t('nav.menu')" data-testid="menu-button" aria-haspopup="dialog" @click="ui.sideMenuOpen = true"><IconMenu /></IconButton>
       <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
       <h1 v-else-if="dateless" class="title" data-testid="view-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
-      <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
+      <Pressable v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ oneRow ? cal.shortTitle : cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
-      </button>
+      </Pressable>
+      </div>
       <div v-if="!route.meta.tasks && !dateless" class="nav">
         <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
         <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
@@ -74,11 +85,11 @@ function toggleFilters() {
         <InstallPrompts part="button" />
       </div>
       <div class="actions">
-        <span v-if="!route.meta.tasks" class="fwrap">
+        <span v-if="!route.meta.tasks && !drawer" class="fwrap">
           <IconButton :label="t('calendar.topBar.filters')" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
           <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
         </span>
-        <IconButton :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
+        <IconButton v-if="!drawer" :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
     <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks && !dateless" />
@@ -90,7 +101,9 @@ function toggleFilters() {
   display: grid; align-items: center; column-gap: 4px; padding: 2px 4px 2px 8px;
   grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title actions' 'nav widgets';
 }
-.title { margin: 0; grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
+.lead { grid-area: title; min-width: 0; display: flex; align-items: center; }
+.lead .title { flex: 1; }
+.title { margin: 0; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
 .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }
@@ -98,6 +111,8 @@ function toggleFilters() {
 /* the m3 button's size rule and the ripple's position: relative outrank the global .sr-only: restate them so the arrows take no room */
 .nav .sr-only { position: absolute; width: 1px; height: 1px; }
 .today { padding: 0 16px; }
+/* Today is the one filled button while today is on screen: the primary container, like the phone's pill (the tonal kit button is the secondary one) */
+.today:not(.off) { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 /* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
 .today.off { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
@@ -108,59 +123,48 @@ function toggleFilters() {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
 }
-/* Phones (feature header-layout): the person's header layout. The visuals may be smaller than 44 px; the hit areas are not. */
+/* Phones (features header-layout, header-expressive): one row of controls in both sizes; Expressive keeps the full 84 px scene
+   below it, Compact is the 52 px row. The visuals may be smaller than 44 px; the hit areas are not. */
 @media (max-width: 767.98px) {
   .title { font-size: 18px; line-height: 24px; }
-  /* Two rows, 84 px: the 48 px title row and a compact 32 px nav row. */
-  [data-layout='two-rows'] .grid { grid-template-rows: 48px auto; }
-  /* Today: the drawn pill sits in the 32 px row; its button is 44 px tall and reaches invisibly 10 px below the bar (owner,
-     option a). The ripple would fill that invisible box, so the pill carries the pressed and focus feedback instead. */
-  .nav .today { padding: 0; background: transparent; }
+  .grid { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-rows: 48px; grid-template-areas: 'title nav widgets actions'; padding: 2px 2px 2px 0; column-gap: 0; align-content: start; }
+  [data-size='expressive'] .grid { min-height: 84px; padding-top: 4px; }
+  /* Expressive's plant keeps the full 44 px tap area; Compact's is 32 wide so the row stays one row */
+  [data-size='expressive'] .widgets :deep(.lw-btn) { min-width: 44px; width: 44px; }
+  .nav .today { padding: 0; background: transparent; width: 44px; }
   .nav .today :deep(.m3-layer), .nav .today :deep(.m3-ripple) { display: none; }
   .nav .today:focus-visible { outline: none; }
   .nav .today:focus-visible .pill { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
-  .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 12%, var(--md-sys-color-secondary-container)); }
-  .pill { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+  .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, var(--md-sys-color-primary-container)); }
+  /* Today is the one filled button; off today's period it is outlined on a solid surface, so a scene never shows through */
+  .pill { width: 40px; height: 40px; border-radius: 20px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
   .nav .today.off { background: transparent; border: 0; }
   .today.off .pill { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
-  [data-layout='two-rows'] .nav { height: 32px; align-items: flex-start; }
-  [data-layout='two-rows'] .today { height: 44px; align-items: flex-start; }
-  [data-layout='two-rows'] .pill { height: 32px; padding: 0 12px; border-radius: 16px; font-size: 13px; }
-  /* the plant's button reaches 12 px down like Today, never up over the title row's buttons; the install pill is drawn 32 px tall */
-  [data-layout='two-rows'] .widgets { max-height: 32px; }
-  [data-layout='two-rows'] .widgets :deep([data-testid='install-app-button']) { min-height: 32px; height: 32px; }
-  [data-layout='two-rows'] .widgets :deep([data-testid='sync-status']) { height: 32px; }
-  [data-layout='two-rows'] .widgets :deep(.lw-btn) { height: 44px; min-height: 44px; min-width: 44px; padding: 0 0 12px; margin-bottom: -12px; }
-  /* One row, 52 px: date, the Today icon pill, then the widgets and actions; every button 44 x 44 except the plant (32 wide). */
-  [data-layout='one-row'] .grid { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-rows: 48px; grid-template-areas: 'title nav widgets actions'; padding: 2px 2px 2px 0; column-gap: 0; }
-  [data-layout='one-row'] .title { padding: 0 2px 0 8px; gap: 2px; }
-  [data-layout='one-row'] .chev { width: 20px; height: 20px; }
-  [data-layout='one-row'] .today { width: 44px; }
-  [data-layout='one-row'] .pill { width: 36px; height: 28px; border-radius: 14px; }
-  [data-layout='one-row'] .pill :deep(svg) { width: 18px; height: 18px; }
-  [data-layout='one-row'] .widgets { gap: 0; }
-  [data-layout='one-row'] .widgets :deep(.lw) { gap: 0; }
-  [data-layout='one-row'] .widgets :deep(.lw-btn) { min-width: 32px; width: 32px; min-height: 44px; padding: 0; }
-  [data-layout='one-row'] .widgets :deep([data-testid='streak-flame']) { width: 32px; justify-content: center; gap: 0; font-size: 14px; }
-  [data-layout='one-row'] .widgets :deep(.sf-flame) { width: 17px; height: 20px; }
-  [data-layout='one-row'] .widgets :deep([data-testid='sync-status']) { width: 24px; }
+  .pill :deep(svg) { width: 24px; height: 24px; }
+  .title { padding: 0 2px 0 8px; gap: 2px; }
+  .chev { width: 20px; height: 20px; }
+  .widgets { gap: 0; }
+  .widgets :deep(.lw) { gap: 0; }
+  .widgets :deep(.lw-btn) { min-width: 32px; width: 32px; min-height: 44px; padding: 0; }
+  .widgets :deep([data-testid='streak-flame']) { width: 32px; justify-content: center; gap: 0; font-size: 14px; }
+  .widgets :deep(.sf-flame) { width: 17px; height: 20px; }
+  .widgets :deep([data-testid='sync-status']) { width: 24px; }
 }
 /* Today's drawn shape: on wide screens the tonal button itself, on phones a pill inside a larger tap area. */
 .pill { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 /* Left-handed mode (phone, touch tablet): the settings group and the leading widgets sit at the left, title and navigation at the right. */
 html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .lead { flex-direction: row-reverse; }
 html[data-hand='left'][data-touch] .widgets { justify-content: flex-start; }
 /* On a phone the bar is the exact mirror of the right-handed one (owner, 2026-10-26), so a scene can simply be flipped:
    the title's text at the outer edge, the widgets in reverse order. */
 @media (max-width: 767.98px) {
-  html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
-  html[data-hand='left'][data-touch] .nav { justify-self: end; }
   html[data-hand='left'][data-touch] .title { flex-direction: row-reverse; }
   html[data-hand='left'][data-touch] .widgets { flex-direction: row-reverse; justify-content: flex-end; }
   html[data-hand='left'][data-touch] .widgets :deep(.lw) { flex-direction: row-reverse; }
   html[data-hand='left'][data-touch] .badge { right: auto; left: 2px; }
-  html[data-hand='left'][data-touch] [data-layout='one-row'] .grid { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: 'actions widgets nav title'; padding: 2px 0 2px 2px; }
-  html[data-hand='left'][data-touch] [data-layout='one-row'] .title { padding: 0 8px 0 2px; }
+  html[data-hand='left'][data-touch] .grid { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: 'actions widgets nav title'; padding-left: 2px; padding-right: 0; }
+  html[data-hand='left'][data-touch] .title { padding: 0 8px 0 2px; }
 }
 @media (min-width: 768px) { html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'actions widgets nav title'; } }
 </style>

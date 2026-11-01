@@ -89,7 +89,7 @@ describe('routing', () => {
 describe('shell navigation', () => {
   it('shows the title, moves by one period and returns with Today', async () => {
     const { w, router } = await mountAt('/week/2026-10-12');
-    expect(w.get(tid('period-title')).text()).toBe('12 – 18 Oct 2026');
+    expect(w.get(tid('period-title')).text()).toBe('Oct 2026');
     await w.get(tid('nav-next')).trigger('click');
     await wait(() => expect(router.currentRoute.value.path).toBe('/week/2026-10-19'));
     await w.get(tid('nav-today')).trigger('click');
@@ -422,15 +422,15 @@ describe('settings', () => {
     await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
   });
-  it('calendar: the Header layout choice (Two rows by default) sits before the Approaching card and saves the person pref', async () => {
+  it('calendar: the Top bar size choice (Compact on a phone by default) sits before the Approaching card and saves the person pref', async () => {
     const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
-    await wait(() => expect(w.find(tid('settings-header-layout')).exists()).toBe(true));
-    expect(w.findAll('[data-testid="settings-header-layout"] button').map((b) => b.text())).toEqual(['Two rows', 'One row']);
-    expect(w.get('[data-testid="settings-header-layout"] [aria-pressed="true"]').attributes('data-value')).toBe('two-rows');
+    await wait(() => expect(w.find(tid('settings-top-bar-size')).exists()).toBe(true));
+    expect(w.findAll('[data-testid="settings-top-bar-size"] button').map((b) => b.text())).toEqual(['Expressive', 'Compact']);
+    expect(w.get('[data-testid="settings-top-bar-size"] [aria-pressed="true"]').attributes('data-value')).toBe('compact');
     const ids = w.findAll('[data-testid^="settings-"]').map((e) => e.attributes('data-testid'));
-    expect(ids.indexOf('settings-header-layout')).toBeLessThan(ids.indexOf('settings-approaching-card'));
-    await w.get('[data-testid="settings-header-layout"] [data-value="one-row"]').trigger('click');
-    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ headerLayout: 'one-row' }));
+    expect(ids.indexOf('settings-top-bar-size')).toBeLessThan(ids.indexOf('settings-approaching-card'));
+    await w.get('[data-testid="settings-top-bar-size"] [data-value="expressive"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ headerLayout: 'two-rows' }));
   });
   it('calendar: the Sync indicator switch is off by default and saves the person pref', async () => {
     const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });

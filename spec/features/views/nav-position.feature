@@ -94,9 +94,9 @@ Feature: Where the view switcher sits
       | rail     |
 
   @mobile
-  Scenario: The tray stays above the bottom bar with the bottom bar
+  Scenario: With the bottom bar the open tasks are a slim row inside the bar
     When I open the month view for 2026-10
-    Then the open tasks tray is above the bottom bar
+    Then the open tasks row is inside the bottom bar
 
   @mobile
   Scenario Outline: The add button never covers the view switcher

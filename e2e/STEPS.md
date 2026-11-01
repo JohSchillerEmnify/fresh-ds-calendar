@@ -1965,9 +1965,7 @@ the scene's cat is moving
 a visitor passes through the top bar scene
 the visitor flies across the top bar scene
 the top bar scene shows the {string}
-the {string} of the top bar scene is not under a control
 the top bar scene shows {int} {string} at rest
-no {string} of the top bar scene is under a control
 the {string} of the top bar scene glide to their resting spots within {int} second(s)
 the {string} of the top bar scene runs the full width of the bar
 the {string} of the top bar scene is drawn at its full size
@@ -2017,11 +2015,6 @@ the support cat is gone within {int} ms
   of its kind may still show. "the top bar scene shows the X": a visible part X without `data-hidden` lies at least
   1 px inside the `top-bar` box (a visitor: waits up to the step timeout for it to come in). The four-part step "the
   top bar scene shows A, B, C and D" also skips parts with `data-hidden`. "does not show the X": no visible element for part X in the scene.
-  "the X of the top bar scene is not under a control": for every visible element of part X, the box of each drawn
-  shape (`path`, `circle`, `ellipse`, `rect`; the kite: its kite shapes and points along its string), clipped to the
-  `top-bar` box, does not intersect the box of any visible control in `top-bar`: the title text and its chevron, the
-  ‹ and › arrows, the Today pill, the flame, the plant, the sync icon, the filter and settings icons (for an `svg`
-  the box of its drawn `path`; the Today pill: the button box).
   "the X of the top bar scene is drawn at its full size": every visible element of part X is at least its full
   height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge lies between 1 px above and
   2.5 px below the bottom of the `top-bar` box (the kite: it hangs from the bar's top; its top lies inside the bar).
@@ -2031,8 +2024,6 @@ the support cat is gone within {int} ms
   and at least 1 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
   particle's box is unchanged. "the X of the top bar scene are spread over the whole bar": the leftmost particle's
   left edge is in the left quarter of the bar and the rightmost particle's right edge in its right quarter.
-  "no X of the top bar scene is under a control": no visible particle of kind X has a box that intersects a control box
-  (same list as above); being close to one is fine.
   "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
   `still` (the end of the 10 s moving window), then reads each particle's glide (a Web Animation, not a CSS one):
   every particle has one lasting at most N s, and for at least 7 of the 9 its first keyframe is translated more than
@@ -2244,7 +2235,7 @@ the card of the task list {string} in the Tasks view shows no items
 the card of the task list {string} in the Tasks view shows the done count {string}
 I collapse all task lists in the Tasks view
 I expand all task lists in the Tasks view
-the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete
+the Add item button of the task list {string} in the Tasks view is the only button of the card footer
 the add field of the task list {string} in the Tasks view is hidden
 the add field of the task list {string} in the Tasks view is shown
 I tap Add item of the task list {string} in the Tasks view
@@ -2257,9 +2248,9 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
   clicks its `tasklist-collapse` when its `aria-expanded` differs; "is collapsed / expanded" = `data-collapsed` on
   its `tasklist-view` is `true` / `false`; "shows no items" = no visible `tasklist-item`; "shows the items" = the
   visible `tasklist-item` `data-title`s joined by ", "; "shows the done count" = `tasklist-expanded-count`.
-  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "shares a row with
-  Edit and Delete": `tasklist-add`, `tasklist-edit` and `tasklist-delete` have the same vertical centre (within
-  4 px). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
+  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "is the only button of
+  the card footer": the card's `footer` holds exactly one button, `tasklist-add` (Edit, Delete and the rest are in the
+  overflow menu `tasklist-overflow`). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
   `tasklist-add`.
 - "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
@@ -2327,6 +2318,7 @@ I have the template {string} with the items {string}, the estimate {int} minutes
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
 I save the task list as a template
 the footer of the expanded task list shows {string}
+the overflow menu of the expanded task list lists {string}
 the template dialog previews the items {string}
 the task list {string} in the Archive offers {string} and {string}
 the template name field shows {string}
@@ -2371,14 +2363,13 @@ I have no templates
 - "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
   with `categoryId`, `time`, `estimateMinutes` and the items table (ticks included).
 - "I save the task list as a template": in the open list sheet (`tasklist-expanded`; "I expand the task list" opens
-  it) clicks `tasklist-save-template` in the footer next to Edit and Delete; `template-save-dialog` opens with
+  it) opens the overflow menu `tasklist-overflow` and presses `tasklist-save-template`; `template-save-dialog` opens with
   `template-save-name` prefilled with the list's title. "the template name field shows N" = value of
   `template-save-name`; "I enter the template name N" replaces it; "I confirm the template" clicks
   `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
-  `tasklist-save-template` is a tonal pill. "the footer of the expanded task list shows "A, B"" = the visible buttons
-  in the footer of `tasklist-expanded` (`tasklist-add`, `tasklist-save-template`, `tasklist-edit`,
-  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their label (`aria-label`,
-  else their text: a phone-wide footer shows Edit and Delete as icons only).
+  "the footer of the expanded task list shows "A, B"" = the texts of the buttons in the `footer` of `tasklist-expanded`
+  (only Add item since the overflow menu, ADR 0032). "the overflow menu of the expanded task list lists "A, B"" opens
+  `tasklist-overflow`, joins the `menuitem` texts of the open `menu` and closes it with Escape.
   "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
 - "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
   A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
@@ -2696,7 +2687,7 @@ the view switcher is above the calendar
 the view switcher is on the {string} side of the screen
 there is no bottom bar
 the open tasks tray is at the bottom of the screen
-the open tasks tray is above the bottom bar
+the open tasks row is inside the bottom bar
 the add button is above the open tasks tray
 ```
 
@@ -3123,8 +3114,6 @@ the clock widget says {string}
 
 ```
 the header layout is set to {string}
-I choose {string} as the header layout
-the header layout {string} is selected
 the top bar is in one row
 the top bar is in two rows
 the top bar is at most {int} pixels tall
@@ -3146,8 +3135,6 @@ the all-day row is not shown
 the tasks section switch is shown
 the tasks section switch is not shown
 I pick up the task list {string}
-no character of the top bar scene is under a control
-the top bar scene's parts are drawn at their full size
 the top bar scene does not show the {string}
 the Approaching card is off
 I see the Approaching card
@@ -3166,13 +3153,11 @@ the period title's text is aligned to the outer edge
 the top bar's widgets are in reverse order
 ```
 
-- Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
-  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened.
-  "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
-  waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
-  `aria-pressed="true"`.
+- Layout names are the pref values' old names: `Two rows` = pref `two-rows` (Expressive), `One row` = `one-row` (Compact); the default is `auto`. "the header
+  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened. The setting is
+  now chosen with "I choose S as the top bar size" (see "UI redesign E").
 - "the top bar is in one row": the visible `period-title`, `nav-today` and `settings-button` (and `nav-prev` / `nav-next`
-  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows" (Expressive): the `top-bar` is at least 80 px tall (one row of controls over the full scene, the scene's strip below).
 - "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
 - "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
   title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
@@ -3205,11 +3190,6 @@ the top bar's widgets are in reverse order
   in the first time grid (it shows only when task lists are in the all-day row).
 - "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
   long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
-- "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
-  `.tbs .ghost`, Mordor's `.tbs [data-part=eye]`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
-  arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
-- "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
-  `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
 - "the top bar scene does not show the X": no visible element for part X (`hare` = `.tbs .hare`) in the scene.
 - "the Approaching card is off"
   (Given): `PATCH /api/prefs { approachingCard: false }`. "I see the Approaching card": `now-card` is visible.
@@ -3235,7 +3215,11 @@ the top bar's widgets are in reverse order
   "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
   are ordered right to left as they were left to right.
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
-  `scene-<scene>-<layout>-<scheme>`.
+  `expressive-<scene>-<size>-<scheme>` (feature header-expressive).
+- Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
+  `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
+  `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are decoration and are not judged (owner 2026-10-30:
+  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
 
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)
@@ -3350,6 +3334,114 @@ the stored preferences of {string} are damaged
 {string} has the default preferences plus the change
 the damaged file is kept as {string} with its old content
 ```
+
+## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
+
+Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+`auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
+Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
+pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
+
+```
+the surface has one filled {string}
+every other button of the surface is tonal, outlined or text
+the dialog has one filled {string}
+every other button of the dialog is tonal, outlined or text
+no button of the settings screen is filled
+the {string} is an icon with the label {string}
+every icon-only button of the screen has an accessible label
+I open the overflow menu of the task list {string}
+the overflow menu lists {string}
+the task list {string} shows one overflow button and no other action button
+the button group shows {string} as one connected group
+exactly one of them is selected
+I press {string} in the button group
+the {string} button of the group is selected
+a component outside {string} contains a raw button element
+the lint gate runs
+the lint gate fails and names that component
+a button element inside {string} passes the lint gate
+the theme is {string}
+the bottom bar, the top bar and every button are drawn with fully round corners
+the bottom bar size is set to {string}
+I choose {string} as the bottom bar size
+the bottom bar size {string} is the default
+the bottom bar floats above the calendar
+the bottom bar shows the open tasks {string} with the names {string}
+the bottom bar has no open tasks row
+the open tasks row is hidden
+the open tasks row is shown
+the bottom bar floats {int} pixels from the edges of the screen
+the calendar ends above the bottom bar
+nothing is reserved at the bottom of the screen
+the bottom bar is {int} pixels tall
+every item of the bottom bar shows an icon and a label
+only the open view of the bottom bar shows a label
+the create button is beside the bottom bar
+the settings offer no rail size
+I scroll the calendar down by {int} pixels
+I scroll the calendar up by {int} pixels
+the bottom bar is hidden
+the bottom bar is shown
+the create button is shown
+the add button covers no hour of the time grid
+the menu button is on the {string} side of the top bar
+I open the side menu
+I close the side menu
+the side menu lists {string}
+the side menu has the {string} entry at its bottom
+I choose {string} in the side menu
+the side menu is closed
+the side menu shows the calendars {string} with a colour checkbox each
+I untick the calendar {string} in the side menu
+the top bar has no filter button and no settings button
+the top bar has no filter button
+the top bar size is set to {string}
+I choose {string} as the top bar size
+the top bar size {string} is selected
+the top bar size {string} is the default
+the top bar scene is drawn at its full {int} pixels height
+the Today button is the only filled button of the top bar
+the top bar icons have no see-through background
+I tap the period title
+the support cat is fully visible in the top bar scene
+every large element of the top bar scene is fully visible
+no control covers any part of the top bar scene's large elements
+the Mordor eye and tower sit between the period title and the top bar's icons
+no visitor of the top bar scene is ever drawn under a control
+the floating toolbar offers {string}
+the floating toolbar is beside the create button
+the tools of the floating toolbar are tonal icon buttons with labels
+I press {string} in the floating toolbar
+I choose {string} as the sort order
+the Tasks view lists {string} in that order
+the floating toolbar is hidden
+the floating toolbar is shown
+```
+
+- "the bottom bar floats N pixels from the edges of the screen": the `bottom-bar` box has N px left, right and below it (the
+  test viewport has no safe-area inset). "the calendar ends above the bottom bar": the bottom of every visible
+  `[data-scroll-area]` and of `task-tray` is at or above the top of the bar. "nothing is reserved at the bottom of the
+  screen": the lowest of the visible `[data-scroll-area]` and `task-tray` boxes ends within 1 px of `innerHeight` (the room
+  of a slid-away bar is given back).
+- Open tasks row (tray option C, feature open-tasks-in-sight): on a phone the open tasks are the row `task-tray-toggle` inside
+  the `bottom-bar` element: `task-tray-count` ("3 open") and one `task-tray-chip` per open list in tray order (their texts joined
+  by ", " are the names). "the bottom bar shows the open tasks C with the names N": the count text is C and the chip texts joined
+  are N, both inside `bottom-bar`. "has no open tasks row": no `task-tray-toggle` inside `bottom-bar`. "the open tasks row is
+  hidden / shown": the row's box is out of / inside the viewport (it slides with the bar). Hooks: `task-tray-toggle`, `task-tray-count`, `task-tray-chip`.
+- Meaning, for the builder: "filled" = a solid primary-coloured container (M3 filled button, FAB); "tonal" = secondary
+  container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
+  shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
+  the viewport (`data-hidden="true"`), "shown" = fully inside it. "the surface" is the visible screen without an open dialog.
+- "no raw buttons outside m3": the lint gate (`vue/no-restricted-html-elements` in `eslint.config.js`, run by `pnpm verify`; its message says
+  "no raw buttons outside m3") rejects a bare `<button>` in `web/src/**` outside `web/src/components/m3`. Proven by a unit
+  test; the scenario is `@unit` and skipped by e2e.
+- "the Mordor eye and tower sit between ...": the `data-part` boxes `mordor-eye` and `mordor-tower` lie horizontally between
+  the right edge of `period-title` and the left edge of the first icon.
+- Side menu hooks: `menu-button`, `side-menu` (`data-open`), `side-menu-view-<year|month|week|day|tasks>`,
+  `side-menu-calendar` (`data-name`, checkbox), `side-menu-settings`; floating toolbar `tasks-floating-toolbar` with
+  `tasks-filter-open|tasks-sort-open|tasks-collapse-all`; overflow `tasklist-overflow` (menu items `tasklist-edit|duplicate|archive|save-template|delete`); group = the `role=group` named "Tasks".
 ## Handwritten lists (`@id:handwritten-lists`, Labs; the `@backlog` scenarios are not built yet)
 
 ```

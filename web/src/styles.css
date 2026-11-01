@@ -36,7 +36,11 @@
   --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
   --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --topbar-h: 64px;
-  --navbar-h: 72px;
+  --bar-extra: 0px; /* height of the open tasks row the bar carries */
+  --navbar-h: calc(72px + var(--bar-extra)); /* the floating bottom bar's height plus its 8 px gap above the safe area; 0 while it is slid away */
+  --bar-full: calc(72px + var(--bar-extra)); /* the bar's height plus gap, whether or not it is slid away */
+  --bar-reserve: 0px; /* room a view that does not scroll leaves for the bottom bar */
+  --scroll-end: 96px; /* room at the end of a scrolling view so the + button never hides its last row */
   --rail-w: 80px;
   --hour-height: 44px;
 }
@@ -44,8 +48,17 @@
   :root { --hour-height: 48px; }
 }
 /* Phone without a bottom bar (view switcher at the top or in a rail): no bar height anywhere (feature nav-position); the rail is slimmer. */
+html[data-bar-size='compact'] { --navbar-h: calc(60px + var(--bar-extra)); --bar-full: calc(60px + var(--bar-extra)); }
+html[data-nav-pos='bottom'] { --bar-reserve: calc(var(--bar-full) + var(--safe-bottom)); }
+html[data-bar-hidden='true'] { --navbar-h: 0px; --bar-reserve: 0px; }
+/* tablet and desktop: the bar floats like on the phone, 16 px from the edges; the body keeps its room free below the content */
+@media (min-width: 768px) { html[data-nav-pos='bottom'] { --bar-reserve: calc(var(--bar-full) + var(--safe-bottom) + 8px); } }
 @media (max-width: 767.98px) {
   html:not([data-nav-pos='bottom']) { --navbar-h: 0px; }
+  /* the + button: above the Expressive bar (72 + 12 + 64), beside the Compact one (60) */
+  html[data-nav-pos='bottom'] { --scroll-end: calc(148px + var(--safe-bottom)); }
+  html[data-nav-pos='bottom'][data-bar-size='compact'] { --scroll-end: calc(68px + var(--safe-bottom)); }
+  html:not([data-nav-pos='bottom']), html[data-nav-pos='bottom'][data-bar-hidden='true'] { --scroll-end: calc(88px + var(--safe-bottom)); } /* hidden bar: only the + button needs room */
   html[data-nav-pos='rail'] { --rail-w: 64px; }
 }
 

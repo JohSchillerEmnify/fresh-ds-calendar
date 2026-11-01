@@ -4,6 +4,7 @@
  * name with its details line, "New template" on top (also in the empty state), a tap opens the template sheet to change
  * name, items, estimate and category; delete goes through the undo snackbar like the app's other deletes.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconAdd, IconArrowBack as IconBack, IconDeleteOutline as IconDelete } from '@/components/icons';
@@ -56,10 +57,10 @@ function back() {
         <p v-if="templates.loaded && !rows.length" class="sub empty" data-testid="templates-empty">{{ t('tasks.templates.empty') }}</p>
         <ul v-else class="list">
           <li v-for="r in rows" :key="r.tpl.id" class="row" data-testid="template-row" :data-name="r.tpl.name">
-            <button type="button" class="main" :aria-label="t('tasks.templates.edit', { name: r.tpl.name })" data-testid="template-open" @click="editing = r.tpl">
+            <Pressable type="button" class="main" :aria-label="t('tasks.templates.edit', { name: r.tpl.name })" data-testid="template-open" @click="editing = r.tpl">
               <span class="lab">{{ r.tpl.name }}</span>
               <span class="sub">{{ r.details }}</span>
-            </button>
+            </Pressable>
             <IconButton :label="t('tasks.templates.delete', { name: r.tpl.name })" data-testid="template-delete" @click="pending.deleteTemplate(r.tpl.id, r.tpl.name)"><IconDelete /></IconButton>
           </li>
         </ul>

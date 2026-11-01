@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { isIos as detectIos, isStandalone } from '@/pwa/install';
 import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 // iPhones and iPads cannot install the Android app, so the download row is hidden there; they get the Home Screen instructions instead
@@ -11,7 +12,9 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, HeaderLayout, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import { bottomBarSizeOf, topBarSizeOf } from '@/composables/useBarSize';
+import { isPhone } from '@/composables/useViewport';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, NavPhonePosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -141,7 +144,7 @@ const weekSplitOptions = [
   { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
   { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
 ];
-const navOptions = (device: 'phone' | 'desktop') => NAV_POSITIONS.map((p) => ({ value: p, label: t(`settings.navPosition.${p}`), testid: `settings-nav-${device}-${p}` }));
+const navOptions = (device: 'phone' | 'desktop') => (device === 'phone' ? [...NAV_POSITIONS, 'drawer' as const] : NAV_POSITIONS).map((p) => ({ value: p, label: t(`settings.navPosition.${p}`), testid: `settings-nav-${device}-${p}` }));
 // --- bedtime ------------------------------------------------------------------------------------
 const bt = computed(() => labs.bedtime);
 const nt = computed(() => labs.notify);
@@ -155,16 +158,16 @@ function saveBedtime(p: Partial<BedtimePrefs>) {
   for (const v of [p.bedtime, p.wake, p.weekendBedtime, p.weekendWake]) if (v !== undefined && !/^\d{2}:\d{2}$/.test(v)) return;
   void savePrefs({ bedtime: p as BedtimePrefs });
 }
-const bedtimeModes = computed(() => [
-  { value: 'fixed', label: t('bedtime.settings.mode.fixed'), testid: 'settings-bedtime-mode-fixed' },
-  { value: 'dynamic', label: t('bedtime.settings.mode.dynamic'), testid: 'settings-bedtime-mode-dynamic' },
-]);
+const bedtimeModes = computed(() => (['fixed', 'dynamic'] as const).map((m) => ({ value: m, label: t(`bedtime.settings.mode.${m}`), testid: `settings-bedtime-mode-${m}` })));
 /** The offered values plus the stored one, so a value set elsewhere still shows. */
 const withCurrent = (offered: number[], current: number) => (offered.includes(current) ? offered : [...offered, current].sort((a, b) => a - b));
 const sleepOptions = computed(() => withCurrent([6, 7, 8, 9, 10].map((h) => h * 60), bt.value.sleepMinutes).map((m) => ({ value: String(m), label: t('bedtime.settings.sleep.hours', { count: m / 60 }, m / 60) })));
 const leadOptions = computed(() => withCurrent([0, 15, 30, 45, 60, 90, 120], bt.value.leadMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.lead.none') : t('bedtime.settings.lead.minutes', { count: m }) })));
 const reminderOptions = computed(() => withCurrent([0, 5, 10, 15, 30, 45, 60], bt.value.reminderMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.reminder.off') : t('bedtime.settings.reminder.minutes', { count: m }) })));
-const headerLayouts = computed(() => (['two-rows', 'one-row'] as const).map((v) => ({ value: v, label: t(v === 'two-rows' ? 'settings.calendar.headerLayout.twoRows' : 'settings.calendar.headerLayout.oneRow') })));
+const barSizes = computed(() => (['expressive', 'compact'] as const).map((v) => ({ value: v, label: t(`settings.calendar.barSize.${v}`), testid: `settings-bar-size-${v}` })));
+/** The size choice as shown: `auto` shows what it resolves to on this screen. */
+const topBarSize = computed(() => topBarSizeOf(labs.headerLayout, isPhone.value));
+const bottomBarSize = computed(() => bottomBarSizeOf(labs.bottomBarSize, isPhone.value));
 const streakOptions = computed(() => (['off', 'flame', 'plant'] as const).map((v) => ({ value: v, label: t(`settings.motivation.streak.${v}`) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
@@ -236,11 +239,11 @@ async function resetDemo() {
       <div class="content">
         <section id="s-appearance" class="card" data-testid="settings-section" data-section="appearance" aria-labelledby="h-appearance">
           <h2 id="h-appearance">{{ title('appearance') }}</h2>
-          <button type="button" class="row link" data-testid="settings-theme" @click="router.push('/settings/theme')">
+          <Pressable type="button" class="row link" data-testid="settings-theme" @click="router.push('/settings/theme')">
             <span class="grow"><span class="lab">{{ t('settings.theme.label') }}</span><span class="sub">{{ t('settings.theme.hint') }}</span></span>
             <span class="val" data-testid="settings-theme-name">{{ themeLabel }}</span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <div class="row"><Select class="fw" :model-value="labs.language" :options="languageOptions" :label="t('settings.language.label')" data-testid="settings-language" @update:model-value="savePrefs({ language: $event as LanguagePref })" /></div>
         </section>
 
@@ -250,7 +253,8 @@ async function resetDemo() {
           <div class="row col"><span class="lab">{{ t('settings.calendar.minEventLength.label') }}</span><span class="sub">{{ t('settings.calendar.minEventLength.hint') }}</span><SegmentedButton :model-value="String(labs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.day') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.daySideBySide)" :options="daySideOptions" :label="t('settings.calendar.sideBySide.day')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>
-          <div class="row col"><span class="lab">{{ t('settings.calendar.headerLayout.label') }}</span><span class="sub">{{ t('settings.calendar.headerLayout.hint') }}</span><SegmentedButton :model-value="labs.headerLayout" :options="headerLayouts" :label="t('settings.calendar.headerLayout.label')" data-testid="settings-header-layout" @update:model-value="savePrefs({ headerLayout: $event as HeaderLayout })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.topBarSize.label') }}</span><span class="sub">{{ t('settings.calendar.topBarSize.hint') }}</span><SegmentedButton :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: $event === 'expressive' ? 'two-rows' : 'one-row' })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.bottomBarSize.label') }}</span><span class="sub">{{ t('settings.calendar.bottomBarSize.hint') }}</span><SegmentedButton :model-value="bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event as 'expressive' | 'compact' })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachingCard.label') }}</span><span class="sub">{{ t('settings.calendar.approachingCard.hint') }}</span></div><Switch :model-value="labs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachTimeLeft.label') }}</span><span class="sub">{{ t('settings.calendar.approachTimeLeft.hint') }}</span></div><Switch :model-value="labs.approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" data-testid="settings-approach-time-left" @update:model-value="savePrefs({ approachTimeLeft: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachBar.label') }}</span><span class="sub">{{ t('settings.calendar.approachBar.hint') }}</span></div><Switch :model-value="labs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>
@@ -261,8 +265,8 @@ async function resetDemo() {
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.syncIndicator.label') }}</span><span class="sub">{{ t('settings.calendar.syncIndicator.hint') }}</span></div><Switch :model-value="labs.syncIndicator" :label="t('settings.calendar.syncIndicator.label')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
-          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><SegmentedButton :model-value="labs.navPhone" :options="navOptions('phone')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.phone')}`" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPosition })" /></div>
-          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.desktop') }}</span><SegmentedButton :model-value="labs.navDesktop" :options="navOptions('desktop')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.desktop')}`" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><Select :model-value="labs.navPhone" :options="navOptions('phone')" :label="t('settings.navPosition.phone')" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPhonePosition })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.desktop') }}</span><Select :model-value="labs.navDesktop" :options="navOptions('desktop')" :label="t('settings.navPosition.desktop')" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" /></div>
         </section>
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">
@@ -271,19 +275,19 @@ async function resetDemo() {
           <span v-if="labs.taskCategories" class="lab sublab">{{ t('settings.tasklists.categories') }}</span>
           <ul v-if="labs.taskCategories" class="cats">
             <li v-for="(c, i) in settings.categories" :key="c.id" class="cat" data-testid="settings-category" :data-category-id="c.id" :data-name="c.name" :data-color="c.color">
-              <button class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
+              <Pressable class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
                 <i class="dot" :style="{ background: c.color }" /><span v-if="c.icon" class="em">{{ c.icon }}</span><span class="nm">{{ c.name }}</span>
-              </button>
+              </Pressable>
               <IconButton :label="t('settings.tasklists.moveUp', { name: c.name })" :disabled="i === 0" data-testid="settings-category-up" @click="move(c.id, -1)"><IconUp /></IconButton>
               <IconButton :label="t('settings.tasklists.moveDown', { name: c.name })" :disabled="i === settings.categories.length - 1" data-testid="settings-category-down" @click="move(c.id, 1)"><IconDown /></IconButton>
             </li>
           </ul>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
-          <button type="button" class="row link" data-testid="settings-templates" @click="router.push('/settings/templates')">
+          <Pressable type="button" class="row link" data-testid="settings-templates" @click="router.push('/settings/templates')">
             <span class="grow"><span class="lab">{{ t('tasks.templates.page') }}</span><span class="sub">{{ t('tasks.templates.pageHint') }}</span></span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.taskOpen.label') }}</span><SegmentedButton :model-value="labs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" /></div>
           <div v-if="labs.taskCategories" class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
@@ -331,10 +335,10 @@ async function resetDemo() {
 
         <section id="s-notifications" class="card" data-testid="settings-section" data-section="notifications" aria-labelledby="h-notifications">
           <h2 id="h-notifications">{{ title('notifications') }}</h2>
-          <button type="button" class="row link" data-testid="settings-reminders" @click="router.push('/settings/reminders')">
+          <Pressable type="button" class="row link" data-testid="settings-reminders" @click="router.push('/settings/reminders')">
             <span class="grow"><span class="lab">{{ t('settings.reminders.label') }}</span><span class="sub">{{ t('settings.reminders.hint') }}</span></span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <p class="sub note" data-testid="settings-notify-hint">{{ t('settings.notifications.hint') }}</p>
           <div class="row"><span class="lab grow">{{ t('settings.notifications.bedtime') }}</span><Switch :model-value="nt.bedtime" :label="t('settings.notifications.bedtime')" data-testid="settings-notify-bedtime" @update:model-value="saveNotify({ bedtime: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.notifications.events.label') }}</span><span class="sub">{{ t('settings.notifications.events.hint') }}</span></div><Switch :model-value="nt.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" /></div>

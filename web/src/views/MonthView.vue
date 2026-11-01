@@ -8,6 +8,7 @@ let lastGridH = 0;
 </script>
 
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
@@ -122,7 +123,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, anchor) ? 'true' : undefined"
           :class="{ outside: !isSameMonth(day, anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
-          <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
+          <Pressable class="num" type="button" data-testid="month-cell-day-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="nav.openDay(day)">{{ day.getDate() }}</Pressable>
           <div v-fade class="chips" data-testid="month-cell-entries" :data-more="row.more[di] || undefined" @click.capture="onChipsClick($event, day)">
             <template v-for="nd in row.days[di]" :key="nd.key">
               <div v-if="'gap' in nd" class="slot-gap" :style="{ height: nd.gap + 'px' }" />

@@ -3,6 +3,7 @@
  * Labs strip view: days as side-by-side columns in a horizontal scroll-snap strip that extends in both directions
  * while scrolling. The leftmost (front) column is mirrored into the URL without a navigation.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ItemView from '@/components/calendar/ItemView.vue';
@@ -101,9 +102,9 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
 <template>
   <section class="strip-view" data-testid="strip-view">
     <header class="bar">
-      <button type="button" class="btn" data-testid="strip-back" @click="router.push(routePath('month', parseIsoDate(days[Math.round((scroller?.scrollLeft ?? 0) / (scroller ? colWidth() : 1))]) ?? clock.todayDate))">{{ t('views.month') }}</button>
+      <Pressable type="button" class="btn" data-testid="strip-back" @click="router.push(routePath('month', parseIsoDate(days[Math.round((scroller?.scrollLeft ?? 0) / (scroller ? colWidth() : 1))]) ?? clock.todayDate))">{{ t('views.month') }}</Pressable>
       <span class="title">{{ t('views.strip') }}</span>
-      <button type="button" class="btn" data-testid="strip-today" @click="goToday">{{ t('calendar.topBar.today') }}</button>
+      <Pressable type="button" class="btn" data-testid="strip-today" @click="goToday">{{ t('calendar.topBar.today') }}</Pressable>
     </header>
     <div ref="scroller" class="scroller" data-testid="strip" @scroll.passive="onScroll">
       <div class="top">

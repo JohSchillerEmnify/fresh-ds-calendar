@@ -7,6 +7,7 @@
  * and is saved in the background by the theme store; there is no save button. The scene is a theme attribute. Theme
  * mode and seed colour are settings (`PATCH /api/settings`) that live only here (feature settings).
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -185,7 +186,7 @@ function back() {
         <div class="group" role="group" :aria-label="g.label">
           <span class="lab">{{ g.label }}</span>
           <div class="opts">
-            <button
+            <Pressable
               v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
               :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
             >
@@ -195,7 +196,7 @@ function back() {
                 <ThemeSample kind="event" />
               </span>
               <span class="ol">{{ o.label }}</span>
-            </button>
+            </Pressable>
           </div>
         </div>
       </DefineGroup>

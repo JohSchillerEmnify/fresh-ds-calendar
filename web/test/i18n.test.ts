@@ -73,6 +73,9 @@ describe('t()', () => {
     expect(t('views.month')).toBe('Monad');
     // not in the dialect: German
     expect(t('settings.sections.labs')).toBe('Labor');
+    // the bar-size settings are not in the dialect either: German, not the key
+    expect(t('settings.calendar.barSize.compact')).toBe('Kompakt');
+    expect(t('settings.calendar.bottomBarSize.label')).toBe('Größe der unteren Leiste');
     expect(html()).toBe('de-x-mainfr');
     await applyLanguage('de-x-coldmirror');
     expect(t('tasklist.titleOrItem')).toContain('Schinken!');
@@ -104,10 +107,10 @@ describe('dates follow the language', () => {
       await applyLanguage(l);
       expect(periodTitle('day', day)).toBe('Dienstag, 13. Oktober 2026');
       expect(periodTitle('month', day)).toBe('Oktober 2026');
-      expect(periodTitle('week', day)).toBe('12. – 18. Okt. 2026');
+      expect(periodTitle('week', day)).toBe('Okt. 2026');
       expect(periodTitle('year', day)).toBe('2026');
       expect(periodTitle('day', day, true)).toBe('Di., 13. Okt.');
-      expect(periodTitle('week', day, true)).toBe('12. – 18. Okt. 2026');
+      expect(periodTitle('week', day, true)).toBe('Okt. 2026');
       expect(weekdayLabels()).toEqual(['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']);
       expect(monthNames()[2]).toBe('März');
     }

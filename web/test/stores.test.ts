@@ -477,11 +477,11 @@ describe('prefs store streak and sync indicator', () => {
 
 describe('prefs store header layout', () => {
   beforeEach(() => freshPinia());
-  it('starts with two rows, applies the loaded layout, keeps it in the last known state and rolls back a refused change', async () => {
+  it('starts on auto, applies the loaded layout, keeps it in the last known state and rolls back a refused change', async () => {
     let fail = false;
     mockFetch({ 'GET /api/prefs': () => ({ headerLayout: 'one-row' }), 'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}) });
     const p = usePrefsStore();
-    expect(p.headerLayout).toBe('two-rows');
+    expect(p.headerLayout).toBe('auto');
     await p.load();
     expect(p.headerLayout).toBe('one-row');
     expect(p.current().headerLayout).toBe('one-row');
@@ -606,5 +606,17 @@ describe('deleted items', () => {
       expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m_20261014']);
       expect(items.get('m_20261021')).toBeDefined();
     });
+  });
+});
+
+describe('prefs store with values from a newer server', () => {
+  beforeEach(() => freshPinia());
+  it('keeps the current value for an unknown one instead of taking it', () => {
+    const p = usePrefsStore();
+    p.fromDevice({ navPhone: 'floating' as never, bottomBarSize: 'huge' as never, headerLayout: 'three-rows' as never, streak: 'flame' });
+    expect(p.navPhone).toBe('bottom');
+    expect(p.bottomBarSize).toBe('auto');
+    expect(p.headerLayout).toBe('auto');
+    expect(p.streak).toBe('flame');
   });
 });

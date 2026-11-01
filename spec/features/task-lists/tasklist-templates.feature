@@ -4,8 +4,8 @@ Feature: Task list templates
   template, also a finished one, and a new list can be saved as a template while it is created (owner, 2026-10-25).
   A new task list can then start from a template: the form is filled with the template's items and the rest (date,
   time, repeat, reminders) is set as for any new list (owner: "you can then set time and stuff").
-  UI (owner, design canvas 2026-10-25): "Save as template" is a tonal pill in the list's footer after "Add item" and
-  before Edit and Delete; it opens a small dialog with the name (prefilled with the title), the items and Cancel/Save.
+  UI (owner, design canvas 2026-10-25): "Save as template" is an entry of the list's overflow menu (three dots, ADR 0032;
+  it was a tonal pill in the footer); it opens a small dialog with the name (prefilled with the title), the items and Cancel/Save.
   The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a panel whose
   top row is the pill itself ("From template ▴" where the pill was), then the templates ("2 items · ~45 min · Home"
   under each name), a divider and "Manage templates"; after a pick the pill shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
@@ -37,7 +37,8 @@ Feature: Task list templates
         | Toothbrush | no   |
       When I open the day view for 2026-10-14
       And I expand the task list "Packing"
-      Then the footer of the expanded task list shows "Add item, Save as template, Edit, Delete"
+      Then the footer of the expanded task list shows "Add item"
+      And the overflow menu of the expanded task list lists "Edit, Duplicate, Archive, Save as template, Delete"
       When I save the task list as a template
       Then the template name field shows "Packing"
       And the template dialog previews the items "Passport, Charger, Toothbrush"

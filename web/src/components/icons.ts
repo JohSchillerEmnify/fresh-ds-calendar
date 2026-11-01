@@ -7,6 +7,18 @@
 import { defineComponent, h, type Component } from 'vue';
 import { iconSet, type IconSet } from '@/theme/iconSet';
 
+import MoreHorizO from '~icons/material-symbols/more-horiz';
+import MoreHorizR from '~icons/material-symbols/more-horiz-rounded';
+import MoreHorizS from '~icons/material-symbols/more-horiz-sharp';
+import ContentCopyOutlineO from '~icons/material-symbols/content-copy-outline';
+import ContentCopyOutlineR from '~icons/material-symbols/content-copy-outline-rounded';
+import ContentCopyOutlineS from '~icons/material-symbols/content-copy-outline-sharp';
+import ArchiveOutlineO from '~icons/material-symbols/archive-outline';
+import ArchiveOutlineR from '~icons/material-symbols/archive-outline-rounded';
+import ArchiveOutlineS from '~icons/material-symbols/archive-outline-sharp';
+import BookmarkAddO from '~icons/material-symbols/bookmark-add-outline';
+import BookmarkAddR from '~icons/material-symbols/bookmark-add-outline-rounded';
+import BookmarkAddS from '~icons/material-symbols/bookmark-add-outline-sharp';
 import AddO from '~icons/material-symbols/add';
 import AddR from '~icons/material-symbols/add-rounded';
 import AddS from '~icons/material-symbols/add-sharp';
@@ -43,6 +55,9 @@ import ChevronLeftS from '~icons/material-symbols/chevron-left-sharp';
 import ChevronRightO from '~icons/material-symbols/chevron-right';
 import ChevronRightR from '~icons/material-symbols/chevron-right-rounded';
 import ChevronRightS from '~icons/material-symbols/chevron-right-sharp';
+import MenuO from '~icons/material-symbols/menu';
+import MenuR from '~icons/material-symbols/menu-rounded';
+import MenuS from '~icons/material-symbols/menu-sharp';
 import CloseO from '~icons/material-symbols/close';
 import CloseR from '~icons/material-symbols/close-rounded';
 import CloseS from '~icons/material-symbols/close-sharp';
@@ -144,6 +159,10 @@ function appIcon(name: string, variants: Variants): Component & { variants: Vari
   return Object.assign(defineComponent({ name, setup: () => () => h(variants[iconSet.value], { 'data-icon-set': iconSet.value }) }), { variants });
 }
 
+export const IconMoreHoriz = appIcon('IconMoreHoriz', { outlined: MoreHorizO, rounded: MoreHorizR, sharp: MoreHorizS });
+export const IconContentCopyOutline = appIcon('IconContentCopyOutline', { outlined: ContentCopyOutlineO, rounded: ContentCopyOutlineR, sharp: ContentCopyOutlineS });
+export const IconArchiveOutline = appIcon('IconArchiveOutline', { outlined: ArchiveOutlineO, rounded: ArchiveOutlineR, sharp: ArchiveOutlineS });
+export const IconBookmarkAdd = appIcon('IconBookmarkAdd', { outlined: BookmarkAddO, rounded: BookmarkAddR, sharp: BookmarkAddS });
 export const IconAdd = appIcon('IconAdd', { outlined: AddO, rounded: AddR, sharp: AddS });
 export const IconArrowBack = appIcon('IconArrowBack', { outlined: ArrowBackO, rounded: ArrowBackR, sharp: ArrowBackS });
 export const IconCalendarMonth = appIcon('IconCalendarMonth', { outlined: CalendarMonthO, rounded: CalendarMonthR, sharp: CalendarMonthS });
@@ -153,6 +172,7 @@ export const IconCalendarViewWeek = appIcon('IconCalendarViewWeek', { outlined: 
 export const IconCheck = appIcon('IconCheck', { outlined: CheckO, rounded: CheckR, sharp: CheckS });
 export const IconChevronLeft = appIcon('IconChevronLeft', { outlined: ChevronLeftO, rounded: ChevronLeftR, sharp: ChevronLeftS });
 export const IconChevronRight = appIcon('IconChevronRight', { outlined: ChevronRightO, rounded: ChevronRightR, sharp: ChevronRightS });
+export const IconMenu = appIcon('IconMenu', { outlined: MenuO, rounded: MenuR, sharp: MenuS });
 export const IconClose = appIcon('IconClose', { outlined: CloseO, rounded: CloseR, sharp: CloseS });
 export const IconCloudOff = appIcon('IconCloudOff', { outlined: CloudOffO, rounded: CloudOffR, sharp: CloudOffS });
 export const IconDeleteOutline = appIcon('IconDeleteOutline', { outlined: DeleteOutlineO, rounded: DeleteOutlineR, sharp: DeleteOutlineS });

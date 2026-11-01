@@ -58,6 +58,8 @@ export default {
   },
   nav: {
     views: 'Views',
+    menu: 'Menu',
+    calendars: 'Calendars',
   },
   common: {
     off: 'Off',
@@ -132,7 +134,9 @@ export default {
     },
     calendar: {
       defaultView: 'Default view',
-      headerLayout: { label: 'Header layout', hint: 'On phones', twoRows: 'Two rows', oneRow: 'One row' },
+      barSize: { expressive: 'Expressive', compact: 'Compact' },
+      topBarSize: { label: 'Top bar size', hint: 'On phones; Expressive shows the whole scene, Compact is one row' },
+      bottomBarSize: { label: 'Bottom bar size', hint: 'On phones' },
       approachingCard: { label: 'Approaching card', hint: 'What is on now and next, above the calendar' },
       approachTimeLeft: { label: 'Time left', hint: 'The time left of the running entry in the Approaching card; off, it shows on the entry itself' },
       minEventLength: { label: 'Minimum event length', hint: 'Shorter events and task lists are drawn and laid out this long, so their titles stay readable', off: 'Off', minutes: '{n} min' },
@@ -195,7 +199,7 @@ export default {
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
     leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },
-    navPosition: { label: 'View switcher', hint: 'Where Year, Month, Week and Day sit', phone: 'On phones', desktop: 'On desktop and tablets', bottom: 'Bottom', top: 'Top', rail: 'Side rail' },
+    navPosition: { label: 'View switcher', hint: 'Where Year, Month, Week and Day sit', phone: 'On phones', desktop: 'On desktop and tablets', bottom: 'Bottom', top: 'Top', rail: 'Side rail', drawer: 'Side menu' },
     sunflowers: { label: 'Sunflowers', hint: 'Applies to the Sunflower field scene', grow: 'Grow with points', full: 'Full field' },
     ownThemes: { label: 'Generate themes with AI', hint: 'Experimental: get a prompt to paste into an AI, then import the theme it returns' },
   },

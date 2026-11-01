@@ -14,7 +14,7 @@ import XmasTree from './XmasTree.vue';
 
 const clock = useClockStore();
 /** Where the candles stand (percent from the left, centre of the candle); the tree follows at the end. */
-const CANDLES = [7, 25, 50, 70];
+const CANDLES = [5, 15, 25, 35];
 const state = computed(() => christmasState(clock.today));
 </script>
 

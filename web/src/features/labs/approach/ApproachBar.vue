@@ -5,6 +5,7 @@
  * duration at their start time (the entry's colour and skin like its card, tap opens; only the title, no time,
  * estimate or count), the title inside when it fits, else right after the block; an entry beyond the window waits at the end with "in 5 h".
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
@@ -64,10 +65,10 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
         :data-at-end="atEnd ? 'true' : undefined" :data-running="c.running ? 'true' : undefined" :data-title-outside="c.titleOutside ? 'true' : undefined"
         :style="{ left: `${NOW_PX + c.x}px`, top: `${TICK_PX + c.row * ROW_PX + 1}px`, zIndex: i + 2 }"
       >
-        <button
+        <Pressable
           type="button" class="block skin" :class="{ bare: c.titleOutside }" data-testid="approach-block" :aria-label="neutralName(c.segment.item)"
           :style="{ width: `${c.width}px`, '--c': cats.itemColor(c.segment.item), '--on-solid': onColor(cats.itemColor(c.segment.item)) }" @click="openItem(c.segment.item)"
-        ><span v-if="!c.titleOutside" class="label" :style="c.visibleWidth < c.width ? { maxWidth: `${Math.max(0, c.visibleWidth - 2 * BLOCK_PAD_PX)}px` } : undefined">{{ neutralName(c.segment.item) }}</span></button>
+        ><span v-if="!c.titleOutside" class="label" :style="c.visibleWidth < c.width ? { maxWidth: `${Math.max(0, c.visibleWidth - 2 * BLOCK_PAD_PX)}px` } : undefined">{{ neutralName(c.segment.item) }}</span></Pressable>
         <!-- the block carries the entry's label; the title beside it is a second tap target only -->
         <span
           v-if="c.titleOutside && c.titleWidth > 0" class="title" data-testid="approach-title" aria-hidden="true"

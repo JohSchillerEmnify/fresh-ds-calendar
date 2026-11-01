@@ -135,14 +135,16 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     a snow drift, pale blue-grey in light mode. The ground runs the full width of the bar and may pass behind the
     controls. The props stand still (only the kite sways while the scene moves) and keep their full size (trees 43 to
     64 px tall, snowman 34 by 42, leaf pile 39 by 13, sledge 34 by 13, kite 16 by 20 with its tail) in light and dark;
-    they spread over all the free areas of the bar and are never under the title, a button or the Today pill. A prop
-    that cannot sit clear of the controls is left out, never shrunk. In one row the snowy tree is left out; the autumn
+    they spread over all the free areas of the bar. Owner, 2026-10-30: such decoration may stay where it is and be
+    partly covered by a control; the cat and the scene's main element (Mordor's eye and tower, the Easter hare) are
+    never under a control. In one row the snowy tree is left out; the autumn
     tree and the snowman stand in the one-row gap. While the scene moves, Fall has a flock of three birds and Winter a
     robin as its visitor instead of the butterfly. In left-handed mode the whole scene is drawn mirrored.
 
     Scenario Outline: The Fall and Winter props stay when the scene rests
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 11 seconds pass
       Then the top bar scene is still
@@ -163,11 +165,11 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | leaf litter |
         | Winter | snow drift  |
 
-    Scenario Outline: The Fall and Winter props sit clear of the controls at full size
+    Scenario Outline: The Fall and Winter props keep their full size
       Given the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows the "<prop>"
-      And the "<prop>" of the top bar scene is not under a control
       And the "<prop>" of the top bar scene is drawn at its full size
 
       Examples:
@@ -180,12 +182,11 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter | sledge      |
 
     @mobile
-    Scenario Outline: In each header layout the Fall and Winter props sit clear of the controls
+    Scenario Outline: In each header layout the Fall and Winter props keep their full size
       Given the scene is "<theme>"
       And the header layout is set to "<layout>"
       When I open the day view for 2026-10-12
       Then the top bar scene shows the "<prop>"
-      And the "<prop>" of the top bar scene is not under a control
       And the "<prop>" of the top bar scene is drawn at its full size
 
       Examples:
@@ -242,7 +243,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Owner, 2026-10-26: the nine leaves (Fall) or snowflakes (Winter, Christmas) come to rest at hand-placed spots, the
     Fall and Winter ones spread over the whole bar, the Christmas ones between the candles; the same spots every time,
     placed for each header layout, so the still picture is never a bare tint. A resting leaf or flake may sit close to
-    a control but never under one. The Reduced and Off animation levels show that same picture from the start. When
+    a control or partly under one (decoration, owner 2026-10-30). The Reduced and Off animation levels show that same picture from the start. When
     the moving ends at 10 s, the leaves and snowflakes glide to their spots in one second instead of jumping, so by
     11 s the scene is still. The Christmas candles and tree stay as they are.
 
@@ -250,10 +251,10 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: After the moving the leaves or snowflakes lie still where I can see them
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 11 seconds pass
       Then the top bar scene shows 9 "<particles>" at rest
-      And no "<particles>" of the top bar scene is under a control
       And the "top bar" still looks like "scene-<theme>-still"
 
       Examples:
@@ -265,6 +266,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: The resting leaves and snowflakes are spread over the whole bar
       Given the animation level is "Reduced"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "<particles>" of the top bar scene are spread over the whole bar
@@ -278,6 +280,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: With fewer animations the scene shows the same still picture from the start
       Given the animation level is "<level>"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "top bar" still looks like "scene-<theme>-still"
@@ -293,6 +296,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       Given the device prefers a dark color scheme
       And the animation level is "Reduced"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "top bar" still looks like "scene-<theme>-still-dark"
@@ -302,23 +306,10 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | leaves     |
         | Winter | snowflakes |
 
-    @mobile
-    Scenario Outline: In each header layout no resting leaf or snowflake is under a control
-      Given the scene is "<theme>"
-      And the header layout is set to "<layout>"
-      And the animation level is "Reduced"
-      When I open the day view for 2026-10-12
-      Then no "<particles>" of the top bar scene is under a control
-
-      Examples:
-        | theme     | layout   | particles  |
-        | Fall      | One row  | leaves     |
-        | Winter    | Two rows | snowflakes |
-        | Christmas | One row  | snowflakes |
-
     Scenario: When the moving ends the leaves glide to their spots within a second
       Given the scene is "Fall"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 10 seconds pass
       Then the "leaves" of the top bar scene glide to their resting spots within 1 second

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { setAnimationSetting, useAnimationLevel, type MotionLevel } from '@/motion/level';
 import { RewardCheckbox, ProgressRing, useCelebrate, useDraggable, createSlotGrid, createCellGrid, springs } from '@/motion';
@@ -103,9 +104,9 @@ useDraggable(chip, {
       <div class="bar-in">
         <StreakFlame :count="streak" :pulse="pulse" />
         <div class="pbtn-wrap">
-          <button class="pbtn" data-testid="plant-button" :data-stage="stage" :data-mood="mood" @click="cardOpen = !cardOpen">
+          <Pressable class="pbtn" data-testid="plant-button" :data-stage="stage" :data-mood="mood" @click="cardOpen = !cardOpen">
             <Plant :stage="stage" :mood="mood" :size="30" :change="change" />
-          </button>
+          </Pressable>
           <PlantCard v-if="cardOpen" :plant="{ growth: 70, stage: ['Seed','Sprout','Small plant','Leafy','Flowering'][stage] as any, stageIndex: stage, nextStageAt: 140, todayPoints: 12, lastWatered: null, flowers, vitality: 100, mood, message: 'Your plant is happy' }" :change="change" @close="cardOpen = false" />
         </div>
         <h1>October 2026</h1>
@@ -115,8 +116,8 @@ useDraggable(chip, {
 
     <section class="ctl">
       <div class="row">
-        <button v-for="s in ['sunflowers', 'mordor', 'none'] as SceneName[]" :key="s" :data-testid="`pick-${s}`" :aria-pressed="scene === s" @click="scene = s">{{ s }}</button>
-        <button data-testid="replay" @click="replayScene">replay intro</button>
+        <Pressable v-for="s in ['sunflowers', 'mordor', 'none'] as SceneName[]" :key="s" :data-testid="`pick-${s}`" :aria-pressed="scene === s" @click="scene = s">{{ s }}</Pressable>
+        <Pressable data-testid="replay" @click="replayScene">replay intro</Pressable>
       </div>
       <div class="row">
         <label>anim <select v-model="lv" data-testid="level"><option>full</option><option>reduced</option><option>off</option></select></label>
@@ -125,21 +126,21 @@ useDraggable(chip, {
         <span class="muted">effective: {{ level }}</span>
       </div>
       <div class="row">
-        <button data-testid="b-checkin" @click="checkIn">check-in</button>
-        <button data-testid="b-water" @click="water">water</button>
-        <button data-testid="b-grow" @click="growStage">grow</button>
-        <button data-testid="b-bloom" @click="bloom">bloom</button>
-        <button data-testid="b-mood" @click="nextMood">mood: {{ mood }}</button>
-        <button data-testid="b-sparkle" @click="spawnSparkle({ x: 60, y: 300 })">sparkle</button>
-        <button data-testid="b-confetti" @click="spawnConfetti({ x: 187, y: 360 })">confetti</button>
-        <button data-testid="b-bling" @click="spawnBling({ x: 100, y: 300 })">bling</button>
-        <button data-testid="b-drops" @click="spawnDroplets({ x: 100, y: 300 })">drops</button>
+        <Pressable data-testid="b-checkin" @click="checkIn">check-in</Pressable>
+        <Pressable data-testid="b-water" @click="water">water</Pressable>
+        <Pressable data-testid="b-grow" @click="growStage">grow</Pressable>
+        <Pressable data-testid="b-bloom" @click="bloom">bloom</Pressable>
+        <Pressable data-testid="b-mood" @click="nextMood">mood: {{ mood }}</Pressable>
+        <Pressable data-testid="b-sparkle" @click="spawnSparkle({ x: 60, y: 300 })">sparkle</Pressable>
+        <Pressable data-testid="b-confetti" @click="spawnConfetti({ x: 187, y: 360 })">confetti</Pressable>
+        <Pressable data-testid="b-bling" @click="spawnBling({ x: 100, y: 300 })">bling</Pressable>
+        <Pressable data-testid="b-drops" @click="spawnDroplets({ x: 100, y: 300 })">drops</Pressable>
       </div>
     </section>
 
     <section ref="card" class="card" data-testid="lab-card">
       <div class="card-h"><b>Groceries</b><ProgressRing :done="done" :total="items.length" /> <span class="muted">{{ done }}/{{ items.length }}</span>
-        <button class="small" @click="resetItems">reset</button></div>
+        <Pressable class="small" @click="resetItems">reset</Pressable></div>
       <RewardCheckbox v-for="i in items" :key="i.t" :model-value="i.d" :label="i.t" @update:model-value="(v) => tick(i, v)" />
       <p v-if="done === items.length" class="muted" data-testid="tasklist-complete-message">All done! 🎉</p>
     </section>

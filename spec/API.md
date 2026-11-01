@@ -192,9 +192,11 @@ per id. A missing id follows the client's registry default (Strip off, others on
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
 open the list sheet.
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
-`rail`; any other value is a 400; feature nav-position).
-The person pref `headerLayout` (`'two-rows' | 'one-row'`, default `'two-rows'`; anything else is a 400) is the phone's
-top bar layout (feature header-layout). It is a person pref, not part of the theme: `PATCH /api/prefs/theme`, theme
+`rail`; `navPhone` also accepts `drawer`, the side menu of feature nav-expressive; any other value is a 400; feature nav-position).
+The person pref `bottomBarSize` (`'auto' | 'expressive' | 'compact'`, default `'auto'`: Compact on phones, Expressive elsewhere;
+anything else is a 400) is the bottom bar's size (feature nav-expressive).
+The person pref `headerLayout` (`'auto' | 'two-rows' | 'one-row'`, default `'auto'`: Compact = `one-row` on phones, Expressive =
+`two-rows` elsewhere; anything else is a 400) is the top bar's size (features header-layout, header-expressive). It is a person pref, not part of the theme: `PATCH /api/prefs/theme`, theme
 files and theme import/export never carry it. `approachTimeLeft` (boolean, default `true`) shows the running entry's
 "· N min left" line in the Approaching card; off (or `approachingCard` off) the running entry shows it instead.
 The person pref `streak` (`'off' | 'flame' | 'plant'`, default `'off'`; anything else is a 400) is what the top bar

@@ -48,6 +48,8 @@ const FLASH_MS = 1000;
 export const useUiStore = defineStore('ui', () => {
   const pickerOpen = ref(false);
   const filtersShown = ref(false);
+  /** The side menu (view switcher position "Side menu") is open. */
+  const sideMenuOpen = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
   /** Desktop side tray collapsed to its slim edge strip (persisted in this browser; default open). The phone has `trayExpanded`. */
@@ -61,6 +63,8 @@ export const useUiStore = defineStore('ui', () => {
   /** Names of the bottom panels and sheets of a view that are open (the Canvas's area editor, the Tasks view's filter and sort sheets). */
   const panels = reactive(new Set<string>());
   /** Any of them is open: the phone's create button slides away like for the tray. */
+  /** The bottom bar is slid away (scrolling down); the Tasks view's floating toolbar goes with it (published by `App`). */
+  const barHidden = ref(false);
   const panelOpen = computed(() => panels.size > 0);
   function setPanel(name: string, open: boolean): void {
     if (open) panels.add(name);
@@ -111,5 +115,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
+  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, barHidden, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
 });

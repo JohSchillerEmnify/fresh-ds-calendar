@@ -4,6 +4,7 @@
  * imported theme, or the preview of one about to be imported). Choosing is the card button; `actions` adds a row
  * (export, delete) of imported themes.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onMounted, shallowRef } from 'vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
 import DrawnScene from '@/features/motivation/DrawnScene.vue';
@@ -41,7 +42,7 @@ const style = computed<Record<string, string>>(() => {
 
 <template>
   <div class="item" data-testid="theme-item" :data-name="name">
-    <button type="button" class="tcard" data-testid="theme-card" :data-name="name" :aria-pressed="pressed" @click="$emit('choose')">
+    <Pressable type="button" class="tcard" data-testid="theme-card" :data-name="name" :aria-pressed="pressed" @click="$emit('choose')">
       <span
         class="scope" :style="style" :data-glow="theme.attrs.glow" :data-entries="theme.attrs.entries"
         :data-corners="theme.attrs.corners" :data-scene="scene" aria-hidden="true"
@@ -60,7 +61,7 @@ const style = computed<Record<string, string>>(() => {
         </span>
       </span>
       <span class="nm">{{ label ?? name }}<small v-if="sub"> · {{ sub }}</small></span>
-    </button>
+    </Pressable>
     <div v-if="$slots.actions" class="acts"><slot name="actions" /></div>
   </div>
 </template>

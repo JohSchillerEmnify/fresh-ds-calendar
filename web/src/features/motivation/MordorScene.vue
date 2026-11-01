@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
       <path d="M0 40 V30 L10 24 L16 29 L28 14 L35 22 L44 18 L55 30 L66 20 L72 26 L86 10 L93 21 L104 17 L112 29 L125 19 L131 24 L146 8 L154 20 L163 16 L172 28 L184 17 L192 24 L200 18 V40Z" class="far" />
       <path d="M0 40 V34 L14 30 L22 35 L40 24 L50 32 L70 27 L82 34 L100 26 L116 35 L132 29 L150 36 L170 28 L186 34 L200 30 V40Z" class="near" />
     </svg>
-    <svg class="mo-tower" viewBox="0 -10 60 74" preserveAspectRatio="xMidYMax meet" focusable="false">
+    <svg class="mo-tower" data-part="mordor-tower" viewBox="0 -10 60 74" preserveAspectRatio="xMidYMax meet" focusable="false">
       <defs>
         <radialGradient id="mo-eye-g" cx="50%" cy="50%" r="55%">
           <stop offset="0" stop-color="#fff2a8" /><stop offset="0.45" stop-color="#ffa21a" /><stop offset="1" stop-color="#e5320f" />
@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
       <path class="body" d="M14 64 L19 50 L18 42 L22 38 L22 28 L25 25 L25 19 L29 17 L30 15 L31 17 L35 19 L35 25 L38 28 L38 38 L42 42 L41 50 L46 64Z" />
       <path class="spire" d="M22 38 L19 28 L24 33Z M38 38 L41 28 L36 33Z M18 48 L11 41 L20 44Z M42 48 L49 41 L40 44Z M25 25 L23 17 L27 22Z M35 25 L37 17 L33 22Z" />
       <path class="spire" d="M25 20 Q18 10 21 0 Q24 8 29 14Z M35 20 Q42 10 39 0 Q36 8 31 14Z" />
-      <g ref="eye" class="eye" data-part="eye" data-testid="sauron-eye">
+      <g ref="eye" class="eye" data-part="mordor-eye" data-testid="sauron-eye">
         <g class="flames"><path class="fl" d="M23 9 Q25 2 28 7 Q29 -2 31 6 Q33 -1 35 7 Q38 2 37 9 Q30 5 23 9Z" /></g>
         <path class="almond" d="M16 12 Q30 0 44 12 Q30 24 16 12Z" fill="url(#mo-eye-g)" />
         <g class="pupil-g"><ellipse class="pupil" cx="30" cy="12" rx="1.9" ry="8.6" /></g>

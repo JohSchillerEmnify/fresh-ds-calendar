@@ -18,7 +18,7 @@ const lift = computed(() => (isPhone.value ? 0 : ui.snackbars.filter((s) => s.du
 </script>
 
 <template>
-  <div class="fab-wrap" :class="{ away: away }" :style="{ '--snack-lift': lift * 64 + 'px' }" data-testid="create-fab-area" :inert="away">
+  <div class="fab-wrap" :class="{ away: away, tools: !!route.meta.tasks }" :style="{ '--snack-lift': lift * 64 + 'px' }" data-testid="create-fab-area" :inert="away">
     <Fab :label="t('calendar.create.label')" data-testid="create-button" @click="route.meta.tasks ? openNewUndated() : openNew()"><IconAdd /></Fab>
   </div>
 </template>
@@ -45,6 +45,23 @@ html[data-hand='left'][data-touch] .fab-wrap { right: auto; align-items: flex-st
   html[data-hand='left'][data-touch] .fab-wrap { left: calc(16px + var(--safe-left)); }
   html[data-hand='left'][data-touch][data-nav-pos='rail'] .fab-wrap { left: calc(var(--rail-w) + var(--safe-left) + 12px); }
   html[data-hand='left'][data-touch] .fab-wrap.away { transform: translateX(calc(-100% - 24px)); }
+}
+/* Compact bottom bar (feature nav-expressive): the button is as tall as the bar and stands beside it on the thumb side. */
+@media (max-width: 767.98px) {
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap { bottom: calc(var(--safe-bottom) + 8px); right: calc(12px + var(--safe-right)); }
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap :deep(.fab) { width: 52px; height: 52px; }
+  html[data-hand='left'][data-touch][data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap { left: calc(12px + var(--safe-left)); }
+}
+/* Phone, Expressive bar, calendar views: the + stands beside the bar at its bottom edge (feature open-tasks-in-sight, tray option C) */
+@media (max-width: 767.98px) {
+  html[data-nav-pos='bottom'][data-bar-size='expressive'][data-fab-beside='true'] .fab-wrap { bottom: calc(var(--safe-bottom) + 8px); right: calc(16px + var(--safe-right)); }
+  html[data-hand='left'][data-touch][data-nav-pos='bottom'][data-bar-size='expressive'][data-fab-beside='true'] .fab-wrap { left: calc(16px + var(--safe-left)); }
+}
+/* Tasks view with the Compact bar: the + stands above the bar next to the floating list tools (feature tasks-toolbar) */
+@media (max-width: 767.98px) {
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap.tools { bottom: calc(var(--navbar-h) + var(--safe-bottom) + 12px); right: calc(16px + var(--safe-right)); }
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap.tools :deep(.fab) { width: 64px; height: 64px; }
+  html[data-hand='left'][data-touch][data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap.tools { left: calc(16px + var(--safe-left)); }
 }
 @media (min-width: 768px) {
   html[data-hand='left'][data-touch] .fab-wrap { left: calc(var(--tray-w, 0px) + 24px); }

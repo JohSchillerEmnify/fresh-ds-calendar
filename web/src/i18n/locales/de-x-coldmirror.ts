@@ -55,6 +55,8 @@ export default {
   },
   nav: {
     views: 'Ansichten, yo',
+    menu: 'Menü, yo',
+    calendars: 'Kalender, Digga',
   },
   common: {
     off: 'Aus, bye',
@@ -129,7 +131,9 @@ export default {
     },
     calendar: {
       defaultView: 'Standard-Ansicht, yo',
-      headerLayout: { label: 'Kopfzeile, yo', hint: 'Aufm Handy, Digga', twoRows: 'Zwei Zeilen', oneRow: 'Eine Zeile, fresh' },
+      barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
+      topBarSize: { label: 'Kopfzeilengröße, yo', hint: 'Aufm Handy, Digga; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
+      bottomBarSize: { label: 'Untere Leiste Größe, Digga', hint: 'Aufm Handy, Digga' },
       syncIndicator: { label: 'Sync-Anzeige, yo', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich rumzickt, Digga' },
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       approachTimeLeft: { label: 'Restzeit, yo', hint: 'Die Restzeit des laufenden Termins in der Karte; aus, steht sie am Termin selbst, Digga' },
@@ -192,7 +196,7 @@ export default {
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
     leftHanded: { label: 'Linkshänder-Modus, yo', hint: 'Spiegelt das Handy-Layout, damit die wichtigen Knöpfe unter dem linken Daumen liegen. Fresh D. ist Linkshänder, Digga.' },
-    navPosition: { label: 'Ansichtswechsel, yo', hint: 'Wo Jahr, Monat, Woche und Tag chillen, Digga', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste' },
+    navPosition: { label: 'Ansichtswechsel, yo', hint: 'Wo Jahr, Monat, Woche und Tag chillen, Digga', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste', drawer: 'Seitenmenü, fresh' },
     sunflowers: { label: 'Sonnenblumen, fresh', hint: 'Gilt nur für die Szene Sonnenblumenfeld, Digga', grow: 'Wachsen mit Punkten, yo', full: 'Volles Feld, fresh' },
     ownThemes: { label: 'Bling-Blings mit KI erzeugen', hint: 'Experimentell, Digga: einen Prompt für eine KI holen und das Bling-Bling importieren, das sie liefert' },
   },

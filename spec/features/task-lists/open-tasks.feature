@@ -12,6 +12,13 @@ Feature: Open tasks stay in sight
   open ones until the end of the day.
   A list in the tray is the same list view as the expanded list: everything that can be done there
   (tick, add, rename, reorder and delete items, rename the list, edit its details) works the same in the tray.
+  Owner decision 2026-10-31 (design E, tray option C): on a phone with the view switcher at the bottom, the open tasks
+  are a slim second row of the floating bottom bar, only while there are open tasks: a "3 open" chip with a chevron and
+  the names of the open lists as chips that fade out where they overflow. The bar sits beside the + button, so the +
+  never covers the row. Tapping the row opens the tray as before (the same list view). With no open tasks there is no
+  extra row. The row belongs to the bar: it slides away with the bar while scrolling down and comes back with it.
+  Left-handed mode mirrors the bar and the + button. On tablets and desktops the tray stays the side panel at the right
+  (or left, left-handed), above or beside the floating bottom bar, which reserves its own room.
 
   Background:
     Given the calendar is empty
@@ -46,6 +53,71 @@ Feature: Open tasks stay in sight
       | week  | 2026-11-02 |
       | day   | 2026-10-25 |
       | year  | 2027       |
+
+  Rule: On a phone the open tasks are a second row of the bottom bar
+
+    @mobile
+    Scenario Outline: The count and the names of the open lists are in the bottom bar in every view
+      When I open the <view> view for <period>
+      Then the bottom bar shows the open tasks "3 open" with the names "Laundry, Groceries, Packing"
+
+      Examples:
+        | view  | period     |
+        | month | 2026-12    |
+        | week  | 2026-11-02 |
+        | day   | 2026-10-25 |
+        | year  | 2027       |
+
+    @mobile
+    Scenario: With no open tasks the bottom bar has no extra row
+      Given the calendar is empty
+      When I open the week view for 2026-10-12
+      Then the bottom bar has no open tasks row
+
+    @mobile
+    Scenario Outline: The + button stands beside the bar and never covers the open tasks row
+      Given the bottom bar size is set to "<size>"
+      When I open the week view for 2026-10-12
+      Then the create button is beside the bottom bar
+      And the create button does not cover any control of the open tasks tray
+
+      Examples:
+        | size       |
+        | Expressive |
+        | Compact    |
+
+    @mobile
+    Scenario: Left-handed mode puts the + button at the left and the bar beside it
+      Given left-handed mode is on
+      When I open the week view for 2026-10-12
+      Then the "create button" is on the "left" side of the screen
+      And the create button is beside the bottom bar
+
+    @mobile
+    Scenario: The row slides away with the bar and comes back with it
+      When I open the day view for 2026-10-12
+      And I scroll the calendar down by 300 pixels
+      Then the bottom bar is hidden
+      And the open tasks row is hidden
+      When I scroll the calendar up by 60 pixels
+      Then the bottom bar is shown
+      And the open tasks row is shown
+
+    @mobile
+    Scenario: Tapping the row opens the tray with the same lists
+      When I open the week view for 2026-10-12
+      And I open the open tasks tray
+      Then the open tasks tray lists "Laundry, Groceries, Packing"
+      And the open tasks tray shows the count "3 open"
+
+    @desktop @tablet
+    Scenario: On wide screens the tray stays a side panel beside the floating bottom bar
+      Given the view switcher on desktop and tablets is set to "bottom"
+      When I open the week view for 2026-10-12
+      Then the open tasks tray shows the count "3 open"
+      And the calendar ends above the bottom bar
+
+  Rule: The tray itself
 
   Scenario: The tray lists overdue lists first, then today's lists by time
     When I open the week view for 2026-10-12
@@ -183,6 +255,7 @@ Feature: Open tasks stay in sight
     Then the open tasks tray lists "Laundry, Groceries, Packing"
     And I see the task list "Party" on 2026-10-20
 
+  @desktop
   Scenario: The tray says when everything is done
     Given the calendar is empty
     When I open the week view for 2026-10-12

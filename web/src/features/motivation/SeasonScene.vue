@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { motionLevel } from '@/motion/level';
-import { useClearOfControls } from './clearOfControls';
 import { anchor, BAR, layoutFor, PARTICLE_SIZE, PARTICLE_TURN, particleScale, STILL } from './fallWinter';
 import { sceneStill } from './sceneRest';
 import type { BackdropScene } from './types';
@@ -41,8 +40,6 @@ const spots = computed(() => {
 });
 
 const els = () => [...(root.value?.querySelectorAll<HTMLElement>('.p') ?? [])];
-// only the resting Fall, Winter and Christmas particles are kept clear; the other seasons never watch the bar
-const check = resting.value ? useClearOfControls(root, '.p', () => !!spots.value) : () => {};
 let glides: Animation[] = [];
 /** Where each particle was when the moving window ended (centre and opacity), until the glide starts. */
 let from: { x: number; y: number; o: number }[] | null = null;
@@ -58,7 +55,7 @@ watch(spots, (now) => {
   glides = [];
   const start = now && motionLevel.value === 'full' ? from : null;
   from = null;
-  if (!start || !root.value || typeof Element.prototype.animate !== 'function') return check();
+  if (!start || !root.value || typeof Element.prototype.animate !== 'function') return;
   // screen offsets, applied inside the scene layer: a mirrored scene (left-handed) turns the horizontal one round
   const flip = Math.sign(new DOMMatrix(getComputedStyle(root.value.closest('.tbs') ?? root.value).transform).a) || 1;
   glides = els().map((el, i) => {
@@ -66,7 +63,6 @@ watch(spots, (now) => {
     const dx = (f.x - (r.left + r.width / 2)) * flip, dy = f.y - (r.top + r.height / 2);
     return el.animate([{ translate: `${dx}px ${dy}px`, opacity: f.o }, { translate: '0 0', opacity: 0.95 }], { duration: GLIDE_MS, easing: 'ease-out' });
   });
-  void Promise.all(glides.map((a) => a.finished)).then(check, () => {});
 }, { flush: 'post' });
 </script>
 

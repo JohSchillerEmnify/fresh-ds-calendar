@@ -15,6 +15,9 @@ Feature: Left-handed mode
 
   @mobile
   Scenario: Switching it on moves the add button and the tray toggle to the left
+    Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
+      | item | done |
+      | Milk | no   |
     When I open the month view for 2026-10
     And I turn on "Left-handed mode" in the settings
     And I leave the settings
@@ -42,7 +45,7 @@ Feature: Left-handed mode
     Given left-handed mode is on
     When I open the month view for 2026-10
     Then the "settings button" is on the "left" side of the screen
-    And the "Today button" is on the "right" side of the screen
+    And the "Today button" is on the "left" side of the screen
 
   @mobile
   Scenario: The switches in the settings are on the left

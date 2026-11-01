@@ -52,6 +52,8 @@ export default {
   },
   nav: {
     views: 'Ansichten',
+    menu: 'Menü',
+    calendars: 'Kalender',
   },
   common: {
     off: 'Aus',
@@ -130,7 +132,9 @@ export default {
       approachTimeLeft: { label: 'Restzeit', hint: 'Die Restzeit des laufenden Termins in der Karte „Gleich“; aus, steht sie am Termin selbst' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
       sideBySide: { day: 'Tagesansicht: Termine nebeneinander', week: 'Wochenansicht: Termine nebeneinander', hint: 'Überlappende Termine teilen sich die Breite in bis zu so vielen Spalten; weitere liegen versetzt auf der letzten', upTo: 'Bis zu {n}' },
-      headerLayout: { label: 'Kopfzeile', hint: 'Auf dem Handy', twoRows: 'Zwei Zeilen', oneRow: 'Eine Zeile' },
+      barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
+      topBarSize: { label: 'Größe der Kopfzeile', hint: 'Auf dem Handy; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
+      bottomBarSize: { label: 'Größe der unteren Leiste', hint: 'Auf dem Handy' },
       approachBar: { label: 'Leiste „Gleich“', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte' },
       syncIndicator: { label: 'Sync-Anzeige', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich hakt' },
       approachWindow: {
@@ -189,7 +193,7 @@ export default {
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegelt das Handy-Layout, sodass die wichtigsten Bedienelemente unter dem linken Daumen liegen' },
-    navPosition: { label: 'Ansichtswechsel', hint: 'Wo Jahr, Monat, Woche und Tag liegen', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste' },
+    navPosition: { label: 'Ansichtswechsel', hint: 'Wo Jahr, Monat, Woche und Tag liegen', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste', drawer: 'Seitenmenü' },
     sunflowers: { label: 'Sonnenblumen', hint: 'Gilt für die Szene Sonnenblumenfeld', grow: 'Wachsen mit Punkten', full: 'Volles Feld' },
     ownThemes: { label: 'Designs mit KI erzeugen', hint: 'Experimentell: einen Prompt für eine KI holen und das Design importieren, das sie liefert' },
   },

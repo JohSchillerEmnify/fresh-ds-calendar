@@ -6,6 +6,7 @@
  * times, task lists growing into cards, and at the largest sizes a mini day timeline with every task item
  * (feature zoom-month). Entries are the month view's own components (`ItemView`: events, `TaskListCard`).
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
@@ -145,12 +146,12 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
     :data-times="detail.times.toFixed(2)" :data-lists="detail.lists.toFixed(2)" :data-timeline="detail.timeline.toFixed(2)"
   >
     <header class="bar">
-      <button type="button" class="btn" data-testid="zoom-back" @click="back">{{ t('views.month') }}</button>
-      <button type="button" class="btn icon" data-testid="zoom-prev" :aria-label="t('calendar.picker.previousMonth')" @click="shiftMonth(-1)">‹</button>
+      <Pressable type="button" class="btn" data-testid="zoom-back" @click="back">{{ t('views.month') }}</Pressable>
+      <Pressable type="button" class="btn icon" data-testid="zoom-prev" :aria-label="t('calendar.picker.previousMonth')" @click="shiftMonth(-1)">‹</Pressable>
       <span class="title" data-testid="zoom-title">{{ periodTitle('month', anchorDate) }}</span>
-      <button type="button" class="btn icon" data-testid="zoom-next" :aria-label="t('calendar.picker.nextMonth')" @click="shiftMonth(1)">›</button>
-      <button type="button" class="btn icon" data-testid="zoom-out" :aria-label="t('zoomMonth.zoomOut')" :disabled="z <= MIN_ZOOM" @click="zoomBy(-1)">−</button>
-      <button type="button" class="btn icon" data-testid="zoom-in" :aria-label="t('zoomMonth.zoomIn')" :disabled="z >= MAX_ZOOM" @click="zoomBy(1)">+</button>
+      <Pressable type="button" class="btn icon" data-testid="zoom-next" :aria-label="t('calendar.picker.nextMonth')" @click="shiftMonth(1)">›</Pressable>
+      <Pressable type="button" class="btn icon" data-testid="zoom-out" :aria-label="t('zoomMonth.zoomOut')" :disabled="z <= MIN_ZOOM" @click="zoomBy(-1)">−</Pressable>
+      <Pressable type="button" class="btn icon" data-testid="zoom-in" :aria-label="t('zoomMonth.zoomIn')" :disabled="z >= MAX_ZOOM" @click="zoomBy(1)">+</Pressable>
     </header>
     <div class="weekdays"><div ref="head" class="wdin" :style="{ width: vw * z + 'px' }"><div v-for="w in weekdayLabels()" :key="w" class="wd" role="columnheader">{{ w }}</div></div></div>
     <div ref="port" class="port" data-testid="zoom-port">
@@ -161,7 +162,7 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
           v-for="(day, i) in days" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="zoom-cell" :data-date="toIsoDate(day)" :data-count="segsOf(toIsoDate(day)).length"
           :class="{ outside: !isSameMonth(day, anchorDate), today: toIsoDate(day) === today }" @click="onCellClick($event, day)"
         >
-          <button class="num" type="button" data-testid="zoom-cell-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="openDay(day)">{{ day.getDate() }}</button>
+          <Pressable class="num" type="button" data-testid="zoom-cell-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="openDay(day)">{{ day.getDate() }}</Pressable>
           <div class="body">
             <div v-if="detail.dots > 0.01" class="dots" :style="{ opacity: detail.dots }" data-testid="zoom-dots">
               <span v-for="s in dotsOf(toIsoDate(day))" :key="s.item.id + s.date" class="dot" :class="{ list: s.item.kind === 'tasklist' }" :style="{ background: cats.itemColor(s.item) }" />

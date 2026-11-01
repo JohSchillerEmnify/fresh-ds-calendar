@@ -5,6 +5,7 @@
  * a folded Later card with the rest of today. A tap opens the entry like everywhere else. Always today: it loads today
  * itself and follows the app clock's minute tick (the one timer, paused while hidden). A centred column on wide screens.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { addDays } from 'date-fns';
 import { useDaySegments } from '@/composables/useDaySegments';
@@ -59,7 +60,7 @@ const open = (s: Segment) => openItem(s.item);
         :data-title="now.segment.item.title" :style="{ '--c': colorOf(now.segment) }"
       >
         <span class="eyebrow">{{ t('calendar.nowNext.now') }}</span>
-        <button type="button" class="title cover" data-testid="nownext-now-line" @click="open(now.segment)">{{ neutralName(now.segment.item) }}</button>
+        <Pressable type="button" class="title cover" data-testid="nownext-now-line" @click="open(now.segment)">{{ neutralName(now.segment.item) }}</Pressable>
         <template v-if="now.kind === 'running'">
           <span class="big" data-testid="nownext-now-left">{{ t('calendar.nowNext.left', { left: formatDuration(now.leftMin) }) }}</span>
           <span class="barrow">
@@ -80,7 +81,7 @@ const open = (s: Segment) => openItem(s.item);
         <span class="big" data-testid="nownext-now-line">{{ now.untilMin === null ? t('calendar.nowNext.freeRest') : t('calendar.nowNext.freeUntil', { time: hhmm(now.untilMin) }) }}</span>
       </div>
 
-      <button
+      <Pressable
         v-if="model.next" type="button" class="card next tap" data-testid="nownext-next" :data-title="model.next.segment.item.title"
         :style="{ '--c': colorOf(model.next.segment) }" @click="open(model.next.segment)"
       >
@@ -90,26 +91,26 @@ const open = (s: Segment) => openItem(s.item);
           <span class="in" data-testid="nownext-next-in">{{ t('calendar.now.inDuration', { duration: formatDuration(model.next.inMin) }) }}</span>
           <span class="at" data-testid="nownext-next-time">{{ hhmm(model.next.startMin) }}</span>
         </span>
-      </button>
+      </Pressable>
       <div v-else-if="now.kind !== 'free'" class="card next quiet" data-testid="nownext-next">
         <span class="eyebrow">{{ t('calendar.nowNext.next') }}</span>
         <span class="title">{{ t('calendar.now.nothingElse') }}</span>
       </div>
 
       <div v-if="model.later.length" class="card later" data-testid="nownext-later">
-        <button type="button" class="toggle" data-testid="nownext-later-toggle" :aria-expanded="laterOpen" aria-controls="nownext-later-rows" @click="laterOpen = !laterOpen">
+        <Pressable type="button" class="toggle" data-testid="nownext-later-toggle" :aria-expanded="laterOpen" aria-controls="nownext-later-rows" @click="laterOpen = !laterOpen">
           <span class="eyebrow">{{ t('calendar.nowNext.later') }}</span>
           <span class="more" data-testid="nownext-later-more">{{ t('calendar.nowNext.more', { count: model.later.length }) }}</span>
           <IconExpandMore class="chev" :class="{ up: laterOpen }" aria-hidden="true" />
-        </button>
+        </Pressable>
         <ul v-if="laterOpen" id="nownext-later-rows" class="rows">
           <li v-for="l in model.later" :key="l.segment.item.id">
-            <button
+            <Pressable
               type="button" class="row" data-testid="nownext-later-item" :data-time="hhmm(l.startMin)" :data-title="l.segment.item.title"
               :style="{ '--c': colorOf(l.segment) }" @click="open(l.segment)"
             >
               <span class="at">{{ hhmm(l.startMin) }}</span><span class="rt">{{ neutralName(l.segment.item) }}</span>
-            </button>
+            </Pressable>
           </li>
         </ul>
       </div>
@@ -121,7 +122,7 @@ const open = (s: Segment) => openItem(s.item);
 .deck { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; background: var(--md-sys-color-surface); }
 .col {
   /* bottom: room for the create button, so it never covers the Later card */
-  box-sizing: border-box; min-height: 100%; max-width: 560px; margin: 0 auto; padding: 12px 16px 88px;
+  box-sizing: border-box; min-height: 100%; max-width: 560px; margin: 0 auto; padding: 12px 16px var(--scroll-end);
   display: flex; flex-direction: column; gap: 12px;
 }
 .card {

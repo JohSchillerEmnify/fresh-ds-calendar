@@ -47,6 +47,12 @@ export default tseslint.config(
     },
   },
   {
+    // The one action vocabulary (ADR 0032): a raw <button> belongs only inside the m3 components; elsewhere use Button, IconButton, Chip, Pressable, ...
+    files: ['web/src/**/*.vue'],
+    ignores: ['web/src/components/m3/**'],
+    rules: { 'vue/no-restricted-html-elements': ['error', { element: 'button', message: 'no raw buttons outside m3: use Button, IconButton, Chip or Pressable from web/src/components/m3' }] },
+  },
+  {
     // Size and comment gates for source code only; today's offenders are ratcheted by `pnpm quality` (scripts/quality.mjs).
     files: ['web/src/**/*.{ts,vue}', 'server/src/**/*.ts', 'shared/**/*.{js,ts}'],
     plugins: { local: { rules: { 'comment-style': commentStyle } } },
