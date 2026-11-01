@@ -72,42 +72,38 @@ const shot = async (name) => {
 const find = (css) => browser.$(css);
 const waitFor = async (css, ms = 8000) => { try { await find(css).waitForExist({ timeout: ms }); return true; } catch { return false; } };
 
-/** Runs a native-context action and returns to the web view afterwards. */
-async function inNative(fn) {
-  const web = await browser.getContext();
-  await browser.switchContext('NATIVE_APP');
-  try { return await fn(); } finally { await browser.switchContext(web); }
+/** Fails with a clear message instead of passing a missing value on to the driver. */
+const need = (value, what) => {
+  if (value === undefined || value === null) throw new Error(`${what}: the driver returned nothing`);
+  return value;
+};
+
+/**
+ * Web to screen mapping from the driver itself (XCUITest "mobile: calibrateWebToRealCoordinatesTranslation", web context):
+ * RealX = offsetX + webX * pixelRatioX, RealY = offsetY + webY * pixelRatioY.
+ */
+async function calibrate() {
+  const c = need(await browser.execute('mobile: calibrateWebToRealCoordinatesTranslation'), 'calibrateWebToRealCoordinatesTranslation');
+  for (const k of ['offsetX', 'offsetY', 'pixelRatioX', 'pixelRatioY']) need(c[k], `calibration ${k}`);
+  return c;
 }
 
-/** A real finger tap at a native screen point (points), given in the native context. */
-const nativeTap = (x, y) => inNative(() => browser.execute('mobile: tap', { x, y }));
+/** A real finger tap at a screen point (documented "mobile: tap", coordinates relative to the app), no element lookups. */
+const screenTap = (x, y) => browser.execute('mobile: tap', { x, y });
 
-/** The web view's frame in screen points (native context): CSS px map onto it from the page's top-left. */
-const webViewFrame = () => inNative(async () => {
-  // Safari keeps several web view elements around: the visible page is the biggest one
-  const rects = [];
-  for (const w of await browser.$$('-ios class chain:**/XCUIElementTypeWebView')) rects.push(await w.getElementRect());
-  return rects.sort((a, b) => b.width * b.height - a.width * a.height)[0];
-});
-
-/** Safari's one-time tip bubble sits over the bottom bar and swallows taps: close it when it shows. */
+/** Safari's one-time tip bubble sits over the bottom bar and swallows taps: close it when it shows (position from the viewport). */
 async function dismissSafariTip() {
-  await inNative(async () => {
-    writeFileSync(`${OUT}/native-source.xml`, await browser.getPageSource());
-    const tip = await browser.$('-ios predicate string:label CONTAINS "View Bookmarks" OR name CONTAINS "View Bookmarks"');
-    if (!(await tip.isExisting())) { console.log('  no Safari tip bubble'); return; }
-    // the tip's close button is the lower one of the "Close" buttons
-    const closes = await browser.$$('-ios predicate string:type == "XCUIElementTypeButton" AND (label == "Close" OR name == "Close" OR label == "Dismiss")');
-    if (closes.length) {
-      const rects = [];
-      for (const c of closes) rects.push(await c.getElementRect());
-      const lowest = rects.reduce((m, r, i) => (r.y > rects[m].y ? i : m), 0);
-      await closes[lowest].click(); console.log('  closed the Safari tip bubble'); return;
-    }
-    const { width, height } = await browser.getWindowSize();
-    await browser.execute('mobile: tap', { x: Math.round(width * 0.906), y: Math.round(height * 0.71) });
-    console.log('  tapped the Safari tip bubble close by position');
-  });
+  const web = await browser.getContext();
+  await browser.switchContext('NATIVE_APP');
+  let source;
+  try { source = need(await browser.getPageSource(), 'native page source'); } finally { await browser.switchContext(web); }
+  writeFileSync(`${OUT}/native-source.xml`, source);
+  if (!source.includes('View Bookmarks')) { console.log('  no Safari tip bubble'); return; }
+  const vp = need(await browser.execute('mobile: viewportRect'), 'viewportRect');
+  const x = Math.round(vp.width * 0.906);
+  const y = Math.round(vp.top + vp.height * 0.71);
+  await screenTap(x, y);
+  console.log(`  tapped the Safari tip bubble close at ${x},${y} (viewport ${JSON.stringify(vp)})`);
 }
 
 /** A real touch tap on an element: one finger down and up in the middle of it. Logs the hit test of the tap point first. */
@@ -118,11 +114,10 @@ async function tap(log, label, css, { scroll = true } = {}) {
   const rect = await browser.execute((e) => { const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width, h: b.height, iw: innerWidth }; }, el);
   const hit = await browser.execute(probeAt, el, rect.x, rect.y);
   await browser.execute(() => { window.__diag.length = 0; });
-  // the touch goes through the native layer at screen coordinates: web view origin + CSS point (scaled by points per CSS px)
-  const frame = await webViewFrame();
-  const k = frame.width / rect.iw;
-  const screen = { x: Math.round(frame.x + rect.x * k), y: Math.round(frame.y + rect.y * k) };
-  await nativeTap(screen.x, screen.y);
+  // the touch goes through the native layer at the screen point the driver maps the CSS point to
+  const frame = await calibrate();
+  const screen = { x: Math.round(frame.offsetX + rect.x * frame.pixelRatioX), y: Math.round(frame.offsetY + rect.y * frame.pixelRatioY) };
+  await screenTap(screen.x, screen.y);
   await sleep(600);
   const events = await browser.execute(() => window.__diag.splice(0));
   const entry = { step: label, css, point: { x: Math.round(rect.x), y: Math.round(rect.y) }, screen, webView: frame, size: { w: Math.round(rect.w), h: Math.round(rect.h) }, ...hit, events };
