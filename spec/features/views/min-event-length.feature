@@ -49,7 +49,8 @@ Feature: Minimum event length for readability
         | Labs horizontal view  |
 
       # The phone widget is native Android: Playwright cannot drive it, so its layout is proven by the widget's JUnit tests.
-      @backlog
+      # unit: android/app/src/test/java/lan/mordor/calendar/widget/WeekLayoutTest.java:aMinimumEventLengthLaysShortItemsOutAsThatLong
+      @unit
       Examples: phone widget
         | view         |
         | phone widget |
