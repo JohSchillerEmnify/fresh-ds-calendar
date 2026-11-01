@@ -11,8 +11,9 @@ defineProps<{ scrolled?: boolean }>();
 </template>
 
 <style scoped>
+/* sticky + solid background: iOS 26 fills the status bar with this colour instead of blurring over the bar (it ignores non-fixed/sticky boxes) */
 .top-bar {
-  position: relative; flex: none; padding-top: var(--safe-top); background: var(--md-sys-color-surface);
+  position: sticky; top: 0; flex: none; padding-top: var(--safe-top); background: var(--md-sys-color-surface);
   transition: background var(--md-sys-motion-duration-medium); z-index: 5;
 }
 .top-bar.scrolled { background: var(--md-sys-color-surface-container); }
