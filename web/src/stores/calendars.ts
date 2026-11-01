@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import { api } from '@/api/client';
 import type { Calendar } from '@/api/types';
 import type { CalendarPlan } from '@calendar/shared/prefs';
@@ -9,9 +9,10 @@ import { useDeviceStore } from './device';
 
 /** Where the plans live (the prefs store, wired by the calendar feature), so this store does not import prefs (no import cycle). */
 export interface PlanSource { plans(): Record<string, CalendarPlan>; save(plans: Record<string, CalendarPlan>): Promise<void> }
-let source: PlanSource = { plans: () => ({}), save: async () => {} };
+// reactive, so a `hidden` worked out before the feature wired the source is worked out again
+const source = shallowRef<PlanSource>({ plans: () => ({}), save: async () => {} });
 export function setPlanSource(s: PlanSource): void {
-  source = s;
+  source.value = s;
 }
 
 /** Every calendar of the person with their hidden choice and plan (feature calendar-off-plan). Toggling is instant; the server is told in the background. */
@@ -21,7 +22,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
   const clock = useClockStore();
   // the clock's minute tick lands on every plan edge (edges are whole minutes), so no timer of its own is needed
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
-  const planOf = (id: string): CalendarPlan | undefined => source.plans()[id];
+  const planOf = (id: string): CalendarPlan | undefined => source.value.plans()[id];
 
   const hidden = computed(() => new Set(list.value.filter((c) => planEffectiveHidden(!!c.hidden, planOf(c.id), nowWall.value)).map((c) => c.id)));
   const isHidden = (calendarId: string) => hidden.value.has(calendarId);
@@ -40,10 +41,10 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** Saves the plans with one calendar's plan replaced (none: removed). */
   function savePlan(id: string, plan: CalendarPlan | undefined): Promise<void> {
-    const plans = { ...source.plans() };
+    const plans = { ...source.value.plans() };
     if (hasPlan(plan)) plans[id] = plan;
     else delete plans[id];
-    return source.save(plans);
+    return source.value.save(plans);
   }
 
   /** A tap: switches what the person sees now; with a plan the tap holds until the plan's next switch and ends "Off for a while". */

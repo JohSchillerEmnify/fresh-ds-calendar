@@ -71,3 +71,18 @@ describe('calendars store with a plan (feature calendar-off-plan)', () => {
     expect(cals.isHidden('work')).toBe(true);
   });
 });
+
+describe('plan source wired late (feature calendar-off-plan)', () => {
+  beforeEach(() => freshPinia());
+
+  it('works the hidden calendars out again once the plans arrive', async () => {
+    mockFetch({ 'GET /api/config': () => config({ now: '2026-11-07T09:00:00.000Z', clockFrozen: true }) });
+    await useClockStore().load();
+    setPlanSource({ plans: () => ({}), save: async () => {} });
+    const cals = useCalendarsStore();
+    cals.fromDevice([{ ...work }] as never);
+    expect(cals.isHidden('work')).toBe(false);
+    setPlanSource({ plans: () => ({ work: weekend }), save: async () => {} });
+    expect(cals.isHidden('work')).toBe(true);
+  });
+});
