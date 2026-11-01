@@ -1,18 +1,21 @@
 <script setup lang="ts">
 /** The month list that scrolls up and down: `MonthView` blocks under a pinned weekday row; the month most in view is the period (URL by `replace`). */
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { isPhone } from '@/composables/useViewport';
 import { fetchRange, routePath, weekdayLabels } from '@/lib/dates';
-import { listLayout, MONTH_COUNT, MONTH_HEADER_H, monthDate, monthIndex, mostInView, WEEKDAY_ROW_H, weekHeight } from '@/lib/monthList';
+import { t } from '@/i18n';
+import { listLayout, MONTH_COUNT, MONTH_HEADER_H, monthDate, monthIndex, mostInView, rescaleTop, WEEKDAY_ROW_H, weekHeight } from '@/lib/monthList';
 import { getMotionLevel } from '@/motion';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
+import { useSyncStore } from '@/stores/sync';
 import MonthView from '@/views/MonthView.vue';
 
 defineProps<{ mode: 'vertical' | 'vertical-snap' }>();
 const cal = useCalendarStore();
 const items = useItemsStore();
+const sync = useSyncStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -29,6 +32,8 @@ const bottomPad = computed(() => layout.value.tops[MONTH_COUNT] - layout.value.t
 
 /** The month a programmatic scroll is on its way to: the title does not follow the months passed on the way. */
 let target: number | null = null;
+/** The month `follow` last asked the router for, until the router answers: the anchor's echo of it is not a jump. */
+let requested: number | null = null;
 let frame = 0;
 
 /** The scroll offset that puts the header of month `i` right under the pinned weekday row. */
@@ -53,34 +58,54 @@ function follow(): void {
   const box = el.value;
   if (!box) return;
   // a month scrolled to stays the period until the person scrolls on, even if the next month shows more of itself
-  const arrived = target !== null && Math.abs(box.scrollTop - offsetOf(target)) < 1;
+  // the browser clamps a scroll to the last (short) month at the end of the list: that is arrived too
+  const arrived = target !== null && (Math.abs(box.scrollTop - offsetOf(target)) < 1 || (offsetOf(target) > box.scrollTop && box.scrollTop >= box.scrollHeight - box.clientHeight - 1));
   const m = arrived ? target! : mostInView(layout.value, box.scrollTop, box.clientHeight - WEEKDAY_ROW_H);
   main.value = m;
-  if (target === null && m !== monthIndex(cal.anchor)) void router.replace({ path: routePath('month', monthDate(m)), query: route.query });
+  if (target === null && m !== (requested ?? monthIndex(cal.anchor))) {
+    requested = m;
+    void router.replace({ path: routePath('month', monthDate(m)), query: route.query }).finally(() => { if (requested === m) requested = null; });
+  }
 }
 const onScroll = () => { if (!frame) frame = requestAnimationFrame(follow); };
 /** The person takes over (finger, wheel, scrollbar, key): from here the month most in view is the period again. */
 const takeOver = () => { target = null; };
 
 // the period changed by something else than this scroll (arrows, Today, the month picker, a link): scroll there
-watch(() => cal.anchor, (a) => { const i = monthIndex(a); if (i !== main.value || target !== null) void scrollToMonth(i); });
+watch(() => cal.anchor, (a) => {
+  const i = monthIndex(a);
+  // a slow router answer for what the person has scrolled through is not a jump
+  if (requested !== null) { if (i === requested) requested = null; return; }
+  if (i !== main.value || target !== null) void scrollToMonth(i);
+});
+// a rotation or resize changes the week height: stay on the same month at the same place in it
+watch(layout, (n, o) => {
+  if (el.value) el.value.scrollTop = rescaleTop(o, n, el.value.scrollTop);
+}, { flush: 'post' });
 // the built months' items load in the background (the route loads only the month in view)
 watch(built, (b) => items.prefetch(fetchRange('month', monthDate(b[0]))[0], fetchRange('month', monthDate(b[b.length - 1]))[1]), { immediate: true });
 
 /** What the list was scrolled to is kept in the history entry, so coming back (also after a reload) is pixel-exact. */
 const STASH = 'monthTop';
+/** The week height the stashed offset was made for. */
+const STASH_WEEK_H = 'monthWeekH';
 onBeforeRouteLeave(() => {
-  if (el.value) history.replaceState({ ...history.state, [STASH]: el.value.scrollTop }, '');
+  if (el.value) history.replaceState({ ...history.state, [STASH]: el.value.scrollTop, [STASH_WEEK_H]: layout.value.weekH }, '');
 });
+// the live-sync refresh re-reads the built months too (the route's refresh covers only the month in view)
+const stopSync = sync.registerTask('month-list', () => items.fetchRange(fetchRange('month', monthDate(built.value[0]))[0], fetchRange('month', monthDate(built.value[built.value.length - 1]))[1]));
+onBeforeUnmount(stopSync);
 onMounted(() => {
   const saved: unknown = history.state?.[STASH];
-  el.value!.scrollTop = typeof saved === 'number' ? saved : offsetOf(main.value);
+  const wasH: unknown = history.state?.[STASH_WEEK_H];
+  const from = typeof wasH === 'number' && wasH !== layout.value.weekH ? listLayout({ weekH: wasH, headerH: MONTH_HEADER_H }) : layout.value;
+  el.value!.scrollTop = typeof saved === 'number' ? rescaleTop(from, layout.value, saved) : offsetOf(main.value);
 });
 </script>
 
 <template>
   <section
-    ref="el" class="list" data-testid="month-view" data-scroll-area :data-scroll="mode" @scroll.passive="onScroll" @wheel.passive="takeOver"
+    ref="el" class="list" data-testid="month-view" :aria-label="t('calendar.month.scroller')" tabindex="0" data-scroll-area :data-scroll="mode" @scroll.passive="onScroll" @wheel.passive="takeOver"
     @touchstart.passive="takeOver" @pointerdown.passive="takeOver" @keydown="takeOver"
   >
     <div class="weekdays" role="row">
@@ -93,7 +118,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.list { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-padding-top: 28px; }
+.list { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-padding-top: 28px; overflow-anchor: none; }
 .list[data-scroll='vertical-snap'] { scroll-snap-type: y mandatory; }
 .weekdays {
   position: sticky; top: 0; z-index: 4; height: 28px; box-sizing: border-box; padding: 4px 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));

@@ -73,3 +73,10 @@ export function mostInView(l: ListLayout, top: number, viewH: number): number {
   }
   return best;
 }
+
+/** The offset that keeps the month at `top` in view at the same relative place when the layout changes (e.g. the week height on rotation). */
+export function rescaleTop(from: ListLayout, to: ListLayout, top: number): number {
+  if (from === to) return top;
+  const m = monthAtOffset(from, top);
+  return to.tops[m] + ((top - from.tops[m]) * to.weekH) / from.weekH;
+}
