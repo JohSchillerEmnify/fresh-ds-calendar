@@ -99,6 +99,7 @@ export const PREFS = {
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
   bottomBarSize: oneOf(['auto', 'expressive', 'compact'], 'auto', 'bottomBarSize must be auto, expressive or compact'),
+  monthScroll: oneOf(['sideways', 'vertical', 'vertical-snap'], 'sideways', 'monthScroll must be sideways, vertical or vertical-snap'),
 };
 
 /** The preference names, in table order. */

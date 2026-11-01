@@ -134,6 +134,7 @@ export default {
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Kopfzeilengröße, yo', hint: 'Aufm Handy, Digga; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
       bottomBarSize: { label: 'Untere Leiste Größe, Digga', hint: 'Aufm Handy, Digga' },
+      monthScroll: { label: 'Monatsansicht scrollt, yo', sideways: 'Seitwärts', vertical: 'Auf und ab', verticalSnap: 'Auf und ab, ein Monat nach dem anderen' },
       syncIndicator: { label: 'Sync-Anzeige, yo', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich rumzickt, Digga' },
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       approachTimeLeft: { label: 'Restzeit, yo', hint: 'Die Restzeit des laufenden Termins in der Karte; aus, steht sie am Termin selbst, Digga' },
