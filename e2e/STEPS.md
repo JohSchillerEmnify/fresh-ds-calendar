@@ -1635,6 +1635,7 @@ I unfold the Later card
 the Later card lists {string}
 the Now card says that {string} is also running
 the top bar has no date navigation
+the top bar shows no date
 the top bar names the view {string}
 I open the zoom month for {date}
 the zoom month shows {string}
@@ -1761,12 +1762,13 @@ I note the height of {string} on the runway
   screen": port height / row height lies in that range. "drag sideways with a finger": a CDP touch drag of 220 px right to
   left across the port (`touchDrag`, 150 ms); "scroll position" is the left edge of the `htime-hour` 00:00 label, "has
   panned" that it moved by more than 40 px.
-- Timeline Today (`@id:labs-timeline`, owner 2026-11-01, @backlog): "I scroll the timeline N days ahead / back" sets the
+- Timeline Today (`@id:labs-timeline`, owner 2026-11-01): "I scroll the timeline N days ahead / back" sets the
   `timeline-scroll` `scrollTop` by N times the height of one `timeline-day` (waiting for the range to extend at the
   edges), then waits for the scroll to settle. "X is visible on the timeline": its `timeline-item` lies inside the
   scroller's box. "I go to today", "the now marker is visible on screen" and "I do not see the now marker" are the
-  shared steps; on the timeline the marker is `timeline-now`. The timeline top bar then has `nav-today` but no
-  `nav-prev` / `nav-next` ("has no date navigation" changes accordingly when this is built).
+  shared steps; on the timeline the marker is `timeline-now`, and "I do not see" means it lies outside the
+  `timeline-scroll` box (the timeline keeps it in the page). The timeline top bar has `nav-today` but no `nav-prev` /
+  `nav-next`; "the top bar shows no date": `view-title` is visible and there is no `period-title`.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 - Date-less Labs views (Now, Timeline): the top bar title is the heading `view-title` with the view's name (no
@@ -2834,8 +2836,10 @@ the page itself is not zoomed
 - Week row height = the height of the `month-cell` of the first day of the month (all rows share it). "about twice":
   within 10 %. "default height": the height of a fresh device (sideways: the month fills the screen; month list: the
   fixed week height of ADR 0034), within 2 px.
-- Pinch: CDP `Input.synthesizePinchGesture` (scale 2 / 0.5, touch) at the centre of `calendar-swipe-area`, then wait
-  until the gesture settled. Ctrl+wheel: one wheel event with `ctrlKey` (deltaY -300) over the month grid.
+- Pinch: two CDP touch points (`Input.dispatchTouchEvent`) around the centre of `calendar-swipe-area`, moving apart
+  vertically from 80 to 160 px (out) or together from 160 to 80 px (in), then wait until the gesture settled (no
+  `[data-month-zooming="true"]`). Ctrl+wheel: one wheel event with Ctrl held (deltaY -300) over the month grid.
+  Sideways, the weeks sit in the scroller `month-scroll`; "default height" there is its height shared by the week rows.
 - "I scroll the month view down to D": scrolls the month's scroller until the `month-cell` of D is inside it.
 - "N day columns across the screen": N `month-cell`s in the first week row, together as wide as the viewport (2 px).
 - "the page itself is not zoomed": `visualViewport.scale` is 1, and the wheel / touch events of the gesture were
@@ -3307,8 +3311,9 @@ the top bar's widgets are in reverse order
   wide screens, is the secondary container colour, no outline). "does not show":
   `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
   colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
-  month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
-  `day-column` visible) before the check.
+  month's own days, not the neighbouring months' days in its grid; the week; the day; on the Labs timeline, the now
+  marker inside the timeline's box). The views must have rendered (`month-cell`, `week-header`, `day-column` or
+  `timeline-now` visible) before the check.
 - "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
   N day headers": N visible `week-header` elements.
 - "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)

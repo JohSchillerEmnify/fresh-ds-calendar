@@ -24,8 +24,12 @@ Feature: Zooming the month view
     And the calendar contains an event "Yoga" on 2026-10-14 from 18:00 to 19:00
     And the calendar contains an event "Kino" on 2026-10-28 from 20:00 to 21:30
 
-  @backlog
   Scenario: Pinching the month makes the weeks taller and shows more of each day
+    Given the calendar contains an event "Coffee" on 2026-10-14 from 07:00 to 07:30
+    And the calendar contains an event "Post" on 2026-10-14 from 08:00 to 08:30
+    And the calendar contains an event "Call" on 2026-10-14 from 11:00 to 11:30
+    And the calendar contains an event "Review" on 2026-10-14 from 15:00 to 16:00
+    And the calendar contains an event "Gym" on 2026-10-14 from 16:30 to 17:30
     When I open the month view for 2026-10
     Then the month cell of 2026-10-14 leaves out the entry "Yoga"
     When I note the height of the week rows of the month view
@@ -34,7 +38,6 @@ Feature: Zooming the month view
     And the month view shows 7 day columns across the screen
     And I see the event "Yoga" on 2026-10-14
 
-  @backlog
   Scenario: Zoomed in, the month scrolls up and down
     When I open the month view for 2026-10
     And I pinch out on the month view to twice the size
@@ -42,7 +45,6 @@ Feature: Zooming the month view
     Then I see the event "Kino" on 2026-10-28
     And the URL path is "/month/2026-10"
 
-  @backlog
   Scenario: Pinching never changes the month and a swipe still does
     When I open the month view for 2026-10
     And I note the height of the week rows of the month view
@@ -52,13 +54,11 @@ Feature: Zooming the month view
     Then the URL path is "/month/2026-11"
     And the week rows of the month view are about twice as tall as noted
 
-  @backlog
   Scenario: The whole month on one screen is the smallest zoom
     When I open the month view for 2026-10
     And I pinch in on the month view to half the size
     Then the week rows of the month view have their default height
 
-  @backlog
   Scenario: Only the month zooms, not the page
     When I open the month view for 2026-10
     And I note the height of the top bar
@@ -66,7 +66,7 @@ Feature: Zooming the month view
     Then the top bar is as tall as noted
     And the page itself is not zoomed
 
-  @backlog @desktop
+  @desktop
   Scenario: Ctrl with the wheel zooms the month on a desktop
     When I open the month view for 2026-10
     And I note the height of the week rows of the month view
@@ -74,7 +74,6 @@ Feature: Zooming the month view
     Then the week rows of the month view are taller than noted
     And the page itself is not zoomed
 
-  @backlog
   Scenario: The month zoom is remembered on this device only
     When I open the month view for 2026-10
     And I note the height of the week rows of the month view
@@ -85,7 +84,6 @@ Feature: Zooming the month view
     And I open the month view for 2026-10
     Then the week rows of the month view have their default height
 
-  @backlog
   Scenario: In the month list the pinch changes the week height
     Given the month view scrolls up and down
     When I open the month view for 2026-10
