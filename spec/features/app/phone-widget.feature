@@ -9,7 +9,9 @@ Feature: Phone widgets
     Given the calendar is empty
     And today is 2026-10-14
 
-  @backlog
+  # unit: server/test/prefs.test.ts:leaves out the events of calendars the person switched off, only when asked
+  # unit: web/test/widget-bridge.test.ts:leaves out hidden calendars even when the first push comes before the calendar list was loaded (app start)
+  @unit
   Scenario: Hidden calendars stay off the widget
     Given "jo@example.com" has the calendar "Work" and the shared calendar "Anna"
     And the calendar "Anna" has an event "Yoga" on 2026-10-14 from 07:00 to 08:00
@@ -17,13 +19,16 @@ Feature: Phone widgets
     When the phone widget refreshes
     Then the phone widget does not show the event "Yoga"
 
-  @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/widget/PickDataTest.java:aFreshFetchIsNotOverriddenByALaterStaleSnapshot
+  @unit
   Scenario: An older copy from the app does not turn the widget back
     Given the phone widget shows the event "Dentist" on 2026-10-14 at 11:00
     When the app hands the widget an older copy of the week with "Dentist" at 09:00
     Then the phone widget shows the event "Dentist" on 2026-10-14 at 11:00
 
-  @backlog
+  # unit: web/test/widget-bridge.test.ts:does not push again when only the time moved on (a clock tick or the next poll)
+  # unit: android/app/src/test/java/lan/mordor/calendar/widget/SnapshotDedupTest.java:aSnapshotDifferingOnlyInItsStampIsNotAChange
+  @unit
   Scenario: A sync without changes does not make the widget flash
     Given the phone widget shows the event "Dentist" on 2026-10-14 at 11:00
     When the app syncs
@@ -35,7 +40,8 @@ Feature: Phone widgets
     When I look at the day widget
     Then the day widget shows the event "Dentist" from 09:00 to 10:00
 
-  @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/widget/ClockLayoutTest.java:saysWhatIsRunningOrNextInTheAppsWords
+  @unit
   Scenario: The clock widget says what is going on now
     Given the time is 2026-10-14 09:20
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
