@@ -189,3 +189,27 @@ Then('the map is shown without scrolling the event dialog', async function (this
   expect(fits.top, 'dialog scrolled').toBe(0);
   expect(fits.inside, 'map inside the visible part of the dialog').toBe(true);
 });
+
+/** Per scenario: the page a tap on the map opened. */
+const opened = new WeakMap<World, Promise<import('@playwright/test').Page>>();
+
+When('I tap the map', async function (this: World) {
+  // the test machine has no internet: OpenStreetMap answers with a stub page
+  await this.page.context().route('https://www.openstreetmap.org/**', (r) => r.fulfill({ contentType: 'text/html', body: 'OpenStreetMap' }));
+  opened.set(this, this.page.context().waitForEvent('page'));
+  const map = dialog(this).locator(`${tid('event-map')}, ${tid('event-map-placeholder')}`).first();
+  await map.click();
+});
+
+/** The OpenStreetMap page marking a place: its position as `mlat`/`mlon`, 4 decimals or more. */
+Then('the OpenStreetMap page of the place {string} opens in a new tab', async function (this: World, name: string) {
+  const p = place(this, name);
+  const tab = await opened.get(this);
+  if (!tab) throw new Error('the map was not tapped');
+  await tab.waitForURL(/openstreetmap\.org/);
+  const url = new URL(tab.url());
+  expect(url.hostname).toBe('www.openstreetmap.org');
+  expect(Number(url.searchParams.get('mlat')).toFixed(4)).toBe(p.lat.toFixed(4));
+  expect(Number(url.searchParams.get('mlon')).toFixed(4)).toBe(p.lon.toFixed(4));
+  await tab.close();
+});

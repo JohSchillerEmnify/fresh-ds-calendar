@@ -49,13 +49,19 @@ onMounted(() => {
 });
 onBeforeUnmount(() => observer?.disconnect());
 
+/** OpenStreetMap's own page with a marker on the place: a tap on the map opens it in a new tab. */
+const osmPage = computed(() => {
+  const { lat, lon } = props.place;
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=${ZOOM}/${lat}/${lon}`;
+});
+
 function onLoad(src: string): void {
   loaded.value = new Set(loaded.value).add(src);
 }
 </script>
 
 <template>
-  <div ref="root" class="map-box">
+  <a ref="root" class="map-box" :href="osmPage" target="_blank" rel="noopener noreferrer">
     <div
       v-if="usable" class="map" role="img" :aria-label="t('calendar.event.place.map', { name: place.name })" data-testid="event-map"
       :data-lat="place.lat.toFixed(4)" :data-lon="place.lon.toFixed(4)"
@@ -72,12 +78,12 @@ function onLoad(src: string): void {
       <span class="ph-name">{{ place.name }}</span>
       <span class="ph-note">{{ t('calendar.event.place.offline') }}</span>
     </div>
-  </div>
+  </a>
 </template>
 
 <style scoped>
 /* scrolled into view above the dialog's sticky actions bar */
-.map-box { height: 140px; flex: none; scroll-margin-bottom: 88px; }
+.map-box { display: block; height: 140px; flex: none; scroll-margin-bottom: 88px; color: inherit; text-decoration: none; }
 /* the pictures are OpenStreetMap's own look; the box takes the app's field corners */
 .map { position: relative; height: 100%; overflow: hidden; border-radius: var(--md-sys-shape-corner-small); background: #f2efe9; }
 .tile { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; pointer-events: none; }
