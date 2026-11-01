@@ -17,7 +17,7 @@ afterEach(() => setDeviceDb(null));
 
 describe('useInkWriting', () => {
   it('refuses a stroke that takes the list over the limit and says so, and takes one that fits', () => {
-    useInkStore().fromDevice({ version: 1, items: { a: [stroke(4750), stroke(4750)], b: [stroke(4990)] } });
+    useInkStore().fromDevice({ version: 1, items: { a: [stroke(47500), stroke(47500)], b: [stroke(49900)] } });
     const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
     w.changeDraft([stroke(20)]);
     expect(w.draft.value).toEqual([]);
@@ -85,7 +85,7 @@ describe('useInkWriting', () => {
   });
   it('keeps a margin below the server limit for what other devices may have added', () => {
     // about 189 KB: the server would still take a small stroke, but a merge with unseen strokes might not
-    useInkStore().fromDevice({ version: 1, items: { a: [stroke(4750), stroke(4750)], b: [stroke(4000)] } });
+    useInkStore().fromDevice({ version: 1, items: { a: [stroke(47500), stroke(47500)], b: [stroke(40000)] } });
     const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
     w.changeDraft([stroke(10)]);
     expect(w.draft.value).toEqual([]);

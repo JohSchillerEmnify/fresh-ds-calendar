@@ -12,6 +12,6 @@ export const ESTIMATE_MAX = 720;
 /** Most strokes one ink item holds. */
 export const INK_STROKES_MAX = 500;
 /** Most ink one list holds, in bytes of {@link inkListBytes}. */
-export const INK_LIST_MAX_BYTES = 200_000;
+export const INK_LIST_MAX_BYTES = 2_000_000;
 /** The size the server counts for a list's ink: the JSON of the strokes of each of its ink items. */
 export const inkListBytes = (perItem) => JSON.stringify(perItem).length;
