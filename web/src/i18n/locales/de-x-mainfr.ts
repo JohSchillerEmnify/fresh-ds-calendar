@@ -12,7 +12,9 @@ import sharingMainfr from './de-x-mainfr/sharing.ts';
 import tasksMainfr from './de-x-mainfr/tasks.ts';
 import themeMainfr from './de-x-mainfr/theme.ts';
 
+import settingsNavMainfr from './de-x-mainfr/settingsNav.ts';
 export default {
+  settingsNav: settingsNavMainfr,
   calendar: calendarMainfr,
   backup: backupMainfr,
   canvas: canvasMainfr,

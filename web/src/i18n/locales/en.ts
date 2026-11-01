@@ -17,7 +17,9 @@ import sharingEn from './en/sharing.ts';
 import tasksEn from './en/tasks.ts';
 import themeEn from './en/theme.ts';
 
+import settingsNavEn from './en/settingsNav.ts';
 export default {
+  settingsNav: settingsNavEn,
   calendar: calendarEn,
   outbox: outboxEn,
   backup: backupEn,

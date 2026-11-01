@@ -14,7 +14,9 @@ import sharingColdmirror from './de-x-coldmirror/sharing.ts';
 import tasksColdmirror from './de-x-coldmirror/tasks.ts';
 import themeColdmirror from './de-x-coldmirror/theme.ts';
 
+import settingsNavColdmirror from './de-x-coldmirror/settingsNav.ts';
 export default {
+  settingsNav: settingsNavColdmirror,
   calendar: calendarColdmirror,
   outbox: outboxDe,
   backup: backupColdmirror,
