@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * Settings › Error log (`/settings/error-log`, feature device-log): the errors this device logged, newest first, without
- * personal data. Copy, Share (a file through the share sheet, else a download), Download (.json) and Clear.
- */
+/** Settings › Error log (`/settings/error-log`, feature device-log): newest first; Share, Copy, Download (.json), Clear. */
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconContentCopyOutline as IconCopy, IconDeleteOutline as IconDelete, IconDownload, IconIosShare as IconShare } from '@/components/icons';

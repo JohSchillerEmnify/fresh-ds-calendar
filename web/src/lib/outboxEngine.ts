@@ -292,18 +292,21 @@ function note(e: OutboxEntry, decision: string, err: unknown): void {
   logDevice('outbox', { op: e.change.op, decision, ...facts });
 }
 
+/** A 412: the entry goes on the newest version; refused when the thing is gone meanwhile. */
+async function onConflict(s: OutboxState, e: OutboxEntry, err: ApiError): Promise<Outcome | OutboxEntry> {
+  note(e, 'refetch', err);
+  try { return await onNewestVersion(s, e); } catch (again) {
+    const gone = again instanceof ApiError && again.status === 404 && (await refuse(s, e, again));
+    note(e, gone ? 'refused' : 'retry', again);
+    return gone ? 'refused' : 'retry';
+  }
+}
+
 /** What an error of the server means for an entry; a 412 returns the entry to try again on the newest version. */
 async function answer(s: OutboxState, e: OutboxEntry, err: unknown): Promise<Outcome | OutboxEntry> {
   if (!(err instanceof ApiError)) { note(e, 'retry-unexpected', err); return 'retry'; }
   if (err.status === 404 && isDelete(e.change)) { note(e, 'gone-as-sent', err); sent(s, e, undefined); return 'sent'; }
-  if (err.status === 412 && versioned(e.change)) {
-    note(e, 'refetch', err);
-    try { return await onNewestVersion(s, e); } catch (again) {
-      const gone = again instanceof ApiError && again.status === 404 && (await refuse(s, e, again));
-      note(e, gone ? 'refused' : 'retry', again);
-      return gone ? 'refused' : 'retry';
-    }
-  }
+  if (err.status === 412 && versioned(e.change)) return onConflict(s, e, err);
   if (retriable(err)) { note(e, 'retry', err); return 'retry'; }
   const refused = await refuse(s, e, err);
   note(e, refused ? 'refused' : 'retry-rollback-failed', err);

@@ -1,9 +1,5 @@
 /**
- * The error log kept on this device (feature device-log): uncaught errors, failed requests, refused outbox entries,
- * service worker and sync failures. The last {@link MAX_ENTRIES} entries live in `localStorage` (synchronous, so an
- * entry written just before a crash is kept; not wiped on sign-out because it holds no personal data). Every text goes
- * through {@link scrub} and routes through {@link routeOf}: no titles, e-mail addresses, tokens, bodies or ids.
- * Nothing is sent anywhere; the person copies, shares or downloads it from Settings › Error log.
+ * Error log on this device (feature device-log): the last entries in `localStorage`, kept over sign-out (every text is scrubbed: no personal data).
  */
 import { shallowRef } from 'vue';
 import { isIos, isStandalone } from '@/pwa/install';
@@ -14,7 +10,7 @@ const MAX_TEXT = 300;
 /** The build version (as `pwa/update` reads it; not imported: the API client imports this module). */
 const runningVersion = (): string => document.documentElement.dataset.appVersion ?? __APP_VERSION__;
 
-export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync';
+export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace';
 export type LogData = Record<string, string | number | boolean | undefined>;
 
 export interface LogEntry {
@@ -102,6 +98,7 @@ function summarize(kind: LogKind, d: LogData): string {
     case 'api': return join(d.method as string, d.route as string, d.status as number, d.code as string);
     case 'outbox': return join(`${d.op} ${d.decision}`, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'sync': return join('sync', d.task as string, d.status as number, d.code as string, err);
+    case 'trace': return join(d.step as string, d.detail as string);
     case 'sw': return join('service worker', d.step as string, err);
     default: return d.name ? `${d.prefix ? `${d.prefix} ` : ''}${d.name}: ${d.message ?? ''}` : String(d.message ?? '');
   }
