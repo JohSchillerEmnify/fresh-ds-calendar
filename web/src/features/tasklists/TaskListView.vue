@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { trace } from '@/lib/trace';
 import Pressable from '@/components/m3/Pressable.vue';
 import { TITLE_MAX } from '@calendar/shared/limits';
 /**
@@ -222,7 +221,6 @@ function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
 const savingTemplate = ref(false);
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
-  trace('list.remove', tl.value ? 'has-list' : 'no-list');
   if (!tl.value) return;
   pendingDeletes.deleteTaskList(tl.value);
   emit('deleted');
@@ -258,7 +256,6 @@ function archive() {
   lists.markFinished(props.id);
 }
 function onMenu(id: string) {
-  trace('list.onMenu', id);
   if (id === 'edit') edit();
   else if (id === 'duplicate' && tl.value) duplicateList(tl.value, cats.on.value);
   else if (id === 'archive') archive();

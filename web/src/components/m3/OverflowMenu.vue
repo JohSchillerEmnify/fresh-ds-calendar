@@ -2,7 +2,6 @@
 /** A tonal "More" icon button that opens a small menu card under it (the card's secondary actions); closes on Escape, a press outside or a choice. */
 import { nextTick, ref, watch } from 'vue';
 import { useMenuNav } from '@/composables/useMenuNav';
-import { trace } from '@/lib/trace';
 import { IconMoreHoriz } from '@/components/icons';
 import { vRipple } from '@/lib/ripple';
 import type { MenuItem } from './types';
@@ -31,10 +30,8 @@ function toggle(): void {
   host.value = touch ? 'body' : trigger.value!.closest<HTMLElement>('[role="dialog"]') ?? 'body';
   pos.value = { top: r.bottom + 4, right: Math.min(Math.max(EDGE, window.innerWidth - r.right), window.innerWidth - MIN_W - EDGE) };
   open.value = true;
-  trace('menu.open', props.testid);
 }
 function choose(id: string): void {
-  trace('menu.choose', id);
   close(true);
   emit('select', id);
 }
@@ -66,7 +63,7 @@ watch(open, async (o) => {
       <div v-if="open" ref="panel" class="panel" role="menu" :aria-label="label" :style="{ top: pos.top + 'px', right: pos.right + 'px' }" @keydown="onKey">
         <button
           v-for="it in props.items" :key="it.id" v-ripple class="item" :class="{ danger: props.danger?.includes(it.id) }" role="menuitem" type="button" :data-testid="it.testid"
-          @pointerdown="trace('menu.item.pointerdown', it.id)" @click="choose(it.id)"
+          @click="choose(it.id)"
         >
           <component :is="it.icon" v-if="it.icon" aria-hidden="true" />
           <span>{{ it.label }}</span>

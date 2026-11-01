@@ -53,14 +53,6 @@ describe('device log', () => {
     expect(JSON.stringify(e)).not.toContain('anna@');
   });
 
-  it('keeps the steps of the delete trace on the device too', async () => {
-    const { trace } = await import('@/lib/trace');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
-    trace('menu.choose', 'delete');
-    vi.unstubAllGlobals();
-    expect(deviceLog.value.at(-1)).toMatchObject({ kind: 'trace', summary: 'menu.choose delete' });
-  });
-
   it('exports the log as JSON with its entries', () => {
     logDevice('error', { name: 'Error', message: 'one' });
     expect(JSON.parse(exportDeviceLog()).entries).toHaveLength(1);
