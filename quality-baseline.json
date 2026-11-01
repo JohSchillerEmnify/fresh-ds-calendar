@@ -178,7 +178,6 @@
    "@typescript-eslint/no-unused-vars|e2e/steps/signin.steps.ts": 1,
    "@typescript-eslint/no-unused-vars|e2e/steps/tasks-canvas.steps.ts": 1,
    "@typescript-eslint/no-unused-vars|server/src/providers/google/GoogleProvider.ts": 2,
-   "@typescript-eslint/no-unused-vars|server/src/services/settingsStore.ts": 3,
    "@typescript-eslint/no-unused-vars|server/test/reminders-readonly.test.ts": 1,
    "@typescript-eslint/no-unused-vars|web/src/components/m3/Select.vue": 2,
    "@typescript-eslint/no-unused-vars|web/src/components/m3/TextField.vue": 2,

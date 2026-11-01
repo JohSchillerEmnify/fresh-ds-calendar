@@ -59,8 +59,16 @@ describe('OverflowMenu keyboard and focus', () => {
     await nextTick();
     expect(panel()).toBeNull();
   });
-  it('closes on scroll anywhere and on resize', async () => {
+  it('stays open on a scroll that does not move its button (iOS scrolls on a tap), so the tap on an item lands', async () => {
     await openOverflow();
+    document.body.dispatchEvent(new Event('scroll'));
+    await nextTick();
+    expect(panel()).not.toBeNull();
+  });
+  it('closes on a scroll that moves its button and on resize', async () => {
+    await openOverflow();
+    const trigger = document.querySelector('[data-testid="more"]') as HTMLElement;
+    trigger.getBoundingClientRect = () => ({ top: 40, left: 0, bottom: 88, right: 48, width: 48, height: 48, x: 0, y: 40, toJSON: () => ({}) });
     document.body.dispatchEvent(new Event('scroll'));
     await nextTick();
     expect(panel()).toBeNull();
@@ -70,6 +78,18 @@ describe('OverflowMenu keyboard and focus', () => {
     window.dispatchEvent(new Event('resize'));
     await nextTick();
     expect(panel()).toBeNull();
+  });
+  it('on a touch screen opens outside a sheet, so iOS never hit-tests it inside the moving sheet', async () => {
+    const mq = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      const dlg = document.createElement('section');
+      dlg.setAttribute('role', 'dialog');
+      document.body.append(dlg);
+      await openOverflow(dlg);
+      expect(dlg.contains(panel())).toBe(false);
+      expect(panel()?.parentElement).toBe(document.body);
+    } finally { window.matchMedia = mq; }
   });
   it('opens inside the enclosing modal dialog so the dialog stays modal for it', async () => {
     const dlg = document.createElement('section');

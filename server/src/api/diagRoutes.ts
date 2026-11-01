@@ -52,5 +52,22 @@ export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
       return c.body(null, 204);
     },
   );
+  // a short trace of UI steps (step names only, no data) to find where an action stops on one device
+  const traceSchema = v.strictObject({
+    step: v.pipe(v.string(), v.regex(/^[A-Za-z0-9_.:-]{1,40}$/)),
+    detail: v.optional(v.pipe(v.string(), v.regex(/^[A-Za-z0-9_.:-]{0,40}$/))),
+    ms: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
+  });
+  const traced = new Map<string, number[]>();
+  r.post('/diag/trace', bodyLimit({ maxSize: MAX_BODY_BYTES, onError: (c) => c.json({ error: { code: 'VALIDATION_ERROR', message: 'Body too large' } }, 400) }), async (c) => {
+    const b = parse(traceSchema, await c.req.json().catch(() => null));
+    const now = ctx.clock.real();
+    const client = getCookie(c, SESSION_COOKIE) ?? 'local';
+    const recent = (traced.get(client) ?? []).filter((t) => now - t < BEACON_EVERY_MS);
+    if (recent.length >= 60) throw new ApiException('RATE_LIMITED', 429, 'At most 60 trace steps per minute');
+    traced.set(client, [...recent, now]);
+    logEvent('client_trace', { subHash: subHash(c.get('person')?.sub), ...b });
+    return c.body(null, 204);
+  });
   return r;
 }

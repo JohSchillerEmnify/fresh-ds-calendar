@@ -24,3 +24,28 @@ describe('the preferences table (shared/prefs.js)', () => {
     expect(parsePrefsPatch({ bedtime: { bedtime: '7:15' } }, cur)).toEqual({ error: 'bedtime.bedtime must be HH:MM', field: 'bedtime' });
   });
 });
+
+describe('calendarPlans (feature calendar-off-plan)', () => {
+  const win = { from: { day: 5, time: '17:00' }, to: { day: 0, time: '16:00' } };
+
+  it('accepts weekly windows and an off-for-a-while together', () => {
+    const plans = { work: { windows: [win], until: '2026-11-10', since: '2026-11-08T17:00', switchedAt: '2026-11-07T10:00' } };
+    expect(parsePrefsPatch({ calendarPlans: plans }, defaultPrefs())).toEqual({ patch: { calendarPlans: plans } });
+  });
+
+  it('refuses a window that starts where it ends, a bad day or time, and a bad date', () => {
+    for (const bad of [
+      { work: { windows: [{ from: { day: 1, time: '08:00' }, to: { day: 1, time: '08:00' } }] } },
+      { work: { windows: [{ from: { day: 7, time: '08:00' }, to: { day: 1, time: '09:00' } }] } },
+      { work: { windows: [{ from: { day: 1, time: '8:00' }, to: { day: 1, time: '09:00' } }] } },
+      { work: { until: '10.11.2026' } },
+      { work: { extra: 1 } },
+      [],
+    ]) expect(parsePrefsPatch({ calendarPlans: bad }, defaultPrefs())).toEqual({ error: 'Invalid calendarPlans', field: 'calendarPlans' });
+  });
+
+  it('replaces the plans as a whole, so removing a calendar removes its plan', () => {
+    const cur = { ...defaultPrefs(), calendarPlans: { work: { until: '2026-11-06' } } };
+    expect(parsePrefsPatch({ calendarPlans: {} }, cur)).toEqual({ patch: { calendarPlans: {} } });
+  });
+});

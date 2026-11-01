@@ -1,4 +1,5 @@
 /** Keyboard, focus and dismissal behaviour shared by the menus (`OverflowMenu`, `Menu`): arrows, Home/End, Tab, Escape, focus leaving, press outside, scroll and resize. */
+import { trace } from '@/lib/trace';
 import { nextTick, onBeforeUnmount, watch, type Ref } from 'vue';
 import { listen, type Disposer } from '@/lib/timers';
 
@@ -52,13 +53,16 @@ export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => vo
     if (!o.open()) return;
     items()[0]?.focus({ preventScroll: true });
     stops.push(
-      listen(document, 'pointerdown', (e) => { if (!inside(e.target as Node)) o.close(false); }, { capture: true }),
-      listen(document, 'focusin', (e) => { if (!inside(e.target as Node)) o.close(false); }),
+      listen(document, 'pointerdown', (e) => { if (!inside(e.target as Node)) { trace('menu.close', 'pointerdown-outside'); o.close(false); } }, { capture: true }),
+      listen(document, 'focusin', (e) => { if (!inside(e.target as Node)) { trace('menu.close', 'focusin-outside'); o.close(false); } }),
     );
     if (o.closeOnMove) {
+      // iOS scrolls a little on a tap; only a scroll that really moves the button leaves the fixed card behind
+      const at = o.trigger?.value?.getBoundingClientRect();
+      const moved = () => { const r = o.trigger?.value?.getBoundingClientRect(); return !at || !r || Math.abs(r.top - at.top) > 2 || Math.abs(r.left - at.left) > 2; };
       stops.push(
-        listen(document, 'scroll', (e) => { if (!o.panel.value?.contains(e.target as Node)) o.close(false); }, { capture: true, passive: true }),
-        listen(window, 'resize', () => o.close(false)),
+        listen(document, 'scroll', (e) => { if (!o.panel.value?.contains(e.target as Node) && moved()) { trace('menu.close', 'scroll'); o.close(false); } }, { capture: true, passive: true }),
+        listen(window, 'resize', () => { trace('menu.close', 'resize'); o.close(false); }),
       );
     }
   });
