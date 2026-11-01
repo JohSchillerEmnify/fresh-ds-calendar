@@ -110,18 +110,35 @@ When('{string} creates the undated task list {string} in the category {string}',
   expect(made.status, 'list created').toBe(201);
 });
 
-When('{string} opens the Tasks view on another device', async function (this: World, email: string) {
-  await this.switchDevice();
-  this.person = email;
-  await this.api.chooseGoogleAccount(email);
-  await this.page.goto('/tasks');
-  await this.page.getByTestId('signin-google').click();
-  await this.page.waitForURL((u) => u.pathname !== '/signin');
+/** A fresh device signed in as this person, on the Tasks view. */
+async function openTasksOnNewDevice(world: World, email: string) {
+  await world.switchDevice();
+  world.person = email;
+  await world.api.chooseGoogleAccount(email);
+  await world.page.goto('/tasks');
+  await world.page.getByTestId('signin-google').click();
+  await world.page.waitForURL((u) => u.pathname !== '/signin');
   // the return to /tasks after the round trip is not guaranteed (sometimes the start view wins): switch by hand then
-  await expect(this.page.getByTestId('view-switch-tasks')).toBeVisible();
-  await this.page.waitForLoadState('networkidle');
-  if (new URL(this.page.url()).pathname !== '/tasks') await this.page.getByTestId('view-switch-tasks').click();
-  await expect(this.page.getByTestId('tasks-view')).toBeVisible();
+  await expect(world.page.getByTestId('view-switch-tasks')).toBeVisible();
+  await world.page.waitForLoadState('networkidle');
+  if (new URL(world.page.url()).pathname !== '/tasks') await world.page.getByTestId('view-switch-tasks').click();
+  await expect(world.page.getByTestId('tasks-view')).toBeVisible();
+}
+
+When('{string} opens the Tasks view on another device', async function (this: World, email: string) {
+  await openTasksOnNewDevice(this, email);
+});
+
+When('{string} edits the shared task list {string}', async function (this: World, email: string, title: string) {
+  await openTasksOnNewDevice(this, email);
+  await openDialog(this, title);
+});
+
+When('I delete the shared task list {string}', async function (this: World, title: string) {
+  await openDialog(this, title);
+  const gone = this.page.waitForResponse((r) => r.request().method() === 'DELETE' && new URL(r.url()).pathname.startsWith('/api/tasklists/'), { timeout: 20_000 });
+  await this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-delete').click();
+  expect((await gone).status(), 'list deleted').toBeLessThan(300);
 });
 
 When('{string} ticks the item {string} of the shared task list {string}', async function (this: World, email: string, itemTitle: string, title: string) {
@@ -174,4 +191,18 @@ Then('the item {string} of the task list {string} in the Tasks view is ticked', 
   const row = this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)));
   await expect(row.getByTestId('tasklist-item-checkbox')).toBeVisible();
   await expect(row).toHaveAttribute('data-done', 'true');
+});
+
+Then('the task list {string} in the Tasks view shows the category {string}', async function (this: World, title: string, category: string) {
+  await expect(this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-expanded-title')).toHaveAttribute('data-category-name', category);
+});
+
+Then('{string} is not offered to change the category', async function (this: World) {
+  await expect(this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-category')).toBeDisabled();
+});
+
+Then('{string} is offered to leave the list, not to delete it', async function (this: World) {
+  const dialog = this.page.getByTestId('tasklist-dialog');
+  await expect(dialog.getByTestId('tasklist-leave')).toBeVisible();
+  await expect(dialog.getByTestId('tasklist-delete')).toHaveCount(0);
 });
