@@ -445,7 +445,7 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (b.color !== undefined) { cat.color = b.color.toLowerCase(); cat.googleColorId = nearestGoogleColorId(cat.color); }
       if (b.icon !== undefined) cat.icon = b.icon;
     });
-    // the people the owner shares lists of this category with see the new look
+    // people this category's lists are shared with see the new look
     const now = saved.categories.find((x) => x.id === id)!;
     ctx.shared.refreshCategory(person(c), id, { name: now.name, color: now.color, icon: now.icon });
     return c.json(saved);
