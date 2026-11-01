@@ -113,6 +113,17 @@ Feature: Sharing task lists with another person
     When I open "Share with" for the task list "Groceries"
     Then I can share only with "anna@example.com"
 
+  # unit: web/test/share-people.test.ts:asks the server when it opens, so a person who signed in later is offered although the device copy had nobody
+  # unit: server/test/shared-lists.test.ts:tells every device to sync, so Share with offers the newcomer at once
+  @unit
+  Scenario: A person who signed in after the device copy was made is offered in Share with
+    Given "bob@example.com" has never signed in
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When "bob@example.com" signs in with Google
+    And I open "Share with" for the task list "Groceries"
+    Then I can share only with "bob@example.com"
+
   # The next scenarios describe built behaviour about files on the server, which the browser suite cannot reach, so they
   # are tagged @unit and name their unit test.
 

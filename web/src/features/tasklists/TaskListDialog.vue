@@ -4,7 +4,7 @@ import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
-import type { Person, Reminders, TaskList, TaskTemplate } from '@/api/types';
+import type { Reminders, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import InkLine from './InkLine.vue';
@@ -28,6 +28,7 @@ import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { enterNext } from '@/composables/useEnterNext';
+import { usePeople } from '@/composables/usePeople';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
@@ -78,7 +79,7 @@ const current = computed(() => {
 });
 /** The popup leads of the tasks calendar's default, shown while the list follows it. */
 const taskDefaults = ref<number[]>([]);
-const people = ref<Person[]>([]);
+const { people, refresh: refreshPeople } = usePeople();
 const person = ref('');
 const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => emit('close'), error });
 const memberOnly = computed(() => isMemberOnly(current.value));
@@ -107,7 +108,7 @@ onMounted(async () => {
     templates.load().catch(() => undefined);
     return;
   }
-  device.read('people', () => api.people()).then((r) => { people.value = r.people; }).catch(() => undefined);
+  void refreshPeople();
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') { fill(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;

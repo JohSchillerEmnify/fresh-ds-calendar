@@ -314,3 +314,22 @@ describe('SharedListService store', () => {
   });
 });
 
+
+describe('a new person signing in for the first time', () => {
+  it('tells everyone\'s devices to sync, so the owner\'s Share with offers the newcomer at once', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+      t.app.ctx.people.reset();
+      await sessionCookie(t, JO);
+      const seen: Array<{ subs: string[]; kind: string }> = [];
+      t.app.ctx.changes.on((e) => seen.push(e));
+      await sessionCookie(t, ANNA);
+      expect(seen.some((e) => e.subs.includes(mockSub(JO)))).toBe(true);
+      // a second sign-in of the same person changes nothing about who is known
+      seen.length = 0;
+      await sessionCookie(t, ANNA);
+      expect(seen).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+});
