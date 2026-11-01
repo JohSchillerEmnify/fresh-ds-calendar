@@ -6,16 +6,22 @@ on:
   schedule:
     - cron: '17 4 * * 1'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   leaks:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       # gitleaks rules over the whole history plus the private denylist (LEAK_DENYLIST secret). A missing secret fails the run,
       # except for fork PRs and Dependabot, which GitHub never gives secrets.
       - run: scripts/leak-check.sh all

@@ -32,7 +32,7 @@ log() { printf '\033[1;34m[e2e]\033[0m %s\n' "$*"; }
 install_deps() {
   [ "${E2E_SKIP_INSTALL:-0}" = 1 ] && return
   if [ -f "$ROOT/pnpm-workspace.yaml" ] && grep -q 'e2e' "$ROOT/pnpm-workspace.yaml"; then
-    [ -d "$E2E_DIR/node_modules/@playwright/test" ] || (cd "$ROOT" && pnpm install --frozen-lockfile)
+    [ -d "$E2E_DIR/node_modules/@playwright/test" ] || (cd "$ROOT" && pnpm install --frozen-lockfile --ignore-scripts)
   else
     [ -d "$E2E_DIR/node_modules/@playwright/test" ] || (cd "$E2E_DIR" && npm ci --no-audit --no-fund)
   fi
@@ -42,7 +42,7 @@ build_app() {
   [ "${E2E_SKIP_BUILD:-0}" = 1 ] && return
   log "building app"
   if [ -f "$ROOT/pnpm-workspace.yaml" ]; then
-    (cd "$ROOT" && { [ -d node_modules ] || pnpm install --frozen-lockfile; } && pnpm run build:e2e)
+    (cd "$ROOT" && { [ -d node_modules ] || pnpm install --frozen-lockfile --ignore-scripts; } && pnpm run build:e2e)
   else
     (cd "$ROOT" && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build:e2e)
   fi

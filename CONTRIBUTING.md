@@ -7,7 +7,7 @@ Thanks for helping. By contributing you agree your work is licensed under AGPL-3
 Node >= 24.11 and pnpm (see `packageManager` in `package.json`).
 
 ```sh
-pnpm install
+pnpm install --ignore-scripts
 pnpm verify    # tsc, unit tests, i18n, step contract, quality gates
 ```
 

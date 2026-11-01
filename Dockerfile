@@ -11,7 +11,7 @@ COPY shared/package.json shared/
 COPY server/package.json server/
 COPY web/package.json web/
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter @calendar/shared --filter @calendar/server --filter @calendar/web
+    pnpm install --frozen-lockfile --ignore-scripts --filter @calendar/shared --filter @calendar/server --filter @calendar/web
 COPY shared shared
 COPY server server
 COPY web web

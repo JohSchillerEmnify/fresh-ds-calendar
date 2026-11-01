@@ -13,7 +13,7 @@ cd "$REPO"
 
 if [[ "${1:-}" != "--skip-tests" ]]; then
   echo "==> pnpm install + tests"
-  pnpm install --frozen-lockfile
+  pnpm install --frozen-lockfile --ignore-scripts
   pnpm test
 fi
 
