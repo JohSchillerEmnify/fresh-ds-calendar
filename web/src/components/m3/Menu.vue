@@ -1,35 +1,13 @@
 <script setup lang="ts">
-import { nextTick, ref, watch, onBeforeUnmount } from 'vue';
-import { listen, type Disposer } from '@/lib/timers';
+import { ref } from 'vue';
+import { useMenuNav } from '@/composables/useMenuNav';
 import { vRipple } from '@/lib/ripple';
 
 import type { MenuItem } from './types';
 const props = defineProps<{ open: boolean; items: MenuItem[]; label: string; testid?: string }>();
 const emit = defineEmits<{ close: []; select: [id: string] }>();
 const root = ref<HTMLElement | null>(null);
-let stops: Disposer[] = [];
-
-function els(): HTMLElement[] {
-  return root.value ? [...root.value.querySelectorAll<HTMLElement>('[role="menuitem"]')] : [];
-}
-function onKey(e: KeyboardEvent) {
-  const list = els();
-  const i = list.indexOf(document.activeElement as HTMLElement);
-  if (e.key === 'Escape') { e.preventDefault(); emit('close'); }
-  else if (e.key === 'ArrowDown') { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
-}
-watch(() => props.open, async (o) => {
-  stops.forEach((s) => s());
-  stops = [];
-  if (!o) return;
-  await nextTick();
-  els()[0]?.focus({ preventScroll: true });
-  stops.push(listen(document, 'pointerdown', (e) => {
-    if (root.value && !root.value.contains(e.target as Node)) emit('close');
-  }, { capture: true }));
-});
-onBeforeUnmount(() => stops.forEach((s) => s()));
+const { onKey } = useMenuNav({ open: () => props.open, panel: root, close: () => emit('close') });
 </script>
 
 <template>

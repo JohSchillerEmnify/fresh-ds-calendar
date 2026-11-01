@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /** A tonal "More" icon button that opens a small menu card under it (the card's secondary actions); closes on Escape, a press outside or a choice. */
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
+import { useMenuNav } from '@/composables/useMenuNav';
 import { IconMoreHoriz } from '@/components/icons';
-import { listen, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
 import type { MenuItem } from './types';
 
@@ -12,7 +12,10 @@ const open = ref(false);
 const trigger = ref<HTMLElement | null>(null);
 const panel = ref<HTMLElement | null>(null);
 const pos = ref({ top: 0, right: 0 });
-let stops: Disposer[] = [];
+/** Where the card goes: the enclosing modal dialog (so the dialog stays modal for it), else the body. */
+const host = ref<HTMLElement | 'body'>('body');
+const MIN_W = 220;
+const EDGE = 8;
 
 function close(refocus = false): void {
   open.value = false;
@@ -22,45 +25,39 @@ function toggle(): void {
   if (open.value) return close();
   // fixed under the button, right edges aligned: no ancestor can clip it
   const r = trigger.value!.getBoundingClientRect();
-  pos.value = { top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) };
+  host.value = trigger.value!.closest<HTMLElement>('[role="dialog"]') ?? 'body';
+  pos.value = { top: r.bottom + 4, right: Math.min(Math.max(EDGE, window.innerWidth - r.right), window.innerWidth - MIN_W - EDGE) };
   open.value = true;
 }
 function choose(id: string): void {
   close(true);
   emit('select', id);
 }
-function onKey(e: KeyboardEvent): void {
-  const els = [...(panel.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
-  const i = els.indexOf(document.activeElement as HTMLElement);
-  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
-  else if (e.key === 'ArrowDown') { e.preventDefault(); els[(i + 1) % els.length]?.focus(); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); els[(i - 1 + els.length) % els.length]?.focus(); }
-}
+const { onKey } = useMenuNav({ open: () => open.value, panel, trigger, close, closeOnMove: true });
 watch(open, async (o) => {
-  stops.forEach((s) => s());
-  stops = [];
   if (!o) return;
   await nextTick();
-  // near the bottom edge the card opens upwards instead of leaving the screen
-  const h = panel.value?.offsetHeight ?? 0;
+  const el = panel.value;
+  if (!el) return;
+  const pr = el.getBoundingClientRect();
+  // no layout (nothing measured yet): keep the first guess
+  if (!pr.width && !pr.height) return;
+  // below the button, or above it near the bottom edge; never past the left edge
   const r = trigger.value!.getBoundingClientRect();
-  if (pos.value.top + h > window.innerHeight - 8) pos.value = { ...pos.value, top: Math.max(8, r.top - 4 - h) };
-  panel.value?.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
-  stops.push(listen(document, 'pointerdown', (e) => {
-    const n = e.target as Node;
-    if (!panel.value?.contains(n) && !trigger.value?.contains(n)) close();
-  }, { capture: true }));
+  const top = r.bottom + 4 + pr.height > window.innerHeight - EDGE ? Math.max(EDGE, r.top - 4 - pr.height) : r.bottom + 4;
+  const rightEdge = Math.max(pr.width + EDGE, Math.min(r.right, window.innerWidth - EDGE));
+  // a transformed ancestor (a sheet mid-animation) moves the origin of fixed coordinates: correct by what was measured
+  pos.value = { top: pos.value.top + (top - pr.top), right: pos.value.right - (rightEdge - pr.right) };
 });
-onBeforeUnmount(() => stops.forEach((s) => s()));
 </script>
 
 <template>
   <span class="om">
     <button
       ref="trigger" v-ripple class="more" :class="{ on: open }" type="button" :aria-label="label" :title="label" aria-haspopup="menu" :aria-expanded="open" :data-testid="testid"
-      @click="toggle"
+      @click="toggle" @keydown="onKey"
     ><IconMoreHoriz /></button>
-    <Teleport to="body">
+    <Teleport :to="host">
       <div v-if="open" ref="panel" class="panel" role="menu" :aria-label="label" :style="{ top: pos.top + 'px', right: pos.right + 'px' }" @keydown="onKey">
         <button
           v-for="it in props.items" :key="it.id" v-ripple class="item" :class="{ danger: props.danger?.includes(it.id) }" role="menuitem" type="button" :data-testid="it.testid"
