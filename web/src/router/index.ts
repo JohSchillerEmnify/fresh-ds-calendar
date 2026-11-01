@@ -13,7 +13,7 @@ const CAL_VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
 
 const lazy = {
   year: () => import('@/views/YearView.vue'),
-  month: () => import('@/views/MonthView.vue'),
+  month: () => import('@/views/MonthPage.vue'),
   week: () => import('@/views/WeekView.vue'),
   day: () => import('@/views/DayView.vue'),
 };

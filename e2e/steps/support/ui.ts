@@ -210,7 +210,10 @@ export async function swipeCalendar(page: Page, dx: number, dy: number) {
   const cy = area.y + Math.min(area.height / 2, 400);
   const before = page.url();
   await touchDrag(page, { x: cx - dx / 2, y: cy - dy / 2 }, { x: cx + dx / 2, y: cy + dy / 2 }, { durationMs: 150 });
-  if (dx !== 0) await expect.poll(() => page.url(), { message: 'swipe changes the period' }).not.toBe(before);
+  // a month view that scrolls up and down has no sideways swipe: the period stays
+  const month = page.getByTestId('month-view');
+  const stays = (await month.count()) > 0 && (await month.first().getAttribute('data-scroll')) !== 'sideways';
+  if (dx !== 0 && !stays) await expect.poll(() => page.url(), { message: 'swipe changes the period' }).not.toBe(before);
 }
 
 /**

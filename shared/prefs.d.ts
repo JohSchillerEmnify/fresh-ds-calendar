@@ -8,6 +8,8 @@ export type NavPosition = 'bottom' | 'top' | 'rail';
 export type NavPhonePosition = NavPosition | 'drawer';
 /** A bar size (feature nav-expressive, header-expressive): `auto` is Compact on phones, Expressive elsewhere. */
 export type BarSize = 'auto' | 'expressive' | 'compact';
+/** How the month view moves (feature month-vertical): sideways swipes, one list scrolling up and down, or that list snapping to one month at a time. */
+export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 /** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
 /** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
@@ -137,6 +139,7 @@ export interface Prefs {
   headerLayout: HeaderLayout;
   /** The bottom bar's size: Expressive 64 px or Compact 52 px (`auto`: Compact on phones, Expressive elsewhere; feature nav-expressive). */
   bottomBarSize: BarSize;
+  monthScroll: MonthScroll;
 }
 
 /** One preference of the table: its default and its validation (`{ value }`, or `{ error }` with the 400's message). */

@@ -21,6 +21,7 @@ export default {
   },
   month: {
     openDay: 'Open {date}',
+    scroller: 'Months',
   },
   filter: {
     noCategory: 'No category',

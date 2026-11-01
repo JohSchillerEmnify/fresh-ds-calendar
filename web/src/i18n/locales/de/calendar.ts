@@ -23,6 +23,7 @@ export default {
   },
   month: {
     openDay: '{date} öffnen',
+    scroller: 'Monate',
   },
   filter: {
     noCategory: 'Ohne Kategorie',

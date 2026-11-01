@@ -137,6 +137,7 @@ export default {
       barSize: { expressive: 'Expressive', compact: 'Compact' },
       topBarSize: { label: 'Top bar size', hint: 'On phones; Expressive shows the whole scene, Compact is one row' },
       bottomBarSize: { label: 'Bottom bar size', hint: 'On phones' },
+      monthScroll: { label: 'Month view scrolls', sideways: 'Sideways', vertical: 'Up and down', verticalSnap: 'Up and down, one month at a time' },
       approachingCard: { label: 'Approaching card', hint: 'What is on now and next, above the calendar' },
       approachTimeLeft: { label: 'Time left', hint: 'The time left of the running entry in the Approaching card; off, it shows on the entry itself' },
       minEventLength: { label: 'Minimum event length', hint: 'Shorter events and task lists are drawn and laid out this long, so their titles stay readable', off: 'Off', minutes: '{n} min' },

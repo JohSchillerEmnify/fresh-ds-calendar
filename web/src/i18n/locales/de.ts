@@ -135,6 +135,7 @@ export default {
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Größe der Kopfzeile', hint: 'Auf dem Handy; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
       bottomBarSize: { label: 'Größe der unteren Leiste', hint: 'Auf dem Handy' },
+      monthScroll: { label: 'Monatsansicht scrollt', sideways: 'Seitwärts', vertical: 'Auf und ab', verticalSnap: 'Auf und ab, ein Monat nach dem anderen' },
       approachBar: { label: 'Leiste „Gleich“', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte' },
       syncIndicator: { label: 'Sync-Anzeige', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich hakt' },
       approachWindow: {

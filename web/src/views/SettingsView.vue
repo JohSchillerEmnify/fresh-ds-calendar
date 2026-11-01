@@ -14,7 +14,7 @@ import { api, ApiError } from '@/api/client';
 import { NAV_POSITIONS } from '@/lib/navPosition';
 import { bottomBarSizeOf, topBarSizeOf } from '@/composables/useBarSize';
 import { isPhone } from '@/composables/useViewport';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, NavPhonePosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, MonthScroll, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, NavPhonePosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -168,6 +168,7 @@ const barSizes = computed(() => (['expressive', 'compact'] as const).map((v) => 
 /** The size choice as shown: `auto` shows what it resolves to on this screen. */
 const topBarSize = computed(() => topBarSizeOf(labs.headerLayout, isPhone.value));
 const bottomBarSize = computed(() => bottomBarSizeOf(labs.bottomBarSize, isPhone.value));
+const monthScrollOptions = computed(() => ([['sideways', 'sideways'], ['vertical', 'vertical'], ['vertical-snap', 'verticalSnap']] as const).map(([value, key]) => ({ value, label: t(`settings.calendar.monthScroll.${key}`) })));
 const streakOptions = computed(() => (['off', 'flame', 'plant'] as const).map((v) => ({ value: v, label: t(`settings.motivation.streak.${v}`) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
@@ -255,6 +256,7 @@ async function resetDemo() {
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.topBarSize.label') }}</span><span class="sub">{{ t('settings.calendar.topBarSize.hint') }}</span><SegmentedButton :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: $event === 'expressive' ? 'two-rows' : 'one-row' })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.bottomBarSize.label') }}</span><span class="sub">{{ t('settings.calendar.bottomBarSize.hint') }}</span><SegmentedButton :model-value="bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event as 'expressive' | 'compact' })" /></div>
+          <div class="row"><Select class="fw" :model-value="labs.monthScroll" :options="monthScrollOptions" :label="t('settings.calendar.monthScroll.label')" data-testid="settings-month-scroll" @update:model-value="savePrefs({ monthScroll: $event as MonthScroll })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachingCard.label') }}</span><span class="sub">{{ t('settings.calendar.approachingCard.hint') }}</span></div><Switch :model-value="labs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachTimeLeft.label') }}</span><span class="sub">{{ t('settings.calendar.approachTimeLeft.hint') }}</span></div><Switch :model-value="labs.approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" data-testid="settings-approach-time-left" @update:model-value="savePrefs({ approachTimeLeft: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachBar.label') }}</span><span class="sub">{{ t('settings.calendar.approachBar.hint') }}</span></div><Switch :model-value="labs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>

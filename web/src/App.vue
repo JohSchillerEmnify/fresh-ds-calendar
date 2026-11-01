@@ -91,8 +91,8 @@ const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefin
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, outside the calendar, and on views that pan sideways themselves. */
 /** Views that do not scroll (month, the fit week, the Labs views but Now) leave room for the bottom bar, which cannot slide away there. */
-const fixedView = computed(() => (cal.view === 'month' && !!route.meta.view) || (cal.view === 'week' && !!route.meta.view && labs.weekTwoRow) || (!!route.meta.lab && route.meta.lab !== 'now'));
-const swipeDisabled = () => !!route.meta.noSwipe || isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
+const fixedView = computed(() => (cal.view === 'month' && !!route.meta.view && labs.monthScroll === 'sideways') || (cal.view === 'week' && !!route.meta.view && labs.weekTwoRow) || (!!route.meta.lab && route.meta.lab !== 'now'));
+const swipeDisabled = () => !!route.meta.noSwipe || (cal.view === 'month' && labs.monthScroll !== 'sideways') || isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {
   undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }));
