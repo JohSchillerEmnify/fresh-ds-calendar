@@ -64,6 +64,34 @@ Then revert the bad merge on `main` (`git revert -m 1 <merge-sha>`) and push. A 
 checkout and a new deploy. Data is not touched by deploys; the Drive backup (below) covers data. `DRY_RUN=1` prints the
 remote commands instead of running them.
 
+## Automatic deploy (CD from GitHub Actions)
+
+`.github/workflows/deploy.yml` runs after a green `CI` run on `main` (event `push`) and does nothing unless the repository
+variable `DEPLOY_ENABLED` is `true`. It builds the image, pushes it to `ghcr.io/<owner>/<repo>:<sha>`, and runs the digest
+on the VPS over SSH with a dedicated key whose `authorized_keys` entry forces `/opt/calendar/deploy-from-ghcr.sh`
+(`deploy/deploy-from-ghcr.sh`; ADR 0036). The script validates the digest, pulls, keeps `calendar:previous`, restarts compose,
+waits for `/api/health` and rolls back by itself; the workflow finally curls `APP_URL/api/health`. Deploys run one at a time
+(concurrency group `deploy`, never cancelled). It does not ship `compose.yml`, the Caddyfile or the APK: use
+`scripts/vps.sh deploy` for those.
+
+| Setting | Kind | Value |
+|---|---|---|
+| `DEPLOY_SSH_KEY` | secret | private half of the CD key |
+| `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`, `APP_URL`, `DEPLOY_ENABLED` | variables | VPS host, its pinned host key line(s), `https://<CAL_DOMAIN>`, `true` |
+| `DEPLOY_USER` | variable, optional | SSH user, default `root` |
+
+Setup is one command run by the owner (it touches the VPS and repository secrets): `VPS_HOST=<ip> CAL_DOMAIN=<host>
+~/.local/share/calendar-tools/bin/setup-cd` (generates `~/.config/calendar/deploy_key`, installs the script and the forced-command key
+on the VPS, sets the secret and variables; safe to re-run). Then, once, make the GHCR package public (GitHub: Packages >
+the image > Package settings > Change visibility) so the VPS can pull without credentials, and make `CI result` the only
+required status check in the branch ruleset. Switch off by setting `DEPLOY_ENABLED` to anything else; a bad deploy rolls back
+on the VPS, by hand see Rollback.
+
+CI hardening that goes with it: workflows have `contents: read` by default, checkouts do not persist credentials, every job
+has a timeout, pnpm installs run with `--ignore-scripts` (esbuild ships its binary as a platform package and Playwright
+browsers and `cap sync` are run explicitly, so nothing needs a lifecycle script), and Dependabot proposes one grouped update
+per ecosystem per week for versions older than three days.
+
 ## Deployment settings (where the public host name comes from)
 
 The production host name is never written in the repo (docs and tests use the placeholder `cal.example.org`). Set it
