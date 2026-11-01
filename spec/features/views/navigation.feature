@@ -289,6 +289,9 @@ Feature: Navigation and view switching
   @mobile
   Scenario: Browser back after moving with the open tasks tray expanded returns to the previous period
     Given I am using a phone
+    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
+      | item | done |
+      | Milk | no   |
     When I open the month view for 2026-10
     And I open the open tasks tray
     And I go to the next period
@@ -373,6 +376,9 @@ Feature: Navigation and view switching
     @mobile
     Scenario: Going back with the open tasks tray expanded collapses the tray
       Given I am using a phone
+      And the calendar contains a task list "Groceries" on 2026-10-12 with items:
+        | item | done |
+        | Milk | no   |
       When I open the week view for 2026-10-12
       And I open the open tasks tray
       And I go back in the browser
