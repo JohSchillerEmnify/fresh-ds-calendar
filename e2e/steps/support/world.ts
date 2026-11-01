@@ -119,6 +119,9 @@ export class World {
   appExchange?: { status: number; text: string };
   /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
   hourHeightBefore?: number;
+  /** Week row height of the month view and the top bar's height, noted before a month zoom (feature month-zoom). */
+  monthRowBefore?: number;
+  topBarBefore?: number;
   lastResponse?: { status: number; json: unknown; url: string; headers?: Record<string, string>; text?: string };
   /** The first-open check-in of the page opened by "I open the app" (settles to undefined when none comes). */
   firstCheckIn?: Promise<unknown>;

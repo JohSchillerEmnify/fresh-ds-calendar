@@ -39,6 +39,27 @@ function toLabsViews(raw) {
   return Object.fromEntries(entries);
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const WALL_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const isPoint = (p) => isObject(p) && Object.keys(p).length === 2 && Number.isInteger(p.day) && p.day >= 0 && p.day <= 6 && typeof p.time === 'string' && TIME_RE.test(p.time);
+const isWindow = (w) => isObject(w) && Object.keys(w).length === 2 && isPoint(w.from) && isPoint(w.to) && (w.from.day !== w.to.day || w.from.time !== w.to.time);
+const PLAN_FIELDS = {
+  windows: (v) => Array.isArray(v) && v.length <= 7 && v.every(isWindow),
+  until: (v) => typeof v === 'string' && DATE_RE.test(v),
+  since: (v) => typeof v === 'string' && WALL_RE.test(v),
+  switchedAt: (v) => typeof v === 'string' && WALL_RE.test(v),
+};
+
+/** A `calendarPlans` value (calendar id -> plan, feature calendar-off-plan), or null for anything that is not valid. */
+function toCalendarPlans(raw) {
+  if (!isObject(raw)) return null;
+  const entries = Object.entries(raw);
+  if (entries.length > 200) return null;
+  const valid = ([id, plan]) => id.length >= 1 && id.length <= 256 && isObject(plan)
+    && Object.entries(plan).every(([k, v]) => PLAN_FIELDS[k]?.(v));
+  return entries.every(valid) ? JSON.parse(JSON.stringify(raw)) : null;
+}
+
 const BOOLEAN = ['a boolean', (v) => typeof v === 'boolean'];
 const HHMM = ['HH:MM', (v) => typeof v === 'string' && TIME_RE.test(v)];
 const range = (lo, hi) => [`a whole number from ${lo} to ${hi}`, (v) => Number.isInteger(v) && v >= lo && v <= hi];
@@ -99,6 +120,7 @@ export const PREFS = {
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
   bottomBarSize: oneOf(['auto', 'expressive', 'compact'], 'auto', 'bottomBarSize must be auto, expressive or compact'),
   monthScroll: oneOf(['sideways', 'vertical', 'vertical-snap'], 'sideways', 'monthScroll must be sideways, vertical or vertical-snap'),
+  calendarPlans: { default: {}, parse: (v) => { const r = toCalendarPlans(v); return r ? ok(r) : { error: 'Invalid calendarPlans' }; } },
 };
 
 /** The preference names, in table order. */

@@ -138,6 +138,18 @@ export interface Prefs {
   /** The bottom bar's size: Expressive 64 px or Compact 52 px (`auto`: Compact on phones, Expressive elsewhere; feature nav-expressive). */
   bottomBarSize: BarSize;
   monthScroll: MonthScroll;
+  /** When each calendar switches off by itself (feature calendar-off-plan), by calendar id. */
+  calendarPlans: Record<string, CalendarPlan>;
+}
+
+/** A point in the week: `day` 0 = Sunday, `time` HH:MM wall time in the calendar zone. */
+export interface WeekPoint { day: number; time: string }
+/** A calendar's plan: weekly off-windows and/or off until 00:00 of `until`; `switchedAt` = the last tap (wall time `YYYY-MM-DDTHH:MM`). */
+export interface CalendarPlan {
+  windows?: { from: WeekPoint; to: WeekPoint }[];
+  until?: string;
+  since?: string;
+  switchedAt?: string;
 }
 
 /** One preference of the table: its default and its validation (`{ value }`, or `{ error }` with the 400's message). */

@@ -9,6 +9,7 @@ import { IdempotencyStore } from './services/idempotencyStore.js';
 import { TemplateStore } from './services/templateStore.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
+import { knownSubs, splitServerWideFiles } from './services/personSplit.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { ChangeBus } from './services/changeBus.js';
 import { LivePublisher } from './services/livePublisher.js';
@@ -90,6 +91,10 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const mock = provider ? (provider instanceof MockGoogleProvider ? provider : null)
     : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock }) : null;
   const prov: CalendarProvider = provider ?? mock ?? (() => { throw new Error('Google provider must be passed in (see index.ts)'); })();
+  const people = new PeopleStore(config.dataDir);
+  // the retired server-wide settings and streak become every known person's own, once (ADR 0035)
+  splitServerWideFiles(config.dataDir, knownSubs(config.dataDir, people.all().map((p) => p.sub), LOCAL_PERSON),
+    (m) => { if (config.logLevel !== 'error') console.log(m); });
   const settings = new SettingsStore(config.dataDir, clock, config.tz);
   const prefs = new PrefsStore(config.dataDir);
   const themes = new ThemeStore(config.dataDir);
@@ -100,7 +105,6 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
   const auth = new AuthState(config, () => clock.real());
-  const people = new PeopleStore(config.dataDir);
   const shared = new SharedListService(config.dataDir, people, clock, config.tz, () => (auth.on ? (e: string) => auth.allows(e) : null), ink);
   const inkService = new InkService(ink, shared);
   const backup = new BackupService({
@@ -118,7 +122,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     sender: pushRecorder ?? webPushSender(vapid, process.env.VAPID_SUBJECT ?? config.publicUrl ?? 'mailto:calendar@example.org'),
   });
   registerSharedListsBackup(backup, shared, config.dataDir);
-  registerServerFilesBackup(backup, { settings, motivation, people, shared });
+  registerServerFilesBackup(backup, { people, shared });
   const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>();

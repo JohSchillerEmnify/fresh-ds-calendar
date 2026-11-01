@@ -46,6 +46,12 @@ export function weekdayLabels(): string[] {
   return Array.from({ length: 7 }, (_, i) => f.format(new Date(2024, 0, 1 + i)));
 }
 
+/** A day as its short weekday and day of the month ("Fri 6"). */
+export function dayText(d: Date): string {
+  if (language.value === 'en') return format(d, 'EEE d');
+  return intl({ weekday: 'short', day: 'numeric' }).format(d);
+}
+
 /** Month names January..December in the active language. */
 export function monthNames(): string[] {
   if (language.value === 'en') return EN_MONTHS;

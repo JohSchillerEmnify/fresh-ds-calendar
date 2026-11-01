@@ -2,6 +2,7 @@
 /** The month list that scrolls up and down: `MonthView` blocks under a pinned weekday row; the month most in view is the period (URL by `replace`). */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+import { bindMonthZoom, monthZoom, monthZooming } from '@/composables/useMonthZoom';
 import { isPhone } from '@/composables/useViewport';
 import { fetchRange, routePath, weekdayLabels } from '@/lib/dates';
 import { t } from '@/i18n';
@@ -20,7 +21,7 @@ const route = useRoute();
 const router = useRouter();
 
 const el = ref<HTMLElement | null>(null);
-const layout = computed(() => listLayout({ weekH: weekHeight(isPhone.value), headerH: MONTH_HEADER_H }));
+const layout = computed(() => listLayout({ weekH: weekHeight(isPhone.value) * monthZoom.value, headerH: MONTH_HEADER_H }));
 /** The month most in view; the built months follow it. */
 const main = ref(monthIndex(cal.anchor));
 const built = computed(() => {
@@ -95,7 +96,11 @@ onBeforeRouteLeave(() => {
 // the live-sync refresh re-reads the built months too (the route's refresh covers only the month in view)
 const stopSync = sync.registerTask('month-list', () => items.fetchRange(fetchRange('month', monthDate(built.value[0]))[0], fetchRange('month', monthDate(built.value[built.value.length - 1]))[1]));
 onBeforeUnmount(stopSync);
+// the pinch changes the fixed week height; the layout watch keeps the same month at the same place
+let unbindZoom: (() => void) | undefined;
+onBeforeUnmount(() => unbindZoom?.());
 onMounted(() => {
+  unbindZoom = bindMonthZoom(el.value!);
   const saved: unknown = history.state?.[STASH];
   const wasH: unknown = history.state?.[STASH_WEEK_H];
   const from = typeof wasH === 'number' && wasH !== layout.value.weekH ? listLayout({ weekH: wasH, headerH: MONTH_HEADER_H }) : layout.value;
@@ -105,7 +110,7 @@ onMounted(() => {
 
 <template>
   <section
-    ref="el" class="list" data-testid="month-view" :aria-label="t('calendar.month.scroller')" tabindex="0" data-scroll-area :data-scroll="mode" @scroll.passive="onScroll" @wheel.passive="takeOver"
+    ref="el" class="list" data-testid="month-view" :aria-label="t('calendar.month.scroller')" tabindex="0" data-scroll-area :data-scroll="mode" :data-month-zoom="monthZoom" :data-month-zooming="monthZooming || undefined" @scroll.passive="onScroll" @wheel.passive="takeOver"
     @touchstart.passive="takeOver" @pointerdown.passive="takeOver" @keydown="takeOver"
   >
     <div class="weekdays" role="row">

@@ -21,6 +21,7 @@ import Select from '@/components/m3/Select.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
+import CalendarPlans from '@/components/settings/CalendarPlans.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
 import { LABS_VIEWS, isLabsViewOn } from '@/features/labs/labs';
 import { StreakFlame } from '@/features/motivation';
@@ -251,6 +252,7 @@ async function resetDemo() {
         <section id="s-calendar" class="card" data-testid="settings-section" data-section="calendar" aria-labelledby="h-cal">
           <h2 id="h-cal">{{ title('calendar') }}</h2>
           <div class="row"><Select class="fw" :model-value="s.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
+          <CalendarPlans />
           <div class="row col"><span class="lab">{{ t('settings.calendar.minEventLength.label') }}</span><span class="sub">{{ t('settings.calendar.minEventLength.hint') }}</span><SegmentedButton :model-value="String(labs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.day') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.daySideBySide)" :options="daySideOptions" :label="t('settings.calendar.sideBySide.day')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>
