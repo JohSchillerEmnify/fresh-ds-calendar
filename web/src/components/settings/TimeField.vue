@@ -50,10 +50,10 @@ function ok() {
 .box { display: flex; flex-direction: column; gap: 6px; }
 .in {
   width: 96px; height: 72px; box-sizing: border-box; text-align: center; border: 0; border-radius: var(--md-sys-shape-corner-small);
-  background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-display-medium);
+  background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font-size: 45px; line-height: 52px;
 }
 .in:focus { outline: 2px solid var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-.colon { font: var(--md-sys-typescale-display-large); line-height: 72px; width: 24px; text-align: center; }
+.colon { font-size: 45px; line-height: 72px; width: 24px; text-align: center; }
 .cap { font: var(--md-sys-typescale-body-small); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

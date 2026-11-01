@@ -30,10 +30,12 @@ function open() {
 
 <style scoped>
 .row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: 10px 16px; min-height: 56px; width: 100%; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
-.text { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; }
+.text { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; }
 .ctl { margin-left: auto; display: flex; align-items: center; gap: 8px; max-width: 100%; }
 /* wide controls (segmented buttons, sliders) take a line of their own under the text, still ending at the row's end */
 .wide .ctl { flex: 1 1 100%; justify-content: flex-end; }
+/* segments take their label's width and break only between words when the row is narrow */
+.wide .ctl :deep(.opt) { flex: 1 1 auto; overflow-wrap: normal; }
 .lab { font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .val { font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-on-surface-variant); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

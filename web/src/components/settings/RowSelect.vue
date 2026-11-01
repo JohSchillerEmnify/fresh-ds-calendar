@@ -21,7 +21,7 @@ defineEmits<{ 'update:modelValue': [v: T] }>();
 .menu { position: relative; display: inline-flex; align-items: center; max-width: 100%; border-radius: var(--md-sys-shape-corner-small); }
 .menu:focus-within { outline: 2px solid var(--md-sys-color-primary); }
 .in {
-  appearance: none; background: transparent; border: 0; outline: 0; min-height: 44px; max-width: 100%; padding: 0 32px 0 8px;
+  appearance: none; background: transparent; border: 0; outline: 0; min-height: 44px; max-width: min(170px, 45vw); padding: 0 32px 0 8px;
   font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-primary); text-align: right; text-overflow: ellipsis; cursor: pointer;
 }
 .in option { color: var(--md-sys-color-on-surface); background: var(--md-sys-color-surface-container); }

@@ -66,7 +66,7 @@ async function saveTasks(minutes: number[]) {
     <p v-if="pushDenied" class="note" data-testid="reminders-push-denied">{{ t('settings.reminders.push.denied') }}</p>
   </template>
 
-  <h2>{{ t('settingsNav.groups.reminders.title') }}</h2>
+  <h2>{{ t('settingsNav.sub.appointments') }}</h2>
   <SettingRow id="notifyEvents" :label="t('settings.notifications.events.label')" :hint="t('settingsNav.labels.notifyEventsHint')">
     <Switch :model-value="prefs.notify.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" />
   </SettingRow>

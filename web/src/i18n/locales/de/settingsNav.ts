@@ -17,6 +17,7 @@ export default {
     account: { title: 'Konto & App', summary: 'Google-Konto, Sicherung, Installieren, Version' },
   },
   sub: {
+    appointments: 'Termine und dein Tag',
     general: 'Allgemein',
     month: 'Monat',
     weekDay: 'Woche und Tag',

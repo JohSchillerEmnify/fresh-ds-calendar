@@ -52,11 +52,11 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('tasklists', undefined, 'templates', 'tasks.templates.page', { hint: 'tasks.templates.pageHint' }),
 
   e('reminders', 'where', 'push', 'settingsNav.labels.push', { hint: 'settingsNav.labels.pushHint', synonyms: 'settingsNav.synonyms.push' }),
-  e('reminders', undefined, 'notifyEvents', 'settings.notifications.events.label', { hint: 'settingsNav.labels.notifyEventsHint', synonyms: 'settingsNav.synonyms.notifyEvents' }),
+  e('reminders', 'appointments', 'notifyEvents', 'settings.notifications.events.label', { hint: 'settingsNav.labels.notifyEventsHint', synonyms: 'settingsNav.synonyms.notifyEvents' }),
   e('reminders', 'tasklists', 'notifyTasklists', 'settings.notifications.tasklists', { hint: 'settingsNav.labels.notifyTasklistsHint' }),
   e('reminders', 'tasklists', 'tasklistDefaults', 'settings.reminders.tasklists.default'),
-  e('reminders', undefined, 'morning', 'settings.notifications.morning.label', { hint: 'settings.notifications.morning.hint', synonyms: 'settingsNav.synonyms.morning' }),
-  e('reminders', undefined, 'morningTime', 'settings.notifications.morning.time', { parent: 'morning' }),
+  e('reminders', 'appointments', 'morning', 'settings.notifications.morning.label', { hint: 'settings.notifications.morning.hint', synonyms: 'settingsNav.synonyms.morning' }),
+  e('reminders', 'appointments', 'morningTime', 'settings.notifications.morning.time', { parent: 'morning' }),
 
   e('appearance', undefined, 'theme', 'settings.theme.label', { hint: 'settings.theme.hint', synonyms: 'settingsNav.synonyms.theme' }),
   e('appearance', undefined, 'language', 'settings.language.label', { synonyms: 'settingsNav.synonyms.language' }),

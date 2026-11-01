@@ -17,6 +17,7 @@ export default {
     account: { title: 'Kondo & App', summary: 'Google-Kondo, Sicherung, Installiern, Version' },
   },
   sub: {
+    appointments: 'Termine und dei Dag',
     general: 'Allgemein',
     weekDay: 'Woche und Dag',
     behaviour: 'Verhaldn',
