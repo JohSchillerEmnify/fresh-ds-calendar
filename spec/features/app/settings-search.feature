@@ -89,7 +89,8 @@ Feature: Search the settings
   Rule: Search works offline
 
     Scenario: Search works without a connection
-      Given the network connection is lost
+      Given I open the week view for 2026-11-02
+      And the network connection is lost
       When I open the settings
       And I search the settings for "sounds"
       Then the settings search shows "Sounds" in "Focus & calm"
