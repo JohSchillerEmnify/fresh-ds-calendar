@@ -4,28 +4,11 @@ name: iOS Safari
 #  - playwright-webkit: the @iphone Playwright scenarios on macOS WebKit (much closer to Safari than Linux WebKit)
 #  - safari-simulator: Mobile Safari in an iPhone simulator, driven by Appium with real touches (GitHub issue #9,
 #    "Delete in a task list's ... menu does nothing on iPhone"); e2e/ios/run.mjs
-# Not a required check (macOS runs are slow). The nightly workflow calls this one through workflow_call.
+# Not a required check: a run takes ~15 min of a hosted Mac, so it runs only nightly (the nightly workflow calls it
+# through workflow_call, and only when main changed that day) or by hand: gh workflow run ios-safari.yml --ref <branch>
 on:
   workflow_dispatch:
   workflow_call:
-  push:
-    branches: [main]
-    paths: &paths
-      - web/**
-      - shared/**
-      - server/**
-      - e2e/**
-      - spec/**
-      - .github/workflows/ios-safari.yml
-  pull_request:
-    branches: [main]
-    paths:
-      - web/**
-      - shared/**
-      - server/**
-      - e2e/**
-      - spec/features/**
-      - .github/workflows/ios-safari.yml
 
 permissions:
   contents: read
