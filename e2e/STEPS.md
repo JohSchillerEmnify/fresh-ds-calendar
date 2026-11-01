@@ -1430,15 +1430,17 @@ they hide the calendar {string} in the filter bar
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
 
-## Calendar off by a plan (`@id:calendar-off-plan`, @backlog)
+## Calendar off by a plan (`@id:calendar-off-plan`)
 
 ```
 I long-press the calendar chip {string}
 I tap the calendar chip {string}
+I long-press the calendar {string} in the side menu
+I open the plan of the calendar {string} in the settings
 I choose {string} in the calendar sheet
 I pick the date {date} in the calendar sheet
-I pick the days {string} in the calendar sheet
-the calendar {string} is on only on {string}
+I set the off time from {string} {time} to {string} {time} in the calendar sheet
+the calendar {string} is off every week from {string} {time} to {string} {time}
 the calendar {string} is off until {date}
 the calendar chip {string} is on
 the calendar chip {string} is off
@@ -1448,14 +1450,17 @@ the calendar chip {string} does not show that it switches by itself
 ```
 
 - The chip is `filter-chip-calendar` with that `data-name` (shown first with "I show the filters"). "long-press": touch
-  (mobile) or mouse held 500 ms without moving; it opens `calendar-plan-sheet` (an `AdaptiveSheet`). "tap" = a click.
-- "I choose X in the calendar sheet": the button or radio with the visible label X inside `calendar-plan-sheet`
-  ("Always on", "Off for a while", "Only on some days", "Done"); "Done" waits for the saved plan (`PATCH` of the
-  calendar, 200) and the sheet to close. "I pick the date D": the date field `calendar-plan-until` set to D (the day
-  the calendar is back on). "I pick the days S": the weekday toggles `calendar-plan-day` (`data-day` `Mon`..`Sun`)
-  end up pressed exactly for the space-separated short names in S.
-- Givens set the plan through the API as the app would (`plan: { kind: "days", days: [...] }` / `{ kind: "until",
-  date }`, exact shape in `spec/API.md` when built).
+  (mobile) or mouse held 600 ms without moving; it opens `calendar-plan-sheet` (an `AdaptiveSheet`). "tap" = a click.
+  "in the side menu": the same long press on `side-menu-calendar` with that `data-name`. "in the settings": a click on
+  `settings-calendar-plan` with that `data-name` (Settings › Calendars).
+- "I choose X in the calendar sheet": the button or switch with the visible label X inside `calendar-plan-sheet`
+  ("Always on", "Off at set times", "Off for a while", "Done"); a switch is only clicked when it is not on yet.
+  "Done" waits for the saved plan (`PATCH /api/prefs`, 200) and the sheet to close. "I pick the date D": the date
+  field `calendar-plan-until` set to D (the day the calendar is back on, at 00:00). "I set the off time from A T1 to
+  B T2": the selects `calendar-plan-from-day` / `calendar-plan-to-day` (values `Sun`..`Sat`) and the time fields
+  `calendar-plan-from-time` / `calendar-plan-to-time`.
+- Givens set the plan through `PATCH /api/prefs` as the app would (`calendarPlans`, shape in `spec/API.md`); "off until
+  D" counts from now.
 - "is on / off": `aria-pressed` of the chip. "shows X": the chip's visible text contains X. "shows that it switches by
   itself": the chip contains `calendar-plan-mark`; "does not": no such element.
 ## Birthdays (`@birthdays`)
@@ -3471,6 +3476,25 @@ the damaged shared list is left out and noted in the server log
   encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes;
   "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.
 
+## Settings per person (`@settings`, `@unit`; ADR 0035)
+
+Server-file scenarios, covered by unit tests (`server/test/settings-per-person.test.ts`); not run by the browser suite.
+"the server kept one set of settings for everybody" = the retired `DATA_DIR/settings.json`; "had signed in before" =
+their entries in `people.json`; "the updated server starts" = the start-up split (`server/src/services/personSplit.ts`).
+
+```
+{string} chooses the default view {string}, Calm mode, no animations, sounds, the theme mode {string} and the full sunflower field
+{string} checks in
+{string} has the default settings: the default view {string}, Calm mode off, full animations, no sounds, the theme mode {string} and growing sunflowers
+the categories of {string} are {string}
+the streak of {string} is {int} days
+the server kept one set of settings for everybody with the default view {string} and the category {string}
+{string} and {string} had signed in before
+the updated server starts
+{string} has the default view {string} and the categories {string}
+the old settings file is kept as {string}
+```
+
 ## Damaged data files (`@data`, `@unit`; feature damaged-files)
 
 Server-file scenarios, covered by unit tests (`server/test/personJsonStore.test.ts`); not run by the browser suite.
@@ -3629,10 +3653,11 @@ typing in the item field works as without the feature
 I swipe up on the writing area with a finger
 I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
-the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
 I draw a stroke with the pen at the pressure {float}
-the harder stroke is thicker, but at most {float} times as thick as the lighter one
+the stroke at pressure {float} is at most half as thick as before: at most {float} of a line height
+the stroke at pressure {float} is at most {float} of a line height
+the stroke at pressure {float} is at least {float} times as thick as the stroke at pressure {float}
 I draw a stroke {int} pixels downwards with the pen on the ink item number {int}
 the list has not scrolled
 I hold the pen over the ink item number {int}
@@ -3640,12 +3665,6 @@ I move the pen away from the writing area
 the writing area does not let the browser pan
 the writing area lets a finger pan the list up and down
 I touch the ink item number {int} with a finger
-I switch the Labs setting {string} on
-I drag one finger along the writing area
-I drag one broad finger along the writing area
-I drag one finger along the writing area after resting it for {int} ms
-I drag one finger along the ink item number {int}
-I drag one finger along the ink item number {int} after resting it for {int} ms
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3674,11 +3693,7 @@ the device's handwriting recognition enters the text {string} in the item field
 the collapsed task list shows the items {string}
 the backup to Drive runs
 the backup holds the ink of the task list {string}
-the Labs setting {string} is on
-the Labs setting {string} is off
 the dialog fits the window
-I draw a stroke with a finger
-I swipe up on the writing area with two fingers
 I draw {int} stroke(s) with the pen
 I have drawn {int} stroke(s) with the pen
 I press the undo button
@@ -3743,16 +3758,12 @@ the server holds no ink for the task list {string}
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
 - "the add button covers no control of the writing area" is an added panel name of the existing step.
-- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
-  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
-  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
 - Pen width and panning (Windows pen): "at the pressure P" is a synthetic `pen` stroke with that constant pressure; "the harder stroke
   is thicker, but at most R times as thick as the lighter one" measures each stroke path across its middle (`isPointInFill`, line
   heights). "I draw a stroke D pixels downwards with the pen on the ink item N" and "I hold the pen over / move the pen away from"
   use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
   scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
   "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`). "I touch the ink item N with a finger" sends one synthetic `touch` `pointerdown` to the line.
-- "I drag one finger along the writing area" is a real touch (CDP) of 12 moves of 12 px; "broad" has a contact radius of 24 px; "after resting it for N ms" first creeps 1 px and waits N ms (a hesitant start), then drags.
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
@@ -3781,3 +3792,34 @@ the server holds no ink for the task list {string}
   off" = the ink's box lies inside the line's box.
 - Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
 
+
+## Error log on the device (`@id:device-log`)
+
+```
+I open the error log in the settings
+the error log has an entry {string}
+the error log does not contain {string}
+an unexpected error {string} happens in the app
+this device's error log holds:
+the error log shows {string}
+I clear the error log
+the error log is empty
+I download the error log
+I share the error log
+this device cannot share files
+the downloaded error log holds {int} entries
+```
+
+- The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &
+  app); "I open the error log in the settings" opens the settings first when they are not open. Entries are
+  `device-log-entry` (newest first), each with its one-line summary `device-log-summary`; the empty state is
+  `device-log-empty`. Buttons: `device-log-copy`, `device-log-share`, `device-log-download`, `device-log-clear`.
+- "has an entry X": one `device-log-summary` contains X. "does not contain X": the page text and the stored log (the
+  JSON that Download would save) do not contain X. "shows X": the summaries in order, `, `-separated, equal X.
+- "an unexpected error X happens in the app": the page throws `new TypeError(X)` from a timer, so nothing catches it.
+- "this device's error log holds:" writes the table into the log's storage (`localStorage` key `calendar.deviceLog`)
+  before the app loads, as `error` entries with that time (local) and message `Name: text` split into name and text.
+- "I clear the error log": `device-log-clear`. "is empty": no `device-log-entry` and `device-log-empty` is shown.
+- "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
+  "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
+  downloaded error log holds N entries": the downloaded file is JSON with N `entries`.

@@ -7,7 +7,7 @@ import { dragItem, expandTaskList } from './support/tasklist.js';
 import { box, chooseListAction } from './support/ui.js';
 import type { World } from './support/world.js';
 
-const PREF: Record<string, string> = { 'Handwritten lists': 'labsHandwriting', 'Draw with finger': 'labsDrawWithFinger' };
+const PREF: Record<string, string> = { 'Handwritten lists': 'labsHandwriting' };
 const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
 const rows = (w: World) => w.expanded.getByTestId('tasklist-item');
 
@@ -17,29 +17,22 @@ const scribble = (seed: number) => ({ p: Array.from({ length: 12 }, (_, i) => [0
 async function setSwitch(w: World, name: string, on: boolean) {
   const key = PREF[name];
   expect(key, `known Labs setting "${name}"`).toBeDefined();
-  await w.api.patch('/api/prefs', key === 'labsHandwriting' ? { labs: true, [key!]: on } : { [key!]: on });
+  await w.api.patch('/api/prefs', { labs: true, [key!]: on });
 }
 
 Given('the Labs switch {string} is on', async function (this: World, name: string) { await setSwitch(this, name, true); });
-Given('the Labs setting {string} is on', async function (this: World, name: string) { await setSwitch(this, name, true); });
 /** The Labs row of a setting; the master switch is turned on when the row is not shown yet (it only hides the rows). */
-async function labsRow(w: World, name: string): Promise<Locator> {
-  const row = w.page.getByTestId(name === 'Handwritten lists' ? 'settings-labs-handwriting' : 'settings-labs-draw-with-finger');
+async function labsRow(w: World): Promise<Locator> {
+  const row = w.page.getByTestId('settings-labs-handwriting');
   if (!(await row.count())) await w.page.getByTestId('settings-labs').click();
   return row;
 }
 /** One sentence for the given and the check: with the settings open it is checked on screen, else the pref is set. */
 async function off(w: World, name: string) {
   if (!(await w.page.getByTestId('settings-view').isVisible().catch(() => false))) return setSwitch(w, name, false);
-  await expect(await labsRow(w, name)).toHaveAttribute('aria-checked', 'false');
+  await expect(await labsRow(w)).toHaveAttribute('aria-checked', 'false');
 }
-When('I switch the Labs setting {string} on', async function (this: World, name: string) {
-  const row = await labsRow(this, name);
-  await row.click();
-  await expect(row).toHaveAttribute('aria-checked', 'true');
-});
 Step('the Labs switch {string} is off', async function (this: World, name: string) { await off(this, name); });
-Step('the Labs setting {string} is off', async function (this: World, name: string) { await off(this, name); });
 
 /** The pen flag of the device (`cal.ink.pen`), set before the app starts and now. */
 async function penSupport(w: World, on: boolean) {
@@ -405,10 +398,6 @@ Then('the item number {int} is ticked and nothing is drawn', async function (thi
   await expect(nextLine(this)).toHaveAttribute('data-strokes', '0');
 });
 
-Then('the stroke is drawn on the line', async function (this: World) {
-  await expect(nextLine(this)).toHaveAttribute('data-strokes', '1');
-});
-When('I draw a stroke with a finger', async function (this: World) { await stroke(nextLine(this), 'touch'); });
 When('I draw a stroke with the pen on the ink item number {int}', async function (this: World, n: number) {
   strokesBefore.set(this, Number(await inkOf(this, n).getAttribute('data-strokes')));
   await stroke(inkOf(this, n), 'pen');
@@ -469,7 +458,7 @@ async function scrollTop(line: Locator): Promise<number> {
   });
 }
 const scrolled = new WeakMap<World, number>();
-async function swipeUp(w: World, fingers: 1 | 2) {
+async function swipeUp(w: World) {
   // the first line, with the list scrolled to its top, so there is room to scroll up
   const line = inkOf(w, 1);
   await line.evaluate((el) => { for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) if (n.scrollHeight > n.clientHeight && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) n.scrollTop = 0; });
@@ -478,7 +467,7 @@ async function swipeUp(w: World, fingers: 1 | 2) {
   scrolled.set(w, before);
   const b = await box(line);
   const cdp = await w.context.newCDPSession(w.page);
-  const pts = (dy: number) => Array.from({ length: fingers }, (_, k) => ({ x: Math.round(b.x + 40 + k * 60), y: Math.round(b.y + b.height / 2 + dy), id: k + 1 }));
+  const pts = (dy: number) => [{ x: Math.round(b.x + 40), y: Math.round(b.y + b.height / 2 + dy), id: 1 }];
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(0) });
   for (let i = 1; i <= 10; i++) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(-i * 12) });
@@ -487,34 +476,7 @@ async function swipeUp(w: World, fingers: 1 | 2) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await cdp.detach().catch(() => {});
 }
-/** One finger dragged sideways along the open writing line with real touch input (CDP), as a person writes; `radius` is the contact radius in px. */
-async function dragFinger(w: World, radius: number, pauseMs = 0, item = 0) {
-  const open = nextLine(w);
-  const line = item ? inkOf(w, item) : (await open.count()) ? open : formLines(w).first();
-  await line.scrollIntoViewIfNeeded();
-  const b = await box(line);
-  const cdp = await w.context.newCDPSession(w.page);
-  const at = (dx: number) => [{ x: Math.round(b.x + 20 + dx), y: Math.round(b.y + b.height / 2), id: 1, radiusX: radius, radiusY: radius }];
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(0) });
-  // a hesitant start: the tip creeps 1 px, then rests, before the stroke begins
-  if (pauseMs) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(1) });
-    await w.page.waitForTimeout(pauseMs);
-  }
-  for (let i = 1; i <= 12; i++) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(i * 12) });
-    await w.page.waitForTimeout(16);
-  }
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await cdp.detach().catch(() => {});
-}
-When('I drag one finger along the writing area', async function (this: World) { await dragFinger(this, 4); });
-When('I drag one broad finger along the writing area', async function (this: World) { await dragFinger(this, 24); });
-When('I drag one finger along the ink item number {int}', async function (this: World, n: number) { await dragFinger(this, 4, 0, n); });
-When('I drag one finger along the ink item number {int} after resting it for {int} ms', async function (this: World, n: number, ms: number) { await dragFinger(this, 4, ms, n); });
-When('I drag one finger along the writing area after resting it for {int} ms', async function (this: World, ms: number) { await dragFinger(this, 4, ms); });
-When('I swipe up on the writing area with a finger', async function (this: World) { await swipeUp(this, 1); });
-When('I swipe up on the writing area with two fingers', async function (this: World) { await swipeUp(this, 2); });
+When('I swipe up on the writing area with a finger', async function (this: World) { await swipeUp(this); });
 Then('the list scrolls', async function (this: World) {
   const before = scrolled.get(this)!;
   await expect.poll(() => scrollTop(inkOf(this, 1))).toBeGreaterThan(before);
@@ -798,23 +760,6 @@ Then('both devices show the ink item number {int} with {int} stroke(s)', async f
 // --- pen width and pen panning (Windows pen) -----------------------------------------------------------------------------
 When('I draw a stroke with the pen at the pressure {float}', async function (this: World, pressure: number) {
   await stroke(nextLine(this), 'pen', { pressure });
-});
-/** The width across the middle of a filled stroke path, in line heights. */
-async function widths(line: Locator): Promise<number[]> {
-  return line.evaluate((svg) => Array.from(svg.querySelectorAll('[data-testid="ink-stroke"]')).map((el) => {
-    const path = el as SVGGeometryElement;
-    const b = path.getBBox();
-    let n = 0;
-    for (let y = 0; y <= 1; y += 0.002) if (path.isPointInFill(new DOMPoint(b.x + b.width / 2, y))) n++;
-    return n * 0.002;
-  }));
-}
-Then('the harder stroke is thicker, but at most {float} times as thick as the lighter one', async function (this: World, ratio: number) {
-  await expect(nextLine(this)).toHaveAttribute('data-strokes', '2');
-  const [light, hard] = await widths(nextLine(this));
-  expect(light).toBeGreaterThan(0);
-  expect(hard!).toBeGreaterThan(light!);
-  expect(hard! / light!).toBeLessThanOrEqual(ratio);
 });
 
 /** A trusted pen pointer (pointerType "pen") through the browser's own input: hover, press and move. */

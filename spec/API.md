@@ -219,7 +219,7 @@ Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, 
 
 ### `GET /api/prefs` → 200, `PATCH /api/prefs` → 200
 
-Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
+Per-person preferences (`GET/PATCH /api/prefs`, apart from `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
 `tasksCalendarVisible`, `taskCategories`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
 `'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, feature
 language). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
@@ -231,6 +231,16 @@ are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMi
 
 **Month scrolling** (`prefs.monthScroll`, per person, feature `month-vertical`): `sideways | vertical | vertical-snap`, default `sideways`. `vertical` stacks the
 months in one list that scrolls up and down; `vertical-snap` is the same list, one month per page. Any other value answers 400 `VALIDATION_ERROR` (field `monthScroll`).
+
+**Calendar plans** (`prefs.calendarPlans`, per person, feature `calendar-off-plan`): `{ [calendarId]: CalendarPlan }`,
+default `{}`, replaced as a whole. `CalendarPlan = { windows?: { from: { day: 0-6; time: 'HH:MM' }; to: { day: 0-6;
+time: 'HH:MM' } }[]; until?: 'YYYY-MM-DD'; since?: 'YYYY-MM-DDTHH:MM'; switchedAt?: 'YYYY-MM-DDTHH:MM' }` (`day` 0 =
+Sunday, at most 7 windows, `from` ≠ `to`; at most 200 calendars). Times are wall times in the calendar zone. A window
+is off from `from` to `to` every week; `until` is off from `since` to 00:00 of `until`; `switchedAt` is the last tap on
+the calendar's switch. The device works out on/off itself: inside a window or an `until` the calendar is off, outside
+on, unless `switchedAt` is later than the plan's last switch, then the person's `hidden` holds. Why a pref, not the
+calendar: plans are the person's choice like the other prefs and must apply offline from the device copy (ADR 0023).
+Anything invalid answers 400 `VALIDATION_ERROR` (field `calendarPlans`).
 
 **Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
 per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
@@ -380,6 +390,12 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   complete. While a calendar failed, the cursor keeps its old window end and reminder version, so the missed days and relist
   are retried. Person-wide failures (rate limit, sign-in again, missing calendar permission) and unexpected errors (bugs)
   still fail the whole call.
+- A calendar Google keeps refusing is not asked on every call: one that is gone (404) or no longer readable (403
+  permission) is answered `failed` once, and a calendar whose fresh sync token is refused a second time in a row (410
+  right after its full read) is answered unchanged. Either is then left alone (answered unchanged, no Google call) for
+  1 minute, doubling per refusal in a row up to 30 minutes, shared by every device and the live poll; the first read
+  after the wait is in full (`replace`). A working token clears the back-off. Each back-off writes one
+  `google_calendar_backoff` log line (hashed calendar id, cause, wait).
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
@@ -610,9 +626,19 @@ Rules:
 
 ### Settings and categories
 
-Stored server-side in `DATA_DIR/settings.json` (one file for the whole server, shared by everyone who signs in;
-independent of the provider; atomic writes). Created with
-the defaults on first start.
+Stored server-side per person in `DATA_DIR/users/<sub>/settings.json` (`users/local/` while sign-in is off;
+independent of the provider; atomic writes; ADR 0035). Each person who signs in has their own settings and categories:
+a change by one person never changes what another reads, and `version` (the `If-Match` value) counts that person's
+changes only. A person without a file reads the defaults (the four categories); nothing is written until they change something, so
+opening the app creates no data of their own (Drive backup, restore at sign-in). A shared
+task list still shows the owner's category to its members (`categoryInfo`, see Shared lists).
+
+*Migration from the server-wide file* (once, on the first start after the update): a `DATA_DIR/settings.json` and
+`DATA_DIR/motivation.json` from before are copied to every known person (`people.json`, the folders under `users/`, and
+`local`) who has no file of their own yet, then renamed to `settings.json.bak` / `motivation.json.bak`. Without the old
+file nothing happens, so it runs once; an interrupted run finishes on the next start; a person's own file is never
+overwritten. A Drive backup made before the split carries them as `server/settings.json` / `server/motivation.json`:
+a restore gives them to the person whose backup it is unless the backup also holds the person's own file.
 
 | Method | Path | Body | Success |
 |---|---|---|---|
@@ -724,8 +750,8 @@ into the list and stopping to share moves it back. `InkDoc` = `{ version: 1, ite
 person's own ink plus that of every shared list they are on. A stroke is `{ p: [x, y, pressure][], c?: '#rrggbb' }` (no `c`
 = the theme's text colour); x and y are in line heights from the line's left and top (so the ink scales to any line,
 decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the description line
-`☐ Handwritten item` (decision A3). The prefs `labsHandwriting` and `labsDrawWithFinger` (boolean, default `false`) are the
-Labs switches.
+`☐ Handwritten item` (decision A3). The pref `labsHandwriting` (boolean, default `false`) is the
+Labs switch. A retired `labsDrawWithFinger` in a stored document or a patch is ignored (finger drawing is unsupported).
 
 | Method | Path | Body | Success |
 |---|---|---|---|
@@ -839,8 +865,8 @@ of them is still untouched.
 
 ### Motivation: check-in streak and plant
 
-Stored server-side in `DATA_DIR/motivation.json` (one file for the whole server, shared by everyone who signs in;
-synced across devices). Dates are local dates of the
+Stored server-side per person in `DATA_DIR/users/<sub>/motivation.json` (ADR 0035; migrated from the server-wide file
+as described under "Settings and categories"; synced across devices). Dates are local dates of the
 app clock (`TZ`).
 
 ```ts
@@ -1081,7 +1107,7 @@ TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it unti
 Every `/api/*` request while auth is on re-checks `ALLOWED_EMAILS`: a person who was taken off the list gets **401** and loses all their sessions.
 
 All non-GET `/api/*` requests need an `Origin` header that is one of `PUBLIC_URL` / `ALLOWED_ORIGINS` (or none, as the Android widget sends; without a
-`PUBLIC_URL` the page's own host is accepted), else **403 `FORBIDDEN`**, and a body must be `application/json` (else **415**) and at most 256 KB (`POST /api/themes`
+`PUBLIC_URL` the page's own host is accepted), else **403 `FORBIDDEN`**, and a body must be `application/json` (else **415**; an empty body needs no type, also when it arrives chunked) and at most 256 KB (`POST /api/themes`
 400 KB; else **413**).
 
 While auth is on, every other `/api/*` route except `/api/health`, the two OAuth routes and `/api/auth/app-exchange` answers **401

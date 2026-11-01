@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { trace } from '@/lib/trace';
 import Pressable from '@/components/m3/Pressable.vue';
 import { TITLE_MAX } from '@calendar/shared/limits';
 /**
@@ -221,6 +222,7 @@ function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
 const savingTemplate = ref(false);
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
+  trace('list.remove', tl.value ? 'has-list' : 'no-list');
   if (!tl.value) return;
   pendingDeletes.deleteTaskList(tl.value);
   emit('deleted');
@@ -256,6 +258,7 @@ function archive() {
   lists.markFinished(props.id);
 }
 function onMenu(id: string) {
+  trace('list.onMenu', id);
   if (id === 'edit') edit();
   else if (id === 'duplicate' && tl.value) duplicateList(tl.value, cats.on.value);
   else if (id === 'archive') archive();
@@ -273,7 +276,6 @@ useItemDrag({
   signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
   penWrites: () => writing.value,
-  fingerWrites: () => writing.value && prefs.labsDrawWithFinger,
   disabled: () => !!editingItem.value,
   onMove: move,
 });
@@ -343,7 +345,7 @@ defineExpose({ root, busy });
           </li>
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
-          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
+          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @stroking="inkWriting.holdDraft" @tap="openAdd" />
         </div>
         <p v-if="!tl.items.length && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 

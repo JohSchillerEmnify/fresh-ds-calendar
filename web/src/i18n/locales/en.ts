@@ -9,6 +9,7 @@
  */
 import calendarEn from './en/calendar.ts';
 import outboxEn from './en/outbox.ts';
+import deviceLogEn from './en/deviceLog.ts';
 import backupEn from './en/backup.ts';
 import canvasEn from './en/canvas.ts';
 import inkEn from './en/ink.ts';
@@ -20,6 +21,7 @@ import themeEn from './en/theme.ts';
 export default {
   calendar: calendarEn,
   outbox: outboxEn,
+  deviceLog: deviceLogEn,
   backup: backupEn,
   canvas: canvasEn,
   ink: inkEn,

@@ -7,10 +7,9 @@ import { keptItems, type OutboxEntry } from './outbox';
 /** What a pointer event does in the writing area. */
 export type PenRole = 'draw' | 'erase' | 'ignore';
 
-/** Only a pen draws; a finger only with "Draw with finger"; a mouse never (decision R1). The pen's eraser end or barrel button erases. */
-export function penRole(e: { pointerType: string; buttons: number }, drawWithFinger: boolean): PenRole {
+/** Only a pen draws; a finger or a mouse never (decision R1). The pen's eraser end or barrel button erases. */
+export function penRole(e: { pointerType: string; buttons: number }): PenRole {
   if (e.pointerType === 'pen') return (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0 ? 'erase' : 'draw';
-  if (e.pointerType === 'touch') return drawWithFinger ? 'draw' : 'ignore';
   return 'ignore';
 }
 
@@ -27,12 +26,14 @@ const r2 = (n: number): string => n.toFixed(3);
 /** perfect-freehand thinks in pixels; the stroke is scaled to a 24 px line and back so its tuning holds for line-height units. */
 const PX = 24;
 
-/** How much the width follows the pressure: 0.2 keeps the thinnest line at about 70 % of the thickest. */
-const THINNING = 0.2;
+/** A thin pen: about 1 px of a 24 px line at normal pressure, under 2 px at full. */
+const SIZE = 1.05;
+/** How much the width follows the pressure: a light touch is a hairline, full pressure about 4 times as thick. */
+const THINNING = 0.7;
 
-/** SVG path data of a stroke in line-height units; the width follows the pressure only moderately (decision Q4). */
+/** SVG path data of a stroke in line-height units; the width follows the pressure (decision Q4). */
 export function strokePath(points: InkPoint[]): string {
-  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: 3, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
+  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: SIZE, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
     .map(([x, y]) => [x! / PX, y! / PX] as [number, number]);
   if (outline.length < 4) return '';
   let [a, b] = [outline[0]!, outline[1]!];

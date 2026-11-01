@@ -60,7 +60,7 @@ model {
       description 'Creates, changes and deletes a person\'s events, only those the person owns'
     }
     settingsApi = component 'Settings API' {
-      description 'Keeps the settings and categories, one versioned file shared by everyone on the server'
+      description 'Keeps each person\'s settings and categories, one versioned file per person'
     }
     configApi = component 'Config API' {
       description 'Answers the clock, week start, time zone and the build version'

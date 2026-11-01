@@ -55,6 +55,11 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     stop?.();
     stop = appTimeout(flush, DRAFT_MS);
   }
+  /** A stroke on the draft line started: the pause that makes an item restarts when it ends, not mid-letter. */
+  function holdDraft(): void {
+    stop?.();
+    stop = null;
+  }
   /** The new strokes of an existing ink item (a stroke added, or an erase). */
   function change(itemId: string, strokes: InkStroke[]): void {
     const before = ink.strokes(itemId);
@@ -79,5 +84,5 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
 
   usePenDoubleTap(undo, () => active.value);
   onBeforeUnmount(flush);
-  return { draft, changeDraft, change, undo, flush, canUndo: computed(() => active.value && history.value.length > 0) };
+  return { draft, changeDraft, holdDraft, change, undo, flush, canUndo: computed(() => active.value && history.value.length > 0) };
 }

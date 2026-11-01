@@ -17,6 +17,7 @@ import { registerServiceWorker } from './pwa/register';
 import { checkReleaseNotes } from './pwa/releaseNotes';
 import { registerBuiltinExtensions } from './extensions/builtin';
 import { installMotion } from './motion';
+import { installDeviceLog } from './lib/deviceLog';
 import './styles.css';
 import './theme/theme.css';
 
@@ -64,4 +65,6 @@ async function bootstrap() {
   void checkReleaseNotes();
 }
 
+// errors nobody catches go into the device log from the very start (feature device-log)
+installDeviceLog();
 void bootstrap();

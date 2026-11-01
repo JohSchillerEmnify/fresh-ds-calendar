@@ -27,6 +27,11 @@ export function subHash(sub: string | null | undefined): string | undefined {
   return sub ? createHash('sha256').update(`cal-diag:${sub}`).digest('hex').slice(0, 8) : undefined;
 }
 
+/** A short, stable pseudonym of a calendar id (8 hex characters): the id may be an e-mail address, so only its hash is logged. */
+export function calHash(calendarId: string | undefined): string | undefined {
+  return calendarId ? createHash('sha256').update(`cal-diag-cal:${calendarId}`).digest('hex').slice(0, 8) : undefined;
+}
+
 /** What is known about one failed Google call; every value is a status number or a short code, never message text. */
 export interface GoogleErrorInfo {
   status?: number;

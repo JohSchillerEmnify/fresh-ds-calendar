@@ -1,8 +1,8 @@
 import { OAuth2Client } from 'google-auth-library';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { setDiagSink, subHash } from '../src/lib/diag.js';
+import { calHash, setDiagSink, subHash } from '../src/lib/diag.js';
 import { GoogleProvider, makeApi } from '../src/providers/google/GoogleProvider.js';
-import { ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, ProviderUnavailableError, SyncTokenExpiredError } from '../src/providers/CalendarProvider.js';
 import { makeApp } from './helpers.js';
 
 let lines: Record<string, unknown>[] = [];
@@ -55,7 +55,21 @@ describe('google_error log line', () => {
     await expect(p.insertEvent('primary', { summary: 'Dentist', start: { date: '2026-10-12' }, end: { date: '2026-10-13' } })).rejects.toBeInstanceOf(ProviderUnavailableError);
     const text = raw.join('\n');
     for (const secret of [SUB, TOKEN, 'Dentist', 'jo@example.com', 'secret']) expect(text).not.toContain(secret);
-    expect(Object.keys(lines[0]!).sort()).toEqual(['durationMs', 'event', 'op', 'reason', 'retry', 'status', 'subHash', 'ts']);
+    expect(Object.keys(lines[0]!).sort()).toEqual(['calHash', 'durationMs', 'event', 'op', 'reason', 'retry', 'status', 'subHash', 'ts']);
+  });
+
+  it('logs a rejected sync token with its status, Google reason and a hashed calendar id', async () => {
+    const cal = 'anna@example.org';
+    const p = provider(reply(410, { error: { code: 410, message: 'Sync token is no longer valid, a full sync is required.', errors: [{ reason: 'fullSyncRequired' }] } }));
+    await expect(p.listChanges(cal, 'old')).rejects.toBeInstanceOf(SyncTokenExpiredError);
+    expect(lines[0]).toMatchObject({ event: 'google_error', op: 'events.list', status: 410, reason: 'fullSyncRequired', calHash: calHash(cal), subHash: subHash(SUB) });
+    expect(raw.join('\n')).not.toContain(cal);
+  });
+
+  it('logs a calendar that cannot be found with its hashed id', async () => {
+    const p = provider(reply(404, { error: { code: 404, message: 'Not Found', errors: [{ reason: 'notFound' }] } }));
+    await expect(p.listSyncToken('gone@example.org')).rejects.toBeInstanceOf(NotFoundError);
+    expect(lines[0]).toMatchObject({ event: 'google_error', op: 'events.list', status: 404, reason: 'notFound', calHash: calHash('gone@example.org') });
   });
 
   it('does not log a successful call', async () => {
@@ -83,6 +97,34 @@ describe('api_unavailable log line', () => {
     try {
       await t.req('GET', '/api/nope');
       await t.req('GET', '/api/items?from=bad&to=bad');
+      expect(lines).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+});
+
+describe('api_refused log line', () => {
+  it('logs a refused write with its code and request framing, without the body', async () => {
+    const t = makeApp();
+    try {
+      lines.length = 0;
+      const r = await t.app.request('/api/settings', { method: 'PATCH', headers: { 'content-type': 'text/plain', origin: 'http://localhost', 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148' }, body: 'sounds=secret' });
+      expect(r.status).toBe(415);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({ event: 'api_refused', method: 'PATCH', status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', contentType: 'text/plain', origin: 'http://localhost', chunked: false, ua: 'ios/webkit' });
+      expect(raw[0]).not.toContain('secret');
+      const list = (await t.json('POST', '/api/tasklists', { title: 'Hallo', date: '2026-11-01', items: [{ title: 'Milk' }] })).body;
+      lines.length = 0;
+      expect((await t.json('PATCH', `/api/tasklists/${list.id}`, { title: '', items: [] })).status).toBe(400);
+      expect(lines[0]).toMatchObject({ event: 'api_refused', route: 'PATCH /api/tasklists/:id', path: `/api/tasklists/${list.id}`, status: 400, code: 'VALIDATION_ERROR', field: 'title' });
+    } finally { t.cleanup(); }
+  });
+
+  it('logs nothing for reads and for successful writes', async () => {
+    const t = makeApp();
+    try {
+      lines.length = 0;
+      await t.req('GET', '/api/items?from=bad&to=bad');
+      await t.json('POST', '/api/streak/checkin');
       expect(lines).toEqual([]);
     } finally { t.cleanup(); }
   });

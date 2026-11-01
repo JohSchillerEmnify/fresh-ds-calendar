@@ -1,5 +1,5 @@
 /** Writing on the open list: the list limit and the draft. */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
 import { useInkWriting } from '@/features/tasklists/useInkWriting';
@@ -30,6 +30,20 @@ describe('useInkWriting', () => {
     w.flush();
     expect(w.draft.value).toEqual([]);
     expect(useOutboxStore().entries.map((e) => e.change.op)).toEqual(['item.add']);
+  });
+  it('does not cut the draft while the next stroke is being drawn after a short lift', () => {
+    vi.useFakeTimers();
+    try {
+      const w = useInkWriting(() => 'L', ref(true), () => []);
+      w.changeDraft([stroke(3)]);
+      vi.advanceTimersByTime(800);
+      w.holdDraft();
+      vi.advanceTimersByTime(1000);
+      expect(w.draft.value).toHaveLength(1);
+      expect(useOutboxStore().entries).toEqual([]);
+      w.changeDraft([stroke(3), stroke(3)]);
+      expect(w.draft.value).toHaveLength(2);
+    } finally { vi.useRealTimers(); }
   });
   it('gives a stroke that undo brings back a fresh time, so the erase it undoes cannot drop it on the server', async () => {
     const old = { ...stroke(3), t: 100 };

@@ -28,12 +28,14 @@ function originAllowed(config: AppConfig, c: Context): boolean {
   }
 }
 
-/** True when the body (if any) is declared as JSON; a bodyless request needs no type. */
-function contentTypeOk(c: Context): boolean {
+/** True when the body (if any) is declared as JSON; an empty body needs no type, however it is framed (chunked or length 0). */
+async function contentTypeOk(c: Context): Promise<boolean> {
   const type = c.req.header('content-type');
   if (type !== undefined) return /^application\/json\s*(;|$)/i.test(type);
   const length = c.req.header('content-length');
-  return !c.req.header('transfer-encoding') && (length === undefined || length === '0');
+  if (!c.req.header('transfer-encoding') && (length === undefined || length === '0')) return true;
+  // a proxy may forward a bodyless request as chunked (unknown length): only an actual body needs the type
+  return (await c.req.arrayBuffer()).byteLength === 0;
 }
 
 /**
@@ -49,7 +51,10 @@ export function requestGuards(config: AppConfig): MiddlewareHandler {
     // a cross-site page can make the browser send the cookie, but cannot hide where the request came from
     if (!originAllowed(config, c)) throw new ApiException('FORBIDDEN', 403, 'Request from an unknown origin');
     // a "simple" cross-site form post could carry JSON text as text/plain; only declared JSON is read
-    if (!contentTypeOk(c)) throw new ApiException('UNSUPPORTED_MEDIA_TYPE', 415, 'Request body must be application/json');
-    return (c.req.path === '/api/themes' ? theme : normal)(c, next);
+    // the size limit first, so reading an untyped body to see whether it is empty stays bounded
+    return (c.req.path === '/api/themes' ? theme : normal)(c, async () => {
+      if (!(await contentTypeOk(c))) throw new ApiException('UNSUPPORTED_MEDIA_TYPE', 415, 'Request body must be application/json');
+      await next();
+    });
   };
 }

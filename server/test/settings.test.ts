@@ -47,11 +47,11 @@ describe('settings', () => {
     expect(stale.body.error.code).toBe('PRECONDITION_FAILED');
   });
 
-  it('persists to DATA_DIR/settings.json (atomic) and reloads', async () => {
+  it('persists to DATA_DIR/users/<sub>/settings.json (atomic) and reloads', async () => {
     await t.json('PATCH', '/api/settings', { seedColor: '#6750a4' });
-    const file = path.join(t.dir, 'settings.json');
+    const file = path.join(t.dir, 'users', 'local', 'settings.json');
     expect(JSON.parse(fs.readFileSync(file, 'utf8')).seedColor).toBe('#6750a4');
-    expect(fs.readdirSync(t.dir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+    expect(fs.readdirSync(path.dirname(file)).filter((f) => f.endsWith('.tmp'))).toEqual([]);
     const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
     expect((await (await again.request('/api/settings')).json()).seedColor).toBe('#6750a4');
     again.close();
@@ -59,7 +59,8 @@ describe('settings', () => {
 
   // the flame and plant switches were replaced by the person pref `streak` (API.md "Flame and plant switches retired")
   it('drops the retired flame and plant switches on load, on the next save and after a restore, and nobody gets a streak', async () => {
-    const file = path.join(t.dir, 'settings.json');
+    await t.json('PATCH', '/api/settings', { sounds: false }); // a person's file exists once they changed something
+    const file = path.join(t.dir, 'users', 'local', 'settings.json');
     const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
     fs.writeFileSync(file, JSON.stringify({ ...stored, streakFlame: true, plant: true }));
     const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
@@ -75,7 +76,8 @@ describe('settings', () => {
   });
 
   it('ignores a stored default event colour: new events follow their calendar', async () => {
-    const file = path.join(t.dir, 'settings.json');
+    await t.json('PATCH', '/api/settings', { sounds: false }); // a person's file exists once they changed something
+    const file = path.join(t.dir, 'users', 'local', 'settings.json');
     fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), defaultEventColorId: '11' }));
     const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
     expect(await (await again.request('/api/settings')).json()).not.toHaveProperty('defaultEventColorId');

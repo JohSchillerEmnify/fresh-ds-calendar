@@ -87,6 +87,12 @@ Feature: The server protects itself and its people from the web
         | text/plain                        |
         | application/x-www-form-urlencoded |
 
+    # unit: server/test/security.test.ts:a bodyless write passes whatever its framing says
+    @unit
+    Scenario: A write without a body needs no type, also when it arrives chunked as from an iPhone
+      When I send "POST /api/streak/checkin" with the header "transfer-encoding" set to "chunked"
+      Then the response status is 200
+
     Scenario: JSON declared with a character set is accepted
       When I send "PATCH /api/settings" with the body '{"sounds":false}' as "application/json; charset=utf-8"
       Then the response status is 200
