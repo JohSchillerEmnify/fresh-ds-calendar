@@ -56,8 +56,11 @@ export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => vo
       listen(document, 'focusin', (e) => { if (!inside(e.target as Node)) o.close(false); }),
     );
     if (o.closeOnMove) {
+      // iOS scrolls a little on a tap; only a scroll that really moves the button leaves the fixed card behind
+      const at = o.trigger?.value?.getBoundingClientRect();
+      const moved = () => { const r = o.trigger?.value?.getBoundingClientRect(); return !at || !r || Math.abs(r.top - at.top) > 2 || Math.abs(r.left - at.left) > 2; };
       stops.push(
-        listen(document, 'scroll', (e) => { if (!o.panel.value?.contains(e.target as Node)) o.close(false); }, { capture: true, passive: true }),
+        listen(document, 'scroll', (e) => { if (!o.panel.value?.contains(e.target as Node) && moved()) o.close(false); }, { capture: true, passive: true }),
         listen(window, 'resize', () => o.close(false)),
       );
     }

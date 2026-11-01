@@ -59,8 +59,16 @@ describe('OverflowMenu keyboard and focus', () => {
     await nextTick();
     expect(panel()).toBeNull();
   });
-  it('closes on scroll anywhere and on resize', async () => {
+  it('stays open on a scroll that does not move its button (iOS scrolls on a tap), so the tap on an item lands', async () => {
     await openOverflow();
+    document.body.dispatchEvent(new Event('scroll'));
+    await nextTick();
+    expect(panel()).not.toBeNull();
+  });
+  it('closes on a scroll that moves its button and on resize', async () => {
+    await openOverflow();
+    const trigger = document.querySelector('[data-testid="more"]') as HTMLElement;
+    trigger.getBoundingClientRect = () => ({ top: 40, left: 0, bottom: 88, right: 48, width: 48, height: 48, x: 0, y: 40, toJSON: () => ({}) });
     document.body.dispatchEvent(new Event('scroll'));
     await nextTick();
     expect(panel()).toBeNull();
