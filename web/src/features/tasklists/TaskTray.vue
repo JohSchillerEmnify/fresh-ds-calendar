@@ -71,6 +71,12 @@ function setHeight() {
   document.documentElement.style.setProperty('--tray-w', `${box && !isPhone.value ? Math.round(box.width) : 0}px`);
 }
 watch([shown, isPhone, expanded, () => ui.trayCollapsedDesktop, () => lists.count], () => nextTick(setHeight));
+// the row leaves the bar while its toggle has focus: hand focus on to the + button (else the bar) so it is not lost to the page
+watch(rowShown, (now) => {
+  const toggleEl = document.querySelector('[data-testid="task-tray-toggle"]');
+  if (now || !toggleEl?.contains(document.activeElement)) return;
+  document.querySelector<HTMLElement>('[data-testid="create-button"], [data-testid="bottom-bar"] button')?.focus({ preventScroll: true });
+});
 // the bar grows by the row's height (40) plus the 4 px the bar's slot pads above it, while the row is in it
 const ROW_PX = 44;
 watchEffect(() => { document.documentElement.style.setProperty('--bar-extra', `${shown.value && inBar.value && rowShown.value ? ROW_PX : 0}px`); });

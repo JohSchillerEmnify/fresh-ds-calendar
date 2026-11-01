@@ -17,6 +17,7 @@ import ExpandedTaskList from '@/features/tasklists/ExpandedTaskList.vue';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
 import TaskTray from '@/features/tasklists/TaskTray.vue';
+import { barHostsRow } from '@/lib/barHost';
 import { setAnimationSetting } from '@/motion/level';
 import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
 import { moveItemTo } from '@/features/tasklists/ops';
@@ -412,6 +413,31 @@ describe('open tasks tray', () => {
     expect(rows[0].text()).toContain('From Sat 10 Oct');
     expect(rows[1].text()).not.toContain('From');
     expect(w.findAll(tid('tasklist-move-today'))).toHaveLength(0); // no "Move to today": the carry-over already shows it today (owner)
+  });
+  it('when the row leaves the bar while its toggle has focus, focus moves to the + button instead of getting lost', async () => {
+    const g = tl('Groceries', { done: [false] });
+    const slot = document.createElement('div');
+    slot.id = 'bar-extra';
+    const fab = document.createElement('button');
+    fab.dataset.testid = 'create-button';
+    document.body.append(slot, fab);
+    barHostsRow.value = true;
+    try {
+      const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [g] }) });
+      mountIn(TaskTray, {}, pinia);
+      await flushPromises();
+      const toggle = slot.querySelector<HTMLElement>('[data-testid="task-tray-toggle"]')!;
+      expect(toggle).not.toBeNull();
+      toggle.focus();
+      useItemsStore().upsert({ ...g, items: [{ ...g.items[0], done: true }], doneCount: 1 });
+      await flushPromises();
+      expect(slot.querySelector('[data-testid="task-tray-toggle"]')).toBeNull();
+      expect(document.activeElement).toBe(fab);
+    } finally {
+      barHostsRow.value = false;
+      slot.remove();
+      fab.remove();
+    }
   });
   it('count follows ticks and shows "No open tasks" when empty', async () => {
     const g = tl('Groceries', { done: [false] });
