@@ -1,9 +1,5 @@
 <script setup lang="ts">
-/**
- * The plan of one calendar (feature calendar-off-plan): "Always on", a weekly "Off at set times" window and "Off for
- * a while" until 00:00 of a day; both can be on at once. Opened by a long press on the calendar's chip or side menu
- * row, or from Settings › Calendars.
- */
+/** One calendar's plan (feature calendar-off-plan): a weekly off-window and/or off until 00:00 of a day; from chip, side menu or Settings. */
 import { computed, ref } from 'vue';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';

@@ -132,7 +132,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.076
+   "duplicated-percent": 0.074
   },
   "types": {
    "AppConfig": 1,
@@ -640,7 +640,6 @@
    "exports|server/src/services/taskCodec.ts|CANVAS_MAX": 1,
    "exports|server/src/services/templateStore.ts|MAX_TEMPLATES": 1,
    "exports|web/src/api/colors.ts|EVENT_COLOR_ORDER": 1,
-   "exports|web/src/api/colors.ts|contrastRatio": 1,
    "exports|web/src/api/colors.ts|relativeLuminance": 1,
    "exports|web/src/components/icons.ts|IconScience": 1,
    "exports|web/src/components/icons.ts|IconTodayOutline": 1,
@@ -723,7 +722,6 @@
    "exports|web/src/lib/dates.ts|VIEW_LABEL": 1,
    "exports|web/src/lib/dates.ts|parseYear": 1,
    "exports|web/src/lib/dates.ts|routeParam": 1,
-   "exports|web/src/lib/dates.ts|toIsoMonth": 1,
    "exports|web/src/lib/deviceData.ts|pruneWindow": 1,
    "exports|web/src/lib/deviceDb.ts|idbKv": 1,
    "exports|web/src/lib/items.ts|MAX_STACK_DEPTH": 1,
@@ -760,7 +758,6 @@
    "exports|web/src/theme/svg.ts|svgDataUrl": 1,
    "exports|web/test/calendar/helpers.ts|items": 1,
    "exports|web/test/calendar/helpers.ts|setNow": 1,
-   "files|web/src/components/m3/Menu.vue|": 1,
    "files|web/src/plugins/index.ts|": 1,
    "types|server/src/config.ts|ProviderKind": 1,
    "types|server/src/lib/time.ts|ZonedParts": 1,

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import { useCalendarsStore } from '@/stores/calendars';
+import { setPlanSource, useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import { config, freshPinia, mockFetch } from './helpers';
@@ -16,6 +16,7 @@ async function setup(now: string, plan: object | undefined, frozen = true) {
     'PATCH /api/prefs': (r: { body: object }) => ({ ...usePrefsStore().current(), ...r.body }),
   });
   await useClockStore().load();
+  setPlanSource({ plans: () => usePrefsStore().calendarPlans, save: (calendarPlans) => usePrefsStore().set({ calendarPlans }) });
   usePrefsStore().fromDevice({ calendarPlans: plan ? { work: plan } : {} });
   const cals = useCalendarsStore();
   cals.fromDevice([{ ...work }] as never);

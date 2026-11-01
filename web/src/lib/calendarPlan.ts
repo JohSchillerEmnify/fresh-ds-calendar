@@ -6,12 +6,12 @@ import { dayText, parseIsoDate, weekdayLabels } from '@/lib/dates';
 const DAY = 1440;
 const WEEK = 7 * DAY;
 
-/** Minutes since 1970-01-01 00:00 of a wall time, so plain arithmetic ignores DST jumps. */
+/** Minutes since the Unix epoch of a wall time, so plain arithmetic ignores DST jumps. */
 function toMin(wall: string): number {
   return Date.UTC(+wall.slice(0, 4), +wall.slice(5, 7) - 1, +wall.slice(8, 10)) / 60000 + (+wall.slice(11, 13)) * 60 + (+wall.slice(14, 16));
 }
 
-/** The last time at or before `now` that the weekly point came round. 1970-01-01 was a Thursday (day 4). */
+/** The last time at or before `now` that the weekly point came round. The epoch's first day was a Thursday (day 4). */
 function lastAt(p: WeekPoint, now: number): number {
   const day = Math.floor(now / DAY);
   const weekStart = (day - ((day + 4) % 7)) * DAY;

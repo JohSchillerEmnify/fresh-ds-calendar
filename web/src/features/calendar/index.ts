@@ -8,6 +8,7 @@ import DropIndicator from './DropIndicator.vue';
 import EventItem from './EventItem.vue';
 import NowCard from './NowCard.vue';
 import { usePrefsStore } from '@/stores/prefs';
+import { setPlanSource } from '@/stores/calendars';
 import NowMarker from './NowMarker.vue';
 import { startTransitionWarnings } from './transitionWarning';
 import './calendar.css';
@@ -17,6 +18,7 @@ export { useCalendarDrag, applyMove, planMove } from './dnd';
 let done = false;
 export function registerCalendarFeature(): void {
   startTransitionWarnings(); // (re)binds to the active Pinia
+  setPlanSource({ plans: () => usePrefsStore().calendarPlans, save: (calendarPlans) => usePrefsStore().set({ calendarPlans }) });
   if (done) return;
   done = true;
   registerDialog('event', () => import('./EventDialog.vue'));

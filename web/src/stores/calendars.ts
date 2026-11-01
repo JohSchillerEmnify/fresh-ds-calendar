@@ -6,17 +6,22 @@ import type { CalendarPlan } from '@calendar/shared/prefs';
 import { awayActive, hasPlan, planEffectiveHidden, wallNow } from '@/lib/calendarPlan';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
-import { usePrefsStore } from './prefs';
+
+/** Where the plans live (the prefs store, wired by the calendar feature), so this store does not import prefs (no import cycle). */
+export interface PlanSource { plans(): Record<string, CalendarPlan>; save(plans: Record<string, CalendarPlan>): Promise<void> }
+let source: PlanSource = { plans: () => ({}), save: async () => {} };
+export function setPlanSource(s: PlanSource): void {
+  source = s;
+}
 
 /** Every calendar of the person with their hidden choice and plan (feature calendar-off-plan). Toggling is instant; the server is told in the background. */
 export const useCalendarsStore = defineStore('calendars', () => {
   const list = ref<Calendar[]>([]);
   let saving = 0;
-  const prefs = usePrefsStore();
   const clock = useClockStore();
   // the clock's minute tick lands on every plan edge (edges are whole minutes), so no timer of its own is needed
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
-  const planOf = (id: string): CalendarPlan | undefined => prefs.calendarPlans[id];
+  const planOf = (id: string): CalendarPlan | undefined => source.plans()[id];
 
   const hidden = computed(() => new Set(list.value.filter((c) => planEffectiveHidden(!!c.hidden, planOf(c.id), nowWall.value)).map((c) => c.id)));
   const isHidden = (calendarId: string) => hidden.value.has(calendarId);
@@ -35,8 +40,10 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** Saves the plans with one calendar's plan replaced (none: removed). */
   function savePlan(id: string, plan: CalendarPlan | undefined): Promise<void> {
-    const { [id]: _old, ...rest } = prefs.calendarPlans;
-    return prefs.set({ calendarPlans: hasPlan(plan) ? { ...rest, [id]: plan } : rest });
+    const plans = { ...source.plans() };
+    if (hasPlan(plan)) plans[id] = plan;
+    else delete plans[id];
+    return source.save(plans);
   }
 
   /** A tap: switches what the person sees now; with a plan the tap holds until the plan's next switch and ends "Off for a while". */
@@ -46,7 +53,9 @@ export const useCalendarsStore = defineStore('calendars', () => {
     const next = !isHidden(id);
     const plan = planOf(id);
     if (hasPlan(plan)) {
-      const { until: _u, since: _s, ...kept } = plan;
+      const kept = { ...plan };
+      delete kept.until;
+      delete kept.since;
       // the tap still counts when the plan cannot be saved; the plan's own rollback keeps the old one
       await savePlan(id, { ...(awayActive(plan, nowWall.value) ? kept : plan), switchedAt: nowWall.value }).catch(() => undefined);
     }
