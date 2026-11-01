@@ -239,13 +239,15 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
   return drag;
 }
 
+/** A card in the phone month: a tap there opens the day, never the card. */
+export const monthTapOpensDay = (el: Element | null | undefined): boolean => !!el?.closest('[data-testid="month-view"]') && isPhone.value;
+
 /**
  * Click handler for item cards. In the phone month a tap opens the day (the click bubbles to the cell), elsewhere it opens
  * the item. A click right after a drag is swallowed by the drag controller before it gets here.
  */
 export function cardClick(e: MouseEvent, open: () => void): void {
-  const month = (e.currentTarget as Element | null)?.closest('[data-testid="month-view"]');
-  if (month && isPhone.value) return;
+  if (monthTapOpensDay(e.currentTarget as Element | null)) return;
   e.stopPropagation();
   open();
 }

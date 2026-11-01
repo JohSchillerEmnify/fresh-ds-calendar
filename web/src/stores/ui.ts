@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
+import { StorageSerializers, useStorage } from '@vueuse/core';
 import { appTimeout, type Disposer } from '@/lib/timers';
 
 export interface SnackbarMessage {
@@ -33,14 +34,18 @@ export interface ResizingEntry {
   date: string;
 }
 
-/** The task list card that is expanded in place over the calendar (one at a time, never stored). */
+/** The task list card that is expanded in place over the calendar (one at a time, remembered on this device only). */
 export interface ExpandedCard {
   id: string;
   date: string;
 }
 
 let seq = 0;
+let ownerSeq = 0;
+/** A fresh id for a card instance that may show the expansion (`expandCard`'s `owner`). */
+export const nextCardOwner = (): number => ++ownerSeq;
 const TRAY_COLLAPSED_KEY = 'cal.trayCollapsedDesktop';
+export const EXPANDED_CARD_KEY = 'cal.expandedCard';
 /** How long a revealed tray row stays highlighted. */
 const FLASH_MS = 1000;
 
@@ -72,7 +77,10 @@ export const useUiStore = defineStore('ui', () => {
   }
   const dialog = ref<OpenDialog | null>(null);
   const resizing = ref<ResizingEntry | null>(null);
-  const expandedCard = ref<ExpandedCard | null>(null);
+  /** Kept in this browser's storage (not synced), so the expansion survives view changes, reloads and reopening the app; other tabs keep their own. */
+  const expandedCard = useStorage<ExpandedCard | null>(EXPANDED_CARD_KEY, null, undefined, { serializer: StorageSerializers.object, listenToStorageChanges: false });
+  /** The card instance showing the expansion (a view may hold the same list twice; only one grows). Never stored. */
+  const expandedOwner = ref<number | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
 
   /** Opens a dialog registered with `registerDialog(kind, component)`. */
@@ -92,14 +100,19 @@ export const useUiStore = defineStore('ui', () => {
     flashId.value = id;
     flashStop = appTimeout(() => { flashId.value = null; }, FLASH_MS);
   }
-  /** Expands the card of that list and day (a set, never a toggle: a tap on a collapsed card always opens it); another expanded card collapses. */
-  function expandCard(card: ExpandedCard): void {
+  /** Expands the card of that list and day, shown by the card instance `owner` (a set, never a toggle); another expanded card collapses. */
+  function expandCard(card: ExpandedCard, owner: number | null = null): void {
     expandedCard.value = { ...card };
+    expandedOwner.value = owner;
   }
-  /** Collapses the expanded card; with `card` only when it is that one (a card going away must not close a newer one). */
+  /** Collapses and forgets the expanded card; with `card` only when it is that one (a stale close must not end a newer one). */
   function collapseCard(card?: ExpandedCard): void {
     const c = expandedCard.value;
-    if (!card || (c && c.id === card.id && c.date === card.date)) expandedCard.value = null;
+    if (!card || (c && c.id === card.id && c.date === card.date)) { expandedCard.value = null; expandedOwner.value = null; }
+  }
+  /** A card instance going away stops showing the expansion but keeps it remembered for the next card of that list. */
+  function releaseCard(owner: number): void {
+    if (expandedOwner.value === owner) expandedOwner.value = null;
   }
 
   function notify(text: string, opts: Partial<Omit<SnackbarMessage, 'id' | 'text'>> = {}): number {
@@ -115,5 +128,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, barHidden, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
+  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, barHidden, setPanel, dialog, resizing, expandedCard, expandedOwner, snackbars, openDialog, closeDialog, expandCard, collapseCard, releaseCard, notify, update, dismiss };
 });
