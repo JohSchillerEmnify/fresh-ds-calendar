@@ -397,6 +397,11 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   1 minute, doubling per refusal in a row up to 30 minutes, shared by every device and the live poll; the first read
   after the wait is in full (`replace`). A working token clears the back-off. Each back-off writes one
   `google_calendar_backoff` log line (hashed calendar id, cause, wait).
+- A calendar whose fresh sync token Google refused (some of Google's own calendars, e.g. public holidays, never accept
+  one) is no longer asked with a token: after its back-off every call lists its window and compares it with what the
+  device got last (a content version in the cursor). It is answered as `replace` only when that changed, otherwise
+  unchanged; it costs one list call per call and no further 410s. The server forgets this on a restart and learns it
+  again from the next refusal; a version left in a cursor is never sent to Google as a token.
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
