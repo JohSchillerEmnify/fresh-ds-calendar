@@ -87,6 +87,8 @@ const carried = computed(() => !!tl.value && lists.isCarried(tl.value) && prefs.
 const cats = useTaskCategories();
 const category = computed(() => settings.categoryById(tl.value ? cats.categoryId(tl.value) : null));
 /** A shared list carries its owner's category look; the requester's own categories may differ. */
+/** The category's name; a shared list shows its owner's, which the requester may not have. */
+const categoryName = computed(() => (!cats.on.value ? undefined : (tl.value?.categoryInfo === undefined ? category.value?.name : tl.value.categoryInfo?.name)));
 const icon = computed(() => (!cats.on.value ? null : (tl.value?.categoryInfo === undefined ? category.value?.icon : tl.value.categoryInfo?.icon)) ?? null);
 const badge = computed(() => (tl.value ? badgeInitial(tl.value) : null));
 const badgeText = computed(() => {
@@ -299,7 +301,7 @@ defineExpose({ root, busy });
           v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
-        <Pressable v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
+        <Pressable v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-category-name="categoryName" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
           <span v-if="icon" class="emoji" aria-hidden="true">{{ icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
         </Pressable>
         <p class="sub">
