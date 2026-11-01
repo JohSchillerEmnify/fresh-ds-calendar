@@ -142,10 +142,18 @@ Feature: Settings
     And no settings row is wider than the screen
 
     Examples:
-      | page               |
-      | /settings          |
-      | /settings/theme    |
-      | /settings/reminders |
+      | page                    |
+      | /settings               |
+      | /settings/theme         |
+      | /settings/calendars     |
+      | /settings/views         |
+      | /settings/tasklists     |
+      | /settings/reminders     |
+      | /settings/appearance    |
+      | /settings/focus         |
+      | /settings/focus/bedtime |
+      | /settings/labs          |
+      | /settings/account       |
 
   Scenario: A setting that cannot be saved goes back to what it was
     Given I open the path "/settings"
