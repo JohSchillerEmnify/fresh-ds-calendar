@@ -70,7 +70,7 @@ watch(() => clock.today, () => {
     <div v-else class="calm">
       <IconBedtime class="calm-icon" />
       <p class="message" data-testid="runway-message">{{ model.kind === 'off' ? t('bedtime.runway.off') : t('bedtime.runway.passed', { time: model.bedtime }) }}</p>
-      <Pressable v-if="model.kind === 'off'" type="button" class="btn" data-testid="runway-settings" @click="router.push('/settings')">{{ t('bedtime.runway.openSettings') }}</Pressable>
+      <Pressable v-if="model.kind === 'off'" type="button" class="btn" data-testid="runway-settings" @click="router.push('/settings/focus/bedtime')">{{ t('bedtime.runway.openSettings') }}</Pressable>
     </div>
   </section>
 </template>

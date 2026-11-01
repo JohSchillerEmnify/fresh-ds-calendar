@@ -386,23 +386,27 @@ describe('filter chips', () => {
 });
 
 describe('settings', () => {
-  it('has nine sections, each setting once; theme controls only in the theme menu', async () => {
+  it('the home lists eight groups and a search bar; theme controls only in the theme menu', async () => {
     const { w, router } = await mountAt('/settings');
-    await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+    await wait(() => expect(w.find(tid('settings-home')).exists()).toBe(true));
+    const groups = w.findAll(tid('settings-group'));
+    expect(groups.map((x) => x.attributes('data-group-id'))).toEqual(['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'labs', 'account']);
+    expect(groups.map((x) => x.attributes('data-group'))).toEqual(['Calendars', 'Views', 'Task lists', 'Reminders', 'Appearance & layout', 'Focus & calm', 'Labs', 'Account & app']);
+    expect(w.find(tid('settings-search')).exists()).toBe(true);
+    await router.push('/settings/tasklists');
+    await wait(() => expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']));
+    await router.push('/settings/appearance');
+    await wait(() => expect(w.find(tid('settings-theme')).exists()).toBe(true));
     useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
     await w.vm.$nextTick();
-    const sections = w.findAll(tid('settings-section'));
-    expect(sections.map((x) => x.attributes('data-section'))).toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'notifications', 'labs', 'account']);
-    expect(sections.map((x) => x.get('h2').text())).toEqual(['Appearance', 'Calendar', 'Task lists', 'Focus & motivation', 'Motion & sound', 'Bedtime', 'Notifications', 'Labs', 'Account & data']);
-    expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
     for (const id of ['settings-theme-mode', 'settings-seed-preset', 'settings-seed-custom', 'settings-scene', 'settings-theme-mordor']) expect(w.find(tid(id)).exists()).toBe(false);
-    expect(w.get(tid('settings-theme')).text()).toContain('Default');
+    expect(w.get(tid('settings-theme-name')).text()).toContain('Default');
     await w.get(tid('settings-theme')).trigger('click');
     await wait(() => expect(router.currentRoute.value.path).toBe('/settings/theme'));
   });
-  it('motivation: one Streak choice (Off by default) replaces the flame and plant switches; the Sunflowers choice', async () => {
-    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
-    await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+  it('motivation: one Streak choice (Off by default) replaces the flame and plant switches; the Sunflowers choice in the theme menu', async () => {
+    const { w, m, router } = await mountAt('/settings/focus', { 'PATCH /api/prefs': ({ body }) => body });
+    await wait(() => expect(w.find(tid('settings-streak')).exists()).toBe(true));
     expect(w.find(tid('settings-garden')).exists()).toBe(false);
     expect(w.find(tid('settings-streak-flame')).exists()).toBe(false);
     expect(w.find(tid('settings-plant')).exists()).toBe(false);
@@ -411,6 +415,8 @@ describe('settings', () => {
     await w.get('[data-testid="settings-streak"] [data-value="plant"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ streak: 'plant' }));
     expect(w.get('[data-testid="settings-streak"] [aria-pressed="true"]').attributes('data-value')).toBe('plant');
+    await router.push('/settings/theme');
+    await wait(() => expect(w.find(tid('settings-sunflowers')).exists()).toBe(true));
     // without the Sunflower field scene the setting is shown but inactive, with a hint
     expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeDefined();
     expect(w.get(tid('settings-sunflowers-hint')).text()).toBe('Applies to the Sunflower field scene');
@@ -422,18 +428,20 @@ describe('settings', () => {
     await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
   });
-  it('calendar: the Top bar size choice (Compact on a phone by default) sits before the Approaching card and saves the person pref', async () => {
-    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
+  it('appearance: the Top bar size choice (Automatic by default) is not with the views and saves the person pref, Automatic too', async () => {
+    const { w, m } = await mountAt('/settings/appearance', { 'PATCH /api/prefs': ({ body }) => body });
     await wait(() => expect(w.find(tid('settings-top-bar-size')).exists()).toBe(true));
-    expect(w.findAll('[data-testid="settings-top-bar-size"] button').map((b) => b.text())).toEqual(['Expressive', 'Compact']);
-    expect(w.get('[data-testid="settings-top-bar-size"] [aria-pressed="true"]').attributes('data-value')).toBe('compact');
-    const ids = w.findAll('[data-testid^="settings-"]').map((e) => e.attributes('data-testid'));
-    expect(ids.indexOf('settings-top-bar-size')).toBeLessThan(ids.indexOf('settings-approaching-card'));
+    expect(w.findAll('[data-testid="settings-top-bar-size"] button').map((b) => b.text())).toEqual(['Automatic', 'Expressive', 'Compact']);
+    expect(w.get('[data-testid="settings-top-bar-size"] [aria-pressed="true"]').attributes('data-value')).toBe('auto');
+    expect(w.find(tid('settings-approaching-card')).exists()).toBe(false);
+    const last = () => m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body;
     await w.get('[data-testid="settings-top-bar-size"] [data-value="expressive"]').trigger('click');
-    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ headerLayout: 'two-rows' }));
+    await wait(() => expect(last()).toEqual({ headerLayout: 'two-rows' }));
+    await w.get('[data-testid="settings-top-bar-size"] [data-value="auto"]').trigger('click');
+    await wait(() => expect(last()).toEqual({ headerLayout: 'auto' }));
   });
-  it('calendar: the Sync indicator switch is off by default and saves the person pref', async () => {
-    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
+  it('appearance: the Sync indicator switch is off by default and saves the person pref', async () => {
+    const { w, m } = await mountAt('/settings/appearance', { 'PATCH /api/prefs': ({ body }) => body });
     await wait(() => expect(w.find(tid('settings-sync-indicator')).exists()).toBe(true));
     expect(w.get(tid('settings-sync-indicator')).attributes('aria-checked')).toBe('false');
     await w.get(tid('settings-sync-indicator')).trigger('click');
@@ -476,7 +484,7 @@ describe('settings', () => {
     const values = (el: typeof w) => el.findAll(tid('theme-option')).map((o) => `${o.attributes('data-setting')}:${o.attributes('data-value')}`);
     expect(values(sections[2] as never)).toEqual(['spring', 'easter', 'summer', 'summerholidays', 'fall', 'halloween', 'christmas', 'newyearseve', 'newyear', 'winter', 'sunflowers', 'mordor', 'none'].map((v) => `scene:${v}`));
     // an explicit scene is pressed on its own and sets seasons & holidays to off
-    const pressedScene = () => sections[2]!.findAll('[aria-pressed="true"]').map((o) => o.attributes('data-value'));
+    const pressedScene = () => sections[2]!.findAll('[data-testid="theme-option"][aria-pressed="true"]').map((o) => o.attributes('data-value'));
     await sections[2]!.get('[data-value="halloween"]').trigger('click');
     await wait(() => expect(pressedScene()).toEqual(['halloween']));
     expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ overrides: { scene: 'halloween' }, seasonal: 'off' });
@@ -516,7 +524,7 @@ describe('settings', () => {
     await wait(() => expect(lastPatch()).toEqual({ preset: 'Mordor', overrides: {}, seasonal: 'off' }));
   });
   it('the Theme row shows the calendar\'s theme, the base plus the header, or the base alone', async () => {
-    const { w } = await mountAt('/settings');
+    const { w } = await mountAt('/settings/appearance');
     const theme = useThemeStore();
     const row = () => w.get(tid('settings-theme-name')).text();
     theme.pref = { preset: 'Neon', overrides: {}, seasonal: 'all' };
@@ -527,7 +535,7 @@ describe('settings', () => {
     await wait(() => expect(row()).toBe('Neon'));
   });
   it('persists motivation toggles, shows the best streak and the demo reset only in mock mode', async () => {
-    const { w, m } = await mountAt('/settings');
+    const { w, m, router } = await mountAt('/settings/focus');
     const stop = useSettingsStore().installAppearance();
     await wait(() => expect(w.get(tid('settings-best-streak')).text()).toBe('7'));
     await w.get(tid('settings-calm-mode')).trigger('click');
@@ -537,40 +545,49 @@ describe('settings', () => {
     expect(bodies).toContainEqual({ calmMode: true });
     expect(bodies).toContainEqual({ animationLevel: 'reduced' });
     expect(document.documentElement.dataset.calm).toBe('true');
-    expect(w.find(tid('settings-reset-demo')).exists()).toBe(true);
+    await router.push('/settings/account');
+    await wait(() => expect(w.find(tid('settings-reset-demo')).exists()).toBe(true));
     stop();
   });
-  it('opens the Reminders page from Settings, edits a calendar default at once and switches task list reminders', async () => {
+  it('opens a calendar\'s page from Settings › Calendars, edits its default at once; Reminders switches task list reminders', async () => {
     let defaults = [30];
     const cals = () => [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, own: false, hidden: false, defaultReminders: [10] }];
-    const { w, router, m } = await mountAt('/settings', {
+    const { w, router, m } = await mountAt('/settings/calendars', {
       'GET /api/calendars': () => ({ calendars: cals() }),
       'GET /api/changes': () => changesFixture({ ...farWindow, calendars: cals() }),
       'PATCH /api/calendars/primary': ({ body }) => { defaults = (body as { defaultReminders: number[] }).defaultReminders; return { id: 'primary', name: 'Personal', defaultReminders: defaults }; },
       'GET /api/reminders/tasks-calendar': () => ({ defaultReminders: [] }),
       'PATCH /api/prefs': () => ({}),
     });
-    await w.get(tid('settings-reminders')).trigger('click');
-    await wait(() => expect(router.currentRoute.value.path).toBe('/settings/reminders'));
-    await wait(() => expect(w.findAll(tid('reminders-calendar'))).toHaveLength(2));
-    const personal = () => w.get('[data-calendar-id="primary"]');
-    expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min']);
     // a read-only calendar's defaults are editable too (Google first, else kept by the app), without a read-only note
+    await wait(() => expect(w.find('[data-setting-id="calendar:ro"]').exists()).toBe(true));
+    await w.get('[data-setting-id="calendar:ro"]').trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/settings/calendars/ro'));
+    await wait(() => expect(w.find('[data-calendar-id="ro"]').exists()).toBe(true));
     expect(w.get('[data-calendar-id="ro"]').find(tid('calendar-default-reminder-add')).exists()).toBe(true);
     expect(w.get('[data-calendar-id="ro"]').find('.note').exists()).toBe(false);
+    await router.push('/settings/calendars');
+    await wait(() => expect(w.find('[data-setting-id="calendar:primary"]').exists()).toBe(true));
+    await w.get('[data-setting-id="calendar:primary"]').trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/settings/calendars/primary'));
+    const personal = () => w.get('[data-calendar-id="primary"]');
+    await wait(() => expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min']));
     await personal().get(tid('calendar-default-reminder-add')).trigger('click');
     await personal().get('[data-testid="calendar-default-reminder-option"][data-minutes="15"]').trigger('click');
     await flushPromises();
     expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/calendars/primary').map((c) => c.body)).toEqual([{ defaultReminders: [30, 15] }]);
     await wait(() => expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min', '15 min']));
+    await router.push('/settings/reminders');
+    await wait(() => expect(w.find(tid('reminders-tasklists')).exists()).toBe(true));
     await w.get(tid('reminders-tasklists')).trigger('click');
     await flushPromises();
     expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').map((c) => c.body)).toContainEqual({ notify: expect.objectContaining({ tasklists: true }) });
   });
   it('saves left-handed mode as a person pref and mirrors the layout with html[data-hand]', async () => {
-    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': () => ({}) });
+    const { w, m } = await mountAt('/settings/appearance', { 'PATCH /api/prefs': () => ({}) });
     const stop = useSettingsStore().installAppearance();
     expect(document.documentElement.dataset.hand).toBeUndefined();
+    await wait(() => expect(w.find(tid('settings-left-handed')).exists()).toBe(true));
     await w.get(tid('settings-left-handed')).trigger('click');
     await flushPromises();
     expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').map((c) => c.body)).toContainEqual({ leftHanded: true });
@@ -580,8 +597,19 @@ describe('settings', () => {
     expect(document.documentElement.dataset.hand).toBeUndefined();
     stop();
   });
+  it('reorders categories by their grip: arrow keys move one place and save the order', async () => {
+    const { w, m } = await mountAt('/settings/tasklists', { 'PUT /api/categories/order': ({ body }) => settingsFixture({ ...server, categories: (body as { categoryIds: string[] }).categoryIds.map((id) => server.categories.find((c) => c.id === id)!) }) });
+    await wait(() => expect(w.findAll(tid('settings-category-grip'))).toHaveLength(4));
+    expect(w.find(tid('settings-category-up')).exists()).toBe(false);
+    const names = () => w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'));
+    await w.findAll(tid('settings-category-grip'))[0]!.trigger('keydown', { key: 'ArrowDown' });
+    await wait(() => expect(names()).toEqual(['To-do', 'Shopping', 'Work', 'Home']));
+    const ids = m.calls.filter((c) => c.method === 'PUT' && c.path === '/api/categories/order').map((c) => (c.body as { categoryIds: string[] }).categoryIds.length);
+    expect(ids).toEqual([4]);
+  });
   it('adds a category through the dialog and validates it', async () => {
-    const { w } = await mountAt('/settings');
+    const { w } = await mountAt('/settings/tasklists');
+    await wait(() => expect(w.find(tid('settings-category-add')).exists()).toBe(true));
     await w.get(tid('settings-category-add')).trigger('click');
     await wait(() => expect(w.find(tid('category-dialog')).exists()).toBe(true));
     await w.get(tid('category-save')).trigger('click');
