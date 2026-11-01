@@ -98,6 +98,11 @@ export const useSettingsStore = defineStore('settings', () => {
     const i = ids.indexOf(id), j = i + dir;
     if (i < 0 || j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
+    await setCategoryOrder(ids);
+  }
+
+  /** Puts the categories in the order of `ids`: shown at once, rolled back when the server refuses. */
+  async function setCategoryOrder(ids: string[]): Promise<void> {
     const before = s.value;
     s.value = { ...before, categories: ids.map((x) => before.categories.find((c) => c.id === x)!) };
     try {
@@ -159,6 +164,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     settings: s, loaded, saveError, categories, categoryById, effectiveScene,
-    load, fromDevice, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
+    load, fromDevice, patch, addCategory, updateCategory, deleteCategory, moveCategory, setCategoryOrder, installAppearance, stopAppearance,
   };
 });

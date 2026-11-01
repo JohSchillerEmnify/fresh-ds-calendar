@@ -3,6 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then } from './fixtures.js';
 import { box, viewport } from './support/ui.js';
 import type { World } from './support/world.js';
+import { openSettingsPage } from './support/settings.js';
 
 /** STEPS.md element names → `data-testid`. */
 const ELEMENTS: Record<string, string> = {
@@ -46,6 +47,8 @@ Then('the create button sits right of the open tasks tray', async function (this
 });
 
 Then('the switches in the settings are on the {string} side of the screen', async function (this: World, side: string) {
+  // the settings home lists groups only: the switches are on the group pages (Appearance & layout has several)
+  if (await this.page.getByTestId('settings-home').isVisible()) await openSettingsPage(this, 'appearance');
   const switches = this.page.getByTestId('settings-view').getByRole('switch');
   await expect(switches.first()).toBeVisible();
   const n = await switches.count();

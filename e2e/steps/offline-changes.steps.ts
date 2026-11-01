@@ -6,6 +6,7 @@ import { berlinIso, sameInstant } from './support/dates.js';
 import { isTaskList, readItems } from './support/google.js';
 import { itemsFrom } from './support/tables.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 /** The unsent changes the app keeps in its IndexedDB (`calendar-device`, record `outbox`), also on the sign-in page. */
 async function storedOutbox(world: World): Promise<unknown[]> {
@@ -147,7 +148,7 @@ Then('the unsent changes list is empty', async function (this: World) {
 When('they ask to sign out in the settings', async function (this: World) {
   const button = this.page.getByTestId('settings-button');
   if (await button.isVisible()) await button.click();
-  await this.page.getByTestId('settings-signout').click();
+  await (await settingControl(this, 'settings-signout')).click();
 });
 
 Then(/^they are asked whether to sign out and lose (\d+) unsent changes?$/, async function (this: World, count: string) {

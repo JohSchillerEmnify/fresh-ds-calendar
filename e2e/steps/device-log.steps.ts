@@ -4,6 +4,7 @@ import { expect } from '@playwright/test';
 import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 const LOG_KEY = 'calendar.deviceLog';
 const page = (w: World) => w.page.getByTestId('device-log-page');
@@ -34,9 +35,8 @@ When('I open the error log in the settings', async function (this: World) {
     await this.page.goto('/day/2026-10-12');
     await this.calendarShown();
   }
-  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
-  await expect(this.page.getByTestId('settings-view')).toBeVisible();
-  await this.page.getByTestId('settings-error-log').click();
+  // the Error log row is in Settings › Account & app (feature settings-groups)
+  await (await settingControl(this, 'settings-error-log')).click();
   await expect(page(this)).toBeVisible();
 });
 

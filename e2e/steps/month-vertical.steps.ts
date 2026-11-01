@@ -4,6 +4,7 @@ import { Given, Then, When } from './fixtures.js';
 import { box, chooseOption, selectedLabel, touchDrag } from './support/ui.js';
 import { wheel } from './support/scroll.js';
 import { attr, type World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 type Scroll = 'sideways' | 'vertical' | 'vertical-snap';
 const MODES: Record<string, Scroll> = { Sideways: 'sideways', 'Up and down': 'vertical', 'Up and down, one month at a time': 'vertical-snap' };
@@ -35,13 +36,13 @@ Given('the month view scrolls up and down one month at a time', async function (
 When('I choose {string} as the month scrolling', async function (this: World, label: string) {
   modeOf(label);
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
-  await chooseOption(this.page.getByTestId('settings-month-scroll'), label);
+  await chooseOption((await settingControl(this, 'settings-month-scroll')), label);
   expect((await saved).status(), 'choice saved').toBe(200);
 });
 
 Then('{string} is selected as the month scrolling', async function (this: World, label: string) {
   modeOf(label);
-  await expect.poll(() => selectedLabel(this.page.getByTestId('settings-month-scroll'))).toBe(label);
+  await expect.poll(async () => selectedLabel((await settingControl(this, 'settings-month-scroll')))).toBe(label);
 });
 
 Then('the month view shows only the month of {month}', async function (this: World, month: string) {

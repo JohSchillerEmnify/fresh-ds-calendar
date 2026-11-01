@@ -7,6 +7,7 @@ import { Given, Then, When } from './fixtures.js';
 import type { GoogleEvent } from './support/api.js';
 import { berlinToEpoch } from './support/dates.js';
 import { exactText, type World } from './support/world.js';
+import { openSettingsPage, settingControl } from './support/settings.js';
 
 /** `"90, 30, 15"` -> `[90, 30, 15]`; `""` -> `[]`. */
 const minutesOf = (list: string): number[] => list.split(',').map((s) => s.trim()).filter(Boolean).map(Number);
@@ -126,27 +127,31 @@ Then('the app keeps the reminders {string} for the event {string}', async functi
 
 // --- Settings → Reminders ----------------------------------------------------------------------------------------
 
+/** The Reminders group of the settings (feature settings-groups). */
 async function openReminderSettings(this: World) {
-  if (!this.page.url().startsWith('http')) {
-    await this.page.goto('/');
-    await this.calendarShown();
-  }
-  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
-  await this.page.getByTestId('settings-reminders').click();
-  await expect(this.page.getByTestId('reminders-settings')).toBeVisible();
+  await openSettingsPage(this, 'reminders');
 }
 When('I open the reminder settings', openReminderSettings);
 When('I open the reminders settings', openReminderSettings);
 
-const calendarSection = (w: World, name: string): Locator => w.page.getByTestId('reminders-calendar').filter({ has: w.page.getByRole('heading', { name, exact: true }) });
+/** A calendar's default reminders live on that calendar's settings page: open it unless it is open. */
+async function calendarSection(w: World, name: string): Promise<Locator> {
+  const section = w.page.locator(`[data-testid="reminders-calendar"][data-name="${name}"]`);
+  if (await section.isVisible()) return section;
+  await openSettingsPage(w, 'calendars');
+  await w.page.locator(`[data-testid="settings-row"][data-setting="${name}"]`).click();
+  await expect(section).toBeVisible();
+  return section;
+}
 
 Then('the reminder settings show {string} for the calendar {string}', async function (this: World, list: string, name: string) {
   const expected = list.split(',').map((s) => s.trim()).filter(Boolean);
-  await expect.poll(async () => (await calendarSection(this, name).getByTestId('calendar-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
+  const section = await calendarSection(this, name);
+  await expect.poll(async () => (await section.getByTestId('calendar-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
 });
 
 When('I add the default reminder {string} for the calendar {string}', async function (this: World, label: string, name: string) {
-  const section = calendarSection(this, name);
+  const section = await calendarSection(this, name);
   await section.getByTestId('calendar-default-reminder-add').click();
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname.startsWith('/api/calendars/') && r.request().method() === 'PATCH');
   await section.getByTestId('calendar-default-reminder-option').filter({ hasText: exactText(label) }).click();
@@ -154,7 +159,7 @@ When('I add the default reminder {string} for the calendar {string}', async func
 });
 
 When('I switch on reminders for task lists', async function (this: World) {
-  const control = this.page.getByTestId('reminders-tasklists');
+  const control = (await settingControl(this, 'reminders-tasklists'));
   await expect(control).toBeVisible();
   if ((await control.getAttribute('aria-checked')) === 'true') return;
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
@@ -194,7 +199,7 @@ When('I switch on reminders in this browser', async function (this: World) {
     PushManager.prototype.getSubscription = async () => sub as PushSubscription | null;
     (window as unknown as { __e2ePushEndpoint: string }).__e2ePushEndpoint = endpoint;
   });
-  const control = this.page.getByTestId('reminders-push');
+  const control = (await settingControl(this, 'reminders-push'));
   await expect(control).toBeVisible();
   await control.click();
   await expect(control).toHaveAttribute('aria-checked', 'true');

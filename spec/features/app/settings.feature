@@ -116,9 +116,9 @@ Feature: Settings
     And the app regains focus
     Then the app uses the dark theme
 
-  Scenario: Every setting appears once, in its section
+  Scenario: Every setting appears once, in its group
     When I open the settings
-    Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Bedtime, Notifications, Labs, Account & data"
+    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
     And the settings page has no theme mode or seed colour controls
 
   Scenario: The version is shown in the settings and, if I want, in the corner
@@ -142,13 +142,21 @@ Feature: Settings
     And no settings row is wider than the screen
 
     Examples:
-      | page               |
-      | /settings          |
-      | /settings/theme    |
-      | /settings/reminders |
+      | page                    |
+      | /settings               |
+      | /settings/theme         |
+      | /settings/calendars     |
+      | /settings/views         |
+      | /settings/tasklists     |
+      | /settings/reminders     |
+      | /settings/appearance    |
+      | /settings/focus         |
+      | /settings/focus/bedtime |
+      | /settings/labs          |
+      | /settings/account       |
 
   Scenario: A setting that cannot be saved goes back to what it was
-    Given I open the path "/settings"
+    Given I open the path "/settings/views"
     And the network connection is lost
     When I choose "Week" as the default view
     Then the default view "Month" is selected

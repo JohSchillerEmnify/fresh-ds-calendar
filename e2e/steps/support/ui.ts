@@ -18,24 +18,6 @@ export async function box(loc: Locator): Promise<Box> {
   return b;
 }
 
-/** Open the settings, turn the Labs switch `testId` on (waiting for the prefs to be saved) and go back. */
-export async function turnOnLabsSwitch(page: Page, testId: string) {
-  await setLabsSwitch(page, testId, true);
-}
-
-/** Open the settings, set the switch `testId` to `on` (waiting for the prefs to be saved) and go back. */
-export async function setLabsSwitch(page: Page, testId: string, on: boolean) {
-  await page.getByTestId('settings-button').click();
-  const control = page.getByTestId(testId);
-  await expect(control).toBeVisible();
-  if ((await control.getAttribute('aria-checked')) !== String(on)) {
-    const saved = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
-    await control.click();
-    expect((await saved).status(), 'prefs saved').toBe(200);
-  }
-  await page.getByTestId('settings-back').click();
-}
-
 export const viewport = (page: Page) => page.viewportSize() ?? { width: 0, height: 0 };
 
 /**

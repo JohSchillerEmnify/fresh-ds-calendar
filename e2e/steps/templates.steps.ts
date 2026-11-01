@@ -7,6 +7,7 @@ import { cellValue, formRows } from './support/tables.js';
 import { box, chooseListAction, expectJoined, pathname } from './support/ui.js';
 import { Api } from './support/api.js';
 import { attr, exactText, tid, type World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 interface Template { id: string; name: string; items: { title: string }[] }
 
@@ -213,7 +214,7 @@ When('I open the templates in the settings', async function (this: World) {
   }
   if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
-  await this.page.getByTestId('settings-templates').click();
+  await (await settingControl(this, 'settings-templates')).click();
   await expect(this.page.getByTestId('templates-page')).toBeVisible();
 });
 

@@ -2,7 +2,7 @@
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { World } from './support/world.js';
-import { turnOnLabsSwitch } from './support/ui.js';
+import { leaveSettings, settingControl, turnOnLabsSwitch } from './support/settings.js';
 
 const items = (w: World) => w.page.getByTestId('now-card').getByTestId('approach-item');
 const item = (w: World, title: string) => items(w).and(w.page.locator(`[data-title="${title}"]`));
@@ -40,24 +40,25 @@ const prefsSaved = (w: World) =>
 
 When('I set the approaching window to {int} hours in the settings', async function (this: World, hours: number) {
   await openSettings(this);
-  // The hours field only shows once "Custom…" is chosen (or a custom value is already stored).
-  await this.page.getByTestId('settings-approach-window').selectOption({ label: 'Custom…' });
-  const field = this.page.getByTestId('settings-approach-window-custom');
-  await field.fill(String(hours));
+  // the track length is a slider from 1 to 24 hours (owner, 2026-11-01): the keyboard moves it one hour per step
+  const slider = await settingControl(this, 'settings-approach-window');
+  const from = Number(await slider.inputValue());
   const saved = prefsSaved(this);
-  await field.press('Enter');
-  expect((await saved).status(), 'prefs saved').toBe(200);
-  await this.page.getByTestId('settings-back').click();
+  await slider.focus();
+  for (let i = 0; i < Math.abs(hours - from); i++) await slider.press(hours > from ? 'ArrowRight' : 'ArrowLeft');
+  if (hours !== from) expect((await saved).status(), 'prefs saved').toBe(200);
+  await expect(slider).toHaveValue(String(hours));
+  await leaveSettings(this);
 });
 
 When('I switch off the Approaching card in the settings', async function (this: World) {
   await openSettings(this);
-  const control = this.page.getByTestId('settings-approaching-card');
+  const control = (await settingControl(this, 'settings-approaching-card'));
   await expect(control).toHaveAttribute('aria-checked', 'true');
   const saved = prefsSaved(this);
   await control.click();
   expect((await saved).status(), 'prefs saved').toBe(200);
-  await this.page.getByTestId('settings-back').click();
+  await leaveSettings(this);
 });
 
 Then('I do not see the Approaching card', async function (this: World) {
@@ -67,7 +68,7 @@ Then('I do not see the Approaching card', async function (this: World) {
 When('I turn on the approach bar and open the week view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/week/${date}`);
   await this.settled();
-  await turnOnLabsSwitch(this.page, 'settings-approach-bar');
+  await turnOnLabsSwitch(this, 'settings-approach-bar');
   await expect(this.page).toHaveURL(new RegExp(`/week/${date}$`));
 });
 
@@ -222,12 +223,12 @@ Then('I see the Approaching card', async function (this: World) {
 
 When('I switch off the time left in the Approaching card in the settings', async function (this: World) {
   await openSettings(this);
-  const control = this.page.getByTestId('settings-approach-time-left');
+  const control = (await settingControl(this, 'settings-approach-time-left'));
   await expect(control).toHaveAttribute('aria-checked', 'true');
   const saved = prefsSaved(this);
   await control.click();
   expect((await saved).status(), 'prefs saved').toBe(200);
-  await this.page.getByTestId('settings-back').click();
+  await leaveSettings(this);
 });
 
 Then('the event {string} shows {string} after its time', async function (this: World, title: string, left: string) {

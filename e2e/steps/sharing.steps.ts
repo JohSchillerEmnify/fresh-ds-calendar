@@ -5,6 +5,7 @@
 import { expect, type APIRequestContext } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { attr, exactText, type World } from './support/world.js';
+import { openSettingsPage } from './support/settings.js';
 
 interface Listed { id: string; title: string; items: { id: string; title: string; done: boolean }[] }
 
@@ -92,7 +93,7 @@ When('I stop sharing the task list {string}', async function (this: World, title
 });
 
 When('I share the category {string} with {string} in the settings', async function (this: World, category: string, email: string) {
-  await this.page.getByTestId('settings-button').click();
+  await openSettingsPage(this, 'tasklists');
   await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
   const dialog = this.page.getByTestId('category-dialog');
   await dialog.getByTestId('category-share-person').selectOption({ label: nameOf(email) });

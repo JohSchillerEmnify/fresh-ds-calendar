@@ -14,7 +14,7 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
 import type { StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
-import type { ThemeMode } from '@/api/types';
+import type { SunflowersMode, ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -49,6 +49,9 @@ const pending = usePendingDeletesStore();
 const prefs = usePrefsStore();
 const savingOwn = ref(false);
 const attrs = computed(() => theme.resolved.attrs);
+/** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
+const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
+const sunflowerModes = computed(() => (['grow', 'full'] as const).map((v) => ({ value: v, label: t(`settings.sunflowers.${v}`) })));
 
 /** Every preset as the gallery shows it: its own look, whatever the seasons & holidays setting is. */
 const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
@@ -228,6 +231,11 @@ function back() {
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
         <h2 id="h-scene">{{ t('theme.scene.title') }}</h2>
         <ReuseGroup :g="sceneGroup" />
+        <div class="group">
+          <span class="lab">{{ t('settings.sunflowers.label') }}</span>
+          <span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span>
+          <SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" />
+        </div>
       </section>
 
       <section class="card" aria-labelledby="h-fine" data-testid="theme-section" data-section="fine-tuning">

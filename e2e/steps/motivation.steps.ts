@@ -1,7 +1,7 @@
 /** Streak, plant and sunflower field steps (STEPS.md "Streak and plant"). */
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { chooseSelect } from './support/settings.js';
+import { chooseSelect, openSettingsPage, settingControl } from './support/settings.js';
 import { chooseOption, selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
@@ -60,7 +60,7 @@ Given('the streak is set to {string}', async function (this: World, label: strin
 
 When('I choose {string} for the streak', async function (this: World, label: string) {
   streakValue(label);
-  const control = this.page.getByTestId('settings-streak');
+  const control = (await settingControl(this, 'settings-streak'));
   await expect(control).toBeVisible();
   if ((await selectedLabel(control)) === label) return;
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
@@ -69,7 +69,7 @@ When('I choose {string} for the streak', async function (this: World, label: str
 });
 
 Then('the streak choice {string} is selected', async function (this: World, label: string) {
-  await expect(this.page.getByTestId('settings-streak').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await settingControl(this, 'settings-streak')).getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 Given('the sunflowers are set to {string}', async function (this: World, label: string) {
@@ -83,6 +83,8 @@ const plantButton = (w: World) => w.page.getByTestId('plant-button');
 const field = (w: World) => w.page.getByTestId('sunflower-field');
 
 Then('the streak shows {int}', async function (this: World, count: number) {
+  // in the settings the current streak is on the Focus & calm page
+  if (new URL(this.page.url()).pathname.startsWith('/settings')) await openSettingsPage(this, 'focus');
   await expect(flame(this)).toHaveText(exactText(String(count)));
 });
 
@@ -96,7 +98,7 @@ Then('I do not see a streak message', async function (this: World) {
 });
 
 Then('the best streak in settings is {int}', async function (this: World, best: number) {
-  await expect(this.page.getByTestId('settings-best-streak')).toContainText(new RegExp(`\\b${best}\\b`));
+  await expect((await settingControl(this, 'settings-best-streak'))).toContainText(new RegExp(`\\b${best}\\b`));
 });
 
 async function expectShown(world: World, loc: Locator, shown: boolean) {
@@ -145,24 +147,24 @@ Then('the plant card shows {string}', async function (this: World, line: string)
 });
 
 Then('the sunflowers setting is active', async function (this: World) {
-  const buttons = this.page.getByTestId('settings-sunflowers').locator('button');
+  const buttons = (await settingControl(this, 'settings-sunflowers')).locator('button');
   await expect(buttons.first()).toBeEnabled();
-  await expect(this.page.getByTestId('settings-sunflowers-hint')).toHaveCount(0);
+  await expect((await settingControl(this, 'settings-sunflowers-hint'))).toHaveCount(0);
 });
 
 Then('the sunflowers setting is inactive', async function (this: World) {
-  const buttons = this.page.getByTestId('settings-sunflowers').locator('button');
+  const buttons = (await settingControl(this, 'settings-sunflowers')).locator('button');
   await expect(buttons.first()).toBeVisible();
   await expect(buttons.first()).toBeDisabled();
   await expect(buttons.last()).toBeDisabled();
 });
 
 Then('the sunflowers hint says {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('settings-sunflowers-hint')).toHaveText(exactText(text));
+  await expect((await settingControl(this, 'settings-sunflowers-hint'))).toHaveText(exactText(text));
 });
 
 When('I choose {string} for the sunflowers', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-sunflowers'), label);
+  await chooseSelect(this, (await settingControl(this, 'settings-sunflowers')), label);
 });
 
 Then('I see the sunflower field', async function (this: World) {

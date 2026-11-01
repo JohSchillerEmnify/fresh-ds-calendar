@@ -4,6 +4,7 @@ import { Given, Then, When } from './fixtures.js';
 import { box, chooseOption, viewport } from './support/ui.js';
 import { wheel } from './support/scroll.js';
 import type { World } from './support/world.js';
+import { leaveSettings, openSettingsPage, settingControl } from './support/settings.js';
 
 const SIZES: Record<string, 'expressive' | 'compact'> = { Expressive: 'expressive', Compact: 'compact' };
 const sizeValue = (label: string) => {
@@ -21,7 +22,7 @@ const labelShown = (item: Locator) => item.locator('.lbl').evaluate((el) => el.g
 async function chooseSize(w: World, testid: string, label: string) {
   sizeValue(label);
   const saved = w.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
-  await chooseOption(w.page.getByTestId(testid), label);
+  await chooseOption(await settingControl(w, testid), label);
   expect((await saved).status(), 'size saved').toBe(200);
 }
 
@@ -82,10 +83,9 @@ Then('the create button is beside the bottom bar', async function (this: World) 
 });
 
 Then('the settings offer no rail size', async function (this: World) {
-  await this.page.getByTestId('settings-button').click();
-  await expect(this.page.getByTestId('settings-view')).toBeVisible();
+  await openSettingsPage(this, 'appearance');
   await expect(this.page.locator('[data-testid*="rail-size"]')).toHaveCount(0);
-  await this.page.getByTestId('settings-back').click();
+  await leaveSettings(this);
 });
 
 // --- hiding on scroll -------------------------------------------------------------------------------------------------

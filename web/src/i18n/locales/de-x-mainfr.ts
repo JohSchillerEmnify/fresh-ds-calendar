@@ -12,7 +12,9 @@ import sharingMainfr from './de-x-mainfr/sharing.ts';
 import tasksMainfr from './de-x-mainfr/tasks.ts';
 import themeMainfr from './de-x-mainfr/theme.ts';
 
+import settingsNavMainfr from './de-x-mainfr/settingsNav.ts';
 export default {
+  settingsNav: settingsNavMainfr,
   calendar: calendarMainfr,
   backup: backupMainfr,
   canvas: canvasMainfr,
@@ -68,19 +70,10 @@ export default {
     back: 'Zurück',
     saveFailed: 'Des konnd ned gspeichert wern',
     sections: {
-      appearance: 'Aussehn',
-      calendar: 'Kalender',
-      tasklists: 'Aufgabnlisdn',
-      motivation: 'Fokus un Motivation',
-      motion: 'Bewegung un Ton',
       bedtime: 'Bettzeit',
-      account: 'Konto un Daden',
-      notifications: 'Benachrichdigungen',
     },
     notifications: {
-      hint: 'Die Erinnerungen kumma a, wenn die App zu is: in der Android-App und im Browser, wenn „Erinnerungen in diesem Browser“ an is (dafür brauchts die HTTPS-Adress).',
-      bedtime: 'Erinnerung vorm Bettgehn',
-      events: { label: 'Vor Termin', hint: 'Bei jeder Erinnerung vom Termin' },
+      events: { label: 'Vor Termin' },
       tasklists: 'Vor Listen mit Uhrzeit',
       morning: { label: 'Überblick in der Früh', hint: 'Dei Tag auf an Blick, wann du willst', time: 'Uhrzeit vom Überblick' },
       overview: { title: 'Dei Tag', appointments: 'ka Termin | 1 Termin | {count} Termin', lists: 'ka Listen | 1 Listn | {count} Listen', first: 'zerst: {title} {time}' },
@@ -97,12 +90,11 @@ export default {
       approachingCard: { label: 'Gleich-Karden', hint: 'Was etz lafft un was als Nächsdes kummt' },
       approachTimeLeft: { label: 'Restzeid', hint: 'Die Restzeid vom laufenden Termin in der Karden; aus, stehd sie am Termin selber' },
       minEventLength: { label: 'Mindesdlänge für Termine', hint: 'Kürzere Termine wern so lang hiigmold, dass mer ihrn Titel noch lesn ko', off: 'Aus', minutes: '{n} Min.' },
-      sideBySide: { day: 'Dagesansichd: Termine nebnanander', week: 'Wochnansichd: Termine nebnanander', hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}' },
+      sideBySide: { hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}' },
       tasksCalendar: { label: 'Aufgabnkalender in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
     },
     tasklists: {
       carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Des „Vom Sa., 10. Okt.“ an offne Listen, die auf heut grutscht sin. Aus: Die stehn halt bei heut.' },
-      categories: 'Kadegorien',
       taskCategories: { label: 'Kadegorien für Aufgabnlisdn', hint: 'Aufgabnlisdn nach Kadegorie grubbieren, sordiern, fildern un einfärbn. Ausschalddn blendes nur aus, nix wird gelöschd.' },
       addCategory: 'Kadegorie dazu',
     },
@@ -120,7 +112,7 @@ export default {
       resetDemo: { done: 'Demodaden sin widda da' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
-    navPosition: { label: 'Ansichdswechsl', hint: 'Wo Jahr, Monad, Woche un Dag liegn', phone: 'Aufm Handy', desktop: 'Am Desktop un Tablet', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn', drawer: 'Seidnmenü' },
+    navPosition: { hint: 'Wo Jahr, Monad, Woche un Dag liegn', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn', drawer: 'Seidnmenü' },
     sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
     ownThemes: { label: 'Designs mit KI erzeuge', hint: 'Experimentell: a Prompt für a KI hole un des Design importiere, wo sie liefert' },
   },

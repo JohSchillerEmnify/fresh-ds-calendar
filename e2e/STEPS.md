@@ -856,7 +856,6 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
-the settings sections are {string}
 the settings page has no theme mode or seed colour controls
 the server reports the build version {string}
 the settings show the version {string}
@@ -896,6 +895,62 @@ the settings are changed elsewhere to the theme mode {string}
   a new page; all following steps act on it.
 - `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
 
+### Settings groups and search (`@settings-groups`, `@settings-search`)
+
+```
+the settings groups are {string}
+the settings home shows the search bar
+the settings home is shown
+I open the settings group {string}
+the settings group page {string} is shown
+I go back in the settings
+the settings page shows the setting {string}
+the settings page does not show the setting {string}
+I turn off {string} in the settings
+I open the calendar {string} in the settings
+the settings show the plan {string} for the calendar {string}
+I choose {string} for {string} in the settings
+{string} is chosen for {string} in the settings
+every settings row shows its name first and its control at the end
+I open the setting {string}
+the time picker is shown
+I search the settings for {string}
+the settings search shows {string} in {string}
+the settings search shows {string}
+the settings search shows {int} result(s)
+the settings search says nothing matches {string}
+I clear the settings search
+I choose the search result {string}
+the setting {string} is highlighted
+```
+
+- Hooks: the home is `settings-home` with one `settings-group` per group (`data-group` = its visible name, in order;
+  `data-group-id` = its route name); the search bar is `settings-search` (an input) with `settings-search-clear`; a
+  group page is `settings-group-page` with `data-group` (its title) and `data-group-id` (`views`, `focus/bedtime`, …);
+  each setting is a `settings-row` with `data-setting` = its visible name and `data-setting-id`; Back is
+  `settings-back`. Every settings page keeps `settings-view` as its root.
+- Steps of other features that use a settings control by its test id open the page that holds it first
+  (`settingControl` in `support/settings.ts`, a test id → page table), and leave the settings with Back until no
+  settings page is shown. `I turn on S in the settings` and `the S switch in the settings is off` reach row S through
+  the settings search.
+- `the settings groups are L` reads the `data-group` of the home's groups in order; from a group page it goes Back to
+  the home first (inside the app, no reload).
+- `the settings page shows the setting S` = a visible `settings-row` with `data-setting` S on the open group page.
+- `I turn on|off S in the settings` toggles the switch inside the `settings-row` S and waits for the save response.
+- A search result is `settings-search-result` with `data-setting` (name) and `data-path` (group, or
+  `group › subgroup`); "shows N result(s)" counts them; "nothing matches Q" = no result and `settings-search-empty`
+  contains Q.
+- "is highlighted": the `settings-row` S carries `data-flash` and is inside the viewport.
+- `I choose X for S in the settings` picks option X in the segmented button or menu of row S; `X is chosen for S`
+  reads the selected option.
+- "name first, control at the end": in every `settings-row` the label's left edge is left of the control's left edge
+  (mirrored in left-handed mode is out of scope of this step).
+- The calendar page: `I open the calendar C in the settings` taps the `settings-row` C on the Calendars page. Its
+  `Plan` row (`data-setting-id="plan"`) opens the calendar plan sheet of feature calendar-off-plan (its own steps);
+  "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
+- `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
+- `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
+
 ## Language (`@i18n`)
 
 ```
@@ -919,7 +974,7 @@ the page was not reloaded
   `the page was not reloaded` looks for (a reload would lose it); the options are `Automatisch`/`Automatic` (follows
   the device, translated), `English`, `Deutsch`, `Fränggisch`, `Coldmirror` (each in its own name, never translated).
 - `the language "L" is selected` = the selected option label of `settings-language`.
-- The existing `the settings sections are`, `the period title is` and `the weekday headers are` steps are reused.
+- The existing `the settings groups are`, `the period title is` and `the weekday headers are` steps are reused.
 
 ## Categories, tags and filters (`@categories`)
 

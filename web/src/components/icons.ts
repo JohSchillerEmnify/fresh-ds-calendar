@@ -145,6 +145,24 @@ import SyncS from '~icons/material-symbols/sync-sharp';
 import SyncProblemO from '~icons/material-symbols/sync-problem';
 import SyncProblemR from '~icons/material-symbols/sync-problem-rounded';
 import SyncProblemS from '~icons/material-symbols/sync-problem-sharp';
+import SearchO from '~icons/material-symbols/search';
+import SearchR from '~icons/material-symbols/search-rounded';
+import SearchS from '~icons/material-symbols/search-sharp';
+import PaletteOutlineO from '~icons/material-symbols/palette-outline';
+import PaletteOutlineR from '~icons/material-symbols/palette-outline-rounded';
+import PaletteOutlineS from '~icons/material-symbols/palette-outline-sharp';
+import NotificationsOutlineO from '~icons/material-symbols/notifications-outline';
+import NotificationsOutlineR from '~icons/material-symbols/notifications-outline-rounded';
+import NotificationsOutlineS from '~icons/material-symbols/notifications-outline-sharp';
+import ScienceOutlineO from '~icons/material-symbols/science-outline';
+import ScienceOutlineR from '~icons/material-symbols/science-outline-rounded';
+import ScienceOutlineS from '~icons/material-symbols/science-outline-sharp';
+import AccountCircleOutlineO from '~icons/material-symbols/account-circle-outline';
+import AccountCircleOutlineR from '~icons/material-symbols/account-circle-outline-rounded';
+import AccountCircleOutlineS from '~icons/material-symbols/account-circle-outline-sharp';
+import SelfImprovementO from '~icons/material-symbols/self-improvement';
+import SelfImprovementR from '~icons/material-symbols/self-improvement-rounded';
+import SelfImprovementS from '~icons/material-symbols/self-improvement-sharp';
 
 type Variants = Record<IconSet, Component>;
 
@@ -200,3 +218,9 @@ export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded:
 export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });
 /** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */
 export const IconLocationOn = appIcon('IconLocationOn', { outlined: LocationOnO, rounded: LocationOnR, sharp: LocationOnS });
+export const IconSearch = appIcon('IconSearch', { outlined: SearchO, rounded: SearchR, sharp: SearchS });
+export const IconPaletteOutline = appIcon('IconPaletteOutline', { outlined: PaletteOutlineO, rounded: PaletteOutlineR, sharp: PaletteOutlineS });
+export const IconNotificationsOutline = appIcon('IconNotificationsOutline', { outlined: NotificationsOutlineO, rounded: NotificationsOutlineR, sharp: NotificationsOutlineS });
+export const IconScienceOutline = appIcon('IconScienceOutline', { outlined: ScienceOutlineO, rounded: ScienceOutlineR, sharp: ScienceOutlineS });
+export const IconAccountCircleOutline = appIcon('IconAccountCircleOutline', { outlined: AccountCircleOutlineO, rounded: AccountCircleOutlineR, sharp: AccountCircleOutlineS });
+export const IconSelfImprovement = appIcon('IconSelfImprovement', { outlined: SelfImprovementO, rounded: SelfImprovementR, sharp: SelfImprovementS });

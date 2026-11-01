@@ -1,0 +1,45 @@
+/** Mainfränkisch messages of the settings home, its groups and the settings search (partial: the rest falls back to `de`). */
+export default {
+  home: {
+    search: 'Einstellunga durchsuchn',
+    clear: 'Suche leern',
+    empty: 'Ka Einstellung bassd zu „{q}“',
+    results: 'Treffer',
+  },
+  groups: {
+    calendars: { title: 'Kalender', summary: 'Welche Kalender mer siehd, und wann' },
+    views: { title: 'Ansichdn', summary: 'Startansichd, Monad, Woche und Dag' },
+    tasklists: { title: 'Aufgabnlisdn', summary: 'Kategorien, Vorlaachn, was a Dibbn machd' },
+    reminders: { title: 'Erinnerunga', summary: 'Bescheid vor Terminen, Lisdn und dem Dag' },
+    appearance: { title: 'Aussehn & Aufbau', summary: 'Design, Sproch, Leisdn und Händ' },
+    focus: { title: 'Fokus & Ruh', summary: 'Ruhemodus, Bewegung, Dön, Serie, Bettzeit' },
+    labs: { title: 'Labor', summary: 'Sachn ausbrobiern, die no ned ferdich sin' },
+    account: { title: 'Kondo & App', summary: 'Google-Kondo, Sicherung, Installiern, Version' },
+  },
+  sub: {
+    appointments: 'Termine und dei Dag',
+    general: 'Allgemein',
+    weekDay: 'Woche und Dag',
+    behaviour: 'Verhaldn',
+    more: 'Weideres',
+    motion: 'Bewegung und Don',
+  },
+  labels: {
+    plan: 'Plan',
+    moveCategory: '{name} verschiem',
+    sideBySideDay: 'Termine nebnanander: Dag',
+    sideBySideWeek: 'Termine nebnanander: Woche',
+    showLabs: 'Labor-Sachn zeing',
+    syncIndicator: 'Sync-Anzeich immer zeing',
+    navPhone: 'Ansichdswahl aufm Händi',
+    push: 'Erinnerunga in dem Browser',
+    bedtimeReminder: 'Erinnerung',
+    showCalendar: 'Den Kalender zeing',
+    barAuto: 'Audomadisch',
+  },
+  calendar: { hidden: 'Versteggd' },
+  time: {
+    title: 'Uhrzeit aussuchn',
+    cancel: 'Lass bleim',
+  },
+};

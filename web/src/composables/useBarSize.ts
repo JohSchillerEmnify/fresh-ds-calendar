@@ -12,7 +12,7 @@ export function resolveBarSize(choice: 'auto' | 'expressive' | 'compact', phone:
 }
 
 /** The top bar's size from the `headerLayout` pref (`two-rows` is Expressive, `one-row` Compact, `auto` by screen). */
-export function topBarSizeOf(layout: 'auto' | 'two-rows' | 'one-row', phone: boolean): ResolvedBarSize {
+function topBarSizeOf(layout: 'auto' | 'two-rows' | 'one-row', phone: boolean): ResolvedBarSize {
   return resolveBarSize(layout === 'two-rows' ? 'expressive' : layout === 'one-row' ? 'compact' : 'auto', phone);
 }
 
