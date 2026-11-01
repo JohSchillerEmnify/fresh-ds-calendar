@@ -23,6 +23,12 @@ Given(
   },
 );
 
+/** Opens the app once so this device shows (and remembers) tonight's reminder, as a person saw it earlier. */
+Given("this device has already shown tonight's bedtime reminder", async function (this: World) {
+  await this.page.goto('/');
+  await expect(this.page.getByTestId('bedtime-reminder')).toBeVisible();
+});
+
 Then('the night bands of {date} are {string}', async function (this: World, date: string, expected: string) {
   // pieces of that day in document order, as "start-end"
   await expect.poll(async () => (await bands(this).and(this.page.locator(`[data-date="${date}"]`)).evaluateAll(

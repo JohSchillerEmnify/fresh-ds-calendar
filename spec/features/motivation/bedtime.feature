@@ -105,7 +105,6 @@ Feature: Bedtime mode
     Then the bedtime moons of 2026-10-24 are "24:00"
     And the bedtime moons of 2026-10-25 are "23:00"
 
-  @backlog
   Scenario: The reminder comes once per night
     Given the time is 2026-10-14 22:40
     And bedtime mode is on with fixed times 23:00 and 07:00
@@ -113,7 +112,6 @@ Feature: Bedtime mode
     When I open the day view for 2026-10-14
     Then I do not see a bedtime reminder
 
-  @backlog
   Scenario: A timed task list counts as the first appointment
     Given the time is 2026-10-14 12:00
     And the calendar contains a task list "Packing" on 2026-10-15 at 07:30 for 60 minutes
