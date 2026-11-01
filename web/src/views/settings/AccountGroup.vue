@@ -83,12 +83,12 @@ async function resetDemo() {
 
   <template v-if="backup.status?.available">
     <h2>{{ t('backup.label') }}</h2>
-    <SettingRow v-if="backup.status.permission === 'missing'" id="backup" :label="t('backup.allow.label')" :hint="t('backup.allow.hint')">
-      <template #sub><span data-testid="settings-backup-status" data-state="off" /></template>
+    <SettingRow v-if="backup.status.permission === 'missing'" id="backup" :label="t('backup.allow.label')">
+      <template #sub><span class="sub" data-testid="settings-backup-status" data-state="off">{{ t('backup.allow.hint') }}</span></template>
       <Button variant="text" data-testid="settings-backup-allow" @click="backup.allow()">{{ t('backup.allow.button') }}</Button>
     </SettingRow>
-    <SettingRow v-else id="backup" wide :label="t('backup.label')" :hint="backupText">
-      <template #sub><span data-testid="settings-backup-status" :data-state="backup.status.state" :data-last-backup="backup.status.lastBackupAt ?? ''" /></template>
+    <SettingRow v-else id="backup" wide :label="t('backup.label')">
+      <template #sub><span class="sub" data-testid="settings-backup-status" :data-state="backup.status.state" :data-last-backup="backup.status.lastBackupAt ?? ''">{{ backupText }}</span></template>
       <Button variant="text" :disabled="backup.busy !== null" data-testid="settings-backup-now" @click="runBackup">{{ t('backup.now') }}</Button>
       <Button variant="text" :disabled="backup.busy !== null" data-testid="settings-backup-restore" @click="confirmRestore = true">{{ t('backup.restore') }}</Button>
     </SettingRow>
@@ -116,5 +116,6 @@ async function resetDemo() {
 </template>
 
 <style scoped>
+.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .cert { display: block; font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; color: var(--md-sys-color-on-surface-variant); }
 </style>

@@ -91,7 +91,7 @@ Feature: A smaller header: two rows or one row
     Scenario: The choice is made in the settings and follows the person
       When I open the day view for 2026-10-12
       And I open the settings
-      Then the top bar size "Compact" is selected
+      Then the top bar size "Automatic" is selected
       When I choose "Expressive" as the top bar size
       And I leave the settings
       Then the top bar is in two rows

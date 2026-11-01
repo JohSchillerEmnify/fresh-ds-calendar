@@ -164,6 +164,7 @@ async function addCategory(world: World, name: string, color: string, icon?: str
 }
 
 async function openCategory(world: World, name: string) {
+  if (!(await categoryRow(world, name).isVisible())) await openSettingsPage(world, 'tasklists');
   await categoryRow(world, name).click();
   await expect(categoryDialog(world)).toBeVisible();
 }

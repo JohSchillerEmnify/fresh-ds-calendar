@@ -6,7 +6,7 @@ import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
 import { exactText, tid, type World } from './support/world.js';
-import { openSettingsPage, turnOnLabsSwitch } from './support/settings.js';
+import { openSettingsPage, settingControl, turnOnLabsSwitch } from './support/settings.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
   world.colorScheme = scheme;
@@ -190,7 +190,7 @@ Given('{string} chose the theme {string}', async function (this: World, email: s
 
 Then('the theme {string} is marked as chosen', async function (this: World, name: string) {
   // an earlier step may have looked at the calendar behind the menu: come back to the menu through the history
-  for (let i = 0; i < 2 && !(await this.page.getByTestId('theme-view').isVisible()); i++) await this.page.goForward();
+  for (let i = 0; i < 3 && !(await this.page.getByTestId('theme-view').isVisible()); i++) await this.page.goForward();
   await expect(card(this, name)).toHaveAttribute('aria-pressed', 'true');
   await expect(this.page.locator('[data-testid="theme-card"][aria-pressed="true"]')).toHaveCount(1);
 });
@@ -396,7 +396,7 @@ Then('the top bar shows no scene', async function (this: World) {
 });
 
 Then('the settings show the theme {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
+  await expect(await settingControl(this, 'settings-theme-name')).toHaveText(text);
 });
 
 When('I set the seasons and holidays to {string}', async function (this: World, label: string) {

@@ -6,7 +6,7 @@ import type { World } from './support/world.js';
 import { settingControl } from './support/settings.js';
 
 /** The two top bar sizes and the stored `headerLayout` values behind them (Expressive = the former two rows). */
-const LAYOUT: Record<string, 'two-rows' | 'one-row'> = { Expressive: 'two-rows', Compact: 'one-row' };
+const LAYOUT: Record<string, 'auto' | 'two-rows' | 'one-row'> = { Automatic: 'auto', Expressive: 'two-rows', Compact: 'one-row' };
 const layoutValue = (label: string) => {
   const v = LAYOUT[label];
   if (!v) throw new Error(`Unknown top bar size "${label}"`);

@@ -1,7 +1,7 @@
 /** Streak, plant and sunflower field steps (STEPS.md "Streak and plant"). */
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { chooseSelect, settingControl } from './support/settings.js';
+import { chooseSelect, openSettingsPage, settingControl } from './support/settings.js';
 import { chooseOption, selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
@@ -83,6 +83,8 @@ const plantButton = (w: World) => w.page.getByTestId('plant-button');
 const field = (w: World) => w.page.getByTestId('sunflower-field');
 
 Then('the streak shows {int}', async function (this: World, count: number) {
+  // in the settings the current streak is on the Focus & calm page
+  if ((await this.page.getByTestId('settings-view').isVisible()) && !(await flame(this).isVisible())) await openSettingsPage(this, 'focus');
   await expect(flame(this)).toHaveText(exactText(String(count)));
 });
 

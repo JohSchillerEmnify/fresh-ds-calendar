@@ -156,7 +156,7 @@ Feature: Settings
       | /settings/account       |
 
   Scenario: A setting that cannot be saved goes back to what it was
-    Given I open the path "/settings"
+    Given I open the path "/settings/views"
     And the network connection is lost
     When I choose "Week" as the default view
     Then the default view "Month" is selected
