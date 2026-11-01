@@ -88,6 +88,8 @@ async function calibrate() {
   return c;
 }
 
+let appPoints; // the app's size in points, read from the native element tree (viewportRect and some mappings are in pixels)
+
 /** A real finger tap at a screen point (documented "mobile: tap", coordinates relative to the app), no element lookups. */
 const screenTap = (x, y) => browser.execute('mobile: tap', { x, y });
 
@@ -98,10 +100,14 @@ async function dismissSafariTip() {
   let source;
   try { source = need(await browser.getPageSource(), 'native page source'); } finally { await browser.switchContext(web); }
   writeFileSync(`${OUT}/native-source.xml`, source);
+  const app = /<XCUIElementTypeApplication[^>]*?\swidth="(\d+)"[^>]*?\sheight="(\d+)"/.exec(source);
+  if (app) appPoints = { width: Number(app[1]), height: Number(app[2]) };
+  console.log(`  app size in points: ${JSON.stringify(appPoints)}`);
   if (!source.includes('View Bookmarks')) { console.log('  no Safari tip bubble'); return; }
   const vp = need(await browser.execute('mobile: viewportRect'), 'viewportRect');
-  const x = Math.round(vp.width * 0.906);
-  const y = Math.round(vp.top + vp.height * 0.71);
+  const k = appPoints ? appPoints.width / vp.width : 1;
+  const x = Math.round(vp.width * 0.906 * k);
+  const y = Math.round((vp.top + vp.height * 0.71) * k);
   await screenTap(x, y);
   console.log(`  tapped the Safari tip bubble close at ${x},${y} (viewport ${JSON.stringify(vp)})`);
 }
@@ -116,10 +122,14 @@ async function tap(log, label, css, { scroll = true } = {}) {
   await browser.execute(() => { window.__diag.length = 0; });
   // the touch goes through the native layer at the screen point the driver maps the CSS point to
   const frame = await calibrate();
-  const screen = { x: Math.round(frame.offsetX + rect.x * frame.pixelRatioX), y: Math.round(frame.offsetY + rect.y * frame.pixelRatioY) };
+  let screen = { x: frame.offsetX + rect.x * frame.pixelRatioX, y: frame.offsetY + rect.y * frame.pixelRatioY };
+  // if the mapped x lies beyond the app's width in points, the mapping is in pixels: convert
+  const scale = appPoints && frame.offsetX + rect.iw * frame.pixelRatioX > appPoints.width * 1.5 ? appPoints.width / (frame.offsetX + rect.iw * frame.pixelRatioX) : 1;
+  screen = { x: Math.round(screen.x * scale), y: Math.round(screen.y * scale) };
+  console.log(`  calibration ${JSON.stringify(frame)} appPoints ${JSON.stringify(appPoints)} scale ${scale}`);
   await screenTap(screen.x, screen.y);
   await sleep(600);
-  const events = await browser.execute(() => window.__diag.splice(0));
+  const events = await browser.execute(() => (window.__diag ? window.__diag.splice(0) : [{ type: 'PAGE-RELOADED', target: 'recorder lost', x: 0, y: 0 }]));
   const entry = { step: label, css, point: { x: Math.round(rect.x), y: Math.round(rect.y) }, screen, webView: frame, size: { w: Math.round(rect.w), h: Math.round(rect.h) }, ...hit, events };
   log.push(entry);
   console.log(`  tap ${label}: point ${entry.point.x},${entry.point.y} screen ${screen.x},${screen.y} (webview ${JSON.stringify(frame)}) under ${hit.under} (target hit: ${hit.hitsTarget}) events: ${events.map((e) => `${e.type}>${e.target}@${e.x},${e.y}`).join(' ') || 'NONE'}`);
