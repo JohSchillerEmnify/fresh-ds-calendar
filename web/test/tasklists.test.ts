@@ -231,11 +231,17 @@ describe('expanded list', () => {
   it('keeps the tick shown while it cannot be sent', async () => {
     const list = tl('G');
     const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': () => ({ status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } }) });
-    await checkbox(w, 0).setValue(true);
-    await flushPromises();
-    expect(done(w)[0]).toBe('true');
-    expect(useOutboxStore().count).toBe(1);
-    expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(false);
+    // the failed send schedules a retry (1 s): on a fake clock it is dropped with the test instead of firing into a later test's store
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      await checkbox(w, 0).setValue(true);
+      await flushPromises();
+      expect(done(w)[0]).toBe('true');
+      expect(useOutboxStore().count).toBe(1);
+      expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a dropped item moves at once with one PUT of the full order, and a refused save puts it back', async () => {
