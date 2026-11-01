@@ -97,6 +97,10 @@ body {
   overscroll-behavior-y: none;
   padding: 0 var(--safe-right) 0 var(--safe-left);
 }
+/* Home-screen app: a solid fixed strip behind the status bar, so iOS 26 shows its colour instead of the edge blur over the top bar */
+@media (display-mode: standalone) {
+  body::before { content: ''; position: fixed; z-index: 6; inset: 0 0 auto; height: var(--safe-top); background: var(--md-sys-color-surface); pointer-events: none; }
+}
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; touch-action: manipulation; }
 input, select, textarea { font: inherit; color: inherit; }
 /* Native dropdown popups follow color-scheme (set per theme in tokens.css); explicit colors are the fallback. */
