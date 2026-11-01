@@ -390,6 +390,12 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   complete. While a calendar failed, the cursor keeps its old window end and reminder version, so the missed days and relist
   are retried. Person-wide failures (rate limit, sign-in again, missing calendar permission) and unexpected errors (bugs)
   still fail the whole call.
+- A calendar Google keeps refusing is not asked on every call: one that is gone (404) or no longer readable (403
+  permission) is answered `failed` once, and a calendar whose fresh sync token is refused a second time in a row (410
+  right after its full read) is answered unchanged. Either is then left alone (answered unchanged, no Google call) for
+  1 minute, doubling per refusal in a row up to 30 minutes, shared by every device and the live poll; the first read
+  after the wait is in full (`replace`). A working token clears the back-off. Each back-off writes one
+  `google_calendar_backoff` log line (hashed calendar id, cause, wait).
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
