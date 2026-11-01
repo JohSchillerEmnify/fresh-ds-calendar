@@ -28,3 +28,10 @@ describe('cardLayout with ink', () => {
     expect(cardLayout({ ...base, inked: true }).shown).toBeLessThan(cardLayout(base).shown);
   });
 });
+
+describe('cardLayout with one untitled item', () => {
+  it('moves the item into the title slot instead of listing it below', () => {
+    const base = { variant: 'card', grown: false, titles: false, mini: false, height: 100, timed: false, titled: false, open: 1, total: 1 };
+    expect(cardLayout(base)).toMatchObject({ shown: 0, lead: true, inline: false });
+  });
+});

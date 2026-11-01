@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /** One line of ink (feature handwritten-lists): SVG in line-height units; editable takes pen strokes and erasing, `change` reports all strokes. */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { InkPoint, InkStroke } from '@/api/types';
-import { eraseAt, penRole, readableInk, strokePath, toLineUnits } from '@/lib/ink';
+import { eraseAt, flattenColours, parseColour, penRole, readableInk, readableOn, strokePath, toLineUnits, type Rgba } from '@/lib/ink';
 import { useInkStore } from '@/stores/ink';
 import { usePrefsStore } from '@/stores/prefs';
 
@@ -11,6 +11,8 @@ const props = defineProps<{
   editable?: boolean;
   /** Spoken name of the line (a screen reader reads "Handwritten item 2 of 5"). */
   label?: string;
+  /** Read-only on a card: crop to the writing so it fills the line, and keep it readable on this card colour (hex). */
+  onCard?: string;
 }>();
 const emit = defineEmits<{
   change: [strokes: InkStroke[]];
@@ -42,12 +44,45 @@ const shown = computed(() => erasing.value ?? props.strokes);
 /** The width of the line in line heights: wide enough for the ink, so a narrow line scales it down instead of cutting it off. */
 const widthUnits = ref(10);
 const reach = computed(() => Math.max(1, ...shown.value.flatMap((s) => s.p.map((q) => q[0] + 0.3))));
-const viewBox = computed(() => `0 0 ${Math.max(widthUnits.value, reach.value)} 1`);
+const viewBox = computed(() => {
+  const pts = props.onCard ? shown.value.flatMap((st) => st.p) : [];
+  if (!pts.length) return `0 0 ${Math.max(widthUnits.value, reach.value)} 1`;
+  // a card line is small: crop the empty margins so the writing fills it, never thinner than half a line
+  let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
+  for (const q of pts) [x0, x1, y0, y1] = [Math.min(x0, q[0]), Math.max(x1, q[0]), Math.min(y0, q[1]), Math.max(y1, q[1])];
+  const h = Math.max(1 / 2, y1 - y0 + 0.2);
+  return `${x0 - 0.1} ${(y0 + y1) / 2 - h / 2} ${x1 - x0 + 0.2} ${h}`;
+});
+/** The card's text colour and painted background (#rrggbb) as the theme sets them; chosen ink is adjusted to read on that. */
+const textOn = ref('#000000');
+const ground = ref(props.onCard ?? '#ffffff');
+/** The `<html>` attributes that change the theme's colours (see `applyAttrs`/`applyThemeMode`); `style` carries the fine-tuning variables. */
+const THEME_ATTRS = ['data-theme', 'data-theme-name', 'data-entries', 'data-corners', 'style'];
+const readText = (): void => {
+  const el = svg.value;
+  if (!el) return;
+  const text = flattenColours([parseColour(getComputedStyle(el).color)]);
+  if (text) textOn.value = text;
+  const card = el.closest('.tl');
+  if (!card) return;
+  // top-first: the card's glow layers, the card, then its ancestors until one is opaque
+  const stack: (Rgba | null)[] = [...Array.from(card.querySelectorAll('.gl')).reverse(), card].map((e) => parseColour(getComputedStyle(e).backgroundColor));
+  for (let e = card.parentElement; e && !stack.some((c) => c && c[3] >= 1); e = e.parentElement) stack.push(parseColour(getComputedStyle(e).backgroundColor));
+  ground.value = flattenColours(stack.reverse()) ?? ground.value;
+};
+/** The card repaints through a transition: read its final colour when the card's own background ends. */
+const onTransitionEnd = (e: TransitionEvent): void => {
+  if (e.target === e.currentTarget && e.propertyName === 'background-color') readText();
+};
+let themeWatch: MutationObserver | undefined;
+const OUTLINE_MAX_POINTS = 3000;
+const pointCount = computed(() => shown.value.reduce((n, st) => n + st.p.length, 0));
+const cardInk = (hex: string): Record<string, string> => { const c = readableOn(hex, [ground.value], textOn.value); return { '--l': c, '--d': c }; };
 
 const paths = computed(() => shown.value.map((s) => ({
   d: strokePath(s.p),
   colour: s.c ?? 'theme',
-  style: s.c ? { '--l': readableInk(s.c, false), '--d': readableInk(s.c, true) } : {},
+  style: s.c ? (props.onCard ? cardInk(s.c) : { '--l': readableInk(s.c, false), '--d': readableInk(s.c, true) }) : {},
 })));
 const livePath = computed(() => (live.value && !live.value.erase ? strokePath(live.value.points) : ''));
 const liveColour = computed(() => (live.value?.colour ? { '--l': readableInk(live.value.colour, false), '--d': readableInk(live.value.colour, true) } : {}));
@@ -177,17 +212,28 @@ onMounted(() => {
   measure();
   if (typeof ResizeObserver !== 'undefined' && svg.value) { observer = new ResizeObserver(measure); observer.observe(svg.value); }
   svg.value?.addEventListener('touchstart', stylusTouch, { passive: false });
+  if (props.onCard && typeof MutationObserver !== 'undefined') {
+    readText();
+    themeWatch = new MutationObserver(readText);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: THEME_ATTRS });
+    svg.value?.closest('.tl')?.addEventListener('transitionend', onTransitionEnd as EventListener);
+    // the card's styles may land a tick after mount
+    void nextTick(readText);
+  }
 });
+watch(() => props.onCard, () => { if (props.onCard) readText(); }, { flush: 'post' });
 onBeforeUnmount(() => {
   setPenOver(false);
   observer?.disconnect();
+  themeWatch?.disconnect();
+  svg.value?.closest('.tl')?.removeEventListener('transitionend', onTransitionEnd as EventListener);
   svg.value?.removeEventListener('touchstart', stylusTouch);
 });
 </script>
 
 <template>
   <svg
-    ref="svg" class="ink" :class="{ editable, finger: editable && prefs.labsDrawWithFinger, pen: editable && penOver }" :viewBox="viewBox" preserveAspectRatio="xMinYMid meet"
+    ref="svg" class="ink" :class="{ oncard: onCard, outlined: onCard && pointCount <= OUTLINE_MAX_POINTS, editable, finger: editable && prefs.labsDrawWithFinger, pen: editable && penOver }" :viewBox="viewBox" preserveAspectRatio="xMinYMid meet"
     data-testid="ink-line" :data-strokes="shown.length" :role="label ? 'img' : undefined" :aria-label="label" :aria-hidden="label ? undefined : 'true'"
     @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancelled"
     @pointerenter="penAbove($event, true)" @pointerleave="penAbove($event, false)"
@@ -200,6 +246,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .ink { display: block; width: 100%; height: var(--ink-h, 44px); overflow: hidden; color: var(--md-sys-color-on-surface); touch-action: auto; }
 .p { fill: var(--l, currentColor); }
+/* a card line is drawn small: a hairline outline keeps the thin strokes legible (skipped for huge ink: stroking tens of thousands of points stalls the paint) */
+.outlined .p { stroke: var(--l, currentColor); stroke-width: 0.05; stroke-linejoin: round; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .p { fill: var(--d, currentColor); } }
 :root[data-theme='dark'] .p { fill: var(--d, currentColor); }
 /* a finger scrolls the list, a pen draws; with "Draw with finger" a single finger draws and scrolling takes two */

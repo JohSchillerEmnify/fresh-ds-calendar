@@ -1,6 +1,7 @@
 /** Pure rules of handwritten items (feature handwritten-lists): pointers, line-height units, outlines, erasing, colours. */
 import { getStroke } from 'perfect-freehand';
 import type { InkDoc, InkPoint, InkStroke } from '@calendar/shared/api';
+import { contrastRatio } from '../api/colors';
 import { keptItems, type OutboxEntry } from './outbox';
 
 /** What a pointer event does in the writing area. */
@@ -74,6 +75,59 @@ export function readableInk(hex: string, dark: boolean): string {
     if (contrast(luminance(mixed), bg) >= 4.5) return mixed;
   }
   return toHex(target);
+}
+
+/** The ink colour moved towards the card's text colour `on` until it holds `min` : 1 on every ground it can sit on (the card as painted, or the card colour and theme surface). */
+export function readableOn(hex: string, grounds: string[], on: string, min = 3): string {
+  const target = rgb(on);
+  const base = rgb(hex);
+  for (let k = 0; k <= 20; k++) {
+    const mixed = toHex(base.map((v, i) => v + (target[i]! - v) * (k / 20)));
+    if (grounds.every((g) => contrastRatio(mixed, g) >= min)) return mixed;
+  }
+  return toHex(target);
+}
+
+/** A colour as red, green, blue (0-255) and alpha (0-1). */
+export type Rgba = [number, number, number, number];
+
+/** A 1x1 canvas context: the browser itself turns any CSS colour (oklch, display-p3, color-mix) into sRGB pixels. */
+type PixelCtx = Pick<CanvasRenderingContext2D, 'clearRect' | 'fillRect' | 'getImageData' | 'fillStyle'>;
+let sharedCtx: PixelCtx | null | undefined;
+const canvasCtx = (): PixelCtx | null => {
+  if (sharedCtx === undefined) {
+    try { sharedCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); } catch { sharedCtx = null; }
+  }
+  return sharedCtx;
+};
+
+/** A computed CSS colour as RGBA; rgb() and color(srgb) are read directly, anything else goes through the canvas. */
+export function parseColour(css: string, ctx: PixelCtx | null = canvasCtx()): Rgba | null {
+  const s = css.trim().toLowerCase();
+  if (!s) return null;
+  if (s === 'transparent') return [0, 0, 0, 0];
+  const direct = s.match(/^(rgba?|color\(srgb)[\s(]+([^)]*)\)?$/);
+  if (direct) {
+    const n = direct[2]!.split(/[\s,/]+/).filter(Boolean).map(Number);
+    if (n.length >= 3 && n.every((v) => !Number.isNaN(v))) {
+      const k = direct[1] === 'color(srgb' ? 255 : 1;
+      return [Math.round(n[0]! * k), Math.round(n[1]! * k), Math.round(n[2]! * k), n[3] ?? 1];
+    }
+  }
+  if (!ctx) return null;
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = css;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return [r!, g!, b!, a! / 255];
+}
+
+/** The #rrggbb a stack of layers shows (bottom first, over white), so a see-through card gives the ground the user sees. */
+export function flattenColours(layers: (Rgba | null)[]): string | null {
+  if (!layers.some(Boolean)) return null;
+  let acc = [255, 255, 255];
+  for (const l of layers) if (l) acc = acc.map((v, i) => l[i]! * l[3] + v * (1 - l[3]));
+  return toHex(acc);
 }
 
 /** The ink of items by id, with the unsent changes of the outbox on top (writing offline shows at once; ADR 0031). */

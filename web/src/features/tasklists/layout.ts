@@ -87,8 +87,10 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
   const block = i.variant === 'block';
   // a block too short for a second row drops the time line, also when no open item is left to go inline
   const shortBlock = !i.grown && block && !!i.height && i.height < INLINE_BELOW_PX;
+  // a list with one item and no title shows that item in the title slot, never a second time below it
+  const single = !i.grown && !i.titled && i.total === 1;
   const fit = ((): Fit => {
-    if (i.titles || !i.open) return { shown: 0, more: 0, inline: false };
+    if (i.titles || !i.open || single) return { shown: 0, more: 0, inline: false };
     // grown: every item, one per line, nothing cut
     if (i.grown) return { shown: i.total, more: 0, inline: false };
     const f = fitItems({
@@ -109,7 +111,7 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
     if (f.inline || shortBlock) return { shown: i.open, more: 0, inline: true };
     return f;
   })();
-  const lead = !i.grown && !i.titled && (i.variant === 'chip' || i.titles || fit.shown === 0);
+  const lead = !i.grown && !i.titled && (single || i.variant === 'chip' || i.titles || fit.shown === 0);
   return { ...fit, shortBlock, foot: i.timed && !fit.inline && !shortBlock, lead };
 }
 

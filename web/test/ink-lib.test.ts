@@ -92,3 +92,61 @@ describe('isRuled', () => {
     expect(isRuled({ ...base, touch: false, penSeen: true })).toBe(true);
   });
 });
+
+describe('readableOn', () => {
+  it('moves a colour until it holds 3:1 on the card colour', async () => {
+    const { readableOn } = await import('@/lib/ink');
+    const { contrastRatio } = await import('@/api/colors');
+    for (const [ink, card, on] of [['#ffee00', '#f6c026', '#000000'], ['#000000', '#1a237e', '#ffffff'], ['#ffffff', '#fff3a0', '#000000']] as const) {
+      expect(contrastRatio(readableOn(ink, [card], on), card)).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it('lifts black ink off a dark theme surface', async () => {
+    const { readableOn } = await import('@/lib/ink');
+    const { contrastRatio } = await import('@/api/colors');
+    expect(contrastRatio(readableOn('#000000', ['#1c1b1f'], '#ffffff'), '#1c1b1f')).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('parseColour', () => {
+  /** A canvas context that "normalises" any colour to a fixed pixel, as a browser does for oklch() and friends. */
+  const fakeCtx = (px: number[]) => {
+    const seen: string[] = [];
+    const ctx = { set fillStyle(v: string) { seen.push(v); }, clearRect() {}, fillRect() {}, getImageData: () => ({ data: Uint8ClampedArray.from(px) }) };
+    return { ctx: ctx as never, seen };
+  };
+  it('reads rgb(), rgba() and color(srgb) without a canvas', async () => {
+    const { parseColour } = await import('@/lib/ink');
+    const never = { get fillStyle() { throw new Error('canvas used'); } } as never;
+    expect(parseColour('rgb(255, 128, 0)', never)).toEqual([255, 128, 0, 1]);
+    expect(parseColour('rgba(10, 20, 30, 0.5)', never)).toEqual([10, 20, 30, 0.5]);
+    expect(parseColour('rgb(10 20 30 / 0.25)', never)).toEqual([10, 20, 30, 0.25]);
+    expect(parseColour('color(srgb 1 0.5 0 / 0.5)', never)).toEqual([255, 128, 0, 0.5]);
+    expect(parseColour('transparent', never)).toEqual([0, 0, 0, 0]);
+  });
+  it('lets the canvas normalise any other colour (oklch, display-p3) instead of reading its numbers as RGB', async () => {
+    const { parseColour } = await import('@/lib/ink');
+    const { ctx, seen } = fakeCtx([12, 34, 56, 255]);
+    expect(parseColour('oklch(0.7 0.1 200)', ctx)).toEqual([12, 34, 56, 1]);
+    expect(seen).toContain('oklch(0.7 0.1 200)');
+    expect(parseColour('color(display-p3 0.2 0.4 0.6)', fakeCtx([1, 2, 3, 0]).ctx)).toEqual([1, 2, 3, 0]);
+  });
+  it('gives null for nothing to parse and when no canvas exists', async () => {
+    const { parseColour } = await import('@/lib/ink');
+    expect(parseColour('', null)).toBeNull();
+    expect(parseColour('oklch(0.7 0.1 200)', null)).toBeNull();
+  });
+});
+
+describe('flattenColours', () => {
+  it('lays semi-transparent layers over each other and over white, bottom first', async () => {
+    const { flattenColours } = await import('@/lib/ink');
+    expect(flattenColours([[0, 0, 0, 0.5]])).toBe('#808080');
+    expect(flattenColours([[255, 0, 0, 1], [0, 0, 255, 0.5]])).toBe('#800080');
+    expect(flattenColours([[0, 0, 0, 1], null, [0, 0, 0, 0]])).toBe('#000000');
+  });
+  it('is null when no layer has a colour', async () => {
+    const { flattenColours } = await import('@/lib/ink');
+    expect(flattenColours([null, null])).toBeNull();
+  });
+});

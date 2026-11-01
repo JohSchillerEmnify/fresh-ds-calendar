@@ -3362,6 +3362,8 @@ the device reports no pen support
 the device is an Android tablet that reports pen support
 the writing mode is {string}
 the calendar contains a task list {string} on {date} with the ink items {string}
+the calendar contains a task list {string} on {date} with the ink items {string} in the colour {string}
+the calendar contains a task list {string} on {date} at {time} for {int} minutes with the text item {string} and the ink item {string}
 "jo@example.com" has an undated task list {string} with the ink items {string}
 the expanded task list {string} has more ink items than fit the screen
 I open the new task list form
@@ -3413,6 +3415,10 @@ I drag the item number {int} above the item number {int}
 I delete the item number {int}
 the ink items are in the order {string}
 the card of {string} shows {int} ink items, scaled down
+the ink of the card of {string} reads on the card
+the ink of the card of the untitled task list is as tall as the card's text
+the checkbox of every item of the card of {string} is centred on its row
+the card of the untitled task list shows the ink as its title
 the task list {string} shows {int} ink items, scaled down
 the note {string} shows {int} ink items
 the dialog is larger than without the feature
