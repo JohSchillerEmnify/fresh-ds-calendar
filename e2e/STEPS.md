@@ -675,6 +675,9 @@ the text in the open dialog can be selected by a long press
 the text on the page can be selected by a long press
 ```
 
+- "no neighbouring period is shown beside the current one": 200 ms after the last move, no `swipe-neighbour` is visible.
+- "one hour of the time grid has its default height": within 10 % of the hour height measured before the scenario's
+  first pinch.
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
 - "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
   page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it

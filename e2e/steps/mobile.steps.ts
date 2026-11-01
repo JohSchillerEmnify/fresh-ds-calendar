@@ -194,6 +194,13 @@ Then('the week of {date} is shown beside the current one', async function (this:
     .toBe('beside, in view');
 });
 
+/** Reduced animations: the period stays put under the finger, so no neighbour is drawn beside it. */
+Then('no neighbouring period is shown beside the current one', async function (this: World) {
+  // the frame after the last move may still be pending: give it a moment before checking
+  await this.page.waitForTimeout(200);
+  await expect(this.byTestId('swipe-neighbour')).toBeHidden();
+});
+
 /**
  * Pinch: two CDP touch points on the visible part of the time grid, moving apart (vertically, around the centre) over
  * 400 ms until their distance has doubled.
@@ -239,7 +246,14 @@ Then('one hour of the time grid is still about twice as tall as at the start', a
   await expectTwiceAsTall(this);
 });
 
-Then('the viewport meta tag contains {string}', async function (this: World, text: string) {
+/** The default is the hour height seen before the first pinch of the scenario (on the first device). */
+Then('one hour of the time grid has its default height', async function (this: World) {
+  const start = this.hourHeightBefore;
+  if (start === undefined) throw new Error('no hour height was captured before the pinch');
+  await expect.poll(async () => (await gridHourHeight(this)) / start, { message: 'hour height relative to the default' }).toBeCloseTo(1, 1);
+});
+
+Then('the viewport meta tag contains {string}',async function (this: World, text: string) {
   await expect(this.page.locator('meta[name="viewport"]')).toHaveAttribute('content', new RegExp(escape(text)));
 });
 
