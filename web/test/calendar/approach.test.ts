@@ -93,15 +93,12 @@ describe('approach bar layout', () => {
     const est = { ...tax, estimateMinutes: 90 } as CalendarItem;
     expect(at(now, 360, 180, segsOf([est], D)).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 146, true]]); // 1 h 13 min left
   });
-  it('a carried-over task list with a time sits on the track at that time today', () => {
+  it('a carried-over task list is untimed today, so it is not on the track (timed or not)', () => {
     const tax = { ...list('tax', '02:00', 'Tax paperwork'), date: '2026-10-11', totalCount: 3, doneCount: 1 } as CalendarItem;
     const now = 2 * 60 + 17;
     const segs = itemSegments(tax, D); // rendered on today, untimed, with carriedFrom
-    expect(approachEntries(segs, now, 180).entries.map((s) => [s.item.title, s.startMin, s.endMin])).toEqual([['Tax paperwork', 120, 150]]);
-    expect(at(now, 360, 180, segs).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 26, true]]);
-    const est = itemSegments({ ...tax, estimateMinutes: 90 } as CalendarItem, D);
-    expect(at(now, 360, 180, est).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 146, true]]);
-    // an untimed carried-over list stays off the track
+    expect(segs[0]!.carriedFrom).toBe('2026-10-11');
+    expect(approachEntries(segs, now, 180).entries).toEqual([]);
     expect(approachEntries(itemSegments({ ...tax, time: null } as CalendarItem, D), now, 180).entries).toEqual([]);
   });
   it('places each block at its start time on an absolute window, now at 0', () => {

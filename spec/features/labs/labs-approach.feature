@@ -9,7 +9,7 @@ Feature: The Approaching card and its track
   place of the duration), in the day and week views (owner, 2026-10-26: "it should be visible from the chip"). Its track is on by default (it can be turned off, then the card shows the
   "Next:" line instead): "now" at its start and a fixed time window ahead (3, 6 or 12 hours or any whole number of hours from 1
   to 24, chosen in the settings, 3 by default), marked with times that thin out as the window grows. Every entry with a time today (events and task lists
-  with a time) within the window sits on it as small chips at their start time and move towards "now"
+  with a time, but not a list carried over from an earlier day: it is untimed today) within the window sits on it as small chips at their start time and move towards "now"
   as time passes. When nothing is within the window, the next entry waits at the end of the track. No "Next:" text
   is shown while the track is on; the other lines of the now card stay as they are.
 
@@ -128,6 +128,17 @@ Feature: The Approaching card and its track
     And the approach bar is on with a window of 6 hours
     When I open the week view for 2026-10-12
     Then the approach bar shows 4 entries
+
+  # owner, 2026-11-01: a list carried forward to today is untimed today, so it is not on the track
+  Scenario: A task list carried over from yesterday is not on the track
+    Given the time is 2026-10-14 08:00
+    And the calendar contains a task list "Laundry" on 2026-10-13 at 09:30 with items:
+      | Wash |
+    And the calendar contains an event "Gym" on 2026-10-14 from 11:00 to 12:00
+    And the calendar contains an event "Lunch" on 2026-10-14 from 12:30 to 13:00
+    And the approach bar is on with a window of 6 hours
+    When I open the day view for 2026-10-14
+    Then the approach bar shows "Dentist", "Gym" and "Lunch" in this order
 
   Scenario: Overlapping entries take at most two rows
     Given the calendar contains an event "Call" on 2026-10-14 from 09:00 to 09:30

@@ -70,7 +70,7 @@ describe('now card', () => {
     expect(w.find('[data-testid="approach-bar"]').exists()).toBe(true);
   });
 
-  it('keeps a running carried-over task list with a time on the approach track', async () => {
+  it('keeps a carried-over task list off the approach track (untimed today)', async () => {
     const { pinia, items } = await boot('02:17', false);
     const tax = {
       kind: 'tasklist', id: 'tax', calendarId: 'primary', title: 'Tax paperwork', date: '2026-10-09', time: '02:00', items: [], doneCount: 0, totalCount: 2,
@@ -80,7 +80,7 @@ describe('now card', () => {
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
     const w = mount(NowCard, { global: { plugins: [pinia, router] } });
     const chips = w.findAll('[data-testid="approach-item"]');
-    expect(chips.map((c) => [c.attributes('data-title'), c.attributes('data-running')])).toEqual([['Tax paperwork', 'true']]);
+    expect(chips.map((c) => [c.attributes('data-title'), c.attributes('data-running')])).toEqual([['Dentist', undefined]]);
   });
 
   it('counts down the current event and shows next, also while another period is shown', async () => {
