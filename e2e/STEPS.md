@@ -3656,7 +3656,9 @@ I tap the ink item number {int} with a finger
 the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
 I draw a stroke with the pen at the pressure {float}
-the harder stroke is thicker, but at most {float} times as thick as the lighter one
+the stroke at pressure {float} is at most half as thick as before: at most {float} of a line height
+the stroke at pressure {float} is at most {float} of a line height
+the stroke at pressure {float} is at least {float} times as thick as the stroke at pressure {float}
 I draw a stroke {int} pixels downwards with the pen on the ink item number {int}
 the list has not scrolled
 I hold the pen over the ink item number {int}

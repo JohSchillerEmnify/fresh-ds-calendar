@@ -799,23 +799,6 @@ Then('both devices show the ink item number {int} with {int} stroke(s)', async f
 When('I draw a stroke with the pen at the pressure {float}', async function (this: World, pressure: number) {
   await stroke(nextLine(this), 'pen', { pressure });
 });
-/** The width across the middle of a filled stroke path, in line heights. */
-async function widths(line: Locator): Promise<number[]> {
-  return line.evaluate((svg) => Array.from(svg.querySelectorAll('[data-testid="ink-stroke"]')).map((el) => {
-    const path = el as SVGGeometryElement;
-    const b = path.getBBox();
-    let n = 0;
-    for (let y = 0; y <= 1; y += 0.002) if (path.isPointInFill(new DOMPoint(b.x + b.width / 2, y))) n++;
-    return n * 0.002;
-  }));
-}
-Then('the harder stroke is thicker, but at most {float} times as thick as the lighter one', async function (this: World, ratio: number) {
-  await expect(nextLine(this)).toHaveAttribute('data-strokes', '2');
-  const [light, hard] = await widths(nextLine(this));
-  expect(light).toBeGreaterThan(0);
-  expect(hard!).toBeGreaterThan(light!);
-  expect(hard! / light!).toBeLessThanOrEqual(ratio);
-});
 
 /** A trusted pen pointer (pointerType "pen") through the browser's own input: hover, press and move. */
 async function penInput(w: World, steps: { type: 'mouseMoved' | 'mousePressed' | 'mouseReleased'; x: number; y: number }[]) {

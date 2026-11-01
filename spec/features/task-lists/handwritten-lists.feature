@@ -159,10 +159,15 @@ Feature: Labs: handwritten lists
       Then the list scrolls
       And nothing is drawn
 
-    Scenario: Pen pressure changes the line width only moderately
+    # unit: web/test/ink-lib.test.ts:a normal stroke is thin and pressing hard makes it clearly thicker
+    @unit
+    Scenario: A normal stroke is thin and pressing harder makes it clearly thicker
       When I draw a stroke with the pen at the pressure 0.1
+      And I draw a stroke with the pen at the pressure 0.5
       And I draw a stroke with the pen at the pressure 1.0
-      Then the harder stroke is thicker, but at most 1.5 times as thick as the lighter one
+      Then the stroke at pressure 1.0 is at most half as thick as before: at most 0.075 of a line height
+      And the stroke at pressure 0.5 is at most 0.05 of a line height
+      And the stroke at pressure 1.0 is at least 2.5 times as thick as the stroke at pressure 0.1
 
     Scenario: A downward pen stroke draws and does not scroll the list
       When I draw a stroke 40 pixels downwards with the pen on the ink item number 3
