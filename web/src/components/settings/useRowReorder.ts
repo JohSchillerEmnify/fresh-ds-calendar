@@ -1,6 +1,6 @@
 /** Drag a settings list row by its grip to a new place (categories); the place logic is the task lists' (`reorder.ts`), arrow keys move one place. */
 import { ref } from 'vue';
-import { dropIndex, rowShifts, type RowSpan } from '@/features/tasklists/reorder';
+import { dropIndex, rowShifts, type RowSpan } from '@/features/tasklists';
 
 /** `rows()` are the row elements in order; `commit(from, to)` saves a move. */
 export function useRowReorder(rows: () => HTMLElement[], commit: (from: number, to: number) => void) {

@@ -1,4 +1,6 @@
 /** Coldmirror (Fresh D.) messages of the settings home, its groups and the settings search. */
+import settingsNavDe from '../de/settingsNav.ts';
+
 export default {
   home: {
     search: 'Einstellungen durchsuchen, yo',
@@ -62,26 +64,8 @@ export default {
     trackHours: '{count} Std.',
     version: 'Version',
   },
-  synonyms: {
-    theme: 'Dunkelmodus, dunkel, hell, Nachtmodus, Farben, Szene, Hintergrund',
-    language: 'Übersetzung, Deutsch, Englisch',
-    defaultView: 'Startansicht, öffnet mit',
-    minEventLength: 'kurze Termine, winzige Termine',
-    approachingCard: 'jetzt und gleich, demnächst',
-    taskCategories: 'Schlagwörter, Farben',
-    push: 'Benachrichtigungen, Push, Hinweise',
-    notifyEvents: 'Benachrichtigungen, Hinweise',
-    morning: 'Tagesübersicht, Tagesplan',
-    leftHanded: 'linke Hand, Linkshänder, spiegeln',
-    calmMode: 'ruhig, Fokus, Ablenkung, Ruhemodus',
-    animations: 'Bewegung, Übergänge',
-    sounds: 'Ton, Geräusche, Lautstärke',
-    streak: 'Flamme, Pflanze',
-    bedtimeReminder: 'Bettzeit-Erinnerung, Erinnerung vor dem Schlafen',
-    labs: 'experimentell, Beta',
-    backup: 'Google Drive, wiederherstellen, Sicherung',
-    version: 'Build, Über',
-  },
+  // same words as German, plus Fresh D.'s name for calm mode
+  synonyms: { ...settingsNavDe.synonyms, calmMode: 'ruhig, Fokus, Ablenkung, Ruhemodus' },
   calendar: { hidden: 'Versteckt, Digga' },
   time: {
     title: 'Uhrzeit wählen, yo',

@@ -1,5 +1,5 @@
 /** The settings catalogue (features settings-groups, settings-search); search is normalized substring matching, as the spec asks for no typo tolerance. */
-import { LABS_VIEWS } from '@/features/labs/labs';
+import { LABS_VIEWS } from '@/features/labs';
 import { t, type MessageKey } from '@/i18n';
 
 /** The groups of the settings home, in their order. */
@@ -7,7 +7,7 @@ export const GROUP_IDS = ['calendars', 'views', 'tasklists', 'reminders', 'appea
 export type GroupId = (typeof GROUP_IDS)[number];
 
 /** Sub-pages of a group (`/settings/<group>/<page>`). */
-export type SubPage = 'bedtime' | 'tasks-calendar';
+type SubPage = 'bedtime' | 'tasks-calendar';
 
 /** One setting: where it lives and the words that find it. */
 export interface SettingEntry {
@@ -135,7 +135,7 @@ export function settingRoute(entry: Pick<SettingEntry, 'group' | 'page'>, focus?
 }
 
 /** "Group" or "Group › Subgroup", translated. */
-export function pathOf(entry: Pick<SettingEntry, 'group' | 'sub'>): string {
+function pathOf(entry: Pick<SettingEntry, 'group' | 'sub'>): string {
   const group = t(`settingsNav.groups.${entry.group}.title`);
   return entry.sub ? `${group} › ${t(`settingsNav.sub.${entry.sub}` as MessageKey)}` : group;
 }

@@ -10,7 +10,7 @@ import Switch from '@/components/m3/Switch.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import { useRowReorder } from '@/components/settings/useRowReorder';
-import { moveTo } from '@/features/tasklists/reorder';
+import { moveTo } from '@/features/tasklists';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { t } from '@/i18n';
 import { usePrefsStore } from '@/stores/prefs';

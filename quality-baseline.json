@@ -75,8 +75,6 @@
    "feature-via-index-only|web/src/stores/settings.ts|web/src/features/motivation/types.ts": 1,
    "feature-via-index-only|web/src/views/MonthView.vue|web/src/features/calendar/EventBar.vue": 1,
    "feature-via-index-only|web/src/views/MonthView.vue|web/src/features/tasklists/layout.ts": 1,
-   "feature-via-index-only|web/src/views/SettingsView.vue|web/src/features/labs/labs.ts": 1,
-   "feature-via-index-only|web/src/views/SettingsView.vue|web/src/features/motivation/store.ts": 1,
    "feature-via-index-only|web/src/views/TemplatesView.vue|web/src/features/tasklists/TemplateDialog.vue": 1,
    "feature-via-index-only|web/src/views/TemplatesView.vue|web/src/features/tasklists/categories.ts": 1,
    "feature-via-index-only|web/src/views/TemplatesView.vue|web/src/features/tasklists/format.ts": 1,
@@ -132,7 +130,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.075
+   "duplicated-percent": 0.072
   },
   "types": {
    "AppConfig": 1,
@@ -195,7 +193,6 @@
    "@typescript-eslint/no-unused-vars|web/src/stores/items.ts": 1,
    "@typescript-eslint/no-unused-vars|web/src/stores/theme.ts": 1,
    "@typescript-eslint/no-unused-vars|web/src/theme/presets.ts": 3,
-   "@typescript-eslint/no-unused-vars|web/src/views/RemindersView.vue": 1,
    "@typescript-eslint/no-unused-vars|web/test/motion/components.test.ts": 1,
    "@typescript-eslint/no-unused-vars|web/test/tasklists.test.ts": 1,
    "@typescript-eslint/no-unused-vars|web/test/theme-overrides.test.ts": 1,
@@ -524,7 +521,6 @@
    "long|web/src/theme/scheme.ts": 2,
    "long|web/src/theme/svg.ts": 1,
    "long|web/src/views/MonthView.vue": 2,
-   "long|web/src/views/RemindersView.vue": 1,
    "long|web/src/views/TemplatesView.vue": 1,
    "long|web/src/views/ThemeView.vue": 1,
    "long|web/src/views/WeekView.vue": 1,

@@ -4,7 +4,7 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
-import { LABS_VIEWS, isLabsViewOn } from '@/features/labs/labs';
+import { LABS_VIEWS, isLabsViewOn } from '@/features/labs';
 import { t } from '@/i18n';
 import { usePrefsStore } from '@/stores/prefs';
 
