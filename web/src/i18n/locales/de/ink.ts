@@ -13,6 +13,7 @@ export default {
     custom: 'Eigene Farbe',
     preset: { default: 'Textfarbe', red: 'Rot', blue: 'Blau', green: 'Grün', orange: 'Orange' },
   },
+  done: 'Fertig',
   area: 'Schreibfeld',
   grip: 'Eintrag verschieben',
   item: 'Handgeschriebener Eintrag {n} von {total}',
