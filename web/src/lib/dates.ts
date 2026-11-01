@@ -8,8 +8,6 @@ import { dateLocale, language } from '@/i18n/language';
 export const WEEK_OPTS = { weekStartsOn: 1 as const };
 
 export type ViewKind = 'year' | 'month' | 'week' | 'day';
-export const VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
-export const VIEW_LABEL: Record<ViewKind, string> = { year: 'Year', month: 'Month', week: 'Week', day: 'Day' };
 
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const EN_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -97,7 +95,7 @@ export function parseIsoMonth(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}-\d{2}$/.test(s)) return null;
   return localDate(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 1);
 }
-export function parseYear(s: string | undefined | null): Date | null {
+function parseYear(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}$/.test(s)) return null;
   return new Date(Number(s), 0, 1);
 }
@@ -111,7 +109,7 @@ export function parseParam(view: ViewKind, value: string | undefined): Date | nu
   return view === 'week' ? startOfWeek(d, WEEK_OPTS) : d;
 }
 
-export function routeParam(view: ViewKind, d: Date): string {
+function routeParam(view: ViewKind, d: Date): string {
   if (view === 'year') return format(d, 'yyyy');
   if (view === 'month') return toIsoMonth(d);
   if (view === 'week') return toIsoDate(startOfWeek(d, WEEK_OPTS));

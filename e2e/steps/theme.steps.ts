@@ -637,6 +637,10 @@ Then('the {string} slider shows {string}', async function (this: World, label: s
   await expect(this.page.getByTestId(`${SLIDERS[label]!}-value`)).toHaveText(text);
 });
 
+Then('the {string} slider is disabled', async function (this: World, label: string) {
+  await expect(this.page.getByTestId(SLIDERS[label]!)).toBeDisabled();
+});
+
 Then('no option for {string} is pressed', async function (this: World, label: string) {
   await expect(this.page.locator(`[data-testid="theme-option"][data-setting="${label.toLowerCase()}"][aria-pressed="true"]`)).toHaveCount(0);
 });

@@ -1,14 +1,6 @@
 export { default as StreakFlame } from './StreakFlame.vue';
-export { default as StreakToast } from './StreakToast.vue';
-export { default as Plant } from './Plant.vue';
-export { default as PlantCard } from './PlantCard.vue';
-export { default as SunflowerField } from './SunflowerField.vue';
-export { default as Butterfly } from './Butterfly.vue';
-export { default as SunflowerScene } from './SunflowerScene.vue';
 export { default as TopBarScene } from './TopBarScene.vue';
 export { default as LeadingWidgets } from './LeadingWidgets.vue';
-export { scenes } from './scenes';
-export { useMotivationStore, diffMotivation, checkInMessage } from './store';
-export { onceFlag } from './session';
+export { useMotivationStore } from './store';
 export { useSceneRest } from './sceneRest';
 export type * from './types';

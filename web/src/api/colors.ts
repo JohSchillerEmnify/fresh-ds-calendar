@@ -10,7 +10,7 @@ export interface NamedColor {
 export const GOOGLE_COLORS: NamedColor[] = Object.entries(PALETTE).map(([id, c]) => ({ id, ...c }));
 
 /** Display order of event color options (feature event-colors), after "Calendar color". */
-export const EVENT_COLOR_ORDER = ['11', '4', '6', '5', '2', '10', '7', '9', '1', '3', '8'];
+const EVENT_COLOR_ORDER = ['11', '4', '6', '5', '2', '10', '7', '9', '1', '3', '8'];
 export const EVENT_COLOR_OPTIONS: NamedColor[] = EVENT_COLOR_ORDER.map((id) => GOOGLE_COLORS.find((c) => c.id === id)!);
 
 export const SEED_PRESETS: { name: string; hex: string }[] = [
@@ -42,7 +42,7 @@ function linear(c: number): number {
   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
 }
 
-export function relativeLuminance(hex: string): number {
+function relativeLuminance(hex: string): number {
   const [r, g, b] = channels(hex).map(linear);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }

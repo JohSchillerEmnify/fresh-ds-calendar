@@ -255,3 +255,17 @@ When('Google asks the app to slow down for the next sync', async function (this:
   await first;
   this.slowDownUntil = Date.now() + SLOW_DOWN_SEC * 1000;
 });
+
+/** A weekly series created in Google Calendar: one master with a weekly rule, no properties of the app. */
+Given(
+  'Google has an event {string} repeating every week from {date} from {time} to {time}',
+  async function (this: World, title: string, date: string, from: string, to: string) {
+    await this.api.remoteInsert({
+      calendarId: 'primary',
+      summary: title,
+      start: { dateTime: berlinIso(date, from), timeZone: 'Europe/Berlin' },
+      end: { dateTime: berlinIso(date, to), timeZone: 'Europe/Berlin' },
+      recurrence: ['RRULE:FREQ=WEEKLY'],
+    });
+  },
+);

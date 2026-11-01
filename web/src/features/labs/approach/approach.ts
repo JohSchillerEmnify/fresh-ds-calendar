@@ -2,15 +2,15 @@
 import { taskListSpan, type Segment } from '@/lib/items';
 
 /** Tick steps in minutes, tried from the finest; the first whose labels do not collide wins. */
-export const TICK_STEPS = [15, 30, 60, 120, 180] as const;
-/** The track never grows beyond this many chip rows (owner: "don't take too much space"). */
-export const MAX_ROWS = 2;
+const TICK_STEPS = [15, 30, 60, 120, 180] as const;
+/** The track never grows beyond this many chip rows ("don't take too much space"). */
+const MAX_ROWS = 2;
 
 export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 
 /**
  * All timed entries of today (events and task lists with a time, carried-over ones included) starting within `windowMin` after now, by start
- * (owner, 2026-10-13: not only the next three). Entries already running stay (they slide out to the left). When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
+ * (not only the next three). Entries already running stay (they slide out to the left). When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
  * of the track).
  */
 export function approachEntries(daySegments: Segment[], nowMin: number, windowMin: number): ApproachEntries {

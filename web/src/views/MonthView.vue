@@ -54,7 +54,7 @@ type Slotted = { key: string; gap: number } | { key: string; seg: Segment; h?: n
 /**
  * Bars per week row (as many lanes as leave one entry row in every cell, `maxLanes`; the rest is reachable through the day),
  * each day's nodes, and per day how many entries were left out (`more`) because they would lie completely under the cell's
- * bottom (owner, 2026-10-24: not built at all, the day lists them).
+ * bottom (not built at all, the day lists them).
  */
 const rows = computed(() => {
   const cellH = cellHeight();
@@ -88,7 +88,7 @@ const cellHeight = () => weekH.value || gridH.value / weeks.value.length;
 const slotH = () => (isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide).lane;
 /** Every entry of the day with the slots it wants; task lists share the pixels the cell has after the day's bars (by need), whatever does not fit is clipped and faded by the cell. */
 function entries(date: string, taken: number) {
-  // a timed event under 24 h crossing midnight is shown on its start day only, like Google (owner, 2026-10-25);
+  // a timed event under 24 h crossing midnight is shown on its start day only, like Google;
   // `more` / seenCount count this list, so the left-out next-day piece is not counted as hidden either
   const all = segs(date).filter((s) => s.first);
   const cellH = cellHeight();
@@ -184,7 +184,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .chips > :deep(*) { flex: none; }
 /* what does not fit fades out at the bottom (no visible "+N"; entries completely below are not built); the cell still opens the day */
 .chips[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
-/* a lifted chip is drawn above the other days, not clipped by its own cell (owner, 2026-10-25: it vanished mid-drag) */
+/* a lifted chip is drawn above the other days, not clipped by its own cell (it vanished mid-drag) */
 .cell:has([data-dragging='true']) { overflow: visible; position: relative; z-index: 5; }
 .chips:has([data-dragging='true']) { overflow: visible; -webkit-mask-image: none; mask-image: none; }
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */

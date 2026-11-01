@@ -13,7 +13,7 @@ export const MIN_ZOOM = 1;
 export const MAX_ZOOM = COLS;
 /** One press of the zoom buttons multiplies (or divides) the zoom by this. */
 export const BUTTON_FACTOR = 1.25;
-export const ZOOM_KEY = 'cal.zoomMonth';
+const ZOOM_KEY = 'cal.zoomMonth';
 
 export interface Pan { x: number; y: number }
 
@@ -102,7 +102,7 @@ export function smooth(x: number, a: number, b: number): number {
 }
 
 /**
- * Cell (CSS px) at which the owner said the real-time grid should already be fully shown: about 3.5 day columns across a
+ * Cell (CSS px) at which the real-time grid should already be fully shown: about 3.5 day columns across a
  * phone (~400 px / 3.5 = 115 wide) in a month of five or six rows (~245 tall). The switch to the timeline is the same for
  * every cell, so it is measured on the cell size alone (no per-day decision) and finished by this size.
  */
@@ -114,7 +114,7 @@ export const TIMELINE_REF = cellScale(115, 245);
  * replaces, and the timeline crossfades over the last 9 % below `TIMELINE_REF` (about 15 px of cell edge: a short window, so
  * a cell is never half chips, half grid for long).
  */
-export const DETAIL = {
+const DETAIL = {
   dotsOut: [85, 120],
   chipsIn: [80, 115],
   timesIn: [153, 157],
@@ -152,7 +152,7 @@ export function detailAt(w: number, h: number): Detail {
 }
 
 /** Shortest duration (min) a timed item counts as in the real-time layout: the cascade gap `packColumns` uses, so a point-like item still needs a readable block. */
-export const SHORTEST_MIN = 15;
+const SHORTEST_MIN = 15;
 
 /**
  * The minutes of the day (whole hours) the timed items span, or null when there are none; an item counts at least
@@ -169,7 +169,7 @@ export function timeSpan(segs: Segment[], minHours = 1): { start: number; end: n
 }
 
 /** Fewest hours the shared span of a week row covers, so a row of short items still gets a readable grid. */
-export const ROW_MIN_HOURS = 4;
+const ROW_MIN_HOURS = 4;
 
 /** The one hour span all cells of a week row share: the span of every timed item of the row (null when the row has none). */
 export function rowSpan(daySegs: Segment[][]): { start: number; end: number } | null {

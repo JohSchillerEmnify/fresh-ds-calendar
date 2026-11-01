@@ -22,7 +22,7 @@ export type NewKind = 'event' | 'tasklist';
 const KIND_KEY = 'calendar.newKind';
 
 /** Last kind chosen in the "new" dialog (per device); events by default. */
-export function lastNewKind(): NewKind {
+function lastNewKind(): NewKind {
   try { return localStorage.getItem(KIND_KEY) === 'tasklist' ? 'tasklist' : 'event'; } catch { return 'event'; }
 }
 export function rememberNewKind(k: NewKind): void {

@@ -136,9 +136,6 @@ import UnfoldLessS from '~icons/material-symbols/unfold-less-sharp';
 import UnfoldMoreO from '~icons/material-symbols/unfold-more';
 import UnfoldMoreR from '~icons/material-symbols/unfold-more-rounded';
 import UnfoldMoreS from '~icons/material-symbols/unfold-more-sharp';
-import ScienceO from '~icons/material-symbols/science';
-import ScienceR from '~icons/material-symbols/science-rounded';
-import ScienceS from '~icons/material-symbols/science-sharp';
 import SettingsOutlineO from '~icons/material-symbols/settings-outline';
 import SettingsOutlineR from '~icons/material-symbols/settings-outline-rounded';
 import SettingsOutlineS from '~icons/material-symbols/settings-outline-sharp';
@@ -148,9 +145,6 @@ import SyncS from '~icons/material-symbols/sync-sharp';
 import SyncProblemO from '~icons/material-symbols/sync-problem';
 import SyncProblemR from '~icons/material-symbols/sync-problem-rounded';
 import SyncProblemS from '~icons/material-symbols/sync-problem-sharp';
-import TodayOutlineO from '~icons/material-symbols/today-outline';
-import TodayOutlineR from '~icons/material-symbols/today-outline-rounded';
-import TodayOutlineS from '~icons/material-symbols/today-outline-sharp';
 
 type Variants = Record<IconSet, Component>;
 
@@ -199,11 +193,9 @@ export const IconViewColumn = appIcon('IconViewColumn', { outlined: ViewColumnO,
 export const IconViewAgenda = appIcon('IconViewAgenda', { outlined: ViewAgendaO, rounded: ViewAgendaR, sharp: ViewAgendaS });
 export const IconUnfoldLess = appIcon('IconUnfoldLess', { outlined: UnfoldLessO, rounded: UnfoldLessR, sharp: UnfoldLessS });
 export const IconUnfoldMore = appIcon('IconUnfoldMore', { outlined: UnfoldMoreO, rounded: UnfoldMoreR, sharp: UnfoldMoreS });
-export const IconScience = appIcon('IconScience', { outlined: ScienceO, rounded: ScienceR, sharp: ScienceS });
 export const IconSettingsOutline = appIcon('IconSettingsOutline', { outlined: SettingsOutlineO, rounded: SettingsOutlineR, sharp: SettingsOutlineS });
 export const IconSync = appIcon('IconSync', { outlined: SyncO, rounded: SyncR, sharp: SyncS });
 export const IconSyncProblem = appIcon('IconSyncProblem', { outlined: SyncProblemO, rounded: SyncProblemR, sharp: SyncProblemS });
-export const IconTodayOutline = appIcon('IconTodayOutline', { outlined: TodayOutlineO, rounded: TodayOutlineR, sharp: TodayOutlineS });
 export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded: BedtimeR, sharp: BedtimeS });
 export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });
 /** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */

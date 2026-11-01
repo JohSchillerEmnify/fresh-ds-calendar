@@ -49,7 +49,7 @@ const geo = computed(() => blockGeometry(props.segment.startMin, props.segment.e
 const timedStyle = computed(() => {
   const p = pos.value;
   if (!p) return { visibility: 'hidden' } as const;
-  // the card's measured height (its real length), but the grown pill always keeps one readable title row (owner, 2026-10-21)
+  // the card's measured height (its real length), but the grown pill always keeps one readable title row
   const real = Math.max(TITLE_ROW_PX, p.minHeight || geo.value.height - 1);
   return {
     left: p.left + 'px', width: p.width + 'px',

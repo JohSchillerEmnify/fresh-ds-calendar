@@ -37,7 +37,7 @@ function reload(): void {
   waiting.postMessage({ type: 'SKIP_WAITING' });
 }
 
-/** Preview builds (`…-preview+<sha>`) are for looking at the newest state, so they reload by themselves (owner). */
+/** Preview builds (`…-preview+<sha>`) are for looking at the newest state, so they reload by themselves. */
 export function isPreviewBuild(version = runningVersion()): boolean {
   return version.includes('-preview');
 }
@@ -54,7 +54,7 @@ function suppressed(target: string): boolean {
 }
 
 /** Show the persistent "new version" snackbar once; it never reloads by itself, except on a preview build. */
-export function offerUpdate(): void {
+function offerUpdate(): void {
   if (suppressed(latest)) return;
   if (isPreviewBuild()) { reload(); return; }
   const ui = useUiStore();

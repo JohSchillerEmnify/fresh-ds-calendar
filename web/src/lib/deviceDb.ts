@@ -20,7 +20,7 @@ const STORE = 'kv';
 export const PERSON_KEY = 'cal.devicePerson';
 
 /** The IndexedDB store (library `idb`); the database is opened on first use (and created then). */
-export function idbKv(dbName = DB_NAME): KvStore {
+function idbKv(dbName = DB_NAME): KvStore {
   let db: Promise<IDBPDatabase> | null = null;
   const open = (): Promise<IDBPDatabase> => (db ??= openDB(dbName, 1, { upgrade: (d) => { d.createObjectStore(STORE); } }).catch((e) => { db = null; throw e; }));
   return {

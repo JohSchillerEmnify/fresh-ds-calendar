@@ -12,7 +12,7 @@ export const NAME_MAX = 80;
 
 /**
  * What a list keeps as a template: its item titles in order (never a tick), estimate and category; never a date,
- * time, repeat, reminders, tags or sharing (owner, 2026-10-25).
+ * time, repeat, reminders, tags or sharing.
  */
 export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' | 'categoryId'>, name: string, categoriesOn: boolean, strokesOf: (itemId: string) => InkStroke[] = () => []): TaskTemplateInput {
   return {

@@ -174,7 +174,34 @@ When("I tap the band's section switch", async function (this: World) {
   await expect(toggle).not.toHaveAttribute('data-mode', before ?? '');
 });
 
-Then("the band's lists show their items", async function (this: World) {
+When("I tap the band's section switch twice", async function (this: World) {
+  const toggle = this.byTestId('tasks-section-toggle').first();
+  for (let i = 0; i < 2; i++) {
+    const before = await toggle.getAttribute('data-mode');
+    await toggle.click();
+    await expect(toggle).not.toHaveAttribute('data-mode', before ?? '');
+  }
+});
+
+/** A count level would replace a day's cards by a number: the band keeps its cards and has no digits outside them (the switch's own total aside). */
+Then('no day in the band shows a task count instead of its lists', async function (this: World) {
+  const band = this.page.locator('.alldays').first();
+  await expect(band.locator('.tl').first()).toBeVisible();
+  const counts = await band.evaluate((b) => [...b.querySelectorAll('*')]
+    .filter((el) => !el.closest('.tl, [data-testid="tasks-section-toggle"]') && el.getBoundingClientRect().height > 1)
+    .flatMap((el) => [...el.childNodes].filter((n) => n.nodeType === 3 && /\d/.test(n.textContent ?? '')).map((n) => n.textContent!.trim())));
+  expect(counts, 'numbers shown in the band outside its lists').toEqual([]);
+});
+
+Then('the titleless task list on {date} is labelled {string}', async function (this: World, date: string, label: string) {
+  const card = this.page.locator(`[data-testid="tasklist-card"][data-untitled="true"][data-date="${date}"]`);
+  await expect(card).toHaveCount(1);
+  await expect(card.getByTestId('tasklist-card-title')).toHaveCount(0);
+  await expect(card.getByTestId('tasklist-card-items')).toBeVisible();
+  await expect(card.getByTestId('tasklist-card-items')).toHaveText(label);
+});
+
+Then("the band's lists show their items",async function (this: World) {
   await expect(this.byTestId('tasks-section-toggle').first()).toHaveAttribute('data-mode', 'full');
   const cards = this.page.locator('.alldays').first().locator('.tl');
   await expect(cards.first()).toBeVisible();

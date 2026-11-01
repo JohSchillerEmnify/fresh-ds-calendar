@@ -1,7 +1,7 @@
 /** Detection of hard-coded UI text in Vue templates (shared by `test/i18n-raw-text.test.ts` and `pnpm i18n:scan`). */
 
 /** Static attributes that carry text a person reads or a screen reader speaks. */
-export const TEXT_ATTRS = new Set(['label', 'aria-label', 'title', 'placeholder', 'alt']);
+const TEXT_ATTRS = new Set(['label', 'aria-label', 'title', 'placeholder', 'alt']);
 export const HAS_WORD = /\p{L}{2,}/u;
 
 export interface Node {

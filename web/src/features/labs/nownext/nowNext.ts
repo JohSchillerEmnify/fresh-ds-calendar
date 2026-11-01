@@ -5,7 +5,7 @@ import { nowCardModel } from '@/features/calendar/timeline';
 import { timedToday } from '@/features/labs/approach/approach';
 
 /** What the Now card shows: the running event, else the first open task list, else free time. */
-export type NowState =
+type NowState =
   /** `endTime`: the event's real end (HH:MM), also when it ends on another day. */
   /** `alsoNow`: the other events running at the same time, ending first first. */
   | { kind: 'running'; segment: Segment; leftMin: number; leftPercent: number; endTime: string; alsoNow: Segment[] }
@@ -14,7 +14,7 @@ export type NowState =
   | { kind: 'free'; untilMin: number | null };
 
 /** An entry still ahead today (the segment as it sits in time; a carried-over list at its own time). */
-export interface UpNext { segment: Segment; startMin: number; inMin: number }
+interface UpNext { segment: Segment; startMin: number; inMin: number }
 
 export interface NowNextModel { now: NowState; next: UpNext | null; later: UpNext[] }
 

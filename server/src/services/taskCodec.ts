@@ -6,7 +6,7 @@ import type { GoogleEvent, GoogleEventInput, GoogleEventPatch } from '../provide
 
 export const MAX_PRIVATE_BYTES = 30_000;
 /** Largest stored Canvas coordinate (feature tasks-canvas): larger than the board, so the board can grow. */
-export const CANVAS_MAX = 10_000;
+const CANVAS_MAX = 10_000;
 const CHUNK = 1000;
 const SINGLE_MAX = 1024;
 /** The all-day date that stores undated task lists in Google (ADR 0017). */

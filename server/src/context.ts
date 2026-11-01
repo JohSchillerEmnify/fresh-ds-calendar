@@ -2,7 +2,6 @@ import type { AppConfig } from './config.js';
 import { AuthState } from './auth/state.js';
 import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
-import { formatInZone } from './lib/time.js';
 import { CanvasStore } from './services/canvasStore.js';
 import { InkStore } from './services/inkStore.js';
 import { InkService } from './services/inkService.js';
@@ -170,4 +169,3 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   return ctx;
 }
 
-export const nowIso = (ctx: Ctx) => formatInZone(ctx.clock.real(), ctx.config.tz);

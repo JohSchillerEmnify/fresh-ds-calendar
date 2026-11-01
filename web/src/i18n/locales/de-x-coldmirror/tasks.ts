@@ -1,6 +1,6 @@
 /**
  * Coldmirror messages of the task lists and tasks area, in the voice of "Fresh Dumbledore" (Fresh D.). Complete: it covers
- * every key of `de`. Never "Ich bin voll geil" (owner).
+ * every key of `de`. Never "Ich bin voll geil".
  */
 import type { PartialMessages } from '../../schema';
 

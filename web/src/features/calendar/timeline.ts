@@ -3,7 +3,7 @@ import type { Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { t } from '@/i18n';
 
-export { blockGeometry, MIN_BLOCK_PX } from '@/lib/items';
+export { MIN_BLOCK_PX } from '@/lib/items';
 
 export const minutesToPx = (min: number, hourHeight: number) => (min / 60) * hourHeight;
 

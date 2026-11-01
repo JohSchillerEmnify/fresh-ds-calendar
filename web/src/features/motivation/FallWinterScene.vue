@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * The Fall and Winter part of the living scene layer (feature theme-scenes, round 3 mockups approved 2026-10-26). Fall:
+ * The Fall and Winter part of the living scene layer (feature theme-scenes, round 3 mockups approved). Fall:
  * a leaf-strewn ground across the whole bar, autumn trees, leaf piles and the cat's kite on a string to its paw (the
  * kite sways while the scene moves). Winter: a snow drift across the whole bar, snowy trees, a snowman and a sledge.
  * While the scene moves its visitor comes once: a flock of three birds flies across (Fall), a robin hops onto the
  * sledge (Winter). The spots per bar layout come from `fallWinter.ts`; the props may stay partly under a control
- * (decoration, owner 2026-10-30). The cat itself comes from `SceneLife`, at {@link CAT_X}.
+ * (decoration). The cat itself comes from `SceneLife`, at {@link CAT_X}.
  */
 import { computed, ref } from 'vue';
 import { BUTTERFLY_RHYTHM } from './butterflyVisits';

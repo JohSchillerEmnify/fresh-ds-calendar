@@ -19,7 +19,6 @@ export function googleEventId(): string {
   return out;
 }
 
-export const GOOGLE_EVENT_ID_RE = /^[a-v0-9]{5,1024}$/;
 
 /** Stable 8-char item id derived from text (used for items parsed from a description). */
 export function stableId(text: string): string {

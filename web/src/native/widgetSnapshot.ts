@@ -24,7 +24,7 @@ export interface WidgetTheme {
 }
 
 /** One event as shown on one day: `start`/`end` are `HH:mm` wall times, null for all-day (and continuation days). */
-export interface WidgetEvent {
+interface WidgetEvent {
   title: string;
   allDay: boolean;
   start: string | null;
@@ -32,8 +32,8 @@ export interface WidgetEvent {
   color: string;
 }
 
-export interface WidgetDay { date: LocalDate; events: WidgetEvent[] }
-export interface WidgetTaskList { title: string; done: number; total: number; color: string }
+interface WidgetDay { date: LocalDate; events: WidgetEvent[] }
+interface WidgetTaskList { title: string; done: number; total: number; color: string }
 
 export interface WidgetSnapshot {
   /** Format version; the native side ignores snapshots of a version it does not know. */

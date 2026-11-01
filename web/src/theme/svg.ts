@@ -14,7 +14,7 @@ export function loadSvgSanitizer(): Promise<SvgSanitizer> {
 }
 
 /** A sanitised SVG as a `data:` URL for an `<img>`. */
-export async function svgDataUrl(svg: string): Promise<string> {
+async function svgDataUrl(svg: string): Promise<string> {
   const { svg: safe } = (await loadSvgSanitizer())(svg);
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(safe)}`;
 }

@@ -7,9 +7,9 @@ import { holidayOf, type Holiday } from './holidays';
 import { FINE_KEYS, sanitizeFine, type ThemeFine } from './fine';
 import type { ThemeMode } from './index';
 
-export type Glow = 'off' | 'soft' | 'neon';
-export type Entries = 'solid' | 'tinted' | 'outline';
-export type Corners = 'square' | 'round' | 'pill';
+type Glow = 'off' | 'soft' | 'neon';
+type Entries = 'solid' | 'tinted' | 'outline';
+type Corners = 'square' | 'round' | 'pill';
 /** `custom` = the theme's own SVG picture (only ever set by an imported theme, never an override). */
 export type ThemeScene = 'none' | 'sunflowers' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween'
   | 'easter' | 'summerholidays' | 'christmas' | 'newyearseve' | 'newyear' | 'custom';
@@ -58,7 +58,7 @@ export const PRESETS: Record<PresetName, Preset> = {
   Spring: { name: 'Spring', seed: '#4f9d3a', mode: null, attrs: { ...base, corners: 'pill', scene: 'spring' } },
   Summer: { name: 'Summer', seed: '#e09a00', mode: null, attrs: { ...base, glow: 'soft', scene: 'summer' } },
   Fall: { name: 'Fall', seed: '#b8540c', mode: null, attrs: { ...base, entries: 'tinted', scene: 'fall' } },
-  /** Pumpkin orange; keeps the person's mode: light = dusk, dark = night (owner 2026-10-13). */
+  /** Pumpkin orange; keeps the person's mode: light = dusk, dark = night. */
   Halloween: { name: 'Halloween', seed: '#e8650c', mode: null, attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'halloween' } },
   /** Holiday presets keep the person's mode like the season ones (feature theme-scenes). */
   Easter: { name: 'Easter', seed: '#8e6bbf', mode: null, attrs: { ...base, entries: 'tinted', corners: 'pill', scene: 'easter' } },

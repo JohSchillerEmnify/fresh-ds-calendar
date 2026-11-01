@@ -17,7 +17,6 @@ export function carriedLabel(date: string | null): string {
   return t('tasks.card.from', { date: day });
 }
 
-export const itemsText = (tl: TaskList): string => (tl.items.length ? tl.items.map((i) => i.title).join(', ') : t('tasks.card.noItems'));
 export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? null;
 
 /** All items ticked (an empty list is not "done"). */

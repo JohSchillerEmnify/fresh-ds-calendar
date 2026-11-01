@@ -87,7 +87,7 @@ const error = ref(props.error ?? '');
 const saving = ref(false);
 const sheet = ref<HTMLElement | null>(null);
 const dirty = computed(() => JSON.stringify(form.value) !== initial.value);
-/** An opened event with a location shows it (and its map) right under the title, so the map needs no scrolling (owner, R6a). */
+/** An opened event with a location shows it (and its map) right under the title, so the map needs no scrolling. */
 const locationUp = ref(false);
 /** The read-only event's place, with its address read back from the location. */
 const readOnlyPlace = computed(() => (original.value ? placeFromEvent(original.value) : null));

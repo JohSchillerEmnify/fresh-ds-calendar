@@ -70,8 +70,8 @@ interface State { lastBackupAt?: string; lastHash?: string; error?: string; erro
 /** The tunable timings (hooks in TEST_MODE change them). */
 export interface BackupTimings { keep: number; debounceMs: number; minIntervalMs: number; dailyMs: number; checkEveryMs: number }
 /** Bundle prefix of the server-wide files. */
-export const SERVER_PREFIX = 'server';
-export const DEFAULT_TIMINGS: BackupTimings = { keep: BACKUP_KEEP, debounceMs: 2 * 60_000, minIntervalMs: 5 * 60_000, dailyMs: 24 * 3_600_000, checkEveryMs: 3_600_000 };
+const SERVER_PREFIX = 'server';
+const DEFAULT_TIMINGS: BackupTimings = { keep: BACKUP_KEEP, debounceMs: 2 * 60_000, minIntervalMs: 5 * 60_000, dailyMs: 24 * 3_600_000, checkEveryMs: 3_600_000 };
 
 export interface BackupDeps {
   dataDir: string;

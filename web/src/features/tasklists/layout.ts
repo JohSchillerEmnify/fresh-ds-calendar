@@ -41,7 +41,7 @@ export function fitItems(i: FitInput): Fit {
 const INK_ROW_PX = 24;
 
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
-export const INLINE_BELOW_PX = 62;
+const INLINE_BELOW_PX = 62;
 
 /** What the collapsed (or grown) task list card knows about its host and its list, for {@link cardLayout}. */
 export interface CardLayoutInput {

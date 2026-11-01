@@ -2,7 +2,6 @@
  * Time zone helpers built on Intl only (no date library). All "local" values are wall-clock values in a named IANA
  * zone (default Europe/Berlin). DST-safe: offsets are looked up per instant.
  */
-import { TIME_RE } from '@calendar/shared/limits';
 
 const LOCAL_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 /** RFC 3339 date-time with mandatory offset or Z. */
@@ -17,10 +16,6 @@ export function isLocalDate(s: unknown): s is string {
   const y = +m[1]!, mo = +m[2]!, d = +m[3]!;
   if (mo < 1 || mo > 12 || d < 1) return false;
   return d <= daysInMonth(y, mo);
-}
-
-export function isLocalTime(s: unknown): s is string {
-  return typeof s === 'string' && TIME_RE.test(s);
 }
 
 export function isDateTime(s: unknown): s is string {
@@ -40,7 +35,7 @@ export function dayNumber(date: string): number {
   return Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
 }
 
-export function fromDayNumber(n: number): string {
+function fromDayNumber(n: number): string {
   return new Date(n * DAY_MS).toISOString().slice(0, 10);
 }
 
@@ -86,7 +81,7 @@ function formatter(tz: string): Intl.DateTimeFormat {
   return f;
 }
 
-export interface ZonedParts {
+interface ZonedParts {
   year: number;
   month: number;
   day: number;
@@ -95,7 +90,7 @@ export interface ZonedParts {
   second: number;
 }
 
-export function zonedParts(ms: number, tz: string): ZonedParts {
+function zonedParts(ms: number, tz: string): ZonedParts {
   const parts = formatter(tz).formatToParts(new Date(ms));
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
   return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour') % 24, minute: get('minute'), second: get('second') };

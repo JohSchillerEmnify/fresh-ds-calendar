@@ -55,10 +55,3 @@ export function pop(el: Element | null | undefined, from = 0.8, spring: SpringPa
   return animate(el, [{ transform: `scale(${from})` }, { transform: 'scale(1)' }], { spring });
 }
 
-/** Micro-interaction for any pressable (FAB etc.): spring back from a press scale. */
-export function pressRelease(el: Element | null | undefined) {
-  return animate(el, [{ transform: 'scale(0.92)' }, { transform: 'scale(1)' }], {
-    spring: { stiffness: 700, damping: 0.5 },
-    reduced: 'skip',
-  });
-}
