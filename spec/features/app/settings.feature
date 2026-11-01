@@ -116,9 +116,9 @@ Feature: Settings
     And the app regains focus
     Then the app uses the dark theme
 
-  Scenario: Every setting appears once, in its section
+  Scenario: Every setting appears once, in its group
     When I open the settings
-    Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Bedtime, Notifications, Labs, Account & data"
+    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
     And the settings page has no theme mode or seed colour controls
 
   Scenario: The version is shown in the settings and, if I want, in the corner

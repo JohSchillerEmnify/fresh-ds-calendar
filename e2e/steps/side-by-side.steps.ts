@@ -2,6 +2,7 @@
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { attr, tid, type World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 /** The pref that holds the limit of a view. */
 const prefOf = (view: string) => (view === 'day' ? 'daySideBySide' : 'weekSideBySide');
@@ -14,13 +15,13 @@ async function limit(w: World, view: string, n: number) {
 /** Picks "Up to N" of a view on the settings screen and waits for the save. */
 async function choose(w: World, view: string, n: number) {
   const saved = w.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/prefs') && r.status() === 200);
-  await w.page.getByTestId(`settings-${view}-side-by-side-${n}`).click();
+  await (await settingControl(w, `settings-${view}-side-by-side-${n}`)).click();
   await saved;
 }
 
 /** Expects "Up to N" of a view to be the selected option on the settings screen. */
 async function shows(w: World, view: string, n: number) {
-  await expect(w.page.getByTestId(`settings-${view}-side-by-side-${n}`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(await settingControl(w, `settings-${view}-side-by-side-${n}`)).toHaveAttribute('aria-pressed', 'true');
 }
 
 Given('the day view shows up to {int} events side by side', async function (this: World, n: number) { await limit(this, 'day', n); });

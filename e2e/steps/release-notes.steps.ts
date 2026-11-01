@@ -3,13 +3,14 @@ import { expect } from '@playwright/test';
 import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 Given('the release notes are:', async function (this: World, table: DataTable) {
   await this.api.post('/api/__test/release-notes', { notes: table.hashes().map((r) => ({ date: r.date, text: r.text })) });
 });
 
 When('I open What\'s new', async function (this: World) {
-  await this.page.getByTestId('settings-whats-new').click();
+  await (await settingControl(this, 'settings-whats-new')).click();
   await expect(this.page.getByTestId('whats-new')).toBeVisible();
 });
 

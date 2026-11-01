@@ -6,6 +6,7 @@ import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { GoogleEvent, RemoteCalendar } from './support/api.js';
 import { attr, type World } from './support/world.js';
+import { settingRowByName } from './support/settings.js';
 
 /** The calendar list entries with this summary. */
 async function calendarsNamed(world: World, summary: string): Promise<RemoteCalendar[]> {
@@ -74,18 +75,13 @@ Then('the filter bar does not offer the calendar {string}', async function (this
 });
 
 When('I turn on {string} in the settings', async function (this: World, label: string) {
-  if (!this.page.url().startsWith('http')) {
-    await this.page.goto('/');
-    await this.calendarShown();
-  }
-  // The settings may already be open (e.g. after "I open the settings").
-  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
-  const control = this.page.getByTestId('settings-view').getByRole('switch', { name: label, exact: true });
+  // the settings search leads to the row, wherever it lives (feature settings-search)
+  const control = (await settingRowByName(this, label)).getByRole('switch', { name: label, exact: true });
   await expect(control).toBeVisible();
   if ((await control.getAttribute('aria-checked')) !== 'true') {
-    const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+    const saved = this.page.waitForResponse((r) => ['/api/prefs', '/api/settings'].includes(new URL(r.url()).pathname) && r.request().method() === 'PATCH');
     await control.click();
-    expect((await saved).status(), 'prefs saved').toBe(200);
+    expect((await saved).status(), 'saved').toBe(200);
   }
   await expect(control).toHaveAttribute('aria-checked', 'true');
 });

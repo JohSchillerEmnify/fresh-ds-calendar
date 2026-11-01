@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { dig } from './support/google.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 interface ManifestIcon { src: string; sizes?: string; purpose?: string; type?: string }
 
@@ -144,16 +145,16 @@ When('I dismiss the iOS install hint', async function (this: World) {
 });
 
 Then('the settings offer to install the app', async function (this: World) {
-  await expect(this.page.getByTestId('settings-install-app')).toBeVisible();
+  await expect((await settingControl(this, 'settings-install-app'))).toBeVisible();
 });
 
 Then('the settings do not offer to install the app', async function (this: World) {
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
-  await expect(this.page.getByTestId('settings-install-app')).toBeHidden();
+  await expect((await settingControl(this, 'settings-install-app'))).toBeHidden();
 });
 
 When('I open the install instructions in the settings', async function (this: World) {
-  await this.page.getByTestId('settings-install-app').click();
+  await (await settingControl(this, 'settings-install-app')).click();
   await expect(this.page.getByTestId('ios-install-sheet')).toBeVisible();
 });
 

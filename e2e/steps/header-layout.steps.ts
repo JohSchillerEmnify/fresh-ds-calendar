@@ -3,6 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { box, hitAreaMisses, isTouchScreen } from './support/ui.js';
 import type { World } from './support/world.js';
+import { settingRowByName } from './support/settings.js';
 
 /** The settings labels of the layouts and their pref values. */
 const LAYOUTS: Record<string, 'two-rows' | 'one-row'> = { 'Two rows': 'two-rows', 'One row': 'one-row' };
@@ -230,7 +231,7 @@ Then('the sync icon shows a problem', async function (this: World) {
 });
 
 Then('the {string} switch in the settings is off', async function (this: World, label: string) {
-  const control = this.page.getByTestId('settings-view').getByRole('switch', { name: label, exact: true });
+  const control = (await settingRowByName(this, label)).getByRole('switch', { name: label, exact: true });
   await expect(control).toHaveAttribute('aria-checked', 'false');
 });
 

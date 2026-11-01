@@ -4,13 +4,14 @@ import { Given, Then, When } from './fixtures.js';
 import { inSheet } from './support/tasks-sheets.js';
 import { attr, type World } from './support/world.js';
 import { pathname } from './support/ui.js';
+import { settingControl } from './support/settings.js';
 
 const isPrefsPatch = (r: { url(): string; request(): { method(): string } }) =>
   new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH';
 
 When('I turn the task categories {string}', async function (this: World, state: string) {
   if (state !== 'on' && state !== 'off') throw new Error(`Expected "on" or "off", got "${state}"`);
-  const control = this.page.getByTestId('settings-task-categories');
+  const control = (await settingControl(this, 'settings-task-categories'));
   await expect(control).toBeVisible();
   if (((await control.getAttribute('aria-checked')) === 'true') === (state === 'on')) return;
   const saved = this.page.waitForResponse(isPrefsPatch);
@@ -19,9 +20,9 @@ When('I turn the task categories {string}', async function (this: World, state: 
 });
 
 Then('the settings page shows no categories', async function (this: World) {
-  await expect(this.page.getByTestId('settings-task-categories')).toBeVisible();
-  await expect(this.page.getByTestId('settings-category')).toHaveCount(0);
-  await expect(this.page.getByTestId('settings-category-add')).toHaveCount(0);
+  await expect((await settingControl(this, 'settings-task-categories'))).toBeVisible();
+  await expect((await settingControl(this, 'settings-category'))).toHaveCount(0);
+  await expect((await settingControl(this, 'settings-category-add'))).toHaveCount(0);
 });
 
 Then('the Tasks view offers no category filter, grouping or sorting', async function (this: World) {

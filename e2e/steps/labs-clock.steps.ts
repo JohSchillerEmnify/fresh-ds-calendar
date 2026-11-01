@@ -5,13 +5,13 @@ import { Given, Then, When } from './fixtures.js';
 import { createEvent } from './setup.steps.js';
 import { berlinIso } from './support/dates.js';
 import { exactText, tid, type World } from './support/world.js';
-import { setLabsSwitch, turnOnLabsSwitch } from './support/ui.js';
+import { setLabsSwitch, turnOnLabsSwitch } from './support/settings.js';
 
 /** A Labs view label as its registry id: lower case, words joined by "-" ("Clock: rings" → "clock-rings"). */
 const labId = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 When('I turn on experimental views in the settings', async function (this: World) {
-  await turnOnLabsSwitch(this.page, 'settings-labs');
+  await turnOnLabsSwitch(this, 'settings-labs');
 });
 
 Then('the view switcher offers the experimental views {string}', async function (this: World, labels: string) {
@@ -28,11 +28,11 @@ Then('the view switcher does not offer {string}', async function (this: World, l
 });
 
 When('I switch the Labs view {string} on in the settings', async function (this: World, label: string) {
-  await setLabsSwitch(this.page, `settings-labs-view-${labId(label)}`, true);
+  await setLabsSwitch(this, `settings-labs-view-${labId(label)}`, true);
 });
 
 When('I switch the Labs view {string} off in the settings', async function (this: World, label: string) {
-  await setLabsSwitch(this.page, `settings-labs-view-${labId(label)}`, false);
+  await setLabsSwitch(this, `settings-labs-view-${labId(label)}`, false);
 });
 
 When('I open the clock view for {date}', async function (this: World, date: string) {

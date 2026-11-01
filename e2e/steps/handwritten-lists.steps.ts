@@ -6,6 +6,7 @@ import { finishedList } from './tasks-archive.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
 import { box, chooseListAction } from './support/ui.js';
 import type { World } from './support/world.js';
+import { openSettingsPage, settingControl } from './support/settings.js';
 
 const PREF: Record<string, string> = { 'Handwritten lists': 'labsHandwriting', 'Draw with finger': 'labsDrawWithFinger' };
 const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
@@ -24,8 +25,9 @@ Given('the Labs switch {string} is on', async function (this: World, name: strin
 Given('the Labs setting {string} is on', async function (this: World, name: string) { await setSwitch(this, name, true); });
 /** The Labs row of a setting; the master switch is turned on when the row is not shown yet (it only hides the rows). */
 async function labsRow(w: World, name: string): Promise<Locator> {
+  await openSettingsPage(w, 'labs');
   const row = w.page.getByTestId(name === 'Handwritten lists' ? 'settings-labs-handwriting' : 'settings-labs-draw-with-finger');
-  if (!(await row.count())) await w.page.getByTestId('settings-labs').click();
+  if (!(await row.count())) await (await settingControl(w, 'settings-labs')).click();
   return row;
 }
 /** One sentence for the given and the check: with the settings open it is checked on screen, else the pref is set. */

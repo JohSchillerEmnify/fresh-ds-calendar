@@ -14,45 +14,38 @@ Feature: Search the settings
 
   Rule: Search matches names, descriptions and synonyms
 
-    @backlog
     Scenario: A setting is found by its name
       When I open the settings
       And I search the settings for "side by side"
       Then the settings search shows "Events side by side: day" in "Views"
       And the settings search shows "Events side by side: week" in "Views"
 
-    @backlog
     Scenario: Capitals do not matter
       When I open the settings
       And I search the settings for "LEFT-HANDED"
       Then the settings search shows "Left-handed mode" in "Appearance & layout"
 
-    @backlog
     Scenario: A setting is found by a word of its description
       When I open the settings
       And I search the settings for "readable"
       Then the settings search shows "Minimum event length" in "Views"
 
-    @backlog
     Scenario: A setting is found by a synonym
       When I open the settings
       And I search the settings for "dark mode"
       Then the settings search shows "Theme" in "Appearance & layout"
 
-    @backlog
     Scenario: A calendar is found by its name
       Given the calendar contains an event "Standup" in the calendar "Work" on 2026-11-04 from 09:00 to 09:15
       When I open the settings
       And I search the settings for "work"
       Then the settings search shows "Work" in "Calendars"
 
-    @backlog
     Scenario: Nothing matches
       When I open the settings
       And I search the settings for "xylophone"
       Then the settings search says nothing matches "xylophone"
 
-    @backlog
     Scenario: Clearing the search shows the groups again
       When I open the settings
       And I search the settings for "sounds"
@@ -61,7 +54,6 @@ Feature: Search the settings
 
   Rule: Search uses the language the app is shown in
 
-    @backlog
     Scenario: A German app finds German words, not English ones
       Given the browser language is "de-DE"
       When I open the settings
@@ -72,7 +64,6 @@ Feature: Search the settings
 
   Rule: A result takes me to the setting
 
-    @backlog
     Scenario: Choosing a result opens its group and highlights the setting
       When I open the settings
       And I search the settings for "sounds"
@@ -80,7 +71,6 @@ Feature: Search the settings
       Then the settings group page "Focus & calm" is shown
       And the setting "Sounds" is highlighted
 
-    @backlog
     Scenario: A setting hidden behind a switch leads to that switch
       When I open the settings
       And I search the settings for "time of the overview"
@@ -88,7 +78,6 @@ Feature: Search the settings
       Then the settings group page "Reminders" is shown
       And the setting "Morning overview" is highlighted
 
-    @backlog
     Scenario: A Labs setting is found while Labs is off and leads to the Labs switch
       When I open the settings
       And I search the settings for "handwritten"
@@ -99,7 +88,6 @@ Feature: Search the settings
 
   Rule: Search works offline
 
-    @backlog
     Scenario: Search works without a connection
       Given the network connection is lost
       When I open the settings

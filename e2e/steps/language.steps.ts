@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 /** The marker `I choose ... as the language` leaves on `window`; a page reload would lose it. */
 type MarkedWindow = Window & { __languageMarker?: true };
@@ -24,7 +25,7 @@ Then('the page language is {string}', async function (this: World, lang: string)
 });
 
 When('I choose {string} as the language', async function (this: World, label: string) {
-  const control = this.page.getByTestId('settings-language');
+  const control = (await settingControl(this, 'settings-language'));
   await expect(control).toBeVisible();
   await this.page.evaluate(() => { (window as MarkedWindow).__languageMarker = true; });
   if ((await selectedLabel(control)) === label) return;
@@ -34,7 +35,7 @@ When('I choose {string} as the language', async function (this: World, label: st
 });
 
 Then('the language {string} is selected', async function (this: World, label: string) {
-  await expect.poll(() => selectedLabel(this.page.getByTestId('settings-language'))).toBe(label);
+  await expect.poll(async () => selectedLabel((await settingControl(this, 'settings-language')))).toBe(label);
 });
 
 Then('the page was not reloaded', async function (this: World) {

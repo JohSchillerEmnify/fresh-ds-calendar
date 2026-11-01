@@ -1,4 +1,4 @@
-# Settings tree (proposal, waiting for the owner's OK)
+# Settings tree (approved by the owner, 2026-11-01)
 
 Every setting of today ([`settings-audit.md`](settings-audit.md)) in its new place: **group › subgroup › setting**.
 Notes: *(moved from …)*, *(merged: …)*, *(removed: …)*, *(new)*. Unmarked = stays as it is, only regrouped.
@@ -33,7 +33,7 @@ Settings  [search bar: "Search settings"]
 │     ├─ Approaching card               switch
 │     ├─ Time left                      switch  (only shown while the card is on)
 │     ├─ Approaching track              switch  (only shown while the card is on)
-│     └─ Track reaches ahead            3/6/12 h or slider 1–24 h (only while track is on; replaces select + number field)
+│     └─ Track reaches ahead            slider 1–24 h (only while track is on; replaces select + number field)
 │
 ├─ Task lists                                   "Categories, templates, what a tap does"
 │  ├─ Categories
@@ -74,8 +74,7 @@ Settings  [search bar: "Search settings"]
 │
 ├─ Focus & calm                                 "Calm mode, motion, sounds, streak, bedtime"
 │  │                                            (merged: Focus & motivation + Motion & sound + Bedtime)
-│  ├─ Calm mode                         switch  — while on, Animations shows "Reduced (calm mode)" and is locked
-│  │                                            (merged meaning: calm mode caps animations; no second "reduced" switch)
+│  ├─ Calm mode                         switch  (independent of Animations: owner, 2026-11-01)
 │  ├─ Motion and sound
 │  │  ├─ Animations                     Full/Reduced/Off
 │  │  ├─ Ignore the device setting      switch  (only shown when the device asks for less motion)

@@ -16,13 +16,11 @@ Feature: Settings in a few groups
 
   Rule: The settings home lists a few groups
 
-    @backlog
     Scenario: The settings home shows the groups and a search bar
       When I open the settings
       Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
       And the settings home shows the search bar
 
-    @backlog
     Scenario: A group opens as its own page and Back returns to the groups
       When I open the settings
       And I open the settings group "Views"
@@ -32,7 +30,6 @@ Feature: Settings in a few groups
       When I go back in the settings
       Then the settings home is shown
 
-    @backlog
     Scenario: Layout settings are under Appearance & layout, not under Views
       When I open the settings
       And I open the settings group "Appearance & layout"
@@ -44,7 +41,6 @@ Feature: Settings in a few groups
 
   Rule: Settings that only matter with another one on are shown with it
 
-    @backlog
     Scenario: The Approaching card's details hide while the card is off
       When I open the settings
       And I open the settings group "Views"
@@ -81,21 +77,18 @@ Feature: Settings in a few groups
 
   Rule: One setting, one control
 
-    @backlog
     Scenario: Task list reminders are switched in one place only
       When I open the settings
       And I search the settings for "task lists with a time"
       Then the settings search shows 1 result
       And the settings search shows "Before task lists with a time" in "Reminders"
 
-    @backlog
     Scenario: The bedtime reminder is one choice in Bedtime
       When I open the settings
       And I search the settings for "bedtime reminder"
       Then the settings search shows 1 result
       And the settings search shows "Reminder" in "Focus & calm › Bedtime"
 
-    @backlog
     Scenario: The bar size can go back to Automatic
       When I open the settings
       And I open the settings group "Appearance & layout"
@@ -105,14 +98,12 @@ Feature: Settings in a few groups
 
   Rule: The settings follow Material 3 Expressive
 
-    @backlog
     Scenario: Settings rows are list items with the control at the end
       When I open the settings
       And I open the settings group "Views"
       Then every settings row shows its name first and its control at the end
       And no button of the settings screen is filled
 
-    @backlog
     Scenario: A time is chosen with the time picker
       When I open the settings
       And I open the settings group "Reminders"

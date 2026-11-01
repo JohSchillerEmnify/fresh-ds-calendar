@@ -7,13 +7,14 @@ import { Given, Then, When } from './fixtures.js';
 import { signIn } from './signin.steps.js';
 import { chooseTheme } from './theme.steps.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 const SUPPORT_CAT = { Off: 'off', Sometimes: 'sometimes', 'Every time': 'always' } as const;
 const status = (w: World) => w.page.getByTestId('settings-backup-status');
 
-/** Shows the settings (the backup rows are in Account & data) unless they are open. */
+/** Shows the settings group Account & app (the backup rows) unless it is open. */
 async function settings(w: World) {
-  if (new URL(w.page.url(), 'http://x').pathname !== '/settings') await w.page.goto('/settings');
+  if (new URL(w.page.url(), 'http://x').pathname !== '/settings/account') await w.page.goto('/settings/account');
   await expect(w.page.getByTestId('settings-view')).toBeVisible();
 }
 
@@ -39,13 +40,13 @@ Then('the Drive holds {int} backup(s) of {string}', async function (this: World,
 Given('I back up now', async function (this: World) {
   await settings(this);
   const done = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup' && r.request().method() === 'POST');
-  await this.page.getByTestId('settings-backup-now').click();
+  await (await settingControl(this, 'settings-backup-now')).click();
   await done;
 });
 
 Then('the last backup is from {date} at {time}', async function (this: World, date: string, time: string) {
   // a backup made in the background is only shown when the settings are opened again
-  await this.page.goto('/settings');
+  await this.page.goto('/settings/account');
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
   await expect.poll(async () => { const iso = await status(this).getAttribute('data-last-backup'); return iso ? berlin(iso) : ''; }).toBe(`${date} ${time}`);
 });
@@ -56,7 +57,7 @@ When('the server loses all data of {string}', async function (this: World, email
 
 When('I restore from the backup', async function (this: World) {
   await settings(this);
-  await this.page.getByTestId('settings-backup-restore').click();
+  await (await settingControl(this, 'settings-backup-restore')).click();
 });
 
 Then('the restore asks for confirmation', async function (this: World) {
@@ -91,13 +92,13 @@ Given('{string} signs in without the Drive permission', async function (this: Wo
 });
 
 Then('I am asked to allow backups to Google Drive', async function (this: World) {
-  await expect(this.page.getByTestId('settings-backup-allow')).toBeVisible();
+  await expect((await settingControl(this, 'settings-backup-allow'))).toBeVisible();
   await expect(status(this)).toHaveAttribute('data-state', 'off');
 });
 
 Then('there is no button to back up now', async function (this: World) {
-  await expect(this.page.getByTestId('settings-backup-now')).toHaveCount(0);
-  await expect(this.page.getByTestId('settings-backup-restore')).toHaveCount(0);
+  await expect((await settingControl(this, 'settings-backup-now'))).toHaveCount(0);
+  await expect((await settingControl(this, 'settings-backup-restore'))).toHaveCount(0);
 });
 
 Given('{string} has signed in but not opened the calendar yet', async function (this: World, email: string) {
@@ -111,7 +112,7 @@ When('I back up now {int} times', async function (this: World, n: number) {
   await settings(this);
   for (let i = 0; i < n; i++) {
     const done = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup' && r.request().method() === 'POST');
-    await this.page.getByTestId('settings-backup-now').click();
+    await (await settingControl(this, 'settings-backup-now')).click();
     await done;
   }
 });
@@ -122,7 +123,7 @@ Given('{string} is signed in with the theme {string} backed up', async function 
   await chooseTheme(this, theme);
   const done = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup' && r.request().method() === 'POST');
   await settings(this);
-  await this.page.getByTestId('settings-backup-now').click();
+  await (await settingControl(this, 'settings-backup-now')).click();
   await done;
 });
 
@@ -141,7 +142,7 @@ Given('{string} adds the category {string}', async function (this: World, email:
 
 When('I restore from the backup and confirm', async function (this: World) {
   await settings(this);
-  await this.page.getByTestId('settings-backup-restore').click();
+  await (await settingControl(this, 'settings-backup-restore')).click();
   await expect(this.page.getByTestId('confirm-dialog')).toBeVisible();
   const restored = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup/restore' && r.request().method() === 'POST');
   const reloaded = this.page.waitForEvent('load');

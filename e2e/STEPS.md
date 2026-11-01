@@ -856,7 +856,6 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
-the settings sections are {string}
 the settings page has no theme mode or seed colour controls
 the server reports the build version {string}
 the settings show the version {string}
@@ -927,9 +926,15 @@ I choose the search result {string}
 the setting {string} is highlighted
 ```
 
-- Hooks: the home is `settings-home` with one `settings-group` per group (`data-group` = its visible name, in order);
-  the search bar is `settings-search` (an input); a group page is `settings-group-page` with `data-group`; each
-  setting is a `settings-row` with `data-setting` = its visible name; Back is `settings-back`.
+- Hooks: the home is `settings-home` with one `settings-group` per group (`data-group` = its visible name, in order;
+  `data-group-id` = its route name); the search bar is `settings-search` (an input) with `settings-search-clear`; a
+  group page is `settings-group-page` with `data-group` (its title) and `data-group-id` (`views`, `focus/bedtime`, …);
+  each setting is a `settings-row` with `data-setting` = its visible name and `data-setting-id`; Back is
+  `settings-back`. Every settings page keeps `settings-view` as its root.
+- Steps of other features that use a settings control by its test id open the page that holds it first
+  (`settingControl` in `support/settings.ts`, a test id → page table), and leave the settings with Back until no
+  settings page is shown. `I turn on S in the settings` and `the S switch in the settings is off` reach row S through
+  the settings search.
 - `the settings page shows the setting S` = a visible `settings-row` with `data-setting` S on the open group page.
 - `I turn on|off S in the settings` toggles the switch inside the `settings-row` S and waits for the save response.
 - A search result is `settings-search-result` with `data-setting` (name) and `data-path` (group, or
@@ -968,7 +973,7 @@ the page was not reloaded
   `the page was not reloaded` looks for (a reload would lose it); the options are `Automatisch`/`Automatic` (follows
   the device, translated), `English`, `Deutsch`, `Fränggisch`, `Coldmirror` (each in its own name, never translated).
 - `the language "L" is selected` = the selected option label of `settings-language`.
-- The existing `the settings sections are`, `the period title is` and `the weekday headers are` steps are reused.
+- The existing `the settings groups are`, `the period title is` and `the weekday headers are` steps are reused.
 
 ## Categories, tags and filters (`@categories`)
 

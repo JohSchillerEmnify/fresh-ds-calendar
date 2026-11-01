@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { box, chooseOption, viewport } from './support/ui.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 Given('the view switcher on phones is set to {string}', async function (this: World, position: string) {
   // the side menu is stored as `drawer`
@@ -14,7 +15,7 @@ Given('the view switcher on desktop and tablets is set to {string}', async funct
 });
 
 When('I choose {string} as the view switcher position on phones', async function (this: World, label: string) {
-  const control = this.page.getByTestId('settings-nav-phone');
+  const control = (await settingControl(this, 'settings-nav-phone'));
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
   await chooseOption(control, label);
   expect((await saved).status(), 'position saved').toBe(200);
