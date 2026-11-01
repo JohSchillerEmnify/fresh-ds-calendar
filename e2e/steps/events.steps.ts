@@ -1,5 +1,5 @@
 /** Event display and event dialog steps (STEPS.md "Events: display", "Events: dialog", "Event colors"). */
-import { expect, type Locator } from '@playwright/test';
+import { expect } from '@playwright/test';
 import type { DataTable } from 'playwright-bdd';
 import { Then, When } from './fixtures.js';
 import { field, fillField, readField } from './support/forms.js';

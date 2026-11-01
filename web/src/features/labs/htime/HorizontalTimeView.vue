@@ -150,7 +150,7 @@ function openDay(iso: string): void {
 }
 
 const zoomAxis = (axisName: 'x' | 'y', dir: 1 | -1) => ctl.zoomTo(stepAxis(zoom.value, axisName, dir), vw.value / 2, vh.value / 2);
-const shift = (dir: 1 | -1) => router.push({ path: `/horizontal/${toIsoDate(addDays(anchorDate.value, dir * 7))}`, query: route.query });
+const shift = (dir: 1 | -1) => router.replace({ path: `/horizontal/${toIsoDate(addDays(anchorDate.value, dir * 7))}`, query: route.query });
 const title = computed(() => periodTitle('week', anchorDate.value));
 const atMin = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x <= MIN_ZX : zoom.value.y <= MIN_ZY);
 const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value.y >= MAX_ZY);

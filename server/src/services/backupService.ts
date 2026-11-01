@@ -8,6 +8,7 @@ import type { Clock } from '../lib/clock.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { listUserSubs, userDir } from '../auth/people.js';
 import { subHash } from '../lib/diag.js';
+import { SPLIT_FILES } from './personSplit.js';
 import { DriveError, type DriveClient } from '../providers/DriveClient.js';
 import {
   BACKUP_KEEP, backupName, backupPrefix, bundle, contentHash, debounceDelay, isExcluded, isSafeRelPath, newestFirst, selectExpired, unbundle,
@@ -203,6 +204,11 @@ export class BackupService {
       for (const e of fs.readdirSync(root)) if (!isExcluded(`users/${sub}/${e}`, sub)) fs.rmSync(path.join(root, e), { recursive: true, force: true });
     }
     const own: Record<string, string> = {};
+    // a backup from before ADR 0035 carries the settings and streak as server files: they become the person's own
+    for (const name of SPLIT_FILES) {
+      const old = b.files[`${SERVER_PREFIX}/${name}`];
+      if (typeof old === 'string' && b.files[`users/${sub}/${name}`] === undefined) own[`users/${sub}/${name}`] = old;
+    }
     for (const [rel, content] of Object.entries(b.files)) {
       if (rel.startsWith(`${SERVER_PREFIX}/`)) continue;
       const src = this.sources.find((s) => rel.startsWith(`${s.prefix}/`));

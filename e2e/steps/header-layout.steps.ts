@@ -65,6 +65,8 @@ Then("the period title's chevron is shown", async function (this: World) {
 Then('the top bar shows no arrows', async function (this: World) {
   await expect(today(this)).toBeVisible();
   for (const id of ['nav-prev', 'nav-next']) {
+    // a view without arrows (the Labs timeline) has none at all
+    if (!(await bar(this).getByTestId(id).count())) continue;
     const b = await bar(this).getByTestId(id).boundingBox();
     expect(!b || (b.width <= 1 && b.height <= 1), `${id} takes no room`).toBe(true);
   }
@@ -237,7 +239,7 @@ Then('the {string} switch in the settings is off', async function (this: World, 
 
 /** The Today button's drawn fill and border: the pill inside on phones, the button itself on wide screens; `token` resolved to a colour. */
 async function todayLook(w: World, token: string) {
-  await expect(w.page.locator('[data-testid="month-cell"], [data-testid="week-header"], [data-testid="day-column"]').first()).toBeVisible();
+  await expect(w.page.locator('[data-testid="month-cell"], [data-testid="week-header"], [data-testid="day-column"], [data-testid="timeline-now"]').first()).toBeVisible();
   return today(w).evaluate((btn, tok) => {
     const probe = document.createElement('i');
     probe.style.background = `var(${tok})`;

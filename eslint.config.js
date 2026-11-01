@@ -37,7 +37,8 @@ export default tseslint.config(
       'sonarjs/cognitive-complexity': 'warn',
       'sonarjs/no-duplicate-string': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // a leading _ marks an argument kept on purpose (step functions must match their pattern's arity)
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-unused-expressions': 'warn',
       'no-useless-assignment': 'warn',
       'no-regex-spaces': 'warn',

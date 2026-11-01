@@ -20,9 +20,9 @@ export function clampHourHeight(px: number): number {
   return Math.round(Math.min(MAX_HOUR_PX, Math.max(MIN_HOUR_PX, px)) * 100) / 100;
 }
 
-/** Hour height for a pinch: the start height scaled by the finger distance ratio. */
-export function pinchHourHeight(startHeight: number, startDist: number, dist: number): number {
-  return startDist > 0 ? clampHourHeight(startHeight * (dist / startDist)) : startHeight;
+/** Hour height for a pinch: the start height scaled by the finger distance ratio (limited by `clamp`). */
+export function pinchHourHeight(startHeight: number, startDist: number, dist: number, clamp = clampHourHeight): number {
+  return startDist > 0 ? clamp(startHeight * (dist / startDist)) : startHeight;
 }
 
 /** Scale factor of one Ctrl+wheel event (`deltaY` < 0 zooms in). */
@@ -84,6 +84,8 @@ export interface GridZoomHooks {
   preview: (px: number, clientY: number) => void;
   /** The gesture settled: commit `px` (re-lay out, remember) and drop the preview. */
   commit: (px: number) => void;
+  /** Limits a zoomed value; the hour height's range unless the zoomed thing has its own (the month zoom). */
+  clamp?: (v: number) => number;
 }
 
 const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
@@ -94,6 +96,7 @@ const midY = (t: TouchList) => (t[0].clientY + t[1].clientY) / 2;
  * on touchend (pinch) or after `WHEEL_SETTLE_MS` without wheel events. Returns a disposer.
  */
 export function bindGridZoom(el: HTMLElement, h: GridZoomHooks): () => void {
+  const clamp = h.clamp ?? clampHourHeight;
   let pinch: { startHeight: number; startDist: number } | null = null;
   /** Previewed, not yet committed hour height. */
   let live: number | null = null;
@@ -116,7 +119,7 @@ export function bindGridZoom(el: HTMLElement, h: GridZoomHooks): () => void {
       const te = e as TouchEvent;
       if (!pinch || te.touches.length !== 2) return;
       if (te.cancelable) te.preventDefault();
-      live = pinchHourHeight(pinch.startHeight, pinch.startDist, dist(te.touches));
+      live = pinchHourHeight(pinch.startHeight, pinch.startDist, dist(te.touches), clamp);
       h.preview(live, midY(te.touches));
     }, { passive: false }),
     listen(el, 'touchend', (e) => { if ((e as TouchEvent).touches.length < 2) { pinch = null; settle(); } }, { passive: true }),
@@ -126,7 +129,7 @@ export function bindGridZoom(el: HTMLElement, h: GridZoomHooks): () => void {
       const we = e as WheelEvent;
       if (!we.ctrlKey) return;
       we.preventDefault();
-      live = clampHourHeight((live ?? h.get()) * wheelZoomFactor(we.deltaY));
+      live = clamp((live ?? h.get()) * wheelZoomFactor(we.deltaY));
       h.preview(live, we.clientY);
       clearTimeout(timer);
       timer = setTimeout(settle, WHEEL_SETTLE_MS);

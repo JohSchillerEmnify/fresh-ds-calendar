@@ -4,6 +4,7 @@
  * Title first: narrow or short blocks drop the time line, titles wrap to 2 lines before clipping; room left over shows location, then description lines. Past events of
  * today are dimmed, the running one gets a ring. Draggable through `useCalendarDrag` (long press on touch).
  */
+import { useChipTimes } from '@/composables/useMonthZoom';
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { computed, ref } from 'vue';
@@ -76,7 +77,9 @@ const timeText = computed(() => {
   if (!s.startTime) return '';
   return props.variant === 'block' ? `${s.startTime}–${endText.value}` : s.startTime;
 });
-const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value && !!props.segment.startTime);
+/** Start time on a chip: on wide screens, and on a phone in a zoomed-in month (feature month-zoom). */
+const chipTimes = useChipTimes();
+const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value || chipTimes.value) && !!props.segment.startTime);
 </script>
 
 <template>
