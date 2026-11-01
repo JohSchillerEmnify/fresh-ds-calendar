@@ -24,7 +24,6 @@ Feature: A calendar that switches off by itself
 
   Rule: The sheet plans the switch
 
-    @backlog
     Scenario: Off every weekend from Friday 17:00 to Sunday 16:00
       Given the time is 2026-11-06 18:00
       When I open the week view for 2026-11-09
@@ -38,7 +37,6 @@ Feature: A calendar that switches off by itself
       And the calendar chip "Work" is off
       And the calendar chip "Work" shows that it switches by itself
 
-    @backlog
     Scenario: Off for a few days, back by itself at 00:00
       When I open the week view for 2026-11-02
       And I show the filters
@@ -52,10 +50,10 @@ Feature: A calendar that switches off by itself
       And the calendar chip "Work" shows "Back Fri 6"
       When the time is 2026-11-06 00:00
       And I open the app again
+      And I show the filters
       Then I see the event "Retro" on 2026-11-06
       And the calendar chip "Work" is on
 
-    @backlog
     Scenario: Always on removes the plan
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-07 10:00
@@ -67,8 +65,8 @@ Feature: A calendar that switches off by itself
       Then I see the event "Planning" on 2026-11-09
       And the calendar chip "Work" does not show that it switches by itself
 
-    @backlog
     Scenario: The calendar's row in the side menu opens the same sheet
+      Given the view switcher on phones is set to "side menu"
       When I open the week view for 2026-11-02
       And I open the side menu
       And I long-press the calendar "Work" in the side menu
@@ -77,7 +75,6 @@ Feature: A calendar that switches off by itself
       And I choose "Done" in the calendar sheet
       Then I do not see the event "Standup"
 
-    @backlog
     Scenario: Settings › Calendars plans without a gesture
       When I open the settings
       And I open the plan of the calendar "Work" in the settings
@@ -89,7 +86,6 @@ Feature: A calendar that switches off by itself
 
   Rule: The plan switches the calendar like the manual switch, everywhere
 
-    @backlog
     Scenario: During the weekend window the work calendar is off in every view
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-07 10:00
@@ -101,7 +97,6 @@ Feature: A calendar that switches off by itself
       When I open the day view for 2026-11-10
       Then I do not see the event "Review"
 
-    @backlog
     Scenario: Back on at 16:00 on Sunday while the app is open
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-08 15:58 and the clock is running
@@ -110,7 +105,6 @@ Feature: A calendar that switches off by itself
       When 3 minutes pass
       Then I see the event "Planning" on 2026-11-09
 
-    @backlog
     Scenario: Off at 17:00 on Friday while the app is open
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-06 16:58 and the clock is running
@@ -119,7 +113,6 @@ Feature: A calendar that switches off by itself
       When 3 minutes pass
       Then I do not see the event "Retro"
 
-    @backlog
     Scenario: Back on when the app is opened after the window
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-07 10:00
@@ -129,7 +122,6 @@ Feature: A calendar that switches off by itself
       And I open the app again
       Then I see the event "Planning" on 2026-11-09
 
-    @backlog
     Scenario: A tap still switches by hand until the plan's next switch
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-07 10:00
@@ -141,7 +133,6 @@ Feature: A calendar that switches off by itself
       And I open the app again
       Then I do not see the event "Planning"
 
-    @backlog
     Scenario: Off for a while and the weekend window at once
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the calendar "Work" is off until 2026-11-10
@@ -154,7 +145,6 @@ Feature: A calendar that switches off by itself
       And I open the app again
       Then I see the event "Planning" on 2026-11-09
 
-    @backlog
     Scenario: A tap ends "Off for a while"
       Given the calendar "Work" is off until 2026-11-06
       When I open the week view for 2026-11-02
@@ -163,7 +153,6 @@ Feature: A calendar that switches off by itself
       Then I see the event "Standup" on 2026-11-04
       And the calendar chip "Work" does not show that it switches by itself
 
-    @backlog
     Scenario: The plan holds on another device
       Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
       And the time is 2026-11-07 10:00
