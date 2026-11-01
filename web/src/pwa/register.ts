@@ -1,3 +1,4 @@
+import { errorFacts, logDevice } from '@/lib/deviceLog';
 import { autoUpdate } from './update';
 
 /**
@@ -16,7 +17,8 @@ export async function registerServiceWorker(): Promise<void> {
         if (w.state === 'installed' && navigator.serviceWorker.controller) autoUpdate(w);
       });
     });
-  } catch {
+  } catch (e) {
     // no service worker: the app works without it
+    logDevice('sw', { step: 'register', ...errorFacts(e) });
   }
 }

@@ -8,6 +8,8 @@ import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
+import { clearDeviceLog, deviceLog } from '@/lib/deviceLog';
+import { ApiClient, setApi } from '@/api/client';
 import { apiError, eventFixture, freshPinia, mockFetch } from './helpers';
 
 const list = (o: Partial<TaskList> = {}): TaskList => ({
@@ -352,5 +354,33 @@ describe('outbox: robustness', () => {
     expect(writes(m)).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(500);
     expect(writes(m)).toHaveLength(2);
+  });
+});
+
+describe('outbox: device log (feature device-log)', () => {
+  beforeEach(() => clearDeviceLog());
+
+  it('logs a refused delete with the decision and what the client saw, never the title', async () => {
+    mockFetch({
+      'DELETE /api/events/a': () => apiError(400, 'VALIDATION_ERROR'),
+      'GET /api/events/a': () => eventFixture('a', 's', 'e'),
+    });
+    const ev = { ...eventFixture('a', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00'), title: 'Dentist Meyer' } as CalendarEvent;
+    useItemsStore().upsert(ev);
+    useOutboxStore().deleteEvent(ev);
+    await flushPromises();
+    const entry = deviceLog.value.find((e) => e.kind === 'outbox')!;
+    expect(entry.summary).toBe('event.delete refused DELETE /api/events/:id 400 VALIDATION_ERROR');
+    expect(entry.data).toMatchObject({ op: 'event.delete', decision: 'refused', status: 400, code: 'VALIDATION_ERROR', bodyEmpty: false });
+    expect(JSON.stringify(deviceLog.value)).not.toContain('Dentist');
+  });
+
+  it('logs an answer that is no ApiError with its name and message, kept for a retry', async () => {
+    // a body the browser cannot read: the client passes the browser's own error on
+    setApi(new ApiClient({ fetch: async () => Object.assign(new Response('{}'), { text: () => Promise.reject(new TypeError('Body stream lost')) }) }));
+    useItemsStore().upsert(list());
+    useOutboxStore().patchItem('G', 'm', { done: true });
+    await flushPromises();
+    expect(deviceLog.value.find((e) => e.kind === 'outbox')?.data).toMatchObject({ op: 'item.patch', decision: 'retry-unexpected', errorName: 'TypeError' });
   });
 });
