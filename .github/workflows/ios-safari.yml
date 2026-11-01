@@ -116,11 +116,10 @@ jobs:
       - name: Start Appium with the XCUITest driver
         working-directory: e2e/ios
         run: |
-          export APPIUM_HOME="$RUNNER_TEMP/appium-home"
-          npx appium driver install --source=local "$PWD/node_modules/appium-xcuitest-driver"
+          # appium and the driver share this package.json, so Appium finds the driver without an install step
+          npx appium driver list --installed
           nohup npx appium --port 4723 --log-level info --log "$ARTIFACTS/appium.log" > /dev/null 2>&1 &
           curl --retry 60 --retry-delay 1 --retry-connrefused -fsS http://127.0.0.1:4723/status
-          echo "APPIUM_HOME=$APPIUM_HOME" >> "$GITHUB_ENV"
       - name: Start the screen recording
         run: |
           nohup xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$ARTIFACTS/safari.mp4" > /dev/null 2>&1 &
