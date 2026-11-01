@@ -70,7 +70,6 @@ const shot = async (name) => {
   if (process.env.UDID) try { execFileSync('xcrun', ['simctl', 'io', process.env.UDID, 'screenshot', `${OUT}/${name}-device.png`]); } catch { /* optional */ }
 };
 const find = (css) => browser.$(css);
-const present = (css) => browser.execute((s) => !!document.querySelector(s), css);
 const waitFor = async (css, ms = 8000) => { try { await find(css).waitForExist({ timeout: ms }); return true; } catch { return false; } };
 
 /** A real touch tap on an element: one finger down and up in the middle of it. Logs the hit test of the tap point first. */
