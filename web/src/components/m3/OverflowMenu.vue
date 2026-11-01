@@ -25,7 +25,9 @@ function toggle(): void {
   if (open.value) return close();
   // fixed under the button, right edges aligned: no ancestor can clip it
   const r = trigger.value!.getBoundingClientRect();
-  host.value = trigger.value!.closest<HTMLElement>('[role="dialog"]') ?? 'body';
+  // touch screens: never inside a sheet (iOS hit-tests a fixed card inside a moving, scrolling sheet in the wrong place)
+  const touch = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  host.value = touch ? 'body' : trigger.value!.closest<HTMLElement>('[role="dialog"]') ?? 'body';
   pos.value = { top: r.bottom + 4, right: Math.min(Math.max(EDGE, window.innerWidth - r.right), window.innerWidth - MIN_W - EDGE) };
   open.value = true;
 }
