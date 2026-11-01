@@ -4,6 +4,7 @@
  * device has no token for is listed in full and answered as `replace`. Repeating events are read unexpanded in the
  * change stream (a sync token cannot carry a time range) and their instances in the window are asked for per changed series.
  */
+import { createHash } from 'node:crypto';
 import type { CalendarEvent, TaskList } from '../api/types.js';
 import { addDays, dayNumber, startOfLocalDay, formatInZone } from '../lib/time.js';
 import {
@@ -23,6 +24,8 @@ const REFUSED_BACKOFF_MS = 60_000;
 const REFUSED_BACKOFF_MAX_MS = 30 * 60_000;
 const YEAR_BACK = 365;
 const YEAR_AHEAD = 366;
+/** Marks a cursor entry that is a content version of a token-less calendar, never a Google sync token. */
+const VERSION_PREFIX = 'v:';
 
 /** What the cursor remembers of the Google side: the window end of the last answer and one sync token per calendar. */
 export interface FeedState { to: string; tokens: Record<string, string> }
@@ -56,16 +59,16 @@ interface Spec<T> {
   /** False for a plain event that left the window (it is then reported as removed). */
   inScope(e: GoogleEvent): boolean;
   map(e: GoogleEvent): T;
-  /** The calendar listed in full: its items and a fresh sync token. */
-  full(): Promise<{ upserts: T[]; token?: string }>;
+  /** The calendar listed in full: its items and (unless `withToken` is false) a fresh sync token. */
+  full(withToken?: boolean): Promise<{ upserts: T[]; token?: string }>;
   /** The items entering the window between `fromDate` and the window end (events: all, task lists: repeating ones only). */
   gap(fromDate: string): Promise<T[]>;
 }
 
 interface Part<T> { failed?: boolean; replace: boolean; series: string[]; removed: string[]; upserts: T[]; token?: string }
 
-/** Per calendar: the token its last full read got, how often in a row such a token was refused, and the back-off while Google keeps refusing. */
-export interface CalendarHealth { fullToken?: string; refused: number; strikes: number; until: number }
+/** Per calendar: its last full read's token, refusals in a row, the back-off, and whether it is compared by content (Google refuses its tokens). */
+export interface CalendarHealth { fullToken?: string; refused: number; strikes: number; until: number; tokenless?: boolean }
 
 /** Google refused, a second time in a row, the sync token its own full read just handed out: listing in full again would repeat on every poll. */
 class FreshTokenRefusedError extends Error {}
@@ -135,9 +138,9 @@ export class CalendarChanges {
       mine,
       inScope: (e) => this.overlaps(e),
       map: (e) => this.deps.toEvent(e, cal),
-      full: async () => {
+      full: async (withToken = true) => {
         // the token comes from a read without the parameters Google refuses together with a sync token (time range, filters); the window read below has them
-        const token = await this.tokenFor(cal.id);
+        const token = withToken ? await this.tokenFor(cal.id) : undefined;
         const win = await p.listEvents({ calendarId: cal.id, timeMin, timeMax });
         return { upserts: win.items.filter((e) => e.status !== 'cancelled' && mine(e)).map((e) => this.deps.toEvent(e, cal)), token };
       },
@@ -193,6 +196,8 @@ export class CalendarChanges {
       return await this.readOrThrow(calendarId, prev, forced, spec);
     } catch (e) {
       if (e instanceof FreshTokenRefusedError) {
+        // Google never accepts this calendar's tokens (public holidays): compare it by content after the back-off
+        this.health(calendarId).tokenless = true;
         this.strike(calendarId, 'tokenRefused');
         return skipped;
       }
@@ -222,7 +227,10 @@ export class CalendarChanges {
   }
 
   private async readOrThrow<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
-    const token = prev?.tokens[calendarId];
+    if (this.health(calendarId).tokenless) return this.compared(calendarId, prev, forced, spec);
+    // a content version (left from before a restart) is no sync token: the calendar is read in full
+    const kept = prev?.tokens[calendarId];
+    const token = kept?.startsWith(VERSION_PREFIX) ? undefined : kept;
     const gap = prev ? dayNumber(windowOf(this.today).to) - dayNumber(prev.to) : 0;
     if (token && !forced && gap <= MAX_GAP_DAYS) {
       try {
@@ -236,6 +244,15 @@ export class CalendarChanges {
     const full = await spec.full();
     this.health(calendarId).fullToken = full.token;
     return { replace: true, series: [], removed: [], upserts: full.upserts, token: full.token };
+  }
+
+  /** A token-less calendar: listed in full, answered as `replace` only when its content moved since the version the device got. */
+  private async compared<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
+    const { upserts } = await spec.full(false);
+    // sorted: Google promises no order, and a reordered list is no change
+    const token = VERSION_PREFIX + createHash('sha1').update(upserts.map((u) => JSON.stringify(u)).sort().join('\n')).digest('base64url');
+    if (!forced && prev?.tokens[calendarId] === token) return { replace: false, series: [], removed: [], upserts: [], token };
+    return { replace: true, series: [], removed: [], upserts, token };
   }
 
   private async incremental<T>(calendarId: string, token: string, spec: Spec<T>): Promise<Part<T>> {
