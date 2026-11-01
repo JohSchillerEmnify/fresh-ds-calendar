@@ -3,7 +3,8 @@ Feature: Drag and drop to reschedule
   Events and task lists can be dragged to another time and day (week and day views, snapped to
   15-minute slots) or to another day (month view). Touch: long-press to pick up (with a haptic tick where
   the device supports it); mouse: press and drag. The card lifts, follows with a spring and settles on drop.
-  The move is saved to Google at once; if saving fails the card springs back and the error banner shows.
+  The move is kept on this device and sent to Google at once (ADR 0031): if Google cannot be reached it stays and is
+  sent later, without the sync error banner; if the server refuses it, the card springs back and a notice says so.
   Picking up a timed entry and releasing it without moving shows resize handles on its top and bottom edge
   (day and week views); dragging a handle changes when it starts or ends.
   The edit dialog stays available as an accessible alternative.
@@ -60,11 +61,25 @@ Feature: Drag and drop to reschedule
     Then the task list "Packing" is positioned at 08:15
     And the Google event for the task list "Packing" is a timed event on 2026-10-16 from 08:15 to 08:45
 
-  Scenario: A failed save springs the card back
+  Scenario: A move Google cannot take now is kept and sent later
+    Given automatic sync is disabled
     When I open the week view for 2026-10-12
     And Google becomes unavailable
     And I drag the event "Dentist" to 2026-10-16 at 14:00
-    Then I see the sync error banner
+    Then I do not see the sync error banner
+    And I see the event "Dentist" on "Friday"
+    And the event "Dentist" is positioned from 14:00 to 15:00
+    When Google becomes available again
+    And I close the app
+    And I open the app
+    And I wait until the changes are sent
+    Then Google contains an event "Dentist" on 2026-10-16 from 14:00 to 15:00
+
+  Scenario: A move the server refuses springs the card back and I am told
+    When I open the week view for 2026-10-12
+    And the server refuses the next change as invalid
+    And I drag the event "Dentist" to 2026-10-16 at 14:00
+    Then I am told that the change to "Dentist" was not saved because the server refused it
     And I see the event "Dentist" on 2026-10-14
     And the event "Dentist" is positioned from 09:00 to 10:00
 
@@ -183,12 +198,18 @@ Feature: Drag and drop to reschedule
       Then the event "Dentist" is positioned from 09:00 to 09:15
       And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 09:15
 
-    Scenario: A failed resize springs the event back
-      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+    Scenario: A resize Google cannot take now is kept and sent later
+      Given automatic sync is disabled
+      And the event "Dentist" shows resize handles in the day view for 2026-10-14
       And Google becomes unavailable
       When I drag the bottom handle of "Dentist" down by 60 minutes
-      Then I see the sync error banner
-      And the event "Dentist" is positioned from 09:00 to 10:00
+      Then I do not see the sync error banner
+      And the event "Dentist" is positioned from 09:00 to 11:00
+      When Google becomes available again
+      And I close the app
+      And I open the app
+      And I wait until the changes are sent
+      Then Google contains an event "Dentist" on 2026-10-14 from 09:00 to 11:00
 
     Scenario: Tapping elsewhere hides the resize handles
       Given the event "Dentist" shows resize handles in the day view for 2026-10-14

@@ -3,6 +3,7 @@ import { api } from '@/api/client';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import { apkHintVisible, checkApk } from '@/native/apkHint';
+import { errorFacts, logDevice } from '@/lib/deviceLog';
 
 const DISMISSED_KEY = 'cal.updateDismissed';
 const RELOADED_KEY = 'cal.updateReloadedFor';
@@ -109,8 +110,9 @@ async function offerWhenReady(): Promise<void> {
     if (!reg) { offerUpdate(); return; }
     await reg.update();
     if (!reg.installing && reg.waiting) autoUpdate(reg.waiting);
-  } catch {
+  } catch (e) {
     // offline or update failed: the next check tries again
+    logDevice('sw', { step: 'update', ...errorFacts(e) });
   }
 }
 

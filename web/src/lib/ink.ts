@@ -26,7 +26,7 @@ const r2 = (n: number): string => n.toFixed(3);
 /** perfect-freehand thinks in pixels; the stroke is scaled to a 24 px line and back so its tuning holds for line-height units. */
 const PX = 24;
 
-/** A thin pen (owner: rather too thin than too thick): about 1 px of a 24 px line at normal pressure, under 2 px at full. */
+/** A thin pen: about 1 px of a 24 px line at normal pressure, under 2 px at full. */
 const SIZE = 1.05;
 /** How much the width follows the pressure: a light touch is a hairline, full pressure about 4 times as thick. */
 const THINNING = 0.7;

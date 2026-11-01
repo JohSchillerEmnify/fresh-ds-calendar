@@ -3810,3 +3810,34 @@ the server holds no ink for the task list {string}
   off" = the ink's box lies inside the line's box.
 - Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
 
+
+## Error log on the device (`@id:device-log`)
+
+```
+I open the error log in the settings
+the error log has an entry {string}
+the error log does not contain {string}
+an unexpected error {string} happens in the app
+this device's error log holds:
+the error log shows {string}
+I clear the error log
+the error log is empty
+I download the error log
+I share the error log
+this device cannot share files
+the downloaded error log holds {int} entries
+```
+
+- The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &
+  app); "I open the error log in the settings" opens the settings first when they are not open. Entries are
+  `device-log-entry` (newest first), each with its one-line summary `device-log-summary`; the empty state is
+  `device-log-empty`. Buttons: `device-log-copy`, `device-log-share`, `device-log-download`, `device-log-clear`.
+- "has an entry X": one `device-log-summary` contains X. "does not contain X": the page text and the stored log (the
+  JSON that Download would save) do not contain X. "shows X": the summaries in order, `, `-separated, equal X.
+- "an unexpected error X happens in the app": the page throws `new TypeError(X)` from a timer, so nothing catches it.
+- "this device's error log holds:" writes the table into the log's storage (`localStorage` key `calendar.deviceLog`)
+  before the app loads, as `error` entries with that time (local) and message `Name: text` split into name and text.
+- "I clear the error log": `device-log-clear`. "is empty": no `device-log-entry` and `device-log-empty` is shown.
+- "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
+  "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
+  downloaded error log holds N entries": the downloaded file is JSON with N `entries`.
