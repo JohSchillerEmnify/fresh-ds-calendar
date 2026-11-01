@@ -101,7 +101,7 @@ describe('api_refused log line', () => {
       const list = (await t.json('POST', '/api/tasklists', { title: 'Hallo', date: '2026-11-01', items: [{ title: 'Milk' }] })).body;
       lines.length = 0;
       expect((await t.json('PATCH', `/api/tasklists/${list.id}`, { title: '', items: [] })).status).toBe(400);
-      expect(lines[0]).toMatchObject({ event: 'api_refused', route: 'PATCH /api/tasklists/:id', path: `/api/tasklists/${list.id}`, status: 400, code: 'VALIDATION_ERROR' });
+      expect(lines[0]).toMatchObject({ event: 'api_refused', route: 'PATCH /api/tasklists/:id', path: `/api/tasklists/${list.id}`, status: 400, code: 'VALIDATION_ERROR', field: 'title' });
     } finally { t.cleanup(); }
   });
 

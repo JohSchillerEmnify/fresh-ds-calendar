@@ -46,14 +46,14 @@ function uaFamily(ua = ''): string {
 }
 
 /** The error code the error handler answered a request with (read by the refused-write line without re-reading the answer). */
-const errorCodes = new WeakMap<Context, string>();
+const errorCodes = new WeakMap<Context, { code: string; field?: string }>();
 
 /** A refused write is otherwise invisible on the server: one line with its code and how the request was framed, never the body. */
 function logRefusedWrite(c: Context): void {
   if (c.res.status < 400 || c.res.status >= 500 || ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) || c.req.path.startsWith('/api/diag/')) return;
-  const code = errorCodes.get(c);
+  const { code, field } = errorCodes.get(c) ?? {};
   logEvent('api_refused', {
-    method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, subHash: subHash((c.get('person') as { sub: string } | undefined)?.sub),
+    method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, field, subHash: subHash((c.get('person') as { sub: string } | undefined)?.sub),
     contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
     ua: uaFamily(c.req.header('user-agent')),
   });
@@ -129,7 +129,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
 
   app.onError((err, c) => {
     const body = (code: string, message: string, details?: unknown, key?: string) => {
-      errorCodes.set(c, code);
+      errorCodes.set(c, { code, field: (details as { field?: string }[] | undefined)?.[0]?.field });
       return { error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } };
     };
     noteCause(c, causeFor(err) ?? err.constructor.name);
