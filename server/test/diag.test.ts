@@ -1,8 +1,8 @@
 import { OAuth2Client } from 'google-auth-library';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { setDiagSink, subHash } from '../src/lib/diag.js';
+import { calHash, setDiagSink, subHash } from '../src/lib/diag.js';
 import { GoogleProvider, makeApi } from '../src/providers/google/GoogleProvider.js';
-import { ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, ProviderUnavailableError, SyncTokenExpiredError } from '../src/providers/CalendarProvider.js';
 import { makeApp } from './helpers.js';
 
 let lines: Record<string, unknown>[] = [];
@@ -55,7 +55,21 @@ describe('google_error log line', () => {
     await expect(p.insertEvent('primary', { summary: 'Dentist', start: { date: '2026-10-12' }, end: { date: '2026-10-13' } })).rejects.toBeInstanceOf(ProviderUnavailableError);
     const text = raw.join('\n');
     for (const secret of [SUB, TOKEN, 'Dentist', 'jo@example.com', 'secret']) expect(text).not.toContain(secret);
-    expect(Object.keys(lines[0]!).sort()).toEqual(['durationMs', 'event', 'op', 'reason', 'retry', 'status', 'subHash', 'ts']);
+    expect(Object.keys(lines[0]!).sort()).toEqual(['calHash', 'durationMs', 'event', 'op', 'reason', 'retry', 'status', 'subHash', 'ts']);
+  });
+
+  it('logs a rejected sync token with its status, Google reason and a hashed calendar id', async () => {
+    const cal = 'anna@example.org';
+    const p = provider(reply(410, { error: { code: 410, message: 'Sync token is no longer valid, a full sync is required.', errors: [{ reason: 'fullSyncRequired' }] } }));
+    await expect(p.listChanges(cal, 'old')).rejects.toBeInstanceOf(SyncTokenExpiredError);
+    expect(lines[0]).toMatchObject({ event: 'google_error', op: 'events.list', status: 410, reason: 'fullSyncRequired', calHash: calHash(cal), subHash: subHash(SUB) });
+    expect(raw.join('\n')).not.toContain(cal);
+  });
+
+  it('logs a calendar that cannot be found with its hashed id', async () => {
+    const p = provider(reply(404, { error: { code: 404, message: 'Not Found', errors: [{ reason: 'notFound' }] } }));
+    await expect(p.listSyncToken('gone@example.org')).rejects.toBeInstanceOf(NotFoundError);
+    expect(lines[0]).toMatchObject({ event: 'google_error', op: 'events.list', status: 404, reason: 'notFound', calHash: calHash('gone@example.org') });
   });
 
   it('does not log a successful call', async () => {
