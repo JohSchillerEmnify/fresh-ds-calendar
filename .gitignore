@@ -21,3 +21,6 @@ deploy/*.bak*
 .jscpd-report/
 
 *.key
+
+# iOS Safari simulator run output
+e2e/ios/artifacts/

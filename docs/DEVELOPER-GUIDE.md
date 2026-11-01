@@ -133,6 +133,21 @@ In practice:
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 
+### iOS Safari and the nightly run
+
+Neither is a required check; both live in the Actions tab.
+
+- **iOS Safari** (`.github/workflows/ios-safari.yml`) runs on a hosted Mac, free for a public repo. It runs the `@iphone` Playwright
+  scenarios on macOS WebKit, and `e2e/ios/run.mjs` drives Mobile Safari in an iPhone simulator with real touches (Appium,
+  its own pinned lockfile). Every tap logs the menu, the element under the finger and the events seen; screenshots, a video
+  and the logs are artifacts. It runs on PRs and pushes that touch `web/`, `shared/`, `server/`, `e2e/`, `spec/features/` or
+  the workflow, never for docs-only changes. Start it by hand with `gh workflow run ios-safari.yml`.
+- **Nightly** (`.github/workflows/nightly-e2e.yml`, 03:47 UTC) runs everything: `pnpm verify`, `pnpm goldens`, the whole e2e
+  suite (mobile, desktop and tablet, including `@perf`, `@visual` and `@slow`, in 4 shards), the Android unit tests, the leak
+  check and the iOS Safari jobs. A tiny first job compares main with the sha of the last nightly run and skips everything when
+  nothing changed. A failure opens (or updates) one issue "Nightly e2e failed <date>" labelled `tests` with every failed
+  job and scenario. Start it by hand with `gh workflow run nightly-e2e.yml` (it runs even without changes).
+
 Where things are:
 - `web/`: the Vue PWA.
 - `server/`: the Hono API.
