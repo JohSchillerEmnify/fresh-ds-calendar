@@ -92,3 +92,18 @@ describe('isRuled', () => {
     expect(isRuled({ ...base, touch: false, penSeen: true })).toBe(true);
   });
 });
+
+describe('readableOn', () => {
+  it('moves a colour until it holds 3:1 on the card colour', async () => {
+    const { readableOn } = await import('@/lib/ink');
+    const { contrastRatio } = await import('@/api/colors');
+    for (const [ink, card, on] of [['#ffee00', '#f6c026', '#000000'], ['#000000', '#1a237e', '#ffffff'], ['#ffffff', '#fff3a0', '#000000']] as const) {
+      expect(contrastRatio(readableOn(ink, [card], on), card)).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it('lifts black ink off a dark theme surface', async () => {
+    const { readableOn } = await import('@/lib/ink');
+    const { contrastRatio } = await import('@/api/colors');
+    expect(contrastRatio(readableOn('#000000', ['#1c1b1f'], '#ffffff'), '#1c1b1f')).toBeGreaterThanOrEqual(3);
+  });
+});

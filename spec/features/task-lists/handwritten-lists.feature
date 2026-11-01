@@ -259,6 +259,53 @@ Feature: Labs: handwritten lists
       Then the card of "Groceries" shows 2 ink items, scaled down
       And a pen stroke on the card draws nothing
 
+    # Owner 2026-10-31: the ink on a card was too small to read.
+    Scenario Outline: Ink on a card fills the card's text line
+      Given the calendar contains a task list "" on 2026-10-14 with the ink items "Milk"
+      When I open the <view> view for <period>
+      Then the ink of the card of the untitled task list is as tall as the card's text
+
+      Examples:
+        | view  | period     |
+        | day   | 2026-10-14 |
+        | week  | 2026-10-12 |
+        | month | 2026-10    |
+
+    # Owner 2026-10-31: ink was barely visible on coloured cards, its checkbox sat off, and a list with one ink item showed an empty title.
+    Scenario Outline: Ink on a coloured card is as readable as the card's text
+      Given the calendar contains a task list "Yellowpad" on 2026-10-14 with the ink items "Milk" in the colour "<ink>"
+      When I open the <view> view for <period>
+      Then the ink of the card of "Yellowpad" reads on the card
+
+      Examples:
+        | ink     | view  | period     |
+        | #ffee00 | day   | 2026-10-14 |
+        | #000000 | week  | 2026-10-12 |
+        | #ffffff | month | 2026-10    |
+
+    Scenario Outline: An ink item's checkbox and ink line up like a text item
+      Given the calendar contains a task list "Mixed" on 2026-10-14 at 09:00 for 120 minutes with the text item "Eggs" and the ink item "Milk"
+      When I open the <view> view for <period>
+      Then the checkbox of every item of the card of "Mixed" is centred on its row
+
+      Examples:
+        | view  | period     |
+        | day   | 2026-10-14 |
+        | week  | 2026-10-12 |
+
+    Scenario Outline: A list whose only item is handwritten shows the ink as its title
+      Given the calendar contains a task list "" on 2026-10-14 with the ink items "Milk"
+      When I open the <view> view for <period>
+      Then the card of the untitled task list shows the ink as its title
+      And the task list "" shows no done count
+      And the task list "" shows no progress ring
+
+      Examples:
+        | view  | period     |
+        | day   | 2026-10-14 |
+        | week  | 2026-10-12 |
+        | month | 2026-10    |
+
     Scenario: The Tasks view shows the ink items read-only
       When I open the Tasks view
       Then the task list "Groceries" shows 2 ink items, scaled down

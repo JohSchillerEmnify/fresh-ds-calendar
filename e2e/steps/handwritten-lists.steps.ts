@@ -12,7 +12,7 @@ const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
 const rows = (w: World) => w.expanded.getByTestId('tasklist-item');
 
 /** A squiggle for a word: points in line heights with pressure, so the seeded item has real ink. */
-const scribble = (seed: number) => ({ p: Array.from({ length: 12 }, (_, i) => [0.3 + i * 0.2, 0.5 + 0.25 * Math.sin(i + seed), 0.3 + 0.05 * i]) });
+const scribble = (seed: number) => ({ p: Array.from({ length: 12 }, (_, i) => [0.3 + i * 0.1, 0.5 + 0.35 * Math.sin(i + seed), 0.3 + 0.05 * i]) });
 
 async function setSwitch(w: World, name: string, on: boolean) {
   const key = PREF[name];
@@ -56,9 +56,9 @@ const seeded = new WeakMap<World, { names: string[]; ids: string[] }>();
 /** The number of strokes an ink item had before a step added to it. */
 const strokesBefore = new WeakMap<World, number>();
 
-async function seedInkList(w: World, title: string, date: string | null, words: string[]) {
-  const items = words.map((_, i) => ({ title: '', strokes: [scribble(i)] }));
-  const made = await w.api.post<{ items: { id: string }[] }>('/api/tasklists', { title, date, time: null, items });
+async function seedInkList(w: World, title: string, date: string | null, words: string[], colour?: string, extra: { title: string }[] = [], when: { time: string; estimateMinutes: number } | null = null) {
+  const items = [...extra, ...words.map((_, i) => ({ title: '', strokes: [colour ? { ...scribble(i), c: colour } : scribble(i)] }))];
+  const made = await w.api.post<{ items: { id: string }[] }>('/api/tasklists', { title, date, time: when?.time ?? null, ...(when ? { estimateMinutes: when.estimateMinutes } : {}), items });
   seeded.set(w, { names: words, ids: made.items.map((i) => i.id) });
 }
 
@@ -69,6 +69,18 @@ Given('the calendar contains a task list {string} on {date} with the ink items {
     await this.page.goto('/');
     await this.calendarShown();
   }
+});
+
+Given('the calendar contains a task list {string} on {date} with the ink items {string} in the colour {string}', async function (this: World, title: string, date: string, words: string, colour: string) {
+  await seedInkList(this, title, date, words.split(', '), colour);
+  await this.page.goto('/');
+  await this.calendarShown();
+});
+
+Given('the calendar contains a task list {string} on {date} at {time} for {int} minutes with the text item {string} and the ink item {string}', async function (this: World, title: string, date: string, time: string, minutes: number, text: string, word: string) {
+  await seedInkList(this, title, date, [word], undefined, [{ title: text }], { time, estimateMinutes: minutes });
+  await this.page.goto('/');
+  await this.calendarShown();
 });
 
 Given('the calendar contains a task list {string} finished on {date} with the ink items {string}', async function (this: World, title: string, date: string, words: string) {
@@ -266,6 +278,62 @@ Then('the card of {string} shows {int} ink items, scaled down', async function (
   // a band card may show only its title row; the ink line is 24 px high wherever it is laid out
   const h = await items.first().getByTestId('ink-line').evaluate((el) => getComputedStyle(el).height);
   expect(parseFloat(h)).toBeLessThanOrEqual(26);
+});
+/** Contrast ratio of two rgb() strings as the browser computes them. */
+const ratio = (a: string, b: string): number => {
+  const lum = (c: string) => {
+    const [r, g, bl] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map((v) => { const x = Number(v) / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * bl!;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+/** The card's painted background as rgb(): the first own or grown-box layer that is not transparent. */
+const paint = (card: Locator) => card.evaluate((el) => {
+  for (const e of [el, ...Array.from(el.querySelectorAll('.gl'))]) {
+    const m = (getComputedStyle(e).backgroundColor.match(/[\d.]+/g) ?? []).map(Number);
+    const k = getComputedStyle(e).backgroundColor.startsWith('color(') ? 255 : 1;
+    if (m.length >= 3 && (m[3] ?? 1) > 0.5) return `rgb(${m.slice(0, 3).map((v) => v * k).join(',')})`;
+  }
+  return 'rgb(255,255,255)';
+});
+Then('the ink of the card of {string} reads on the card', async function (this: World, title: string) {
+  const card = this.taskCard(title);
+  for (const mode of ['light', 'dark']) {
+    await this.api.patch('/api/settings', { themeMode: mode });
+    await expect(this.page.locator('html')).toHaveAttribute('data-theme', mode);
+    const measure = async () => ratio(await card.getByTestId('ink-stroke').first().evaluate((el) => getComputedStyle(el).fill), await paint(card));
+    await expect.poll(measure, { message: `${mode}: ink on the card` }).toBeGreaterThanOrEqual(3);
+  }
+});
+Then('the ink of the card of the untitled task list is as tall as the card\'s text', async function (this: World) {
+  const card = this.page.locator('[data-testid="tasklist-card"][data-untitled="true"]').locator('visible=true').first();
+  const m = await card.getByTestId('ink-line').first().evaluate((el) => {
+    const r = Array.from(el.querySelectorAll('path')).map((p) => p.getBoundingClientRect());
+    const ink = Math.max(...r.map((b) => b.bottom)) - Math.min(...r.map((b) => b.top));
+    return { ink, text: parseFloat(getComputedStyle(el.closest('.it') ?? el).fontSize) * 0.72 };
+  });
+  expect(m.ink, `ink ${m.ink}px vs cap height ${m.text}px`).toBeGreaterThanOrEqual(m.text);
+});
+Then('the checkbox of every item of the card of {string} is centred on its row', async function (this: World, title: string) {
+  const items = this.taskCard(title).getByTestId('tasklist-card-item');
+  await expect(items).toHaveCount(2);
+  for (let n = 0; n < 2; n++) {
+    const m = await items.nth(n).evaluate((el) => {
+      const b = getComputedStyle(el, '::before');
+      const r = el.getBoundingClientRect();
+      const ink = el.querySelector('svg')?.getBoundingClientRect();
+      return { row: r.height / 2, box: parseFloat(b.top) + parseFloat(b.height) / 2, ink: ink ? ink.top - r.top + ink.height / 2 : null };
+    });
+    expect(Math.abs(m.box - m.row), `item ${n + 1} checkbox centre`).toBeLessThanOrEqual(1);
+    if (m.ink !== null) expect(Math.abs(m.ink - m.row), 'ink centre').toBeLessThanOrEqual(1);
+  }
+});
+Then('the card of the untitled task list shows the ink as its title', async function (this: World) {
+  const card = this.page.locator('[data-testid="tasklist-card"][data-untitled="true"]').locator('visible=true').first();
+  await expect(card.getByTestId('tasklist-card-lead').getByTestId('ink-line')).toBeVisible();
+  await expect(card.getByTestId('tasklist-card-item').first()).toBeHidden();
+  await expect(card.getByTestId('tasklist-card-title')).toHaveCount(0);
 });
 Then('a pen stroke on the card draws nothing', async function (this: World) {
   const line = this.taskCard('Groceries').locator('[data-ink="true"]').first().getByTestId('ink-line');

@@ -1,6 +1,7 @@
 /** Pure rules of handwritten items (feature handwritten-lists): pointers, line-height units, outlines, erasing, colours. */
 import { getStroke } from 'perfect-freehand';
 import type { InkDoc, InkPoint, InkStroke } from '@calendar/shared/api';
+import { contrastRatio } from '../api/colors';
 import { keptItems, type OutboxEntry } from './outbox';
 
 /** What a pointer event does in the writing area. */
@@ -72,6 +73,17 @@ export function readableInk(hex: string, dark: boolean): string {
   for (let k = 0; k <= 20; k++) {
     const mixed = toHex(base.map((v, i) => v + (target[i]! - v) * (k / 20)));
     if (contrast(luminance(mixed), bg) >= 4.5) return mixed;
+  }
+  return toHex(target);
+}
+
+/** The ink colour moved towards the card's text colour `on` until it holds `min` : 1 on every ground it can sit on (the card as painted, or the card colour and theme surface). */
+export function readableOn(hex: string, grounds: string[], on: string, min = 3): string {
+  const target = rgb(on);
+  const base = rgb(hex);
+  for (let k = 0; k <= 20; k++) {
+    const mixed = toHex(base.map((v, i) => v + (target[i]! - v) * (k / 20)));
+    if (grounds.every((g) => contrastRatio(mixed, g) >= min)) return mixed;
   }
   return toHex(target);
 }
