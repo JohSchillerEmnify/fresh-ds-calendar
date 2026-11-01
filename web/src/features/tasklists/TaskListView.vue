@@ -271,6 +271,7 @@ useItemDrag({
   signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
   penWrites: () => writing.value,
+  fingerWrites: () => writing.value && prefs.labsDrawWithFinger,
   disabled: () => !!editingItem.value,
   onMove: move,
 });

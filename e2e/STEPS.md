@@ -3560,6 +3560,9 @@ I touch the ink item number {int} with a finger
 I switch the Labs setting {string} on
 I drag one finger along the writing area
 I drag one broad finger along the writing area
+I drag one finger along the writing area after resting it for {int} ms
+I drag one finger along the ink item number {int}
+I drag one finger along the ink item number {int} after resting it for {int} ms
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3666,6 +3669,7 @@ the server holds no ink for the task list {string}
   use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
   scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
   "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`). "I touch the ink item N with a finger" sends one synthetic `touch` `pointerdown` to the line.
+- "I drag one finger along the writing area" is a real touch (CDP) of 12 moves of 12 px; "broad" has a contact radius of 24 px; "after resting it for N ms" first creeps 1 px and waits N ms (a hesitant start), then drags.
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
