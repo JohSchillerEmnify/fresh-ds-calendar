@@ -30,6 +30,9 @@ function defaultSettings(now: string): Settings {
   };
 }
 
+/** Keys of older files that are dropped on read (and so from the next save). */
+const RETIRED = ['transitionWarningMinutes', 'streakFlame', 'plant', 'defaultEventColorId'];
+
 /** What a person's `settings.json` holds: the {@link Settings} plus the retired scene and garden style still to migrate. */
 type Stored = Partial<Settings> & Record<string, unknown>;
 
@@ -68,7 +71,8 @@ export class SettingsStore {
     const raw = this.files.read(sub);
     // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders); the shared `streakFlame` and
     // `plant` switches by the person pref `streak`, Off for everyone, so they are dropped, not carried over (API.md)
-    const { scene, garden, transitionWarningMinutes: _retired, streakFlame: _flame, plant: _plant, defaultEventColorId: _color, ...loaded } = raw ?? {};
+    const { scene, garden, ...loaded } = raw ?? {};
+    for (const k of RETIRED) delete loaded[k];
     const defaults = defaultSettings(this.started);
     return {
       s: raw ? { ...defaults, ...(loaded as Partial<Settings>) } : defaults,
