@@ -16,6 +16,7 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useSyncStore } from '@/stores/sync';
+import { goToNow, nowShown } from '@/composables/useViewToday';
 
 const DAYS_BEFORE = 2;
 const DAYS_AFTER = 14;
@@ -155,10 +156,20 @@ function onPointerMove(e: PointerEvent) {
 }
 function onPointerUp(e: PointerEvent) { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; }
 
+/** Whether the now marker lies inside the scroller's box (the top bar's Today button is filled then). */
+function updateNowShown(): void {
+  const el = scroller.value;
+  const now = el?.querySelector('[data-testid="timeline-now"]');
+  if (!el || !now) { nowShown.value = false; return; }
+  const [p, m] = [el.getBoundingClientRect(), now.getBoundingClientRect()];
+  nowShown.value = vertical.value ? m.bottom >= p.top && m.top <= p.bottom : m.right >= p.left && m.left <= p.right;
+}
+
 /** Grow the axis when the edge is near; keeps the view still when growing to the left. */
 function onScroll() {
   const el = scroller.value;
   if (!el) return;
+  updateNowShown();
   if (vertical.value) {
     const edgeY = el.clientHeight;
     if (el.scrollTop + el.clientHeight > el.scrollHeight - edgeY) {
@@ -186,19 +197,22 @@ function onScroll() {
   }
 }
 
-/** Open with now about a third in from the left. */
+/** Open (and come back with Today) with now about a third from the top (or in from the left). */
 function scrollToNow() {
   const el = scroller.value;
   if (!el) return;
   if (vertical.value) {
     const now = el.querySelector('[data-testid="timeline-now"]');
     if (now) el.scrollTop = Math.max(0, now.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - el.clientHeight / 3);
-    return;
+  } else {
+    el.scrollLeft = Math.max(0, nowX.value - el.clientWidth / 3);
   }
-  el.scrollLeft = Math.max(0, nowX.value - el.clientWidth / 3);
+  updateNowShown();
 }
 let ro: ResizeObserver | undefined;
 onMounted(() => {
+  // the range only grows, so today is always loaded: Today in the top bar just scrolls back to now
+  goToNow.value = scrollToNow;
   nextTick(scrollToNow);
   // Phone: all-day bands above now change the offset once the items are in.
   load().then(() => { if (vertical.value) nextTick(scrollToNow); });
@@ -208,7 +222,7 @@ onMounted(() => {
     ro.observe(scroller.value);
   }
 });
-onBeforeUnmount(() => ro?.disconnect());
+onBeforeUnmount(() => { ro?.disconnect(); if (goToNow.value === scrollToNow) goToNow.value = null; nowShown.value = false; });
 watch(() => clock.today, () => nextTick(scrollToNow), { once: true });
 </script>
 

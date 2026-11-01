@@ -41,7 +41,8 @@ Then(
   },
 );
 
-const marker = (w: World) => w.page.getByTestId('now-marker');
+/** The now marker of the time grid, or of the Labs timeline (`timeline-now`). */
+const marker = (w: World) => w.page.locator('[data-testid="now-marker"], [data-testid="timeline-now"]');
 /** The time-grid day column that contains the now marker. */
 const markerColumn = (w: World): Locator =>
   marker(w).locator('xpath=ancestor::*[@data-testid="week-day-column" or @data-testid="day-column"][1]');
@@ -74,6 +75,13 @@ Then('the now marker is in the column of {date}', async function (this: World, d
 });
 
 Then('I do not see the now marker', async function (this: World) {
+  // the Labs timeline keeps its marker in the page: there it must be scrolled out of the timeline's box
+  if (await this.page.getByTestId('timeline-view').count()) {
+    const port = await this.page.getByTestId('timeline-scroll').boundingBox();
+    const m = await this.page.getByTestId('timeline-now').boundingBox();
+    expect(!m || !port || m.y + m.height < port.y || m.y > port.y + port.height, 'the timeline now marker is scrolled out of view').toBe(true);
+    return;
+  }
   await this.settled();
   await expect(marker(this)).toHaveCount(0);
 });

@@ -1429,6 +1429,35 @@ they hide the calendar {string} in the filter bar
   `data-*` attribute (`data-tier`, `data-fit`, `data-fade`) for N seconds: layout tiers settle instead of flipping.
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
+
+## Calendar off by a plan (`@id:calendar-off-plan`, @backlog)
+
+```
+I long-press the calendar chip {string}
+I tap the calendar chip {string}
+I choose {string} in the calendar sheet
+I pick the date {date} in the calendar sheet
+I pick the days {string} in the calendar sheet
+the calendar {string} is on only on {string}
+the calendar {string} is off until {date}
+the calendar chip {string} is on
+the calendar chip {string} is off
+the calendar chip {string} shows {string}
+the calendar chip {string} shows that it switches by itself
+the calendar chip {string} does not show that it switches by itself
+```
+
+- The chip is `filter-chip-calendar` with that `data-name` (shown first with "I show the filters"). "long-press": touch
+  (mobile) or mouse held 500 ms without moving; it opens `calendar-plan-sheet` (an `AdaptiveSheet`). "tap" = a click.
+- "I choose X in the calendar sheet": the button or radio with the visible label X inside `calendar-plan-sheet`
+  ("Always on", "Off for a while", "Only on some days", "Done"); "Done" waits for the saved plan (`PATCH` of the
+  calendar, 200) and the sheet to close. "I pick the date D": the date field `calendar-plan-until` set to D (the day
+  the calendar is back on). "I pick the days S": the weekday toggles `calendar-plan-day` (`data-day` `Mon`..`Sun`)
+  end up pressed exactly for the space-separated short names in S.
+- Givens set the plan through the API as the app would (`plan: { kind: "days", days: [...] }` / `{ kind: "until",
+  date }`, exact shape in `spec/API.md` when built).
+- "is on / off": `aria-pressed` of the chip. "shows X": the chip's visible text contains X. "shows that it switches by
+  itself": the chip contains `calendar-plan-mark`; "does not": no such element.
 ## Birthdays (`@birthdays`)
 
 ```
@@ -1592,6 +1621,9 @@ on the timeline {string} is about {int} times as long as {string}
 {string} is in the all-day band above the timed entries
 the timeline runs from top to bottom
 the title of {string} on the timeline reads left to right in one line
+I scroll the timeline {int} days ahead
+I scroll the timeline {int} days back
+{string} is visible on the timeline
 I open the strip view for {date}
 I see the event {string} in the strip column of {date}
 I scroll the strip one day to the right
@@ -1613,6 +1645,7 @@ I unfold the Later card
 the Later card lists {string}
 the Now card says that {string} is also running
 the top bar has no date navigation
+the top bar shows no date
 the top bar names the view {string}
 I open the zoom month for {date}
 the zoom month shows {string}
@@ -1739,6 +1772,13 @@ I note the height of {string} on the runway
   screen": port height / row height lies in that range. "drag sideways with a finger": a CDP touch drag of 220 px right to
   left across the port (`touchDrag`, 150 ms); "scroll position" is the left edge of the `htime-hour` 00:00 label, "has
   panned" that it moved by more than 40 px.
+- Timeline Today (`@id:labs-timeline`, owner 2026-11-01): "I scroll the timeline N days ahead / back" sets the
+  `timeline-scroll` `scrollTop` by N times the height of one `timeline-day` (waiting for the range to extend at the
+  edges), then waits for the scroll to settle. "X is visible on the timeline": its `timeline-item` lies inside the
+  scroller's box. "I go to today", "the now marker is visible on screen" and "I do not see the now marker" are the
+  shared steps; on the timeline the marker is `timeline-now`, and "I do not see" means it lies outside the
+  `timeline-scroll` box (the timeline keeps it in the page). The timeline top bar has `nav-today` but no `nav-prev` /
+  `nav-next`; "the top bar shows no date": `view-title` is visible and there is no `period-title`.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 - Date-less Labs views (Now, Timeline): the top bar title is the heading `view-title` with the view's name (no
@@ -2785,6 +2825,35 @@ the month {month} is not built in the month view
 - "at most N months are built": the number of `month-block`s (month cells present in the DOM) is at most N. "the month M is not built":
   no `month-block` M.
 
+
+## Month zoom (`@id:month-zoom`, @backlog)
+
+```
+I note the height of the week rows of the month view
+I pinch out on the month view to twice the size
+I pinch in on the month view to half the size
+I zoom the month view in with Ctrl+wheel
+I scroll the month view down to {date}
+I note the height of the top bar
+the week rows of the month view are about twice as tall as noted
+the week rows of the month view are taller than noted
+the week rows of the month view have their default height
+the month view shows {int} day columns across the screen
+the top bar is as tall as noted
+the page itself is not zoomed
+```
+
+- Week row height = the height of the `month-cell` of the first day of the month (all rows share it). "about twice":
+  within 10 %. "default height": the height of a fresh device (sideways: the month fills the screen; month list: the
+  fixed week height of ADR 0034), within 2 px.
+- Pinch: two CDP touch points (`Input.dispatchTouchEvent`) around the centre of `calendar-swipe-area`, moving apart
+  vertically from 80 to 160 px (out) or together from 160 to 80 px (in), then wait until the gesture settled (no
+  `[data-month-zooming="true"]`). Ctrl+wheel: one wheel event with Ctrl held (deltaY -300) over the month grid.
+  Sideways, the weeks sit in the scroller `month-scroll`; "default height" there is its height shared by the week rows.
+- "I scroll the month view down to D": scrolls the month's scroller until the `month-cell` of D is inside it.
+- "N day columns across the screen": N `month-cell`s in the first week row, together as wide as the viewport (2 px).
+- "the page itself is not zoomed": `visualViewport.scale` is 1, and the wheel / touch events of the gesture were
+  `defaultPrevented` (the browser zooms nothing). "the top bar is as tall as noted": `top-bar` height within 1 px.
 ## Reminders
 
 ```
@@ -3255,8 +3324,9 @@ the top bar's widgets are in reverse order
   wide screens, is the secondary container colour, no outline). "does not show":
   `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
   colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
-  month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
-  `day-column` visible) before the check.
+  month's own days, not the neighbouring months' days in its grid; the week; the day; on the Labs timeline, the now
+  marker inside the timeline's box). The views must have rendered (`month-cell`, `week-header`, `day-column` or
+  `timeline-now` visible) before the check.
 - "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
   N day headers": N visible `week-header` elements.
 - "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)

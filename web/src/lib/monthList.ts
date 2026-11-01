@@ -45,6 +45,8 @@ export function listLayout(m: ListMetrics): ListLayout {
     const tops = [0];
     for (let i = 0; i < MONTH_COUNT; i++) tops.push(tops[i] + m.headerH + weeksOf(i) * m.weekH);
     l = { ...m, tops };
+    // a pinch passes through many week heights: keep only a few sizes
+    if (layouts.size >= 8) layouts.clear();
     layouts.set(key, l);
   }
   return l;

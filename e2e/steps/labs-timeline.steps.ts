@@ -95,3 +95,36 @@ Then('{string} is in the all-day band above the timed entries', async function (
   if (!vertical) expect(ys.length).toBeGreaterThan(0);
   for (const t of ys) expect(y).toBeLessThan(t);
 });
+
+/** Scrolls the vertical timeline by `days` whole days (negative: back), letting the range grow at the edges in between. */
+async function scrollDays(w: World, days: number): Promise<void> {
+  const scroll = w.page.getByTestId('timeline-scroll');
+  const dayH = (await box(w.page.getByTestId('timeline-day').first())).height;
+  const step = Math.sign(days);
+  for (let i = 0; i < Math.abs(days); i++) {
+    await scroll.evaluate((el, dy) => { el.scrollTop += dy; }, step * dayH);
+    // one frame for the scroll event and a grown range at the edge
+    await w.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  }
+}
+
+When('I scroll the timeline {int} days ahead', async function (this: World, days: number) {
+  await scrollDays(this, days);
+});
+
+When('I scroll the timeline {int} days back', async function (this: World, days: number) {
+  await scrollDays(this, -days);
+});
+
+Then('{string} is visible on the timeline', async function (this: World, title: string) {
+  const item = this.page.locator(`[data-testid="timeline-item"][data-title="${title}"]`);
+  await expect(item).toHaveCount(1);
+  const port = await box(this.page.getByTestId('timeline-scroll'));
+  await expect
+    .poll(async () => {
+      const b = await item.boundingBox();
+      if (!b) return 'no box';
+      return b.y >= port.y - 1 && b.y + b.height <= port.y + port.height + 1 ? 'inside' : `item at ${b.y.toFixed(0)}..${(b.y + b.height).toFixed(0)}, scroller ${port.y.toFixed(0)}..${(port.y + port.height).toFixed(0)}`;
+    })
+    .toBe('inside');
+});
