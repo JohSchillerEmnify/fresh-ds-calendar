@@ -139,7 +139,9 @@ Feature: Installable progressive web app
 
   Rule: An installed app updates itself, but never while a dialog is open
 
-    @backlog
+    # A real update needs a second build with a new service worker, which the browser suite cannot deploy.
+    # unit: web/test/update-prompt.test.ts:with a controlling worker, jumps to the newest worker and auto-applies it when safe
+    @unit
     Scenario: The installed app updates without asking
       Given the service worker controls the page
       When a new version of the app is deployed
@@ -147,7 +149,8 @@ Feature: Installable progressive web app
       Then the app runs the new version
       And I am not told a new version is available
 
-    @backlog
+    # unit: web/test/update-prompt.test.ts:defers the auto-apply while a dialog is open, then applies once it closes
+    @unit
     Scenario: An open dialog is never interrupted by the update
       Given the service worker controls the page
       And I start creating an event
