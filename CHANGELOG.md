@@ -4,7 +4,7 @@
 - New look (Material 3 Expressive): floating bottom bar that slides away while you scroll (or a side menu instead), Compact or Expressive bar sizes, task lists in a row inside the bar, theme scenes always fully visible.
 - Month view can scroll up and down: Settings › month scrolling: Sideways, Up and down, or Up and down one month at a time.
 - Handwritten items on cards are now big and readable on every card colour, with the checkbox centred; a list with only one handwritten item shows it as its title.
-- iPhone home-screen app: trying a fix for the blur iOS puts over the top of the app.
+- iPhone home-screen app: trying a fix for the blur iOS puts over the top of the app (the top bar now tells iOS its colour).
 
 ## 2026-10-31
 - Labs, handwritten lists: "Draw with finger" works again (a broad fingertip was mistaken for a resting palm), and after writing with a pen the list always scrolls with a finger again.
