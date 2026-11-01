@@ -86,6 +86,19 @@ describe('task lists CRUD', () => {
     expect((await t.json('POST', `/api/tasklists/${r.id}/items`, { title: 'more' })).status).toBe(201);
   });
 
+  it('item changes and deletes never fail on a stored field that is no longer valid (unknown category, duplicate tags)', async () => {
+    const a = await mk();
+    const g = await raw(a.id);
+    await t.json('PATCH', `/api/__test/remote/events/${a.id}`, { extendedProperties: { private: { ...g.extendedProperties.private, categoryId: 'gone', tags: JSON.stringify(['Tag', 'tag']) } } });
+    const [vacuum, laundry] = (await t.json('GET', `/api/tasklists/${a.id}`)).body.items;
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/${vacuum.id}`, { done: true })).status).toBe(200);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'More' })).status).toBe(201);
+    expect((await t.json('DELETE', `/api/tasklists/${a.id}/items/${laundry.id}`)).status).toBe(200);
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}`, { estimateMinutes: 30 })).status).toBe(200);
+    const del = await t.json('DELETE', `/api/tasklists/${a.id}`);
+    expect(del.status).toBe(204);
+  });
+
   it('validates fields', async () => {
     const bad: object[] = [
       { title: '', date: '2026-10-12' }, { title: 'a' }, { title: 'a', date: '2026-02-30' }, { title: 'a', date: '2026-10-12', time: '25:00' },
@@ -112,7 +125,7 @@ describe('task lists CRUD', () => {
     }
   });
 
-  it('needs a title or an item (create, PATCH and deleting the last item)', async () => {
+  it('needs a title or an item (create, PATCH), but deleting the last item of an untitled list leaves it empty', async () => {
     for (const b of [{ title: '', date: '2026-10-12' }, { title: '  ', date: '2026-10-12', items: [{ title: ' ' }] }]) {
       const r = await t.json('POST', '/api/tasklists', b);
       expect(r.status).toBe(400);
@@ -127,8 +140,8 @@ describe('task lists CRUD', () => {
     expect(u.body.title).toBe('');
     expect((await raw(a.id)).summary).toBe('');
     const d = await t.json('DELETE', `/api/tasklists/${a.id}/items/${u.body.items[0].id}`);
-    expect(d.status).toBe(400);
-    expect(d.body.error.message).toBe('Add a title or an item');
+    expect(d.status).toBe(200);
+    expect(d.body).toMatchObject({ title: '', totalCount: 0 });
     const named = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: 'Shop' });
     expect(named.body.title).toBe('Shop');
     const g = await raw(a.id);

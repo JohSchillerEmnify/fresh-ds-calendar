@@ -88,6 +88,34 @@ describe('api_unavailable log line', () => {
   });
 });
 
+describe('api_refused log line', () => {
+  it('logs a refused write with its code and request framing, without the body', async () => {
+    const t = makeApp();
+    try {
+      lines.length = 0;
+      const r = await t.app.request('/api/settings', { method: 'PATCH', headers: { 'content-type': 'text/plain', origin: 'http://localhost', 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148' }, body: 'sounds=secret' });
+      expect(r.status).toBe(415);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({ event: 'api_refused', method: 'PATCH', status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', contentType: 'text/plain', origin: 'http://localhost', chunked: false, ua: 'ios/webkit' });
+      expect(raw[0]).not.toContain('secret');
+      const list = (await t.json('POST', '/api/tasklists', { title: 'Hallo', date: '2026-11-01', items: [{ title: 'Milk' }] })).body;
+      lines.length = 0;
+      expect((await t.json('PATCH', `/api/tasklists/${list.id}`, { title: '', items: [] })).status).toBe(400);
+      expect(lines[0]).toMatchObject({ event: 'api_refused', route: 'PATCH /api/tasklists/:id', path: `/api/tasklists/${list.id}`, status: 400, code: 'VALIDATION_ERROR', field: 'title' });
+    } finally { t.cleanup(); }
+  });
+
+  it('logs nothing for reads and for successful writes', async () => {
+    const t = makeApp();
+    try {
+      lines.length = 0;
+      await t.req('GET', '/api/items?from=bad&to=bad');
+      await t.json('POST', '/api/streak/checkin');
+      expect(lines).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+});
+
 describe('POST /api/diag/sync-error', () => {
   const beacon = { kind: 'http', status: 503, task: 'items', online: true, resumed: false, app: false };
 
