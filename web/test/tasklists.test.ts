@@ -285,6 +285,9 @@ describe('expanded list', () => {
     const s = server(list, { delay: 10 });
     const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler });
     await checkbox(w, 1).setValue(true);
+    // the first send has reached the server before the next changes are made, so which one is first never depends on timing
+    await vi.waitFor(() => expect(s.log).toHaveLength(1));
+    // three changes of one item back to back: all three are sent in order, none merged
     await checkbox(w, 0).setValue(true);
     await checkbox(w, 0).setValue(false);
     await checkbox(w, 0).setValue(true);
