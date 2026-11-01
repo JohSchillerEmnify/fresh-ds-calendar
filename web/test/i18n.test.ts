@@ -73,6 +73,9 @@ describe('t()', () => {
     expect(t('views.month')).toBe('Monad');
     // not in the dialect: German
     expect(t('settings.sections.labs')).toBe('Labor');
+    // the bar-size settings are not in the dialect either: German, not the key
+    expect(t('settings.calendar.barSize.compact')).toBe('Kompakt');
+    expect(t('settings.calendar.bottomBarSize.label')).toBe('Größe der unteren Leiste');
     expect(html()).toBe('de-x-mainfr');
     await applyLanguage('de-x-coldmirror');
     expect(t('tasklist.titleOrItem')).toContain('Schinken!');
