@@ -6,6 +6,8 @@ Feature: Navigation and view switching
   Desktop with a mouse moves through the periods with the ‹ › arrows in the top bar, also in a narrow window; phones and
   touch tablets show no arrows and move by swiping the calendar, but screen readers and keyboards still find
   "Previous period" and "Next period" there (owner, 2026-10-26); Today is everywhere.
+  Moving through the periods of a view (swipe, ‹ ›) adds no back step: back leaves the view to where it was opened
+  from. Switching the view, opening a day, Today and picking a date each add one (owner, 2026-11-01).
 
   Background:
     Given the calendar is empty
@@ -226,21 +228,24 @@ Feature: Navigation and view switching
     And I switch to the week view
     Then the URL path is "/week/2026-10-12"
 
-  Scenario: Browser back returns to the previous period
+  Scenario: Browser back after moving through the weeks returns to the view the week was opened from
     When I open the month view for 2026-10
+    And I switch to the week view
     And I go to the next period
-    And I go back in the browser
+    And I go to the next period
+    Then the URL path is "/week/2026-10-26"
+    When I go back in the browser
     Then the URL path is "/month/2026-10"
     And the period title is "October 2026"
 
-  Scenario: Browser back after two moves returns one period at a time
-    When I open the month view for 2026-10
+  Scenario: Browser back after moving through the months returns to the view the month was opened from
+    When I open the day view for 2026-10-14
+    And I switch to the month view
     And I go to the next period
     And I go to the next period
-    And I go back in the browser
-    Then the URL path is "/month/2026-11"
+    Then the URL path is "/month/2026-12"
     When I go back in the browser
-    Then the URL path is "/month/2026-10"
+    Then the URL path is "/day/2026-10-14"
 
   Scenario: Browser back from an opened day returns to the month it was opened from
     When I open the month view for 2026-10
@@ -278,11 +283,12 @@ Feature: Navigation and view switching
     And I go back in the browser
     Then the URL path is "/month/2026-12"
 
-  Scenario: Browser back after reloading the page returns to the previous period
+  Scenario: Browser back after reloading the page returns to the view the period was opened from
     When I open the month view for 2026-10
+    And I switch to the week view
     And I go to the next period
     And I reload the page
-    Then the period title is "November 2026"
+    Then the URL path is "/week/2026-10-19"
     When I go back in the browser
     Then the URL path is "/month/2026-10"
 
@@ -320,15 +326,13 @@ Feature: Navigation and view switching
     Then the URL path is "/month/2026-11"
 
   @mobile
-  Scenario: Going back twice from a swiped day returns to the day, then to the month it belongs to
+  Scenario: Going back after swiping through the days returns to the month the day was opened from
     Given I am using a phone
     When I open the month view for 2026-11
-    And I tap the day 2026-11-19 in the month view
-    Then the URL path is "/day/2026-11-19"
-    When I swipe left on the calendar
-    Then the URL path is "/day/2026-11-20"
-    When I go back in the browser
-    Then the URL path is "/day/2026-11-19"
+    And I tap the day 2026-11-02 in the month view
+    And I swipe left on the calendar
+    And I swipe left on the calendar
+    Then the URL path is "/day/2026-11-04"
     When I go back in the browser
     Then the URL path is "/month/2026-11"
     And the period title is "November 2026"
