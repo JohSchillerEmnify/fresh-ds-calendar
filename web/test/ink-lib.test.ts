@@ -3,16 +3,14 @@ import { keptItems, type OutboxEntry } from '../src/lib/outbox';
 import { eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
 
 describe('penRole', () => {
-  it('lets only a pen draw: the mouse never does, a finger only with the setting', () => {
-    expect(penRole({ pointerType: 'pen', buttons: 1 }, false)).toBe('draw');
-    expect(penRole({ pointerType: 'mouse', buttons: 1 }, false)).toBe('ignore');
-    expect(penRole({ pointerType: 'mouse', buttons: 1 }, true)).toBe('ignore');
-    expect(penRole({ pointerType: 'touch', buttons: 1 }, false)).toBe('ignore');
-    expect(penRole({ pointerType: 'touch', buttons: 1 }, true)).toBe('draw');
+  it('lets only a pen draw: the mouse never does, a finger never does', () => {
+    expect(penRole({ pointerType: 'pen', buttons: 1 })).toBe('draw');
+    expect(penRole({ pointerType: 'mouse', buttons: 1 })).toBe('ignore');
+    expect(penRole({ pointerType: 'touch', buttons: 1 })).toBe('ignore');
   });
   it('erases with the eraser end (buttons 32) or the barrel button (2) of a pen', () => {
-    expect(penRole({ pointerType: 'pen', buttons: 32 }, false)).toBe('erase');
-    expect(penRole({ pointerType: 'pen', buttons: 3 }, false)).toBe('erase');
+    expect(penRole({ pointerType: 'pen', buttons: 32 })).toBe('erase');
+    expect(penRole({ pointerType: 'pen', buttons: 3 })).toBe('erase');
   });
 });
 

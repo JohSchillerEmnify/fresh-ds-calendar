@@ -3662,7 +3662,6 @@ typing in the item field works as without the feature
 I swipe up on the writing area with a finger
 I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
-the stroke is drawn on the line
 the stroke is drawn on the line, thicker where I pressed harder
 I draw a stroke with the pen at the pressure {float}
 the stroke at pressure {float} is at most half as thick as before: at most {float} of a line height
@@ -3675,12 +3674,6 @@ I move the pen away from the writing area
 the writing area does not let the browser pan
 the writing area lets a finger pan the list up and down
 I touch the ink item number {int} with a finger
-I switch the Labs setting {string} on
-I drag one finger along the writing area
-I drag one broad finger along the writing area
-I drag one finger along the writing area after resting it for {int} ms
-I drag one finger along the ink item number {int}
-I drag one finger along the ink item number {int} after resting it for {int} ms
 only the pen stroke is drawn
 nothing is drawn
 the list scrolls
@@ -3709,11 +3702,7 @@ the device's handwriting recognition enters the text {string} in the item field
 the collapsed task list shows the items {string}
 the backup to Drive runs
 the backup holds the ink of the task list {string}
-the Labs setting {string} is on
-the Labs setting {string} is off
 the dialog fits the window
-I draw a stroke with a finger
-I swipe up on the writing area with two fingers
 I draw {int} stroke(s) with the pen
 I have drawn {int} stroke(s) with the pen
 I press the undo button
@@ -3787,16 +3776,12 @@ the server holds no ink for the task list {string}
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
 - "the add button covers no control of the writing area" is an added panel name of the existing step.
-- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
-  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
-  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
 - Pen width and panning (Windows pen): "at the pressure P" is a synthetic `pen` stroke with that constant pressure; "the harder stroke
   is thicker, but at most R times as thick as the lighter one" measures each stroke path across its middle (`isPointInFill`, line
   heights). "I draw a stroke D pixels downwards with the pen on the ink item N" and "I hold the pen over / move the pen away from"
   use the browser's own pen input (CDP `Input.dispatchMouseEvent` with `pointerType: 'pen'`, hover = `mouseMoved`); "the list has not
   scrolled" compares the scroll container's `scrollTop` with its value before the stroke; "does not let the browser pan" /
   "lets a finger pan the list up and down" are the computed `touch-action` of the item's `ink-line` (`none` / `pan-y`). "I touch the ink item N with a finger" sends one synthetic `touch` `pointerdown` to the line.
-- "I drag one finger along the writing area" is a real touch (CDP) of 12 moves of 12 px; "broad" has a contact radius of 24 px; "after resting it for N ms" first creeps 1 px and waits N ms (a hesitant start), then drags.
 - Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
   "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).

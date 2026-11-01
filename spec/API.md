@@ -390,6 +390,12 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   complete. While a calendar failed, the cursor keeps its old window end and reminder version, so the missed days and relist
   are retried. Person-wide failures (rate limit, sign-in again, missing calendar permission) and unexpected errors (bugs)
   still fail the whole call.
+- A calendar Google keeps refusing is not asked on every call: one that is gone (404) or no longer readable (403
+  permission) is answered `failed` once, and a calendar whose fresh sync token is refused a second time in a row (410
+  right after its full read) is answered unchanged. Either is then left alone (answered unchanged, no Google call) for
+  1 minute, doubling per refusal in a row up to 30 minutes, shared by every device and the live poll; the first read
+  after the wait is in full (`replace`). A working token clears the back-off. Each back-off writes one
+  `google_calendar_backoff` log line (hashed calendar id, cause, wait).
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
@@ -744,8 +750,8 @@ into the list and stopping to share moves it back. `InkDoc` = `{ version: 1, ite
 person's own ink plus that of every shared list they are on. A stroke is `{ p: [x, y, pressure][], c?: '#rrggbb' }` (no `c`
 = the theme's text colour); x and y are in line heights from the line's left and top (so the ink scales to any line,
 decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the description line
-`☐ Handwritten item` (decision A3). The prefs `labsHandwriting` and `labsDrawWithFinger` (boolean, default `false`) are the
-Labs switches.
+`☐ Handwritten item` (decision A3). The pref `labsHandwriting` (boolean, default `false`) is the
+Labs switch. A retired `labsDrawWithFinger` in a stored document or a patch is ignored (finger drawing is unsupported).
 
 | Method | Path | Body | Success |
 |---|---|---|---|

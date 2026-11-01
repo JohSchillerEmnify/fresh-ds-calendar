@@ -7,7 +7,7 @@ import {
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 import { GOOGLE_TIMEOUT_MS, calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
-import { causeOf, describeGoogleError, logEvent, noteCause, subHash } from '../../lib/diag.js';
+import { calHash, causeOf, describeGoogleError, logEvent, noteCause, subHash } from '../../lib/diag.js';
 import { isRateLimit, RateGuard, retryAfterSec, type GuardOptions } from './RateGuard.js';
 
 type Api = calendar_v3.Calendar;
@@ -83,10 +83,11 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   /**
-   * Runs one Google API call; a failure is logged as one `google_error` line (op, status, reason or network code, duration) and mapped.
-   * During a rate-limit cooldown no call is made; a rate-limit answer starts the cooldown. `write` calls invalidate cached reads.
+   * Runs one Google API call; a failure is logged as one `google_error` line (op, status, reason or network code, hashed
+   * calendar id, duration) and mapped. During a rate-limit cooldown no call is made; a rate-limit answer starts the
+   * cooldown. `write` calls invalidate cached reads.
    */
-  private async call<T>(op: string, fn: () => Promise<T>, write = false): Promise<T> {
+  private async call<T>(op: string, fn: () => Promise<T>, write = false, calendarId?: string): Promise<T> {
     try {
       this.o.ready?.();
     } catch (e) {
@@ -100,8 +101,9 @@ export class GoogleProvider implements CalendarProvider {
       if (write) this.guard.invalidate();
       return r;
     } catch (e) {
-      const { status, reason, code, retry } = describeGoogleError(e);
-      logEvent('google_error', { subHash: subHash(this.o.sub), op, status, reason, code, retry, durationMs: Date.now() - started });
+      // an error rewrapped inside `fn` (the 410 of a sync token) is described by Google's own answer it carries
+      const { status, reason, code, retry } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
+      logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, durationMs: Date.now() - started });
       if (isRateLimit(status, reason)) throw this.guard.noteRateLimited(op, retryAfterSec(e));
       throw mapGoogleError(e);
     }
@@ -140,11 +142,11 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }), true);
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }), true, calendarId);
   }
 
   async setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void> {
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true);
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true, calendarId);
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -162,6 +164,7 @@ export class GoogleProvider implements CalendarProvider {
           calendarId: p.calendarId, timeMin: p.timeMin, timeMax: p.timeMax, singleEvents: p.singleEvents ?? true, showDeleted: p.showDeleted ?? false,
           privateExtendedProperty: p.privateExtendedProperty, maxResults: 2500, pageToken,
         }),
+        false, p.calendarId,
       );
       for (const e of res.data.items ?? []) items.push(fromApi(e, p.calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
@@ -173,12 +176,12 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async getEvent(calendarId: string, eventId: string): Promise<GoogleEvent> {
-    const res = await this.call('events.get', () => this.o.api.events.get({ calendarId, eventId }));
+    const res = await this.call('events.get', () => this.o.api.events.get({ calendarId, eventId }), false, calendarId);
     return fromApi(res.data, calendarId);
   }
 
   async insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent> {
-    const res = await this.call('events.insert', () => this.o.api.events.insert({ calendarId, requestBody: toApi(ev) }), true);
+    const res = await this.call('events.insert', () => this.o.api.events.insert({ calendarId, requestBody: toApi(ev) }), true, calendarId);
     return fromApi(res.data, calendarId);
   }
 
@@ -194,17 +197,17 @@ export class GoogleProvider implements CalendarProvider {
     }
     const res = await this.call('events.patch', () =>
       this.o.api.events.patch({ calendarId, eventId, requestBody }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined),
-      true,
+      true, calendarId,
     );
     return fromApi(res.data, calendarId);
   }
 
   async deleteEvent(calendarId: string, eventId: string, o?: WriteOptions): Promise<void> {
-    await this.call('events.delete', () => this.o.api.events.delete({ calendarId, eventId }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined), true);
+    await this.call('events.delete', () => this.o.api.events.delete({ calendarId, eventId }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined), true, calendarId);
   }
 
   async moveEvent(calendarId: string, eventId: string, destinationCalendarId: string): Promise<GoogleEvent> {
-    const res = await this.call('events.move', () => this.o.api.events.move({ calendarId, eventId, destination: destinationCalendarId }), true);
+    const res = await this.call('events.move', () => this.o.api.events.move({ calendarId, eventId, destination: destinationCalendarId }), true, calendarId);
     return fromApi(res.data, destinationCalendarId);
   }
 
@@ -218,10 +221,10 @@ export class GoogleProvider implements CalendarProvider {
         try {
           return await this.o.api.events.list({ calendarId, syncToken, singleEvents: false, showDeleted: true, maxResults: 2500, pageToken });
         } catch (e) {
-          if (Number((e as { response?: { status?: number }; status?: number }).response?.status ?? (e as { status?: number }).status) === 410) throw new SyncTokenExpiredError('Sync token expired');
+          if (Number((e as { response?: { status?: number }; status?: number }).response?.status ?? (e as { status?: number }).status) === 410) throw new SyncTokenExpiredError('Sync token expired', { cause: e });
           throw e;
         }
-      });
+      }, false, calendarId);
       for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
       nextSyncToken = res.data.nextSyncToken ?? undefined;
@@ -236,7 +239,7 @@ export class GoogleProvider implements CalendarProvider {
     let nextSyncToken: string | undefined;
     let pages = 0;
     do {
-      const res = await this.call('events.list', () => this.o.api.events.list({ calendarId, singleEvents: false, showDeleted: true, maxResults: 2500, pageToken }));
+      const res = await this.call('events.list', () => this.o.api.events.list({ calendarId, singleEvents: false, showDeleted: true, maxResults: 2500, pageToken }), false, calendarId);
       pageToken = res.data.nextPageToken ?? undefined;
       nextSyncToken = res.data.nextSyncToken ?? undefined;
       pages++;
@@ -250,7 +253,7 @@ export class GoogleProvider implements CalendarProvider {
     let pageToken: string | undefined;
     let pages = 0;
     do {
-      const res = await this.call('events.instances', () => this.o.api.events.instances({ calendarId, eventId: seriesId, timeMin, timeMax, maxResults: 2500, pageToken }));
+      const res = await this.call('events.instances', () => this.o.api.events.instances({ calendarId, eventId: seriesId, timeMin, timeMax, maxResults: 2500, pageToken }), false, calendarId);
       for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
       pages++;

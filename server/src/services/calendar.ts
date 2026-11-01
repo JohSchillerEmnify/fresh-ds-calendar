@@ -26,7 +26,7 @@ import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { placeLeads, placeOf, placeProps } from './place.js';
 import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
-import { CalendarChanges, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
+import { CalendarChanges, type CalendarHealth, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
 const DAY = 86_400_000;
@@ -53,6 +53,8 @@ export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
   /** Calendars too large to walk for a sync token, and until when they are left alone (see {@link CalendarChanges}). */
   private readonly noTokenUntil = new Map<string, number>();
+  /** Calendars Google keeps refusing, and their back-off (see {@link CalendarChanges}). */
+  private readonly calendarHealth = new Map<string, CalendarHealth>();
   /** Test/seed hook: insert with a caller-chosen event id (mock only). */
   rawInsert?: (calendarId: string, ev: GoogleEventInput & { id: string }) => Promise<GoogleEvent>;
   /** The person's hidden "Calendar app: tasks" calendar: the only place task lists are read and written. */
@@ -1010,7 +1012,7 @@ export class CalendarService {
     const feed = new CalendarChanges(this.provider, this.tz, {
       eventCalendars: () => this.eventCalendars(), tasksId,
       toEvent: (e, c) => this.toEvent(e, c.backgroundColor, c.defaultReminders), toTaskList: (e) => this.toTaskList(e, color, cats),
-      noTokenUntil: this.noTokenUntil, nowMs: () => this.clock.real(),
+      noTokenUntil: this.noTokenUntil, health: this.calendarHealth, nowMs: () => this.clock.real(),
     }, today);
     const g = await feed.since(prev, forced);
     const stamps: Record<string, string> = {};

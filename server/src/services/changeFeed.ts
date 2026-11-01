@@ -7,8 +7,9 @@
 import type { CalendarEvent, TaskList } from '../api/types.js';
 import { addDays, dayNumber, startOfLocalDay, formatInZone } from '../lib/time.js';
 import {
-  NotFoundError, ProviderError, ProviderUnavailableError, RateLimitedError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type ProviderCalendar,
+  NotFoundError, ProviderError, ProviderForbiddenError, ProviderUnavailableError, RateLimitedError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
+import { calHash, logEvent } from '../lib/diag.js';
 import { isTaskListEvent } from './taskCodec.js';
 
 /** Days of window end the device may be behind before a calendar is simply listed again. */
@@ -17,6 +18,9 @@ const MAX_GAP_DAYS = 31;
 const NO_TOKEN_BACKOFF_MS = 10 * 60_000;
 /** More changed repeating events than this in one calendar and poll: list the calendar in full instead of one `events.instances` call each. */
 const MAX_SERIES_CALLS = 20;
+/** First and longest wait before a calendar Google keeps refusing (gone, not permitted, fresh token refused) is asked again. */
+const REFUSED_BACKOFF_MS = 60_000;
+const REFUSED_BACKOFF_MAX_MS = 30 * 60_000;
 const YEAR_BACK = 365;
 const YEAR_AHEAD = 366;
 
@@ -60,6 +64,12 @@ interface Spec<T> {
 
 interface Part<T> { failed?: boolean; replace: boolean; series: string[]; removed: string[]; upserts: T[]; token?: string }
 
+/** Per calendar: the token its last full read got, how often in a row such a token was refused, and the back-off while Google keeps refusing. */
+export interface CalendarHealth { fullToken?: string; refused: number; strikes: number; until: number }
+
+/** Google refused, a second time in a row, the sync token its own full read just handed out: listing in full again would repeat on every poll. */
+class FreshTokenRefusedError extends Error {}
+
 export interface FeedDeps {
   eventCalendars(): Promise<ProviderCalendar[]>;
   tasksId: string;
@@ -67,6 +77,8 @@ export interface FeedDeps {
   toTaskList(e: GoogleEvent): TaskList;
   /** Per calendar, the time before which no sync token is asked for again (kept by the person's calendar service). */
   noTokenUntil: Map<string, number>;
+  /** Per calendar, the refusal back-off (kept by the person's calendar service, shared by the poller and every device). */
+  health: Map<string, CalendarHealth>;
   nowMs(): number;
 }
 
@@ -174,14 +186,39 @@ export class CalendarChanges {
 
   /** One calendar: incremental with its token, else (no token, expired, forced, or too far behind) in full. */
   private async read<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
+    // while backing off the calendar is answered unchanged and loses its token, so the read after the back-off is in full
+    const skipped: Part<T> = { replace: false, series: [], removed: [], upserts: [] };
+    if ((this.deps.health.get(calendarId)?.until ?? 0) > this.deps.nowMs()) return skipped;
     try {
       return await this.readOrThrow(calendarId, prev, forced, spec);
     } catch (e) {
+      if (e instanceof FreshTokenRefusedError) {
+        this.strike(calendarId, 'tokenRefused');
+        return skipped;
+      }
       // the person-wide failures stop the whole answer; one calendar's failure leaves that calendar as the device has it
       // only the provider's own failures degrade; a rate limit, a sign-in problem or a bug (a TypeError) fails the request
       if (e instanceof RateLimitedError || !(e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError)) throw e;
+      if (e instanceof NotFoundError || e instanceof ProviderForbiddenError) this.strike(calendarId, e instanceof NotFoundError ? 'notFound' : 'forbidden');
       return { failed: true, replace: false, series: [], removed: [], upserts: [], token: prev?.tokens[calendarId] };
     }
+  }
+
+  /** Google refused this calendar once more: leave it alone for a while, twice as long each time in a row (logged once per strike). */
+  private strike(calendarId: string, cause: string): void {
+    const h = this.health(calendarId);
+    h.strikes++;
+    const backoffMs = Math.min(REFUSED_BACKOFF_MS * 2 ** (h.strikes - 1), REFUSED_BACKOFF_MAX_MS);
+    h.until = this.deps.nowMs() + backoffMs;
+    h.fullToken = undefined;
+    h.refused = 0;
+    logEvent('google_calendar_backoff', { calHash: calHash(calendarId), cause, strikes: h.strikes, backoffMs });
+  }
+
+  private health(calendarId: string): CalendarHealth {
+    let h = this.deps.health.get(calendarId);
+    if (!h) this.deps.health.set(calendarId, (h = { refused: 0, strikes: 0, until: 0 }));
+    return h;
   }
 
   private async readOrThrow<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
@@ -197,11 +234,20 @@ export class CalendarChanges {
       }
     }
     const full = await spec.full();
+    this.health(calendarId).fullToken = full.token;
     return { replace: true, series: [], removed: [], upserts: full.upserts, token: full.token };
   }
 
   private async incremental<T>(calendarId: string, token: string, spec: Spec<T>): Promise<Part<T>> {
-    const r = await this.provider.listChanges(calendarId, token);
+    const h = this.health(calendarId);
+    const r = await this.provider.listChanges(calendarId, token).catch((e: unknown) => {
+      // one refusal is an ordinary expiry (listed in full once); the fresh token of that full read refused too is a loop (at once after a back-off)
+      if (e instanceof SyncTokenExpiredError && token === h.fullToken && ++h.refused >= (h.strikes > 0 ? 1 : 2)) throw new FreshTokenRefusedError();
+      throw e;
+    });
+    // the token works again: forget earlier refusals
+    h.refused = 0;
+    h.strikes = 0;
     const part: Part<T> = { replace: false, series: [], removed: [], upserts: [], token: r.nextSyncToken ?? token };
     const dirty = new Set<string>();
     for (const e of r.items) {
