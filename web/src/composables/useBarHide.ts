@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useListener } from '@/lib/timers';
 
 /** Scrolling down this far hides the bar; scrolling up this far brings it back (px). */
@@ -33,9 +33,10 @@ export function isScrollKey(key: string): boolean {
   return ['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].includes(key);
 }
 
-/** Whether the bottom bar is slid away: down while the person scrolls a view down, back on the first scroll up or at the top (feature nav-expressive). */
-export function useBarHide() {
-  const hidden = ref(false);
+/** Whether the bottom bar is slid away: down while the person scrolls a view down, back on the first scroll up or at the top (feature nav-expressive). `blocked`: while true it stays in (the open tasks toggle lives in the bar). */
+export function useBarHide(blocked: () => boolean = () => false) {
+  const slid = ref(false);
+  const hidden = computed(() => slid.value && !blocked());
   const tops = new WeakMap<Element, number>();
   let run = 0;
   let inputUntil = 0;
@@ -53,8 +54,10 @@ export function useBarHide() {
     const before = tops.get(el!) ?? top;
     tops.set(el!, top);
     if (!touching && Date.now() > inputUntil) return;
-    const next = nextBarHidden(hidden.value, top - before, run, top);
-    hidden.value = next.hidden;
+    // held in: scrolling counts for nothing, so it does not slide away the moment it is freed
+    if (blocked()) { slid.value = false; run = 0; return; }
+    const next = nextBarHidden(slid.value, top - before, run, top);
+    slid.value = next.hidden;
     run = next.run;
   }
   const opts = { capture: true, passive: true };
@@ -64,7 +67,7 @@ export function useBarHide() {
   useListener(document, 'touchend', onTouchEnd, opts);
   useListener(document, 'touchcancel', onTouchEnd, opts);
   // scroll keys are scrolling input; Tab brings the bar back so a keyboard user always reaches it
-  useListener(document, 'keydown', (e) => { const key = (e as KeyboardEvent).key; if (isScrollKey(key)) bump(); else if (key === 'Tab') { hidden.value = false; run = 0; } }, opts);
-  useListener(document, 'focusin', (e) => { if ((e.target as Element | null)?.closest?.('[data-testid="bottom-bar"], [data-testid="create-button"]')) { hidden.value = false; run = 0; } }, opts);
-  return { hidden, show: () => { hidden.value = false; run = 0; } };
+  useListener(document, 'keydown', (e) => { const key = (e as KeyboardEvent).key; if (isScrollKey(key)) bump(); else if (key === 'Tab') { slid.value = false; run = 0; } }, opts);
+  useListener(document, 'focusin', (e) => { if ((e.target as Element | null)?.closest?.('[data-testid="bottom-bar"], [data-testid="create-button"]')) { slid.value = false; run = 0; } }, opts);
+  return { hidden, show: () => { slid.value = false; run = 0; } };
 }

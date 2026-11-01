@@ -57,7 +57,7 @@ const { position: navPosition, side: railSide } = useNavPosition();
 const labs = usePrefsStore();
 const leftHand = useLeftHand();
 const barSize = useBarSize();
-const barHide = useBarHide();
+const barHide = useBarHide(() => ui.trayExpanded);
 /** The bottom bar is slid away: only while the view switcher is the bottom bar. */
 const barHidden = computed(() => barHide.hidden.value && navPosition.value === 'bottom' && isPhone.value);
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);

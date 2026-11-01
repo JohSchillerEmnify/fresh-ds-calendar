@@ -42,3 +42,25 @@ describe('scroll sources', () => {
     for (const k of ['a', 'Enter', 'Tab', 'Escape']) expect(isScrollKey(k)).toBe(false);
   });
 });
+
+describe('useBarHide with the tray open', () => {
+  it('never hides while blocked (the tray toggle lives in the bar) and slides away again once free', async () => {
+    const { useBarHide } = await import('@/composables/useBarHide');
+    const { defineComponent, h, ref } = await import('vue');
+    const { mount } = await import('@vue/test-utils');
+    const blocked = ref(true);
+    let bar!: ReturnType<typeof useBarHide>;
+    mount(defineComponent({ setup() { bar = useBarHide(() => blocked.value); return () => h('div'); } }));
+    const scroller = document.createElement('main');
+    document.body.append(scroller);
+    const scrollTo = (top: number) => { scroller.scrollTop = top; scroller.dispatchEvent(new Event('scroll')); };
+    document.dispatchEvent(new Event('wheel'));
+    scrollTo(10);
+    scrollTo(200);
+    expect(bar.hidden.value).toBe(false);
+    blocked.value = false;
+    document.dispatchEvent(new Event('wheel'));
+    scrollTo(400);
+    expect(bar.hidden.value).toBe(true);
+  });
+});
