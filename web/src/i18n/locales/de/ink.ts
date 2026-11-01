@@ -4,7 +4,6 @@ export default {
   settings: {
     label: 'Handgeschriebene Listen',
     hint: 'Die Einträge einer Aufgabenliste mit dem Stift von Hand schreiben; die Maus zeichnet nie',
-    finger: { label: 'Mit dem Finger zeichnen', hint: 'Auch ein Finger zeichnet im Schreibfeld; zwei Finger scrollen. Eine aufliegende Handfläche zeichnet nie' },
   },
   mode: { ink: 'Handschrift, zur Tastatur wechseln', text: 'Tastatur, zur Handschrift wechseln' },
   undo: 'Letzten Strich zurücknehmen',

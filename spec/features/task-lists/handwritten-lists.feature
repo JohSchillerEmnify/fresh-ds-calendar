@@ -10,8 +10,8 @@ Feature: Labs: handwritten lists
   list form and on Canvas notes; everywhere else (calendar cards, the tray, the Tasks view) ink items are shown
   read-only and scaled down.
   Only a pen draws (Apple Pencil, Windows pen, Android stylus, with pressure); the mouse never does: it clicks, selects
-  and drags. By default a finger keeps scrolling and tapping (the Labs setting "Draw with finger" changes that); a
-  resting palm never draws. Typing always works, also in ink mode (R2). Ink is stored on our server per
+  and drags. A finger keeps scrolling and tapping and never draws (owner 2026-11-01: drawing with a
+  finger is unsupported); a resting palm never draws. Typing always works, also in ink mode (R2). Ink is stored on our server per
   person with a copy on the device (readable offline), is backed up with the server's files to Drive, and Google Calendar
   only gets a placeholder title for an ink item. A list shared with another person shares its ink like its items.
   Undo: a small undo button beside the writing mode switch takes back the last stroke while the dialog is open; the Apple
@@ -24,8 +24,7 @@ Feature: Labs: handwritten lists
   A4. The writing mode is remembered per device, not per list.
   A5. Items written in TEXT mode are ordinary items; nothing marks them as written by hand.
   R1. (owner, after the mockup, 2026-10-30; "how is drag&drop gonna work on pc when mouse draws? ... not sure if it makes
-      sense to have mouse writing. Only pen should write on desktop.") The MOUSE NEVER DRAWS. Only a pen draws, plus a
-      finger only with the Labs setting "Draw with finger" (Q8). The mouse clicks, selects and drags; a mouse drag over
+      sense to have mouse writing. Only pen should write on desktop.") The MOUSE NEVER DRAWS. Only a pen draws. The mouse clicks, selects and drags; a mouse drag over
       the writing area draws nothing.
   R2. (owner, same date; "I want it to be possible as well to write with keyboard") Typing always works, also in ink
       mode: clicking or tapping the next empty line and typing creates a text item in the same list (mixing is allowed,
@@ -55,8 +54,8 @@ Feature: Labs: handwritten lists
   Q5. One list can mix ink and text items; the writing mode decides how the NEXT item is written.
   Q6. The pen on an existing ink item keeps writing on that line (adds strokes); it does not replace the line.
   Q7. Lists from templates and repeating lists copy their ink items.
-  Q8. A Labs setting "Draw with finger", off by default. When on, a finger draws in the writing area and scrolling there
-      takes two fingers. A resting palm never draws in either case.
+  Q8. (retired, owner 2026-11-01) The Labs setting "Draw with finger" is gone: drawing with a finger is unsupported. A
+      stored value of its old pref is ignored.
   Q9. A phone where a stylus is used or reported gets the same ruled writing dialog as the tablet (one component), sized
       to fit the phone window. A phone without a pen keeps the unchanged dialog.
   G1. Offline: the feature is built AFTER the device-first outbox (ADR 0025, branch docs/adr-device-first). Ink is
@@ -135,7 +134,7 @@ Feature: Labs: handwritten lists
       When I delete the item number 2
       Then the task list "Groceries" shows the done count "0/2"
 
-  Rule: Only a pen draws, the mouse never does, a finger and a resting palm do not (a finger draws only with the setting "Draw with finger"; decision R1)
+  Rule: Only a pen draws, the mouse never does, a finger and a resting palm do not (decision R1)
 
     Background:
       Given the Labs switch "Handwritten lists" is on
@@ -153,11 +152,16 @@ Feature: Labs: handwritten lists
       Then the item number 1 is ticked
 
 @mobile
-    Scenario: A finger scrolls the list instead of drawing when "Draw with finger" is off
-      Given the Labs setting "Draw with finger" is off
+    Scenario: A finger scrolls the list instead of drawing
       When I swipe up on the writing area with a finger
       Then the list scrolls
       And nothing is drawn
+
+@mobile
+    Scenario: A resting palm does not draw
+      Given the expanded task list "Notes" has more ink items than fit the screen
+      When I rest my palm on the writing area and draw a stroke with the pen
+      Then only the pen stroke is drawn
 
     Scenario: Pen pressure changes the line width only moderately
       When I draw a stroke with the pen at the pressure 0.1
@@ -367,85 +371,6 @@ Feature: Labs: handwritten lists
       Then the task list "Groceries" shows 2 ink items, scaled down
       And the item writing area offers no writing mode switch
       And I can still tick the item number 1
-
-  Rule: A finger draws only when the Labs setting "Draw with finger" is on (decision Q8)
-
-    Background:
-      Given the Labs switch "Handwritten lists" is on
-
-    Scenario: "Draw with finger" is off until switched on
-      When I open the settings
-      Then the Labs setting "Draw with finger" is off
-
-@mobile
-    Scenario: With the setting on a finger draws on the writing area
-      Given the Labs setting "Draw with finger" is on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      When I draw a stroke with a finger
-      Then the stroke is drawn on the line
-
-@mobile
-    Scenario: Switched on in the settings, a real finger drag draws on the writing area
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      And I drag one finger along the writing area
-      Then the stroke is drawn on the line
-
-@mobile
-    Scenario: Switched on in the settings, a real finger drag draws in the new task list form
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And I open the new task list form
-      And I drag one finger along the writing area
-      Then the writing area shows 1 stroke
-
-@mobile
-    Scenario: A broad finger tip still draws
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      And I drag one broad finger along the writing area
-      Then the stroke is drawn on the line
-
-@mobile
-    Scenario: A finger that rests a moment before writing draws and does not pick the item up
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      And I drag one finger along the writing area after resting it for 600 ms
-      Then the stroke is drawn on the line
-
-@mobile
-    Scenario: A finger draws on an existing ink item
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      And I drag one finger along the ink item number 2
-      Then the ink item number 2 has one more stroke
-
-@mobile
-    Scenario: A finger that rests a moment on an existing ink item draws and does not pick the item up
-      Given I open the settings
-      When I switch the Labs setting "Draw with finger" on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      And I drag one finger along the ink item number 2 after resting it for 600 ms
-      Then the ink item number 2 has one more stroke
-
-@mobile
-    Scenario: With the setting on two fingers scroll the writing area
-      Given the Labs setting "Draw with finger" is on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      When I swipe up on the writing area with two fingers
-      Then the list scrolls
-      And nothing is drawn
-
-@mobile
-    Scenario: With the setting on a resting palm still does not draw
-      Given the Labs setting "Draw with finger" is on
-      And the expanded task list "Notes" has more ink items than fit the screen
-      When I rest my palm on the writing area and draw a stroke with the pen
-      Then only the pen stroke is drawn
 
   Rule: Undo takes back the last stroke while the dialog is open (decision Q1)
 

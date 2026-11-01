@@ -5,7 +5,6 @@ export default {
   settings: {
     label: 'Handgeschriebene Listen, yo',
     hint: 'Schreib die Einträge mit dem Zauberstab von Hand; die Maus zaubert nie, Schinken',
-    finger: { label: 'Mit dem Finger kritzeln, Digga', hint: 'Auch ein Finger kritzelt im Schreibfeld; zwei Finger scrollen. Hagrids Pranke auf dem Display kritzelt nie' },
   },
   mode: { ink: 'Zauberfeder an, zur Tastatur wechseln, yo', text: 'Tastatur an, zur Zauberfeder wechseln, yo' },
   undo: 'Letzten Strich weghexen',

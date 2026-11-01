@@ -9,12 +9,12 @@ import { flush, installWaapi, pe, removeWaapi } from './motion/helpers';
 const rect = (top: number) => ({ left: 0, top, width: 200, height: 40, right: 200, bottom: top + 40, x: 0, y: top, toJSON() {} }) as DOMRect;
 
 /** Three rows of 40 px at 0, 40 and 80, each with a grip. */
-function setup(gripOnly: boolean, fingerWrites = false) {
+function setup(gripOnly: boolean) {
   const onMove = vi.fn();
   const Host = defineComponent({
     setup() {
       const root = ref<HTMLElement | null>(null);
-      useItemDrag({ root, signature: () => 'a,b,c', gripOnly: () => gripOnly, fingerWrites: () => fingerWrites, disabled: () => false, onMove });
+      useItemDrag({ root, signature: () => 'a,b,c', gripOnly: () => gripOnly, disabled: () => false, onMove });
       return () => h('ul', { ref: root }, ['a', 'b', 'c'].map((id) => h('li', { 'data-testid': 'tasklist-item', 'data-item-id': id }, [h('span', { 'data-item-grip': '' }), h('b', id), h('svg', { 'data-testid': 'ink-line' })])));
     },
   });
@@ -48,15 +48,6 @@ async function longPressDrag(row: HTMLElement, from: number, to: number, target:
 }
 
 describe('useItemDrag', () => {
-  it('a finger resting on the ink line does not lift the row while "Draw with finger" is on; the grip and the title still do', async () => {
-    const { w, rows, onMove } = setup(false, true);
-    await longPressDrag(rows[0], 20, 100, rows[0].querySelector('svg')!);
-    expect(rows[0].dataset.dragging).toBeUndefined();
-    expect(onMove).not.toHaveBeenCalled();
-    await longPressDrag(rows[0], 20, 100, rows[0].querySelector('b')!);
-    expect(onMove).toHaveBeenCalledTimes(1);
-    w.unmount();
-  });
   it('the gap is the lifted row\'s layout height, however its lifted (scaled, tilted) rect looks', () => {
     const { w, rows } = setup(false);
     // the lifted card is drawn larger than its place (scale 1.05, tilt): 50 px tall instead of 40
