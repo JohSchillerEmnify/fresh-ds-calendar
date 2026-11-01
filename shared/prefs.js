@@ -112,7 +112,6 @@ export const PREFS = {
   weekTwoRow: bool(false),
   weekTwoRowTop: oneOf([3, 4], 4, 'weekTwoRowTop must be 3 or 4'),
   labsHandwriting: bool(false),
-  labsDrawWithFinger: bool(false),
   minEventMinutes: oneOf([0, 15, 30], 0, 'minEventMinutes must be 0, 15 or 30'),
   daySideBySide: oneOf([2, 3, 4], 4, 'daySideBySide must be 2, 3 or 4'),
   weekSideBySide: oneOf([2, 3], 2, 'weekSideBySide must be 2 or 3'),

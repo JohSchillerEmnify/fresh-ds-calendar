@@ -750,8 +750,8 @@ into the list and stopping to share moves it back. `InkDoc` = `{ version: 1, ite
 person's own ink plus that of every shared list they are on. A stroke is `{ p: [x, y, pressure][], c?: '#rrggbb' }` (no `c`
 = the theme's text colour); x and y are in line heights from the line's left and top (so the ink scales to any line,
 decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the description line
-`☐ Handwritten item` (decision A3). The prefs `labsHandwriting` and `labsDrawWithFinger` (boolean, default `false`) are the
-Labs switches.
+`☐ Handwritten item` (decision A3). The pref `labsHandwriting` (boolean, default `false`) is the
+Labs switch. A retired `labsDrawWithFinger` in a stored document or a patch is ignored (finger drawing is unsupported).
 
 | Method | Path | Body | Success |
 |---|---|---|---|

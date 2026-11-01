@@ -7,10 +7,9 @@ import { keptItems, type OutboxEntry } from './outbox';
 /** What a pointer event does in the writing area. */
 export type PenRole = 'draw' | 'erase' | 'ignore';
 
-/** Only a pen draws; a finger only with "Draw with finger"; a mouse never (decision R1). The pen's eraser end or barrel button erases. */
-export function penRole(e: { pointerType: string; buttons: number }, drawWithFinger: boolean): PenRole {
+/** Only a pen draws; a finger or a mouse never (decision R1). The pen's eraser end or barrel button erases. */
+export function penRole(e: { pointerType: string; buttons: number }): PenRole {
   if (e.pointerType === 'pen') return (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0 ? 'erase' : 'draw';
-  if (e.pointerType === 'touch') return drawWithFinger ? 'draw' : 'ignore';
   return 'ignore';
 }
 
