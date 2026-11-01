@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { listUserSubs, userDir } from '../auth/people.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+import { isRecord } from '../lib/personJsonStore.js';
 
 /** The files that were one per server and are one per person now (same name, below `users/<sub>/`). */
 export const SPLIT_FILES = ['settings.json', 'motivation.json'] as const;
@@ -14,9 +15,10 @@ export function splitServerWideFiles(dataDir: string, subs: string[], log: (m: s
     if (!fs.existsSync(file)) continue;
     const doc = readJson<unknown>(file);
     // an unreadable old file is kept as it is rather than copied or retired
-    if (doc === null) continue;
+    if (!isRecord(doc)) continue;
     let copied = 0;
-    for (const sub of new Set(subs)) {
+    // an id that is not a plain folder name (never a Google sub) is skipped, not allowed to stop the server
+    for (const sub of new Set(subs.filter((s) => /^[A-Za-z0-9_-]{1,64}$/.test(s)))) {
       const own = path.join(userDir(dataDir, sub), name);
       if (fs.existsSync(own)) continue;
       writeJsonAtomic(own, doc);
