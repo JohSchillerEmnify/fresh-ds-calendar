@@ -136,7 +136,7 @@ function onEntriesClick(e: MouseEvent, day: Date): void {
 }
 
 const zoomBy = (dir: 1 | -1) => { const n = stepZoom(z.value, dir); ctl.zoomTo({ x: n, y: n }, vw.value / 2, vh.value / 2); };
-const shiftMonth = (dir: 1 | -1) => router.push({ path: `/zoom/${toIsoDate(addMonths(anchorDate.value, dir))}`, query: { ...route.query } });
+const shiftMonth = (dir: 1 | -1) => router.replace({ path: `/zoom/${toIsoDate(addMonths(anchorDate.value, dir))}`, query: { ...route.query } });
 const back = () => router.push({ path: routePath('month', anchorDate.value), query: { ...route.query } });
 </script>
 
