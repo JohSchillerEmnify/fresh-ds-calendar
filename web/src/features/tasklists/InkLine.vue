@@ -16,6 +16,8 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   change: [strokes: InkStroke[]];
+  /** A stroke started (the draft must not become an item mid-stroke). */
+  stroking: [];
   /** A click or tap that drew nothing (a mouse click, or a finger tap with "Draw with finger" off). */
   tap: [];
 }>();
@@ -139,6 +141,7 @@ function down(e: PointerEvent): void {
   const erase = role === 'erase' || ink.eraser;
   const first = point(e);
   live.value = { points: [first], colour: ink.colour, erase };
+  emit('stroking');
   if (erase) erasing.value = eraseAt(props.strokes, first[0], first[1], ERASE_RADIUS);
   e.preventDefault();
 }

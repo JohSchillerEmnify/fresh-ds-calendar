@@ -346,7 +346,7 @@ defineExpose({ root, busy });
           </li>
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
-          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
+          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @stroking="inkWriting.holdDraft" @tap="openAdd" />
         </div>
         <p v-if="!tl.items.length && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 
