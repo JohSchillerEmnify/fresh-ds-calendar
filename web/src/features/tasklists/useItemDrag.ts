@@ -11,6 +11,8 @@ import { dropIndex, rowShifts, slotOffset } from './reorder';
 
 /** Selector of the drag handle (`data-item-grip` in `TaskListView`); the Canvas leaves a press on it to the item. */
 export const ITEM_GRIP = '[data-item-grip]';
+/** The writing area of an ink item (`InkLine`). */
+const INK_LINE = '[data-testid="ink-line"]';
 const ROW = '[data-testid="tasklist-item"]';
 
 /** Nearest ancestor that scrolls vertically (sheet body, tray, Tasks view): it auto-scrolls during a drag. */
@@ -34,6 +36,8 @@ export interface ItemDragOptions {
   gripOnly: () => boolean;
   /** Handwriting is on: a pen anywhere but on the grip writes instead of moving the row (decision R3). */
   penWrites?: () => boolean;
+  /** Handwriting is on with "Draw with finger": a finger on the ink line writes too, so a long press there must not lift the row under the stroke. */
+  fingerWrites?: () => boolean;
   /** No drag now (an item title is being edited). */
   disabled: () => boolean;
   /** A row was dropped on place `to` (never called for the place it came from). */
@@ -89,7 +93,12 @@ export function useItemDrag(o: ItemDragOptions): void {
       return { top: pickup!.top - shift, bottom: pickup!.bottom - shift };
     };
     let pen = false;
-    const onDown = (e: Event) => { fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP); pen = (e as PointerEvent).pointerType === 'pen'; };
+    let finger = false;
+    const onDown = (e: Event) => {
+      fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP);
+      pen = (e as PointerEvent).pointerType === 'pen';
+      finger = (e as PointerEvent).pointerType === 'touch' && !!(e.target as Element | null)?.closest?.(INK_LINE);
+    };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
       hitTest: (_x, y, ctx) => {
@@ -111,7 +120,7 @@ export function useItemDrag(o: ItemDragOptions): void {
       onDrop: (t) => {
         if (t.key !== rowsOf().indexOf(row) && row.dataset.itemId) o.onMove(row.dataset.itemId, t.key);
       },
-      disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
+      disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip) || (!!o.fingerWrites?.() && finger && !fromGrip),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
         held = t ? { row, to: t.key, own: ownSpan } : null;

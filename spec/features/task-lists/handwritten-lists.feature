@@ -409,6 +409,30 @@ Feature: Labs: handwritten lists
       Then the stroke is drawn on the line
 
 @mobile
+    Scenario: A finger that rests a moment before writing draws and does not pick the item up
+      Given I open the settings
+      When I switch the Labs setting "Draw with finger" on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      And I drag one finger along the writing area after resting it for 600 ms
+      Then the stroke is drawn on the line
+
+@mobile
+    Scenario: A finger draws on an existing ink item
+      Given I open the settings
+      When I switch the Labs setting "Draw with finger" on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      And I drag one finger along the ink item number 2
+      Then the ink item number 2 has one more stroke
+
+@mobile
+    Scenario: A finger that rests a moment on an existing ink item draws and does not pick the item up
+      Given I open the settings
+      When I switch the Labs setting "Draw with finger" on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      And I drag one finger along the ink item number 2 after resting it for 600 ms
+      Then the ink item number 2 has one more stroke
+
+@mobile
     Scenario: With the setting on two fingers scroll the writing area
       Given the Labs setting "Draw with finger" is on
       And the expanded task list "Notes" has more ink items than fit the screen
