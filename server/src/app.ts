@@ -45,10 +45,13 @@ function uaFamily(ua = ''): string {
   return `${pick(UA_OS)}/${pick(UA_APP)}`;
 }
 
+/** The error code the error handler answered a request with (read by the refused-write line without re-reading the answer). */
+const errorCodes = new WeakMap<Context, string>();
+
 /** A refused write is otherwise invisible on the server: one line with its code and how the request was framed, never the body. */
-async function logRefusedWrite(c: Context): Promise<void> {
+function logRefusedWrite(c: Context): void {
   if (c.res.status < 400 || c.res.status >= 500 || ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) || c.req.path.startsWith('/api/diag/')) return;
-  const code = await c.res.clone().json().then((b: { error?: { code?: string } }) => b?.error?.code, () => undefined);
+  const code = errorCodes.get(c);
   logEvent('api_refused', {
     method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, subHash: subHash((c.get('person') as { sub: string } | undefined)?.sub),
     contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
@@ -79,7 +82,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     if (c.res.status >= 500 && causeFor(c) !== RateLimitedError.name) {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
     }
-    await logRefusedWrite(c as Context);
+    logRefusedWrite(c as Context);
   });
 
   app.use('/api/*', requestGuards(config));
@@ -125,7 +128,10 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   });
 
   app.onError((err, c) => {
-    const body = (code: string, message: string, details?: unknown, key?: string) => ({ error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } });
+    const body = (code: string, message: string, details?: unknown, key?: string) => {
+      errorCodes.set(c, code);
+      return { error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } };
+    };
     noteCause(c, causeFor(err) ?? err.constructor.name);
     if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details, err.key), err.status);
     if (err instanceof ReauthRequiredError) return c.json(body('GOOGLE_REAUTH', 'Google no longer accepts your access. Sign in with Google again.'), 401);
