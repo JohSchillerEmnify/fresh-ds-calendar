@@ -84,8 +84,9 @@ const nativeTap = (x, y) => inNative(() => browser.execute('mobile: tap', { x, y
 
 /** The web view's frame in screen points (native context): CSS px map onto it from the page's top-left. */
 const webViewFrame = () => inNative(async () => {
-  const wv = await browser.$('-ios class chain:**/XCUIElementTypeWebView');
-  return wv.getElementRect();
+  // Safari keeps several web view elements around: the visible page is the biggest one
+  const rects = await Promise.all((await browser.$$('-ios class chain:**/XCUIElementTypeWebView')).map((w) => w.getElementRect()));
+  return rects.sort((a, b) => b.width * b.height - a.width * a.height)[0];
 });
 
 /** Safari's one-time tip bubble sits over the bottom bar and swallows taps: close it when it shows. */
@@ -94,8 +95,13 @@ async function dismissSafariTip() {
     writeFileSync(`${OUT}/native-source.xml`, await browser.getPageSource());
     const tip = await browser.$('-ios predicate string:label CONTAINS "View Bookmarks" OR name CONTAINS "View Bookmarks"');
     if (!(await tip.isExisting())) { console.log('  no Safari tip bubble'); return; }
-    const close = await browser.$('-ios predicate string:type == "XCUIElementTypeButton" AND (label == "Close" OR name == "Close" OR label == "Dismiss")');
-    if (await close.isExisting()) { await close.click(); console.log('  closed the Safari tip bubble'); return; }
+    // the tip's close button is the lower one of the "Close" buttons
+    const closes = await browser.$$('-ios predicate string:type == "XCUIElementTypeButton" AND (label == "Close" OR name == "Close" OR label == "Dismiss")');
+    if (closes.length) {
+      const rects = await Promise.all(closes.map((c) => c.getElementRect()));
+      const lowest = rects.reduce((m, r, i) => (r.y > rects[m].y ? i : m), 0);
+      await closes[lowest].click(); console.log('  closed the Safari tip bubble'); return;
+    }
     const { width, height } = await browser.getWindowSize();
     await browser.execute('mobile: tap', { x: Math.round(width * 0.906), y: Math.round(height * 0.71) });
     console.log('  tapped the Safari tip bubble close by position');
@@ -181,7 +187,7 @@ async function overflowDelete(log, res, overflowCss, title) {
 }
 
 const sheetSteps = (title) => async (log, res) => {
-  await tap(log, 'card', `[data-title="${title}"]:is([data-testid="tasklist-card"], [data-testid="tasks-item"])`);
+  await tap(log, 'card', `[data-testid="task-tray-item"][data-title="${title}"]`);
   const sheet = '[data-testid="tasklist-expanded"]:not([data-presentation="overlay"])';
   if (!(await waitFor(sheet))) { res.notes.push('list sheet did not open'); return; }
   await sleep(800);
