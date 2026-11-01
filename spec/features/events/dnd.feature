@@ -62,7 +62,7 @@ Feature: Drag and drop to reschedule
     And the Google event for the task list "Packing" is a timed event on 2026-10-16 from 08:15 to 08:45
 
   Scenario: A move Google cannot take now is kept and sent later
-    Given automatic sync runs every 2 seconds
+    Given automatic sync is disabled
     When I open the week view for 2026-10-12
     And Google becomes unavailable
     And I drag the event "Dentist" to 2026-10-16 at 14:00
@@ -70,6 +70,8 @@ Feature: Drag and drop to reschedule
     And I see the event "Dentist" on "Friday"
     And the event "Dentist" is positioned from 14:00 to 15:00
     When Google becomes available again
+    And I close the app
+    And I open the app
     And I wait until the changes are sent
     Then Google contains an event "Dentist" on 2026-10-16 from 14:00 to 15:00
 
@@ -197,13 +199,15 @@ Feature: Drag and drop to reschedule
       And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 09:15
 
     Scenario: A resize Google cannot take now is kept and sent later
-      Given automatic sync runs every 2 seconds
+      Given automatic sync is disabled
       And the event "Dentist" shows resize handles in the day view for 2026-10-14
       And Google becomes unavailable
       When I drag the bottom handle of "Dentist" down by 60 minutes
       Then I do not see the sync error banner
       And the event "Dentist" is positioned from 09:00 to 11:00
       When Google becomes available again
+      And I close the app
+      And I open the app
       And I wait until the changes are sent
       Then Google contains an event "Dentist" on 2026-10-14 from 09:00 to 11:00
 
