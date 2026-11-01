@@ -7,14 +7,7 @@ import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 /** The files that were one per server and are one per person now (same name, below `users/<sub>/`). */
 export const SPLIT_FILES = ['settings.json', 'motivation.json'] as const;
 
-/**
- * Copies each old server-wide file to every known person who has no file of their own yet, then renames it to
- * `<name>.bak`. Idempotent: without the old file nothing happens, and an interrupted run finishes on the next start.
- *
- * @param dataDir The data directory.
- * @param subs Every person known to the server (people.json, the folders under `users/`, and `local`).
- * @param log One line per moved file.
- */
+/** Copies each old file to every person in `subs` without their own, then renames it to `.bak`; idempotent, resumes if interrupted. */
 export function splitServerWideFiles(dataDir: string, subs: string[], log: (m: string) => void = () => {}): void {
   for (const name of SPLIT_FILES) {
     const file = path.join(dataDir, name);

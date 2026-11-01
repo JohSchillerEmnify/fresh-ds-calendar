@@ -427,7 +427,7 @@ describe('server-wide files', () => {
       const [f] = (await t.json('GET', `/api/__test/backup/drive?owner=${JO}`)).body.files;
       const files = JSON.parse(await t.app.ctx.mockDrive!.forPerson(mockSub(JO)).get(f.id)).files;
       expect(Object.keys(files).filter((k) => k.startsWith('server/')).sort()).toEqual(['server/people.json']);
-      expect(JSON.parse(files[`users/${mockSub(JO)}/settings.json`]).categories.map((c: any) => c.name)).toContain('Garden');
+      expect(JSON.parse(files[`users/${mockSub(JO)}/settings.json`]).categories.map((c: { name: string }) => c.name)).toContain('Garden');
       expect(JSON.parse(files[`users/${mockSub(JO)}/motivation.json`]).current).toBe(1);
     } finally { t.cleanup(); }
   });

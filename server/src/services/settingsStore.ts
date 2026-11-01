@@ -36,11 +36,7 @@ type Stored = Partial<Settings> & Record<string, unknown>;
 /** One person's settings as read: what is served, and the retired values kept on disk for the theme migration. */
 interface Loaded { s: Settings; scene?: string; garden?: string }
 
-/**
- * Settings and categories per person in `DATA_DIR/users/<sub>/settings.json` (atomic writes, versioned, ADR 0035).
- * Independent of the provider. A person without a file reads the defaults; nothing is written until they change
- * something, so opening the app creates no data of the person's own (backup and its restore at sign-in, ADR 0035).
- */
+/** Settings and categories per person in `users/<sub>/settings.json` (ADR 0035); written only on a change, so opening the app makes no data. */
 export class SettingsStore {
   private readonly files: PersonJsonStore<Stored | null>;
   /** The `updated` of never-saved defaults: fixed while the server runs, so the change feed does not resend them. */

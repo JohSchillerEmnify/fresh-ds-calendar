@@ -8,7 +8,9 @@ import { loadConfig } from '../src/config.js';
 import { makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- each test reads a different answer shape
 type Call = (m: string, u: string, b?: unknown) => Promise<{ status: number; body: any }>;
+type Named = { name: string };
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -46,8 +48,8 @@ describe('two people\'s settings are separate', () => {
     await anna('POST', '/api/categories', { name: 'Garden', color: '#0b8043' });
     await anna('PATCH', '/api/categories/work', { name: 'Job' });
     await anna('DELETE', '/api/categories/home');
-    expect((await anna('GET', '/api/settings')).body.categories.map((c: any) => c.name)).toEqual(['Shopping', 'To-do', 'Job', 'Garden']);
-    expect((await jo('GET', '/api/settings')).body.categories.map((c: any) => c.name)).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
+    expect((await anna('GET', '/api/settings')).body.categories.map((c: Named) => c.name)).toEqual(['Shopping', 'To-do', 'Job', 'Garden']);
+    expect((await jo('GET', '/api/settings')).body.categories.map((c: Named) => c.name)).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
     // Jo cannot file a list under Anna's category
     const garden = (await anna('GET', '/api/settings')).body.categories.at(-1).id;
     expect((await jo('POST', '/api/tasklists', { title: 'Weeds', date: null, items: [], categoryId: garden })).status).toBe(400);
@@ -68,7 +70,7 @@ describe('two people\'s settings are separate', () => {
     const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
     const hers = (await anna('GET', `/api/tasklists/${shared.id}`)).body;
     expect(hers).toMatchObject({ categoryId: cat.id, categoryInfo: { name: 'Garden', icon: '🌻', color: '#0b8043' } });
-    expect((await anna('GET', '/api/settings')).body.categories.map((c: any) => c.name)).not.toContain('Garden');
+    expect((await anna('GET', '/api/settings')).body.categories.map((c: Named) => c.name)).not.toContain('Garden');
   });
 
   it('stores each person\'s settings in their own folder', async () => {
@@ -116,7 +118,7 @@ describe('moving the server-wide settings to every person (once, on start)', () 
     start(d).close();
     for (const sub of [SUB_A, SUB_B]) {
       expect(read(d, 'users', sub, 'settings.json')).toMatchObject({ defaultView: 'week', calmMode: true, sunflowers: 'full', version: 9, scene: 'mordor' });
-      expect(read(d, 'users', sub, 'settings.json').categories.map((c: any) => c.name)).toEqual(['Pets']);
+      expect(read(d, 'users', sub, 'settings.json').categories.map((c: Named) => c.name)).toEqual(['Pets']);
       expect(read(d, 'users', sub, 'motivation.json')).toMatchObject({ current: 4, best: 6, growth: 80 });
     }
     expect(fs.existsSync(path.join(d, 'settings.json'))).toBe(false);
