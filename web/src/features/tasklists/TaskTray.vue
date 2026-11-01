@@ -189,8 +189,8 @@ html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
   html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); }
   /* the bottom bar floats over the calendar: the tray stands clear of it (feature nav-expressive) */
   html[data-nav-pos='bottom'] .tray.phone { margin-bottom: calc(var(--navbar-h) + var(--safe-bottom)); }
-  /* collapsed, its row is in the bar: nothing is left in the layout */
-  .tray.in-bar:not(.open) { height: 0; border: 0; overflow: hidden; margin-bottom: 0; }
+  /* collapsed, its row is in the bar: nothing is left in the layout (the html[...] prefix outranks the margin rule above) */
+  html[data-nav-pos='bottom'] .tray.in-bar:not(.open) { height: 0; border: 0; overflow: hidden; margin-bottom: 0; }
   html[data-nav-pos='bottom'][data-bar-hidden='true'] .tray.phone { margin-bottom: 0; padding-bottom: var(--safe-bottom); }
 }
 @media (min-width: 768px) {

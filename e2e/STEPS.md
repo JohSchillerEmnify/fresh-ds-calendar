@@ -3437,6 +3437,7 @@ the bottom bar has no open tasks row
 the open tasks row is hidden
 the open tasks row is shown
 the bottom bar floats {int} pixels from the edges of the screen
+the calendar continues behind the bottom bar
 the calendar ends above the bottom bar
 nothing is reserved at the bottom of the screen
 the bottom bar is {int} pixels tall
@@ -3488,7 +3489,8 @@ the floating toolbar is shown
   test viewport has no safe-area inset). "the calendar ends above the bottom bar": the bottom of every visible
   `[data-scroll-area]` and of `task-tray` is at or above the top of the bar. "nothing is reserved at the bottom of the
   screen": the lowest of the visible `[data-scroll-area]` and `task-tray` boxes ends within 1 px of `innerHeight` (the room
-  of a slid-away bar is given back).
+  of a slid-away bar is given back). "the calendar continues behind the bottom bar": the same lowest box ends within 1 px of
+  `innerHeight`, i.e. under the floating phone bar.
 - Open tasks row (tray option C, feature open-tasks-in-sight): on a phone the open tasks are the row `task-tray-toggle` inside
   the `bottom-bar` element: `task-tray-count` ("3 open") and one `task-tray-chip` per open list in tray order (their texts joined
   by ", " are the names). "the bottom bar shows the open tasks C with the names N": the count text is C and the chip texts joined

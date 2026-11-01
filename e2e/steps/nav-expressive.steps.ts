@@ -210,6 +210,11 @@ Then('the calendar ends above the bottom bar', async function (this: World) {
   for (const bottom of await contentBottoms(this)) expect(bottom, 'content bottom').toBeLessThanOrEqual(top + 1);
 });
 
+Then('the calendar continues behind the bottom bar', async function (this: World) {
+  const v = viewport(this.page);
+  await expect.poll(async () => Math.max(...(await contentBottoms(this))), { message: 'the scroller reaches the screen bottom, under the bar' }).toBeGreaterThanOrEqual(v.height - 1);
+});
+
 Then('nothing is reserved at the bottom of the screen', async function (this: World) {
   const v = viewport(this.page);
   await expect.poll(async () => Math.max(...(await contentBottoms(this))), { message: 'lowest content reaches the screen bottom' }).toBeGreaterThanOrEqual(v.height - 1);

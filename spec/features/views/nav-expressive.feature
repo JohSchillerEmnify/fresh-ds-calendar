@@ -113,6 +113,28 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
       And I scroll the time grid to the end of the day
       Then the add button covers no hour of the time grid
 
+  Rule: On a phone the calendar continues underneath the floating bar
+
+    @mobile
+    Scenario Outline: The calendar is drawn behind the bar, down to the screen edge
+      Given today is 2026-11-02
+      And the calendar contains a task list "Laundry" on 2026-10-25 with items:
+        | item   | done |
+        | Washer | no   |
+      When I open the <view> view for <period>
+      Then the calendar continues behind the bottom bar
+
+      Examples:
+        | view  | period     |
+        | week  | 2026-11-02 |
+        | day   | 2026-10-25 |
+
+    @mobile
+    Scenario: The calendar is drawn behind the bar when no task list is open
+      Given the calendar is empty
+      When I open the week view for 2026-10-12
+      Then the calendar continues behind the bottom bar
+
   Rule: The room of a hidden bar is given back, and on wide screens the bar floats with its room reserved
 
     @mobile
