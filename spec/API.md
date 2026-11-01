@@ -232,6 +232,16 @@ are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMi
 **Month scrolling** (`prefs.monthScroll`, per person, feature `month-vertical`): `sideways | vertical | vertical-snap`, default `sideways`. `vertical` stacks the
 months in one list that scrolls up and down; `vertical-snap` is the same list, one month per page. Any other value answers 400 `VALIDATION_ERROR` (field `monthScroll`).
 
+**Calendar plans** (`prefs.calendarPlans`, per person, feature `calendar-off-plan`): `{ [calendarId]: CalendarPlan }`,
+default `{}`, replaced as a whole. `CalendarPlan = { windows?: { from: { day: 0-6; time: 'HH:MM' }; to: { day: 0-6;
+time: 'HH:MM' } }[]; until?: 'YYYY-MM-DD'; since?: 'YYYY-MM-DDTHH:MM'; switchedAt?: 'YYYY-MM-DDTHH:MM' }` (`day` 0 =
+Sunday, at most 7 windows, `from` ≠ `to`; at most 200 calendars). Times are wall times in the calendar zone. A window
+is off from `from` to `to` every week; `until` is off from `since` to 00:00 of `until`; `switchedAt` is the last tap on
+the calendar's switch. The device works out on/off itself: inside a window or an `until` the calendar is off, outside
+on, unless `switchedAt` is later than the plan's last switch, then the person's `hidden` holds. Why a pref, not the
+calendar: plans are the person's choice like the other prefs and must apply offline from the device copy (ADR 0023).
+Anything invalid answers 400 `VALIDATION_ERROR` (field `calendarPlans`).
+
 **Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
 per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
 columns next to each other before laying further ones over the last column. Any other value answers 400

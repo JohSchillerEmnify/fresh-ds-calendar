@@ -8,6 +8,7 @@ import DropIndicator from './DropIndicator.vue';
 import EventItem from './EventItem.vue';
 import NowCard from './NowCard.vue';
 import { usePrefsStore } from '@/stores/prefs';
+import { setPlanSource } from '@/stores/calendars';
 import NowMarker from './NowMarker.vue';
 import { startTransitionWarnings } from './transitionWarning';
 import './calendar.css';
@@ -15,11 +16,13 @@ import './calendar.css';
 let done = false;
 export function registerCalendarFeature(): void {
   startTransitionWarnings(); // (re)binds to the active Pinia
+  setPlanSource({ plans: () => usePrefsStore().calendarPlans, save: (calendarPlans) => usePrefsStore().set({ calendarPlans }) });
   if (done) return;
   done = true;
   registerDialog('event', () => import('./EventDialog.vue'));
   // the same dialog in birthday mode: its own kind, so switching Event <-> Birthday in the "new" dialog remounts it
   registerDialog('birthday', () => import('./EventDialog.vue'));
+  registerDialog('calendar-plan', () => import('./CalendarPlanSheet.vue'));
   registerItemRenderer('event', EventItem);
   registerGridLayer(DropIndicator);
   registerGridLayer(DrawBlock);

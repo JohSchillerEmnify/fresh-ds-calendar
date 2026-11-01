@@ -7,6 +7,7 @@ import type { NavItem } from '@/components/m3/types';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
+import { vLongPress } from '@/lib/longPress';
 
 /** The side menu (feature nav-expressive): the views, the calendars with colour checkboxes (they replace the filter button) and Settings at the bottom. */
 const props = defineProps<{ items: NavItem[]; modelValue: string; side: 'left' | 'right' }>();
@@ -19,6 +20,10 @@ function choose(id: string) {
   ui.sideMenuOpen = false;
   emit('update:modelValue', id);
 }
+function openPlan(id: string) {
+  ui.sideMenuOpen = false;
+  ui.openDialog('calendar-plan', { calendarId: id });
+}
 function openSettings() {
   ui.sideMenuOpen = false;
   void router.push('/settings');
@@ -28,8 +33,8 @@ function openSettings() {
 <template>
   <NavigationDrawer :open="ui.sideMenuOpen" :label="t('nav.menu')" :items="props.items" :model-value="props.modelValue" :side="side" @close="ui.sideMenuOpen = false" @update:model-value="choose">
     <h2 class="h">{{ t('nav.calendars') }}</h2>
-    <label v-for="k in calendars.list" :key="k.id" class="cal" data-testid="side-menu-calendar" :data-name="k.name" :data-calendar-id="k.id">
-      <input type="checkbox" :checked="!k.hidden" :style="{ accentColor: k.color }" @change="calendars.toggle(k.id)">
+    <label v-for="k in calendars.list" :key="k.id" v-long-press="() => openPlan(k.id)" class="cal" data-testid="side-menu-calendar" :data-name="k.name" :data-calendar-id="k.id">
+      <input type="checkbox" :checked="!calendars.isHidden(k.id)" :style="{ accentColor: k.color }" @change="calendars.toggle(k.id)">
       <span>{{ k.name }}</span>
     </label>
     <template #footer>
