@@ -5,6 +5,7 @@ import { ApiError } from '@/api/client';
 import Switch from '@/components/m3/Switch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import { planSummary } from '@/components/settings/planSummary';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useSyncStore } from '@/stores/sync';
@@ -32,7 +33,7 @@ async function saveDefaults(minutes: number[]) {
     <SettingRow id="showCalendar" :label="t('settingsNav.labels.showCalendar')" :hint="t('settingsNav.labels.showCalendarHint')">
       <Switch :model-value="!cal.hidden" :label="t('settingsNav.labels.showCalendar')" data-testid="settings-calendar-shown" @update:model-value="cals.toggle(cal.id)" />
     </SettingRow>
-    <!-- the calendar's plan (feature calendar-off-plan) goes here -->
+    <SettingRow id="plan" link :label="t('settingsNav.labels.plan')" :hint="planSummary(cal.id)" testid="settings-calendar-plan" @open="ui.openDialog('calendar-plan', { calendarId: cal.id })" />
     <SettingRow id="defaultReminders" wide :label="t('settingsNav.labels.defaultReminders')" :hint="t('settings.reminders.intro')">
       <section class="rem" data-testid="reminders-calendar" :data-calendar-id="cal.id" :data-name="cal.name" :aria-label="cal.name">
         <ReminderEditor :model-value="{ useDefault: false, minutes: cal.defaultReminders ?? [] }" prefix="calendar-default" data-testid="reminders-calendar-list" @update:model-value="saveDefaults($event.minutes)" />

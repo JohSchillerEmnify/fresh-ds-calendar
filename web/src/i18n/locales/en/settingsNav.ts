@@ -38,6 +38,7 @@ export default {
     tasksCalendar: 'Task lists calendar',
   },
   labels: {
+    plan: 'Plan',
     moveCategory: 'Move {name}',
     sideBySideDay: 'Events side by side: day',
     sideBySideWeek: 'Events side by side: week',
@@ -81,7 +82,7 @@ export default {
     backup: 'google drive, restore',
     version: 'build, about',
   },
-  calendar: { shown: 'Shown', hidden: 'Hidden' },
+  calendar: { hidden: 'Hidden' },
   time: {
     title: 'Choose a time',
     hour: 'Hour',

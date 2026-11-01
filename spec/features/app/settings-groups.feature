@@ -52,7 +52,6 @@ Feature: Settings in a few groups
 
   Rule: Each calendar has its own settings page
 
-    @backlog
     Scenario: A calendar's page holds its switch, its plan and its reminders
       Given the calendar contains an event "Standup" in the calendar "Work" on 2026-11-04 from 09:00 to 09:15
       When I open the settings
@@ -62,17 +61,17 @@ Feature: Settings in a few groups
       And the settings page shows the setting "Plan"
       And the settings page shows the setting "Default reminders"
 
-    @backlog
-    Scenario: A plan set on the calendar's page switches the calendar like the chip's plan
+    Scenario: A plan set on the calendar's page shows on the Calendars page and switches the calendar
       Given the calendar contains an event "Standup" in the calendar "Work" on 2026-11-04 from 09:00 to 09:15
       When I open the settings
       And I open the settings group "Calendars"
       And I open the calendar "Work" in the settings
-      And I choose the plan "Only on some days" in the settings
-      And I pick the plan days "Mon Tue Wed Thu Fri" in the settings
-      Then the settings show the plan "Mon–Fri" for the calendar "Work"
-      When today is 2026-11-07
-      And I open the week view for 2026-11-02
+      And I open the setting "Plan"
+      And I choose "Off at set times" in the calendar sheet
+      And I set the off time from "Wed" 08:00 to "Wed" 20:00 in the calendar sheet
+      And I choose "Done" in the calendar sheet
+      Then the settings show the plan "Off Wed 08:00 – Wed 20:00" for the calendar "Work"
+      When I open the week view for 2026-11-02
       Then I do not see the event "Standup"
 
   Rule: One setting, one control

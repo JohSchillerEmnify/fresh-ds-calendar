@@ -12,10 +12,8 @@ Settings  [search bar: "Search settings"]
 ├─ Calendars                                    "Which calendars show, and when"
 │  ├─ <one row per calendar, e.g. Work>  ›      (new page per calendar)
 │  │  ├─ Show this calendar             switch  (moved from the filter chips / side menu; chips keep working)
-│  │  ├─ Plan                           Always on | Off for a while | Only on some days
-│  │  │                                         (new: feat/calendar-plan; same plan as the chip's long press)
-│  │  │  ├─ Back on                     date    (only for "Off for a while")
-│  │  │  └─ Days                        Mon…Sun (only for "Only on some days")
+│  │  ├─ Plan                           Always on | Off for a while | Off at set times (row opens the plan sheet of
+│  │  │                                         feature calendar-off-plan, same as the chip's long press)
 │  │  └─ Default reminders              list    (moved from the Reminders page, per calendar)
 │  └─ Task lists calendar  ›            (the hidden calendar that holds task lists)
 │     └─ Show in Google                 switch  (moved from Calendar: "Show tasks calendar in Google")

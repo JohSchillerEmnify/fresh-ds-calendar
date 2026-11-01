@@ -1,7 +1,7 @@
 /** Settings groups and settings search steps (STEPS.md "Settings groups and search"; features settings-groups, settings-search). */
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
-import { openSettingsHome, settingRowByName } from './support/settings.js';
+import { openSettingsHome, openSettingsPage, settingRowByName } from './support/settings.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
 import type { World } from './support/world.js';
 
@@ -90,7 +90,14 @@ Then('every settings row shows its name first and its control at the end', async
 });
 
 When('I open the setting {string}', async function (this: World, name: string) {
-  await controlOf(await settingRowByName(this, name)).click();
+  const r = await settingRowByName(this, name);
+  // a row that opens a page or sheet is itself the button; otherwise its control at the end is
+  await ((await r.evaluate((e) => e.classList.contains('link'))) ? r : controlOf(r)).click();
+});
+
+Then('the settings show the plan {string} for the calendar {string}', async function (this: World, plan: string, name: string) {
+  await openSettingsPage(this, 'calendars');
+  await expect(row(this, name).locator('.sub')).toHaveText(plan);
 });
 
 Then('the time picker is shown', async function (this: World) {

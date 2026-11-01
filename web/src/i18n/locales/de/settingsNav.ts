@@ -38,6 +38,7 @@ export default {
     tasksCalendar: 'Kalender der Aufgabenlisten',
   },
   labels: {
+    plan: 'Plan',
     moveCategory: '{name} verschieben',
     sideBySideDay: 'Termine nebeneinander: Tag',
     sideBySideWeek: 'Termine nebeneinander: Woche',
@@ -81,7 +82,7 @@ export default {
     backup: 'Google Drive, wiederherstellen, Sicherung',
     version: 'Build, Über',
   },
-  calendar: { shown: 'Sichtbar', hidden: 'Ausgeblendet' },
+  calendar: { hidden: 'Ausgeblendet' },
   time: {
     title: 'Uhrzeit wählen',
     hour: 'Stunde',

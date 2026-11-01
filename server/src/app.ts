@@ -8,7 +8,7 @@ import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavaila
 import { apiRoutes } from './api/routes.js';
 import { testRoutes } from './api/testRoutes.js';
 import { authRoutes } from './api/authRoutes.js';
-import { causeFor, logEvent, noteCause } from './lib/diag.js';
+import { causeFor, logEvent, noteCause, subHash } from './lib/diag.js';
 import { routePath } from 'hono/route';
 import { diagRoutes } from './api/diagRoutes.js';
 import { createContext, type Ctx } from './context.js';
@@ -35,6 +35,30 @@ export interface BuildOptions {
   driveFor?: (sub: string) => DriveClient;
 }
 
+/** Device and browser families a diagnostics line names, first match wins. */
+const UA_OS: [RegExp, string][] = [[/iPhone|iPad|iPod/, 'ios'], [/Android/, 'android'], [/Mac OS X/, 'mac'], [/Windows/, 'windows'], [/Linux/, 'linux']];
+const UA_APP: [RegExp, string][] = [[/CriOS|Chrome/, 'chrome'], [/FxiOS|Firefox/, 'firefox'], [/Safari/, 'safari'], [/AppleWebKit/, 'webkit']];
+
+/** The device and browser family of a user agent, for diagnostics (no version or build details). */
+function uaFamily(ua = ''): string {
+  const pick = (table: [RegExp, string][]) => table.find(([re]) => re.test(ua))?.[1] ?? 'other';
+  return `${pick(UA_OS)}/${pick(UA_APP)}`;
+}
+
+/** The error code the error handler answered a request with (read by the refused-write line without re-reading the answer). */
+const errorCodes = new WeakMap<Context, { code: string; field?: string }>();
+
+/** A refused write is otherwise invisible on the server: one line with its code and how the request was framed, never the body. */
+function logRefusedWrite(c: Context): void {
+  if (c.res.status < 400 || c.res.status >= 500 || ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) || c.req.path.startsWith('/api/diag/')) return;
+  const { code, field } = errorCodes.get(c) ?? {};
+  logEvent('api_refused', {
+    method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, field, subHash: subHash((c.get('person') as { sub: string } | undefined)?.sub),
+    contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
+    ua: uaFamily(c.req.header('user-agent')),
+  });
+}
+
 /**
  * Builds the HTTP app. Pure web-standard Request/Response (Hono): tests use `app.request()`, the runtime adapter
  * lives only in index.ts. Seeding is the caller's job (see `startup()` in index.ts / `ctx.seed()`).
@@ -58,6 +82,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     if (c.res.status >= 500 && causeFor(c) !== RateLimitedError.name) {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
     }
+    logRefusedWrite(c as Context);
   });
 
   app.use('/api/*', requestGuards(config));
@@ -103,7 +128,10 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   });
 
   app.onError((err, c) => {
-    const body = (code: string, message: string, details?: unknown, key?: string) => ({ error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } });
+    const body = (code: string, message: string, details?: unknown, key?: string) => {
+      errorCodes.set(c, { code, field: (details as { field?: string }[] | undefined)?.[0]?.field });
+      return { error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } };
+    };
     noteCause(c, causeFor(err) ?? err.constructor.name);
     if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details, err.key), err.status);
     if (err instanceof ReauthRequiredError) return c.json(body('GOOGLE_REAUTH', 'Google no longer accepts your access. Sign in with Google again.'), 401);

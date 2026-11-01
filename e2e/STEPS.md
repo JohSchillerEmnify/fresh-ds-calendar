@@ -908,8 +908,6 @@ the settings page shows the setting {string}
 the settings page does not show the setting {string}
 I turn off {string} in the settings
 I open the calendar {string} in the settings
-I choose the plan {string} in the settings
-I pick the plan days {string} in the settings
 the settings show the plan {string} for the calendar {string}
 I choose {string} for {string} in the settings
 {string} is chosen for {string} in the settings
@@ -947,9 +945,10 @@ the setting {string} is highlighted
   reads the selected option.
 - "name first, control at the end": in every `settings-row` the label's left edge is left of the control's left edge
   (mirrored in left-handed mode is out of scope of this step).
-- The calendar page: `I open the calendar C in the settings` taps the `settings-row` C on the Calendars page; the plan
-  steps use the plan choice and the weekday chips (labels `Mon`…`Sun`) of that page; "shows the plan P for the
-  calendar C" reads the supporting text of row C on the Calendars page.
+- The calendar page: `I open the calendar C in the settings` taps the `settings-row` C on the Calendars page. Its
+  `Plan` row (`data-setting-id="plan"`) opens the calendar plan sheet of feature calendar-off-plan (its own steps);
+  "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
+- `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
 - `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
 
 ## Language (`@i18n`)
@@ -1486,15 +1485,17 @@ they hide the calendar {string} in the filter bar
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
 
-## Calendar off by a plan (`@id:calendar-off-plan`, @backlog)
+## Calendar off by a plan (`@id:calendar-off-plan`)
 
 ```
 I long-press the calendar chip {string}
 I tap the calendar chip {string}
+I long-press the calendar {string} in the side menu
+I open the plan of the calendar {string} in the settings
 I choose {string} in the calendar sheet
 I pick the date {date} in the calendar sheet
-I pick the days {string} in the calendar sheet
-the calendar {string} is on only on {string}
+I set the off time from {string} {time} to {string} {time} in the calendar sheet
+the calendar {string} is off every week from {string} {time} to {string} {time}
 the calendar {string} is off until {date}
 the calendar chip {string} is on
 the calendar chip {string} is off
@@ -1504,14 +1505,17 @@ the calendar chip {string} does not show that it switches by itself
 ```
 
 - The chip is `filter-chip-calendar` with that `data-name` (shown first with "I show the filters"). "long-press": touch
-  (mobile) or mouse held 500 ms without moving; it opens `calendar-plan-sheet` (an `AdaptiveSheet`). "tap" = a click.
-- "I choose X in the calendar sheet": the button or radio with the visible label X inside `calendar-plan-sheet`
-  ("Always on", "Off for a while", "Only on some days", "Done"); "Done" waits for the saved plan (`PATCH` of the
-  calendar, 200) and the sheet to close. "I pick the date D": the date field `calendar-plan-until` set to D (the day
-  the calendar is back on). "I pick the days S": the weekday toggles `calendar-plan-day` (`data-day` `Mon`..`Sun`)
-  end up pressed exactly for the space-separated short names in S.
-- Givens set the plan through the API as the app would (`plan: { kind: "days", days: [...] }` / `{ kind: "until",
-  date }`, exact shape in `spec/API.md` when built).
+  (mobile) or mouse held 600 ms without moving; it opens `calendar-plan-sheet` (an `AdaptiveSheet`). "tap" = a click.
+  "in the side menu": the same long press on `side-menu-calendar` with that `data-name`. "in the settings": a click on
+  `settings-calendar-plan` with that `data-name` (Settings › Calendars).
+- "I choose X in the calendar sheet": the button or switch with the visible label X inside `calendar-plan-sheet`
+  ("Always on", "Off at set times", "Off for a while", "Done"); a switch is only clicked when it is not on yet.
+  "Done" waits for the saved plan (`PATCH /api/prefs`, 200) and the sheet to close. "I pick the date D": the date
+  field `calendar-plan-until` set to D (the day the calendar is back on, at 00:00). "I set the off time from A T1 to
+  B T2": the selects `calendar-plan-from-day` / `calendar-plan-to-day` (values `Sun`..`Sat`) and the time fields
+  `calendar-plan-from-time` / `calendar-plan-to-time`.
+- Givens set the plan through `PATCH /api/prefs` as the app would (`calendarPlans`, shape in `spec/API.md`); "off until
+  D" counts from now.
 - "is on / off": `aria-pressed` of the chip. "shows X": the chip's visible text contains X. "shows that it switches by
   itself": the chip contains `calendar-plan-mark`; "does not": no such element.
 ## Birthdays (`@birthdays`)

@@ -1,3 +1,4 @@
+import { trace } from '@/lib/trace';
 import { defineStore } from 'pinia';
 import { ApiError } from '@/api/client';
 import { t } from '@/i18n';
@@ -117,6 +118,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
   }
 
   function deleteTaskList(tl: TaskList): void {
+    trace('pending.deleteTaskList');
     const items = useItemsStore();
     const outbox = useOutboxStore();
     start({

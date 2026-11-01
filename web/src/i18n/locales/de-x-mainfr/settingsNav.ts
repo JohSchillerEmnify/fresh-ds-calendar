@@ -25,6 +25,7 @@ export default {
     motion: 'Bewegung und Don',
   },
   labels: {
+    plan: 'Plan',
     moveCategory: '{name} verschiem',
     sideBySideDay: 'Termine nebnanander: Dag',
     sideBySideWeek: 'Termine nebnanander: Woche',
@@ -36,7 +37,7 @@ export default {
     showCalendar: 'Den Kalender zeing',
     barAuto: 'Audomadisch',
   },
-  calendar: { shown: 'Zu sehn', hidden: 'Versteggd' },
+  calendar: { hidden: 'Versteggd' },
   time: {
     title: 'Uhrzeit aussuchn',
     cancel: 'Lass bleim',
