@@ -35,11 +35,25 @@ export interface BuildOptions {
   driveFor?: (sub: string) => DriveClient;
 }
 
+/** Device and browser families a diagnostics line names, first match wins. */
+const UA_OS: [RegExp, string][] = [[/iPhone|iPad|iPod/, 'ios'], [/Android/, 'android'], [/Mac OS X/, 'mac'], [/Windows/, 'windows'], [/Linux/, 'linux']];
+const UA_APP: [RegExp, string][] = [[/CriOS|Chrome/, 'chrome'], [/FxiOS|Firefox/, 'firefox'], [/Safari/, 'safari'], [/AppleWebKit/, 'webkit']];
+
 /** The device and browser family of a user agent, for diagnostics (no version or build details). */
 function uaFamily(ua = ''): string {
-  const os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Mac OS X/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'windows' : /Linux/.test(ua) ? 'linux' : 'other';
-  const app = /CriOS|Chrome/.test(ua) ? 'chrome' : /FxiOS|Firefox/.test(ua) ? 'firefox' : /Safari/.test(ua) ? 'safari' : /AppleWebKit/.test(ua) ? 'webkit' : 'other';
-  return `${os}/${app}`;
+  const pick = (table: [RegExp, string][]) => table.find(([re]) => re.test(ua))?.[1] ?? 'other';
+  return `${pick(UA_OS)}/${pick(UA_APP)}`;
+}
+
+/** A refused write is otherwise invisible on the server: one line with its code and how the request was framed, never the body. */
+async function logRefusedWrite(c: Context): Promise<void> {
+  if (c.res.status < 400 || c.res.status >= 500 || ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) || c.req.path.startsWith('/api/diag/')) return;
+  const code = await c.res.clone().json().then((b: { error?: { code?: string } }) => b?.error?.code, () => undefined);
+  logEvent('api_refused', {
+    method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, subHash: subHash((c.get('person') as { sub: string } | undefined)?.sub),
+    contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
+    ua: uaFamily(c.req.header('user-agent')),
+  });
 }
 
 /**
@@ -65,15 +79,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     if (c.res.status >= 500 && causeFor(c) !== RateLimitedError.name) {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
     }
-    // a refused write is otherwise invisible on the server: its code and how the request was framed, never the body
-    if (c.res.status >= 400 && c.res.status < 500 && !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) && !c.req.path.startsWith('/api/diag/')) {
-      const code = await c.res.clone().json().then((b: { error?: { code?: string } }) => b?.error?.code, () => undefined);
-      logEvent('api_refused', {
-        method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, subHash: subHash(((c as Context).get('person') as { sub: string } | undefined)?.sub),
-        contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
-        ua: uaFamily(c.req.header('user-agent')),
-      });
-    }
+    await logRefusedWrite(c as Context);
   });
 
   app.use('/api/*', requestGuards(config));
