@@ -65,7 +65,7 @@ export class CalendarService {
     private readonly clock: Clock,
     private readonly config: Pick<AppConfig, 'tz'>,
     private readonly prefs: PrefsStore,
-    private readonly sub: string,
+    readonly sub: string,
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
   ) {
@@ -225,7 +225,7 @@ export class CalendarService {
   /** A shared list as the API shows it to this person: the owner's category look comes from the list. */
   private toSharedTaskList(doc: SharedListDoc, fallbackColor: string): TaskList {
     const d = doc.data;
-    const live = doc.owner === this.sub ? this.settings.categories().find((c) => c.id === d.categoryId) : undefined;
+    const live = doc.owner === this.sub ? this.settings.categories(this.sub).find((c) => c.id === d.categoryId) : undefined;
     const info: CategoryInfo | null = live ? { name: live.name, color: live.color, icon: live.icon } : doc.category;
     const done = d.items.filter((i) => i.done).length;
     return {
@@ -248,7 +248,7 @@ export class CalendarService {
 
   private async mapOne(ev: GoogleEvent): Promise<CalendarItem> {
     const col = await this.calendarColor(ev.calendarId);
-    return isTaskListEvent(ev) ? this.toTaskList(ev, col, this.settings.categories()) : this.toEvent(ev, col);
+    return isTaskListEvent(ev) ? this.toTaskList(ev, col, this.settings.categories(this.sub)) : this.toEvent(ev, col);
   }
 
   // ---------- lookup ----------
@@ -279,7 +279,7 @@ export class CalendarService {
     const cals = tasklistsOnly ? [] : (await this.eventCalendars()).filter((c) => !calendarIds || calendarIds.includes(c.id));
     const timeMin = formatInZone(startOfLocalDay(from, this.tz), this.tz);
     const timeMax = formatInZone(startOfLocalDay(to, this.tz), this.tz);
-    const cats = this.settings.categories();
+    const cats = this.settings.categories(this.sub);
     const eventLists = cals.map(async (c) => {
       const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
       // task-list-shaped events outside the tasks calendar are not task lists (ADR 0006)
@@ -357,7 +357,7 @@ export class CalendarService {
     if (input.colorId) g.colorId = input.colorId;
     if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
-    this.motivation.award('create');
+    this.motivation.award(this.sub, 'create');
     return this.toEvent(ev, await this.calendarColor(calendarId));
   }
 
@@ -367,7 +367,7 @@ export class CalendarService {
     const cal = (await this.eventCalendars()).find((c) => c.id === calendarId);
     if (cal && !hasWriteRole(cal)) throw forbidden('The primary calendar is read-only', 'calendar.birthday.readOnly');
     const ev = await this.provider.insertEvent(calendarId, birthdayCreateBody(input.title, input.date, input.colorId));
-    this.motivation.award('create');
+    this.motivation.award(this.sub, 'create');
     return this.toEvent(ev, await this.calendarColor(calendarId));
   }
 
@@ -473,12 +473,12 @@ export class CalendarService {
     if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags', 'tasklist.tagsUnique');
     if (d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
     if (d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');
-    if (d.categoryId !== null && d.categoryId !== keepCategory && !this.settings.categories().some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');
+    if (d.categoryId !== null && d.categoryId !== keepCategory && !this.settings.categories(this.sub).some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');
     if (privateSize(encodePrivate(d)) > MAX_PRIVATE_BYTES) throw validation('Task list is too large', 'items');
   }
 
   private colorFor(d: TaskListData): string | null {
-    return categoryColorId(this.settings.categories(), d.categoryId);
+    return categoryColorId(this.settings.categories(this.sub), d.categoryId);
   }
 
   async createTaskList(input: CreateTaskListInput, extra?: { id?: string }): Promise<TaskList> {
@@ -495,16 +495,16 @@ export class CalendarService {
     const member = d.categoryId && !d.recurrence && this.shared ? this.shared.ruleFor(this.sub, d.categoryId) : null;
     if (member) {
       const doc = this.shared!.create(this.sub, [member], d, this.categoryInfo(d.categoryId));
-      this.motivation.award('create');
+      this.motivation.award(this.sub, 'create');
       return this.toSharedTaskList(doc, '#039be5');
     }
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
     if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
-    this.motivation.award('create');
+    this.motivation.award(this.sub, 'create');
     // a repeating list answers with its first week, under the id every range read uses (a held series id would show twice)
     const shown = d.recurrence ? await this.firstOccurrence(ev) : ev;
-    return this.toTaskList(shown, await this.calendarColor(calendarId), this.settings.categories());
+    return this.toTaskList(shown, await this.calendarColor(calendarId), this.settings.categories(this.sub));
   }
 
   async getTaskList(id: string): Promise<TaskList> {
@@ -537,7 +537,7 @@ export class CalendarService {
 
   /** The look of one of this person's categories, as carried on a shared list. */
   private categoryInfo(categoryId: string | null): CategoryInfo | null {
-    const c = this.settings.categories().find((x) => x.id === categoryId);
+    const c = this.settings.categories(this.sub).find((x) => x.id === categoryId);
     return c ? { name: c.name, color: c.color, icon: c.icon } : null;
   }
 
@@ -573,7 +573,7 @@ export class CalendarService {
         const patch = encodeTaskListPatch(d, this.tz, this.colorFor(d), cur);
         if (reminders) patch.reminders = this.remindersOf(reminders, cur.reminders);
         const ev = await this.provider.patchEvent(cur.calendarId, cur.id, patch, { ifMatch: cur.etag });
-        return this.toTaskList(ev, await this.calendarColor(ev.calendarId), this.settings.categories());
+        return this.toTaskList(ev, await this.calendarColor(ev.calendarId), this.settings.categories(this.sub));
       } catch (e) {
         if (e instanceof PreconditionFailedError) {
           if (ifMatch) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
@@ -883,7 +883,7 @@ export class CalendarService {
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
       return { ...d, items };
     }, undefined, undefined, true);
-    if (ticked) this.motivation.award('tick', itemId);
+    if (ticked) this.motivation.award(this.sub, 'tick', itemId);
     return list;
   }
 
@@ -947,12 +947,12 @@ export class CalendarService {
   private async moveOut(doc: SharedListDoc): Promise<TaskList> {
     const d: TaskListData = { ...doc.data, recurrence: null };
     // a category this person no longer has cannot be kept
-    if (d.categoryId !== null && !this.settings.categories().some((c) => c.id === d.categoryId)) d.categoryId = null;
+    if (d.categoryId !== null && !this.settings.categories(this.sub).some((c) => c.id === d.categoryId)) d.categoryId = null;
     const calendarId = await this.tasks.id();
     const ev = await this.provider.insertEvent(calendarId, encodeTaskList(d, this.tz, this.colorFor(d)));
     this.shared!.releaseInk(doc);
     this.shared!.remove(doc);
-    return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
+    return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories(this.sub));
   }
 
   /** "Leave" (member): the list disappears for this person only. */
@@ -968,7 +968,7 @@ export class CalendarService {
    */
   async shareCategory(categoryId: string, personSub: string | null): Promise<Record<string, Person>> {
     const shared = this.shared!;
-    if (!this.settings.categories().some((c) => c.id === categoryId)) throw notFound('Category not found');
+    if (!this.settings.categories(this.sub).some((c) => c.id === categoryId)) throw notFound('Category not found');
     const previous = shared.ruleFor(this.sub, categoryId);
     if (personSub !== null) shared.requireMember(this.sub, personSub);
     shared.setRule(this.sub, categoryId, personSub);
@@ -1002,7 +1002,7 @@ export class CalendarService {
   async changesSince(prev: ChangeState | null, today: string, forced: ReadonlySet<string>): Promise<{ events: EventChanges; taskLists: TaskListChanges; state: ChangeState }> {
     const tasksId = await this.tasks.id();
     const color = await this.calendarColor(tasksId);
-    const cats = this.settings.categories();
+    const cats = this.settings.categories(this.sub);
     const feed = new CalendarChanges(this.provider, this.tz, {
       eventCalendars: () => this.eventCalendars(), tasksId,
       toEvent: (e, c) => this.toEvent(e, c.backgroundColor, c.defaultReminders), toTaskList: (e) => this.toTaskList(e, color, cats),
@@ -1045,7 +1045,7 @@ export class CalendarService {
       this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'undated=1'] }),
     ]);
     const color = await this.calendarColor(tasksId);
-    const cats = this.settings.categories();
+    const cats = this.settings.categories(this.sub);
     // keyed by id: a dated shared list is in the range read and in the full list of shared lists
     const lists = [...new Map([
       ...dated.filter((i): i is TaskList => i.kind === 'tasklist'),
@@ -1067,7 +1067,7 @@ export class CalendarService {
       this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'done=1'] }),
     ]);
     const color = await this.calendarColor(tasksId);
-    const cats = this.settings.categories();
+    const cats = this.settings.categories(this.sub);
     // keyed by id so a list found twice (marker and range) is returned once
     const byId = new Map<string, TaskList>();
     for (const i of dated) if (i.kind === 'tasklist') byId.set(i.id, i);

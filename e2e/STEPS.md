@@ -3471,6 +3471,25 @@ the damaged shared list is left out and noted in the server log
   encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes;
   "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.
 
+## Settings per person (`@settings`, `@unit`; ADR 0035)
+
+Server-file scenarios, covered by unit tests (`server/test/settings-per-person.test.ts`); not run by the browser suite.
+"the server kept one set of settings for everybody" = the retired `DATA_DIR/settings.json`; "had signed in before" =
+their entries in `people.json`; "the updated server starts" = the start-up split (`server/src/services/personSplit.ts`).
+
+```
+{string} chooses the default view {string}, Calm mode, no animations, sounds, the theme mode {string} and the full sunflower field
+{string} checks in
+{string} has the default settings: the default view {string}, Calm mode off, full animations, no sounds, the theme mode {string} and growing sunflowers
+the categories of {string} are {string}
+the streak of {string} is {int} days
+the server kept one set of settings for everybody with the default view {string} and the category {string}
+{string} and {string} had signed in before
+the updated server starts
+{string} has the default view {string} and the categories {string}
+the old settings file is kept as {string}
+```
+
 ## Damaged data files (`@data`, `@unit`; feature damaged-files)
 
 Server-file scenarios, covered by unit tests (`server/test/personJsonStore.test.ts`); not run by the browser suite.

@@ -1,6 +1,5 @@
-import path from 'node:path';
 import type { CheckInResponse, Motivation, PlantMood, PlantStage } from '../api/types.js';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 import type { Clock } from '../lib/clock.js';
 import { diffDays, localDateOf } from '../lib/time.js';
 
@@ -63,52 +62,54 @@ export function runs(dates: string[]): { current: number; best: number } {
   return { current: run, best };
 }
 
+/** The check-in streak and the plant per person in `DATA_DIR/users/<sub>/motivation.json` (ADR 0035). */
 export class MotivationService {
-  private st!: State;
   /** Increments whenever points were awarded (drives the X-Motivation-Changed header). */
   rev = 0;
-  private readonly file: string | null;
+  private readonly files: PersonJsonStore<State>;
 
-  constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
-    this.file = dataDir ? path.join(dataDir, 'motivation.json') : null;
-    this.reload();
+  constructor(dataDir: string, private readonly clock: Clock, private readonly tz: string) {
+    // every missing field takes its empty value; only a file that is not an object is set aside
+    this.files = new PersonJsonStore<State>(dataDir, 'motivation.json', (r) => (isRecord(r) ? { ...empty(), ...(r as Partial<State>) } : null), empty);
   }
 
-  /** Reads the file again (start, and after a backup restore replaced it). */
-  reload(): void {
-    this.st = { ...empty(), ...(this.file ? readJson<Partial<State>>(this.file) : null) };
-  }
-
+  /** The server's date (the streak and the plant count in the server's time zone). */
   today(): string {
     return localDateOf(this.clock.nowMs(), this.tz);
   }
 
-  private save(): void {
-    if (this.file) writeJsonAtomic(this.file, this.st);
-  }
-
-  private rollDay(today: string): void {
-    if (this.st.pointsDate !== today) {
-      this.st.pointsDate = today;
-      this.st.todayPoints = 0;
-      this.st.ticked = [];
+  private rollDay(s: State, today: string): void {
+    if (s.pointsDate !== today) {
+      s.pointsDate = today;
+      s.todayPoints = 0;
+      s.ticked = [];
     }
   }
 
-  get(): Motivation {
+  private view(s: State): Motivation {
     const today = this.today();
-    const s = this.st;
     return {
       streak: { current: s.current, best: s.best, lastCheckIn: s.lastCheckIn, checkedInToday: s.lastCheckIn === today },
       plant: plantView(s.growth, s.pointsDate === today ? s.todayPoints : 0, s.lastWatered, today),
     };
   }
 
-  /** Returns true when the action counted (plant watered), false for repeated ticks of the same item. */
-  award(kind: AwardKind, key?: string): boolean {
+  /** The person's streak and plant as `GET /api/motivation` answers them. */
+  get(sub: string): Motivation {
+    return this.view(this.files.read(sub));
+  }
+
+  /** Points for the person; false for repeated ticks of the same item (nothing is written then). */
+  award(sub: string, kind: AwardKind, key?: string): boolean {
+    const s = this.files.read(sub);
+    const counted = this.add(s, kind, key);
+    if (counted) this.files.write(sub, s);
+    return counted;
+  }
+
+  private add(s: State, kind: AwardKind, key?: string): boolean {
     const today = this.today();
-    this.rollDay(today);
-    const s = this.st;
+    this.rollDay(s, today);
     if (kind === 'tick') {
       if (!key || s.ticked.includes(key)) return false;
       s.ticked.push(key);
@@ -118,13 +119,13 @@ export class MotivationService {
     s.growth += add;
     s.lastWatered = today;
     this.rev++;
-    this.save();
     return true;
   }
 
-  checkIn(): CheckInResponse {
+  /** The person's daily check-in. */
+  checkIn(sub: string): CheckInResponse {
     const today = this.today();
-    const s = this.st;
+    const s = this.files.read(sub);
     let newToday = false;
     if (s.lastCheckIn !== today) {
       newToday = true;
@@ -132,14 +133,15 @@ export class MotivationService {
       s.best = Math.max(s.best, s.current);
       s.lastCheckIn = today;
       s.checkIns = [...s.checkIns, today].slice(-400);
-      this.award('checkin');
+      this.add(s, 'checkin');
+      this.files.write(sub, s);
     }
-    return { current: s.current, best: s.best, checkedInToday: true, newToday, motivation: this.get() };
+    return { current: s.current, best: s.best, checkedInToday: true, newToday, motivation: this.view(s) };
   }
 
   /** Test hook (API.md `/api/__test/motivation`). */
-  setState(input: { checkIns?: string[]; plant?: { growth: number; lastWatered: string | null; todayPoints?: number } }): Motivation {
-    const s = this.st;
+  setState(sub: string, input: { checkIns?: string[]; plant?: { growth: number; lastWatered: string | null; todayPoints?: number } }): Motivation {
+    const s = this.files.read(sub);
     if (input.checkIns) {
       const dates = [...new Set(input.checkIns)].sort();
       const r = runs(dates);
@@ -156,12 +158,12 @@ export class MotivationService {
       s.pointsDate = this.today();
       s.ticked = [];
     }
-    this.save();
-    return this.get();
+    this.files.write(sub, s);
+    return this.view(s);
   }
 
+  /** Forgets every person's streak and plant (test and demo reset). */
   reset(): void {
-    this.st = empty();
-    this.save();
+    this.files.reset();
   }
 }
