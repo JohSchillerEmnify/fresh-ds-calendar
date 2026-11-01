@@ -197,11 +197,11 @@ Then('the task list {string} in the Tasks view shows the category {string}', asy
   await expect(this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-expanded-title')).toHaveAttribute('data-category-name', category);
 });
 
-Then('{string} is not offered to change the category', async function (this: World) {
+Then('{string} is not offered to change the category', async function (this: World, _who: string) {
   await expect(this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-category')).toBeDisabled();
 });
 
-Then('{string} is offered to leave the list, not to delete it', async function (this: World) {
+Then('{string} is offered to leave the list, not to delete it', async function (this: World, _who: string) {
   const dialog = this.page.getByTestId('tasklist-dialog');
   await expect(dialog.getByTestId('tasklist-leave')).toBeVisible();
   await expect(dialog.getByTestId('tasklist-delete')).toHaveCount(0);
