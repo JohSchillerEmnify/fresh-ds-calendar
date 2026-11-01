@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
+import { errorFacts, logDevice } from '@/lib/deviceLog';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
 import { startLiveSync } from '@/lib/liveSync';
 import { ports } from '@/lib/outboxPorts';
@@ -139,6 +140,9 @@ export const useSyncStore = defineStore('sync', () => {
     const failedAt = results.findIndex((r) => r.status === 'rejected' && !(r.reason instanceof ApiError && r.reason.isAbort));
     const failed = failedAt >= 0 ? (results[failedAt] as PromiseRejectedResult) : undefined;
     if (failed) {
+      const task = list[failedAt]![0];
+      // the device log keeps every failed sync, the banner's beacon facts included (feature device-log)
+      logDevice('sync', failed.reason instanceof ApiError ? { ...beaconFor(failed.reason, task), code: failed.reason.code } : { task, ...errorFacts(failed.reason) });
       if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason, list[failedAt]![0]);
       if (!error.value) state.value = 'idle';
       else state.value = 'error';

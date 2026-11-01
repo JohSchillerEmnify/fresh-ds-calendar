@@ -4,6 +4,7 @@
  */
 import type { Messages } from '../schema';
 import outboxDe from './de/outbox.ts';
+import deviceLogDe from './de/deviceLog.ts';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
 import backupColdmirror from './de-x-coldmirror/backup.ts';
 import canvasColdmirror from './de-x-coldmirror/canvas.ts';
@@ -17,6 +18,7 @@ import themeColdmirror from './de-x-coldmirror/theme.ts';
 export default {
   calendar: calendarColdmirror,
   outbox: outboxDe,
+  deviceLog: deviceLogDe,
   backup: backupColdmirror,
   canvas: canvasColdmirror,
   ink: inkColdmirror,

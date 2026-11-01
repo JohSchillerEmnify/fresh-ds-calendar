@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
 import { deviceDb, devicePerson, OUTBOX_KEY } from './deviceDb';
+import { errorFacts, logDevice } from './deviceLog';
 import {
   applyEntry, editable, localTaskList, newDeviceId, newItemId, newKey, renameId, renameItems, withPending, type Change, type OutboxEntry,
 } from './outbox';
@@ -285,17 +286,28 @@ async function onNewestVersion(s: OutboxState, e: OutboxEntry): Promise<OutboxEn
   return next;
 }
 
+/** The device log gets what the client saw and what was decided (feature device-log); no ids, no title. */
+function note(e: OutboxEntry, decision: string, err: unknown): void {
+  const facts = err instanceof ApiError ? { ...err.seen, status: err.status, code: err.code } : errorFacts(err);
+  logDevice('outbox', { op: e.change.op, decision, ...facts });
+}
+
 /** What an error of the server means for an entry; a 412 returns the entry to try again on the newest version. */
 async function answer(s: OutboxState, e: OutboxEntry, err: unknown): Promise<Outcome | OutboxEntry> {
-  if (!(err instanceof ApiError)) return 'retry';
-  if (err.status === 404 && isDelete(e.change)) { sent(s, e, undefined); return 'sent'; }
+  if (!(err instanceof ApiError)) { note(e, 'retry-unexpected', err); return 'retry'; }
+  if (err.status === 404 && isDelete(e.change)) { note(e, 'gone-as-sent', err); sent(s, e, undefined); return 'sent'; }
   if (err.status === 412 && versioned(e.change)) {
+    note(e, 'refetch', err);
     try { return await onNewestVersion(s, e); } catch (again) {
-      return again instanceof ApiError && again.status === 404 && (await refuse(s, e, again)) ? 'refused' : 'retry';
+      const gone = again instanceof ApiError && again.status === 404 && (await refuse(s, e, again));
+      note(e, gone ? 'refused' : 'retry', again);
+      return gone ? 'refused' : 'retry';
     }
   }
-  if (retriable(err)) return 'retry';
-  return (await refuse(s, e, err)) ? 'refused' : 'retry';
+  if (retriable(err)) { note(e, 'retry', err); return 'retry'; }
+  const refused = await refuse(s, e, err);
+  note(e, refused ? 'refused' : 'retry-rollback-failed', err);
+  return refused ? 'refused' : 'retry';
 }
 
 /** One try of an entry, a 412 answered by reading the version again. */

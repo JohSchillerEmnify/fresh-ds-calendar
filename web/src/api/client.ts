@@ -16,8 +16,24 @@ import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
 import { hasKey, t } from '@/i18n';
+import { errorFacts, logDevice, routeOf } from '@/lib/deviceLog';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
+
+/** What the client saw of a failed request, without body or ids (feature device-log). */
+export interface RequestSeen {
+  method: string;
+  route: string;
+  status: number;
+  code?: string;
+  contentType?: string;
+  contentLength?: string;
+  bodyEmpty?: boolean;
+  type?: string;
+  redirected?: boolean;
+  errorName?: string;
+  errorMessage?: string;
+}
 
 
 export class ApiError extends Error {
@@ -30,6 +46,8 @@ export class ApiError extends Error {
   readonly timeout: boolean;
   /** Seconds the server asked to wait (`Retry-After`), when it sent one. */
   readonly retryAfterSec?: number;
+  /** What the client saw (device log); set by {@link ApiClient.request}. */
+  seen?: RequestSeen;
   constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string, timeout = false, retryAfterSec?: number) {
     super(message);
     this.name = 'ApiError';
@@ -127,6 +145,7 @@ export class ApiClient {
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (o.ifMatch !== undefined && o.ifMatch !== null) headers['If-Match'] = String(o.ifMatch);
     if (o.idempotencyKey) headers['Idempotency-Key'] = o.idempotencyKey;
+    const base = { method, route: routeOf(path) };
     let res: Response;
     try {
       res = await this.fetchImpl(this.baseUrl + path, {
@@ -138,15 +157,29 @@ export class ApiClient {
         keepalive: o.keepalive,
       });
     } catch (e) {
-      if ((e as Error)?.name === 'AbortError') throw new ApiError(0, 'ABORTED', 'Request aborted');
-      throw new ApiError(0, 'NETWORK', 'Network error', [], undefined, (e as Error)?.name === 'TimeoutError');
+      const err = (e as Error)?.name === 'AbortError'
+        ? new ApiError(0, 'ABORTED', 'Request aborted')
+        : new ApiError(0, 'NETWORK', 'Network error', [], undefined, (e as Error)?.name === 'TimeoutError');
+      throw seen(err, { ...base, status: 0, code: err.code, ...errorFacts(e) });
     }
     if (res.headers.get('X-Motivation-Changed') === '1') {
       for (const fn of this.motivationListeners) fn();
     }
     if (res.status === 204) return undefined as T;
+    const facts: RequestSeen = {
+      ...base, status: res.status, contentType: res.headers.get('Content-Type') ?? undefined, contentLength: res.headers.get('Content-Length') ?? undefined,
+      type: res.type, redirected: res.redirected,
+    };
+    let text: string;
+    try {
+      text = await res.text();
+    } catch (e) {
+      // a body that cannot be read is logged as it was seen and passed on unchanged
+      const f = errorFacts(e);
+      logDevice('api', { ...facts, errorName: f.errorName, errorMessage: f.errorMessage });
+      throw e;
+    }
     let data: unknown = null;
-    const text = await res.text();
     if (text) {
       try {
         data = JSON.parse(text);
@@ -160,7 +193,8 @@ export class ApiClient {
         for (const fn of this.authListeners) fn(err!.code!);
       }
       const ra = Number(res.headers.get('Retry-After'));
-      throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key, false, Number.isFinite(ra) && ra > 0 ? ra : undefined);
+      const e = new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key, false, Number.isFinite(ra) && ra > 0 ? ra : undefined);
+      throw seen(e, { ...facts, code: e.code, bodyEmpty: !text });
     }
     return data as T;
   }
@@ -420,6 +454,13 @@ export class ApiClient {
   resetDemoData(o?: RequestOptions) {
     return this.request<unknown>('POST', '/api/demo/reset', undefined, o);
   }
+}
+
+/** Logs a failed request on the device (aborts are not failures) and hands it to the error. */
+function seen(err: ApiError, facts: RequestSeen): ApiError {
+  err.seen = facts;
+  if (!err.isAbort) logDevice('api', { ...facts });
+  return err;
 }
 
 function enc(s: string): string {
