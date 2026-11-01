@@ -85,7 +85,8 @@ const nativeTap = (x, y) => inNative(() => browser.execute('mobile: tap', { x, y
 /** The web view's frame in screen points (native context): CSS px map onto it from the page's top-left. */
 const webViewFrame = () => inNative(async () => {
   // Safari keeps several web view elements around: the visible page is the biggest one
-  const rects = await Promise.all((await browser.$$('-ios class chain:**/XCUIElementTypeWebView')).map((w) => w.getElementRect()));
+  const rects = [];
+  for (const w of await browser.$$('-ios class chain:**/XCUIElementTypeWebView')) rects.push(await w.getElementRect());
   return rects.sort((a, b) => b.width * b.height - a.width * a.height)[0];
 });
 
@@ -98,7 +99,8 @@ async function dismissSafariTip() {
     // the tip's close button is the lower one of the "Close" buttons
     const closes = await browser.$$('-ios predicate string:type == "XCUIElementTypeButton" AND (label == "Close" OR name == "Close" OR label == "Dismiss")');
     if (closes.length) {
-      const rects = await Promise.all(closes.map((c) => c.getElementRect()));
+      const rects = [];
+      for (const c of closes) rects.push(await c.getElementRect());
       const lowest = rects.reduce((m, r, i) => (r.y > rects[m].y ? i : m), 0);
       await closes[lowest].click(); console.log('  closed the Safari tip bubble'); return;
     }
