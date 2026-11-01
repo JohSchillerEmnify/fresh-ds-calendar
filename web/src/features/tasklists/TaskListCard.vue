@@ -9,19 +9,19 @@
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap expands the card in place
- * (`ExpandedCard`, one at a time, state in the `ui` store). The expansion renders this same card with the `grown` prop: full
+ * (`ExpandedCard`, one at a time, remembered on this device in the `ui` store: a card that mounts for a remembered list grows again). The expansion renders this same card with the `grown` prop: full
  * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on it emits
  * `open-list` (the host opens the list sheet).
  */
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { badgeInitial } from './sharing';
-import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
-import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
+import { cardClick, monthTapOpensDay, useCalendarDrag } from '@/features/calendar/dnd';
 import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
@@ -33,7 +33,8 @@ import { ProgressRing } from '@/motion';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
-import { useUiStore } from '@/stores/ui';
+import { useClockStore } from '@/stores/clock';
+import { nextCardOwner, useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress } from './format';
 import { cardLayout } from './layout';
 import { sectionKey } from './section';
@@ -57,12 +58,14 @@ if (!inPreview() && !props.grown) useCalendarDrag(el, () => props.segment, () =>
 // Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
 const { width } = useElementSize(el, undefined, { box: 'border-box' });
 /** Expanded in place over the calendar (a swipe preview copy never is); a tap expands, items change only in the day view. */
-/** This very card was tapped: a view may hold the same list twice (the zoom month's chip layer and its timeline), only the tapped one grows. */
-const tapped = ref(false);
+/** This card instance shows the expansion: a view may hold the same list twice (the zoom month's chip layer and its timeline), only one grows. */
+const owner = nextCardOwner();
 const sameCard = (c: { id: string; date: string } | null) => !!c && c.id === props.segment.item.id && c.date === props.segment.date;
-const expanded = computed(() => !props.grown && !inPreview() && tapped.value && sameCard(ui.expandedCard));
-watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; });
+const expanded = computed(() => !props.grown && !inPreview() && ui.expandedOwner === owner && sameCard(ui.expandedCard));
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
+const clock = useClockStore();
+/** The card's day is over: a remembered expansion ends then (an open list from a past day shows carried to today). */
+const past = computed(() => props.segment.date < clock.today);
 /**
  * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows — also a time block that already shows every item: the grown card is
  * the pill-and-list presentation shown on a tap, never a detour to the sheet.
@@ -74,14 +77,14 @@ function toggle() {
     ui.revealTask(tl.value.id);
     return;
   }
-  tapped.value = true;
-  ui.expandCard(cardKey());
+  ui.expandCard(cardKey(), owner);
 }
 /** A tap on the grown card's title row folds it back up; anywhere else on it opens the list. */
 function onGrownTap(e: MouseEvent) { if ((e.target as Element).closest('.row')) emit('collapse'); else emit('openList'); }
 /** The month (and zoom month) cell card has no time axis: grown it is a plain card as tall as its content, no real block and extension. */
 const flat = computed(() => !!props.grown && props.variant === 'card');
-onBeforeUnmount(() => { if (!inPreview() && !props.grown) ui.collapseCard(cardKey()); });
+// going away (another view or period, a reload) keeps the expansion remembered for the next card of this list
+onBeforeUnmount(() => { if (!inPreview() && !props.grown) ui.releaseCard(owner); });
 
 const tl = computed(() => {
   const i = props.segment.item;
@@ -101,6 +104,15 @@ const prefs = usePrefsStore();
 const carried = computed(() => !!props.segment.carriedFrom && prefs.showCarriedFrom);
 const progress = computed(() => showProgress(tl.value));
 const complete = computed(() => isComplete(tl.value));
+// A remembered expansion nobody shows: the first card of that list takes it, unless the list is complete or its day is over (then it is forgotten).
+watchEffect(() => {
+  const c = ui.expandedCard;
+  if (props.grown || inPreview() || ui.expandedOwner !== null || c?.id !== props.segment.item.id || !el.value || monthTapOpensDay(el.value)) return;
+  if (complete.value || c.date < clock.today) ui.collapseCard(c);
+  else if (sameCard(c)) ui.expandedOwner = owner;
+});
+// Completed or its day over while shown: it closes by itself (a tap on an already complete list still grows it).
+watch([complete, past], ([c, p]) => { if ((c || p) && expanded.value) ui.collapseCard(cardKey()); });
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const title = computed(() => displayTitle(tl.value));
