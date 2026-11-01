@@ -31,13 +31,13 @@ Feature: Month view that scrolls up and down
 
   Rule: The setting is in the Calendar section of the settings and follows the person
 
-    @backlog @mobile
+    @mobile
     Scenario: Sideways is the default
       When I open the month view for 2026-10
       Then the month view scrolls sideways
       And the month view shows only the month of 2026-10
 
-    @backlog @mobile
+    @mobile
     Scenario: Choosing "Up and down" in the settings
       When I open the month view for 2026-10
       And I open the settings
@@ -50,14 +50,14 @@ Feature: Month view that scrolls up and down
       And I leave the settings
       Then the month view scrolls up and down one month at a time
 
-    @backlog @mobile
+    @mobile
     Scenario: The choice follows the person to another device
       Given the month view scrolls up and down
       When I switch to another device
       And I open the month view for 2026-10
       Then the month view scrolls up and down
 
-    @backlog @mobile
+    @mobile
     Scenario: The choice takes effect without reloading and keeps the month
       When I open the month view for 2026-11
       And I open the settings
@@ -68,7 +68,7 @@ Feature: Month view that scrolls up and down
 
   Rule: The months are stacked and scroll continuously
 
-    @backlog @mobile
+    @mobile
     Scenario: The month and the next month are stacked under each other
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -76,7 +76,7 @@ Feature: Month view that scrolls up and down
       And the month 2026-11 is below the month 2026-10
       And the month header "November 2026" is shown below the month 2026-10
 
-    @backlog @mobile
+    @mobile
     Scenario: The weekday row stays pinned while scrolling
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -84,7 +84,7 @@ Feature: Month view that scrolls up and down
       Then the weekday headers are "Mon, Tue, Wed, Thu, Fri, Sat, Sun"
       And the weekday row is pinned at the top of the calendar
 
-    @backlog @mobile
+    @mobile
     Scenario: Every date appears exactly once and the cells of the neighbouring month stay empty
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -93,14 +93,14 @@ Feature: Month view that scrolls up and down
       And the day 2026-11-01 is empty in the month 2026-10
       And no day is greyed in the month view
 
-    @backlog @mobile
+    @mobile
     Scenario: Weeks keep one height and entries are shown as in the sideways month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
       Then every week of the month view is 96 pixels tall
       And the month cell of 2026-10-14 shows its first entry
 
-    @backlog @mobile
+    @mobile
     Scenario: Sideways swiping no longer changes the month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -108,7 +108,7 @@ Feature: Month view that scrolls up and down
       Then the URL path is "/month/2026-10"
       And the page has no horizontal scroll
 
-    @backlog @mobile
+    @mobile
     Scenario: Scrolling down reaches the next months without a pause
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -118,7 +118,7 @@ Feature: Month view that scrolls up and down
 
   Rule: One month at a time snaps to the month headers
 
-    @backlog @mobile
+    @mobile
     Scenario: Days of the neighbouring month are shown greyed and open their day
       Given the month view scrolls up and down one month at a time
       When I open the month view for 2026-10
@@ -126,7 +126,7 @@ Feature: Month view that scrolls up and down
       When I tap the day 2026-11-01 in the month 2026-10
       Then the URL path is "/day/2026-11-01"
 
-    @backlog @mobile
+    @mobile
     Scenario: A flick lands on the next month's header
       Given the month view scrolls up and down one month at a time
       When I open the month view for 2026-10
@@ -135,7 +135,7 @@ Feature: Month view that scrolls up and down
       And the period title is "November 2026"
       And the URL path is "/month/2026-11"
 
-    @backlog @mobile
+    @mobile
     Scenario: A short drag snaps back to the month it started on
       Given the month view scrolls up and down one month at a time
       When I open the month view for 2026-10
@@ -143,7 +143,7 @@ Feature: Month view that scrolls up and down
       Then the month header "October 2026" is at the top of the calendar
       And the URL path is "/month/2026-10"
 
-    @backlog @mobile
+    @mobile
     Scenario: A flick down goes back one month
       Given the month view scrolls up and down one month at a time
       When I open the month view for 2026-11
@@ -151,7 +151,7 @@ Feature: Month view that scrolls up and down
       Then the month header "October 2026" is at the top of the calendar
       And the URL path is "/month/2026-10"
 
-    @backlog @mobile
+    @mobile
     Scenario: A tall month is read by scrolling inside it before it snaps
       Given the month view scrolls up and down one month at a time
       When I open the month view for 2026-11
@@ -161,7 +161,7 @@ Feature: Month view that scrolls up and down
 
   Rule: The top bar and the URL follow the month most in view
 
-    @backlog @mobile
+    @mobile
     Scenario: The title and the URL change when most of the next month is in view
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -170,7 +170,7 @@ Feature: Month view that scrolls up and down
       And the period title is "November 2026"
       And the URL path is "/month/2026-11"
 
-    @backlog @mobile
+    @mobile
     Scenario: Scrolling back up returns the title and URL to the earlier month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -179,7 +179,7 @@ Feature: Month view that scrolls up and down
       Then the period title is "October 2026"
       And the URL path is "/month/2026-10"
 
-    @backlog @mobile
+    @mobile
     Scenario: Scrolling does not add browser history entries
       Given the month view scrolls up and down
       When I open the week view for 2026-10-12
@@ -189,7 +189,7 @@ Feature: Month view that scrolls up and down
       Then the week view is shown
       And the URL path is "/week/2026-10-12"
 
-    @backlog @mobile
+    @mobile
     Scenario: A deep link opens the calendar scrolled to that month
       Given the month view scrolls up and down
       When I open the path "/month/2027-02"
@@ -197,18 +197,20 @@ Feature: Month view that scrolls up and down
       And the month 2027-02 is the month most in view
       And the period title is "February 2027"
 
-    @backlog @mobile
+    @mobile
     Scenario: Picking a day in the month picker scrolls to its month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
       And I open the month picker
+      And I go to the next month in the month picker
+      And I go to the next month in the month picker
       And I pick 2026-12-24 in the month picker
       Then the month 2026-12 is the month most in view
       And the day 2026-12-24 is in view
 
   Rule: Today, the day view and going back
 
-    @backlog @mobile
+    @mobile
     Scenario: The Today button scrolls to today
       Given the month view scrolls up and down
       When I open the month view for 2027-03
@@ -218,7 +220,7 @@ Feature: Month view that scrolls up and down
       And 2026-10-12 is highlighted as today
       And the URL path is "/month/2026-10"
 
-    @backlog @mobile
+    @mobile
     Scenario: The Today button shows that today is on screen while it is
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -226,7 +228,7 @@ Feature: Month view that scrolls up and down
       When I scroll the calendar to the month 2027-01
       Then the Today button does not show that today is on screen
 
-    @backlog @mobile
+    @mobile
     Scenario: Tapping a day opens the day view
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -234,7 +236,7 @@ Feature: Month view that scrolls up and down
       And I tap the day 2026-11-14 in the month view
       Then the URL path is "/day/2026-11-14"
 
-    @backlog @mobile
+    @mobile
     Scenario: Going back from the day view returns to exactly the same scroll position
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -245,7 +247,7 @@ Feature: Month view that scrolls up and down
       Then the calendar is at the noted scroll position
       And the URL path is "/month/2026-11"
 
-    @backlog @desktop
+    @desktop
     Scenario: On desktop the arrows scroll by one month
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -257,7 +259,7 @@ Feature: Month view that scrolls up and down
 
   Rule: The bottom bar and the controls behave as in the other views
 
-    @backlog @mobile
+    @mobile
     Scenario: The bottom bar slides away while scrolling down and returns on scroll up
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -268,7 +270,7 @@ Feature: Month view that scrolls up and down
       When I scroll the calendar up by 60 pixels
       Then the bottom bar is shown
 
-    @backlog @mobile
+    @mobile
     Scenario: Left-handed mode mirrors only the controls, the months still stack
       Given the month view scrolls up and down
       And left-handed mode is on
@@ -276,7 +278,7 @@ Feature: Month view that scrolls up and down
       Then the "create button" is on the "left" side of the screen
       And the month 2026-11 is below the month 2026-10
 
-    @backlog @desktop
+    @desktop
     Scenario: On desktop the mouse wheel scrolls the months
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -285,7 +287,7 @@ Feature: Month view that scrolls up and down
 
   Rule: Only the months near the one in view are built
 
-    @backlog @mobile
+    @mobile
     Scenario: A long scroll never builds more than a few months
       Given the month view scrolls up and down
       When I open the month view for 2026-10
@@ -293,7 +295,7 @@ Feature: Month view that scrolls up and down
       Then at most 5 months are built in the month view
       And the month 2026-10 is not built in the month view
 
-    @backlog @mobile
+    @mobile
     Scenario: Scrolling far back and forward keeps the entries of each month
       Given the month view scrolls up and down
       When I open the month view for 2026-10

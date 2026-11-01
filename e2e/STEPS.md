@@ -2739,12 +2739,7 @@ I flick the calendar down
 the month header {string} is at the top of the calendar
 the month header {string} is not at the top of the calendar
 I scroll the calendar to the month {month}
-I scroll the calendar down by {int} pixels
-I scroll the calendar up by {int} pixels
 I scroll the mouse wheel down by {int} pixels over the calendar
-the bottom bar is hidden
-the bottom bar is shown
-the create button is shown
 at most {int} months are built in the month view
 the month {month} is not built in the month view
 ```
@@ -2754,7 +2749,7 @@ the month {month} is not built in the month view
   (X = `Sideways` | `Up and down` | `Up and down, one month at a time`) picks that option of the select `settings-month-scroll` and waits for the `PATCH /api/prefs` 200.
 - Up and down, `month-view` holds one `month-block` per built month (`data-month` = `YYYY-MM`), each with a `month-block-header`
   (its text is the month name and year) above its `month-cell`s; there is one `month-weekday-header` row, `position: sticky` at
-  the top of `calendar-swipe-area`'s scroller. "shows only the month of M" = exactly one `month-block`, M.
+  the top of `calendar-swipe-area`'s scroller. "shows only the month of M" = exactly one `month-block`, M (sideways, which has no blocks: `month-view[data-month]` names M, e.g. "October 2026"); `month-view[data-scroll]` is `sideways` there too.
 - "the month M is below the month N": the top of `month-block` M is at or below the bottom of `month-block` N. "the month header H is shown
   below the month M": the header is visible in the viewport and its top is at or below the bottom of that month's last week.
   "the month header H is shown": visible in the viewport.
