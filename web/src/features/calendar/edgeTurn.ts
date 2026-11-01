@@ -4,7 +4,7 @@
  * band names the day or week a turn leads to, and resting there for {@link EDGE_HOLD_MS} turns the view (again after
  * each such wait). The week view waits longer so a drop on Sunday or Monday is never stolen.
  */
-import { format, shiftPeriod, weekDays } from '@/lib/dates';
+import { dayText, format, shiftPeriod, weekDays } from '@/lib/dates';
 import { dateLocale, language } from '@/i18n/language';
 
 /** Width (px) of the edge zone on each side of the day columns. */
@@ -44,11 +44,6 @@ export function edgeLabel(view: EdgeView, anchor: Date, dir: 1 | -1): string {
   return dir === 1 ? `${text} ›` : `‹ ${text}`;
 }
 
-/** A day as its short weekday and day of the month. */
-function dayText(d: Date): string {
-  if (language.value === 'en') return format(d, 'EEE d');
-  return new Intl.DateTimeFormat(dateLocale(), { weekday: 'short', day: 'numeric' }).format(d);
-}
 
 /** A week as the range of its first and last day, the month written once when they share it. */
 function weekText(days: Date[]): string {

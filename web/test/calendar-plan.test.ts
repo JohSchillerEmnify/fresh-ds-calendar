@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planOff, planEffectiveHidden, nextPlanEdge, wallNow } from '@/lib/calendarPlan';
+import { planOff, planEffectiveHidden, wallNow } from '@/lib/calendarPlan';
 
 // Fri 17:00 -> Sun 16:00 every week; 2026-11-06 is a Friday
 const weekend = { windows: [{ from: { day: 5, time: '17:00' }, to: { day: 0, time: '16:00' } }] };
@@ -50,13 +50,6 @@ describe('calendar plan (feature calendar-off-plan)', () => {
   it('uses the manual switch when there is no plan', () => {
     expect(planEffectiveHidden(true, undefined, '2026-11-07T11:00')).toBe(true);
     expect(planEffectiveHidden(false, {}, '2026-11-07T11:00')).toBe(false);
-  });
-
-  it('finds the next edge of the plan', () => {
-    expect(nextPlanEdge(weekend, '2026-11-07T10:00')).toBe('2026-11-08T16:00');
-    expect(nextPlanEdge(weekend, '2026-11-08T16:00')).toBe('2026-11-13T17:00');
-    expect(nextPlanEdge({ until: '2026-11-06', since: '2026-11-04T08:00' }, '2026-11-04T08:00')).toBe('2026-11-06T00:00');
-    expect(nextPlanEdge({}, '2026-11-04T08:00')).toBeNull();
   });
 
   it('builds the wall time from the clock date and minutes', () => {

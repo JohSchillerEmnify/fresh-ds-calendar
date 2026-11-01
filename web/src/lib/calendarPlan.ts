@@ -1,4 +1,5 @@
 import type { CalendarPlan, WeekPoint } from '@calendar/shared/prefs';
+import { dayText, parseIsoDate, weekdayLabels } from '@/lib/dates';
 
 /** When a calendar is off by its plan (feature calendar-off-plan). All times are wall times `YYYY-MM-DDTHH:MM` in the calendar zone. */
 
@@ -8,10 +9,6 @@ const WEEK = 7 * DAY;
 /** Minutes since 1970-01-01 00:00 of a wall time, so plain arithmetic ignores DST jumps. */
 function toMin(wall: string): number {
   return Date.UTC(+wall.slice(0, 4), +wall.slice(5, 7) - 1, +wall.slice(8, 10)) / 60000 + (+wall.slice(11, 13)) * 60 + (+wall.slice(14, 16));
-}
-
-function toWall(min: number): string {
-  return new Date(min * 60000).toISOString().slice(0, 16);
 }
 
 /** The last time at or before `now` that the weekly point came round. 1970-01-01 was a Thursday (day 4). */
@@ -65,15 +62,21 @@ export function planEffectiveHidden(manualHidden: boolean, plan: CalendarPlan | 
   return planOff(plan, nowWall);
 }
 
-/** The next time after `nowWall` the plan switches, or null when it never does again. */
-export function nextPlanEdge(plan: CalendarPlan, nowWall: string): string | null {
-  const now = toMin(nowWall);
-  const next = (plan.windows ?? []).flatMap((w) => [lastAt(w.from, now) + WEEK, lastAt(w.to, now) + WEEK]);
-  if (plan.until && toMin(`${plan.until}T00:00`) > now) next.push(toMin(`${plan.until}T00:00`));
-  return next.length ? toWall(Math.min(...next)) : null;
-}
-
 /** The wall time of the app clock's date and minutes since midnight. */
 export function wallNow(date: string, minutes: number): string {
   return `${date}T${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/** "Fri 6" for the day an active "Off for a while" ends, or '' when none is active. */
+export function backDay(plan: CalendarPlan | undefined, nowWall: string): string {
+  return awayActive(plan, nowWall) ? dayText(parseIsoDate(plan!.until)!) : '';
+}
+
+/** The weekly window as "Fri 17:00", "Sun 16:00" in the active language, or null. */
+export function windowEnds(plan: CalendarPlan | undefined): { from: string; to: string } | null {
+  const w = plan?.windows?.[0];
+  if (!w) return null;
+  // weekdayLabels() starts on Monday, the plan's days on Sunday
+  const day = (d: number) => weekdayLabels()[(d + 6) % 7];
+  return { from: `${day(w.from.day)} ${w.from.time}`, to: `${day(w.to.day)} ${w.to.time}` };
 }

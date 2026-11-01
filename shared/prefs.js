@@ -57,7 +57,7 @@ function toCalendarPlans(raw) {
   if (entries.length > 200) return null;
   const valid = ([id, plan]) => id.length >= 1 && id.length <= 256 && isObject(plan)
     && Object.entries(plan).every(([k, v]) => PLAN_FIELDS[k]?.(v));
-  return entries.every(valid) ? structuredClone(raw) : null;
+  return entries.every(valid) ? JSON.parse(JSON.stringify(raw)) : null;
 }
 
 const BOOLEAN = ['a boolean', (v) => typeof v === 'boolean'];
