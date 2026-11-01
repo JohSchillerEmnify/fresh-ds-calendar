@@ -139,6 +139,7 @@ export const createTaskListSchema = so({
   estimateMinutes: v.optional(estimate),
   recurrence: v.optional(recurrence),
   reminders: v.optional(reminders),
+  createdOn: v.optional(localDate),
 });
 export const updateTaskListSchema = so({
   title: v.optional(listTitle),

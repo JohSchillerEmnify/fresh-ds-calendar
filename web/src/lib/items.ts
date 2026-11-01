@@ -44,9 +44,10 @@ export interface Segment {
 
 export const CARRY_OVER_DAYS = 30;
 
-/** True for an open list dated within the last 30 days before `today` (shown on today, feature open-tasks-in-sight). */
+/** True for an open list dated within the last 30 days before `today` (shown on today, feature open-tasks-in-sight); not one made after its own day. */
 export function isCarriedOver(item: CalendarItem, today: LocalDate | undefined): boolean {
   if (item.kind !== 'tasklist' || !item.date || !today || item.date >= today || item.doneCount >= item.totalCount) return false;
+  if (item.createdOn && item.createdOn > item.date) return false;
   const a = parseIsoDate(item.date), b = parseIsoDate(today);
   return !!a && !!b && differenceInCalendarDays(b, a) <= CARRY_OVER_DAYS;
 }

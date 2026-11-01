@@ -66,7 +66,7 @@ export function localTaskList(id: string, input: CreateTaskListInput): TaskList 
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],
-    color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: '', updated: '',
+    color: '#039be5', calendarColor: '#039be5', completedOn: null, ...(input.createdOn ? { createdOn: input.createdOn } : {}), canvas: null, etag: '', updated: '',
   }, items);
 }
 

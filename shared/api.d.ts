@@ -112,6 +112,8 @@ export interface TaskList {
   /** Colour of the tasks calendar (what an uncategorised list shows). */
   calendarColor: string;
   completedOn: LocalDate | null;
+  /** The day the list was created (app clock); absent on older lists. An open list made after its own day ended is not carried to today. */
+  createdOn?: LocalDate;
   /** Place on the Tasks view's Canvas in canvas units; null = no place yet (Unsorted). */
   canvas: CanvasPlace | null;
   /** Absent on shared lists (they live outside Google and have no reminders). */
@@ -216,6 +218,8 @@ export interface CreateTaskListInput {
   estimateMinutes?: number | null;
   recurrence?: Recurrence | null;
   reminders?: Reminders;
+  /** The day the list was made (an offline create sends it); absent = the server's today. */
+  createdOn?: LocalDate;
 }
 
 export interface UpdateTaskListInput {
