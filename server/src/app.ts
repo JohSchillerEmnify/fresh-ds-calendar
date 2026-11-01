@@ -8,7 +8,7 @@ import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavaila
 import { apiRoutes } from './api/routes.js';
 import { testRoutes } from './api/testRoutes.js';
 import { authRoutes } from './api/authRoutes.js';
-import { causeFor, logEvent, noteCause } from './lib/diag.js';
+import { causeFor, logEvent, noteCause, subHash } from './lib/diag.js';
 import { routePath } from 'hono/route';
 import { diagRoutes } from './api/diagRoutes.js';
 import { createContext, type Ctx } from './context.js';
@@ -35,6 +35,13 @@ export interface BuildOptions {
   driveFor?: (sub: string) => DriveClient;
 }
 
+/** The device and browser family of a user agent, for diagnostics (no version or build details). */
+function uaFamily(ua = ''): string {
+  const os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : /Mac OS X/.test(ua) ? 'mac' : /Windows/.test(ua) ? 'windows' : /Linux/.test(ua) ? 'linux' : 'other';
+  const app = /CriOS|Chrome/.test(ua) ? 'chrome' : /FxiOS|Firefox/.test(ua) ? 'firefox' : /Safari/.test(ua) ? 'safari' : /AppleWebKit/.test(ua) ? 'webkit' : 'other';
+  return `${os}/${app}`;
+}
+
 /**
  * Builds the HTTP app. Pure web-standard Request/Response (Hono): tests use `app.request()`, the runtime adapter
  * lives only in index.ts. Seeding is the caller's job (see `startup()` in index.ts / `ctx.seed()`).
@@ -57,6 +64,15 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     // a rate-limited answer is logged once per cooldown (`rate_limited`), not per request
     if (c.res.status >= 500 && causeFor(c) !== RateLimitedError.name) {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
+    }
+    // a refused write is otherwise invisible on the server: its code and how the request was framed, never the body
+    if (c.res.status >= 400 && c.res.status < 500 && !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method) && !c.req.path.startsWith('/api/diag/')) {
+      const code = await c.res.clone().json().then((b: { error?: { code?: string } }) => b?.error?.code, () => undefined);
+      logEvent('api_refused', {
+        method: c.req.method, route: `${c.req.method} ${routePath(c)}`, path: c.req.path, status: c.res.status, code, subHash: subHash(((c as Context).get('person') as { sub: string } | undefined)?.sub),
+        contentType: c.req.header('content-type'), contentLength: c.req.header('content-length'), chunked: !!c.req.header('transfer-encoding'), origin: c.req.header('origin'),
+        ua: uaFamily(c.req.header('user-agent')),
+      });
     }
   });
 
