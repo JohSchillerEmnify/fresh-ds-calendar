@@ -219,7 +219,7 @@ Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, 
 
 ### `GET /api/prefs` → 200, `PATCH /api/prefs` → 200
 
-Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
+Per-person preferences (`GET/PATCH /api/prefs`, apart from `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
 `tasksCalendarVisible`, `taskCategories`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
 `'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, feature
 language). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
@@ -610,9 +610,19 @@ Rules:
 
 ### Settings and categories
 
-Stored server-side in `DATA_DIR/settings.json` (one file for the whole server, shared by everyone who signs in;
-independent of the provider; atomic writes). Created with
-the defaults on first start.
+Stored server-side per person in `DATA_DIR/users/<sub>/settings.json` (`users/local/` while sign-in is off;
+independent of the provider; atomic writes; ADR 0035). Each person who signs in has their own settings and categories:
+a change by one person never changes what another reads, and `version` (the `If-Match` value) counts that person's
+changes only. A person without a file reads the defaults (the four categories); nothing is written until they change something, so
+opening the app creates no data of their own (Drive backup, restore at sign-in). A shared
+task list still shows the owner's category to its members (`categoryInfo`, see Shared lists).
+
+*Migration from the server-wide file* (once, on the first start after the update): a `DATA_DIR/settings.json` and
+`DATA_DIR/motivation.json` from before are copied to every known person (`people.json`, the folders under `users/`, and
+`local`) who has no file of their own yet, then renamed to `settings.json.bak` / `motivation.json.bak`. Without the old
+file nothing happens, so it runs once; an interrupted run finishes on the next start; a person's own file is never
+overwritten. A Drive backup made before the split carries them as `server/settings.json` / `server/motivation.json`:
+a restore gives them to the person whose backup it is unless the backup also holds the person's own file.
 
 | Method | Path | Body | Success |
 |---|---|---|---|
@@ -839,8 +849,8 @@ of them is still untouched.
 
 ### Motivation: check-in streak and plant
 
-Stored server-side in `DATA_DIR/motivation.json` (one file for the whole server, shared by everyone who signs in;
-synced across devices). Dates are local dates of the
+Stored server-side per person in `DATA_DIR/users/<sub>/motivation.json` (ADR 0035; migrated from the server-wide file
+as described under "Settings and categories"; synced across devices). Dates are local dates of the
 app clock (`TZ`).
 
 ```ts

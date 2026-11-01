@@ -9,12 +9,13 @@ let lastGridH = 0;
 
 <script setup lang="ts">
 import Pressable from '@/components/m3/Pressable.vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
+import { bindMonthZoom, monthZoom, monthZooming, provideChipTimes, zoomedGridHeight } from '@/composables/useMonthZoom';
 import { isPhone } from '@/composables/useViewport';
 import { allotHeights, CELL_METRICS, entriesRoom, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
@@ -43,8 +44,26 @@ const weeks = computed(() => monthGrid(anchor.value));
 const emptyOutside = computed(() => props.block === 'vertical');
 /** Whether the cell of `d` is left empty: the neighbouring month's day in the continuous list. */
 const isEmpty = (d: Date) => emptyOutside.value && !isSameMonth(d, anchor.value);
-const weekH = computed(() => (props.block ? weekHeight(isPhone.value) : 0));
+const weekH = computed(() => (props.block ? weekHeight(isPhone.value) * monthZoom.value : 0));
 const gridEl = ref<HTMLElement | null>(null);
+/** Sideways: the box the weeks share; zoomed in, the grid is taller and this scrolls up and down. */
+const portEl = ref<HTMLElement | null>(null);
+const { height: portH } = useElementSize(portEl);
+const zoomed = computed(() => !props.block && monthZoom.value > 1 && portH.value > 0);
+provideChipTimes(computed(() => monthZoom.value > 1));
+/** Keeps the month point under the fingers (or the pointer) in place while the zoom changes. */
+function keepUnder(from: number, to: number, clientY: number): void {
+  const port = portEl.value;
+  if (!port || from <= 0) return;
+  const off = clientY - port.getBoundingClientRect().top;
+  const h = (z: number) => zoomedGridHeight(portH.value, weeks.value.length, z);
+  const top = (port.scrollTop + off) * (h(to) / h(from)) - off;
+  void nextTick(() => { port.scrollTop = top; });
+}
+// only the month on screen zooms (not a swipe neighbour's preview, not a list block: the list binds it itself)
+let unbind: (() => void) | undefined;
+onMounted(() => { if (!props.preview && !props.block && portEl.value) unbind = bindMonthZoom(portEl.value, keepUnder); });
+onBeforeUnmount(() => unbind?.());
 const { height: gridH } = useElementSize(gridEl, { width: 0, height: lastGridH });
 watch(gridH, (h) => { if (h > 0) lastGridH = h; });
 /** Gap between two entries in a cell (px); one slot is a chip plus this gap. */
@@ -127,7 +146,8 @@ function onChipsClick(e: MouseEvent, day: Date): void {
     <div v-else class="weekdays" role="row">
       <div v-for="w in weekdayLabels()" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
-    <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, ${weekH ? weekH + 'px' : 'minmax(0, 1fr)'})` }" role="grid">
+    <div ref="portEl" class="port" :class="{ zoomed }" :data-testid="block ? undefined : 'month-scroll'" :data-month-zoom="block ? undefined : monthZoom" :data-month-zooming="(!block && monthZooming) || undefined">
+    <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, ${weekH ? weekH + 'px' : 'minmax(0, 1fr)'})`, height: zoomed ? zoomedGridHeight(portH, weeks.length, monthZoom) + 'px' : undefined }" role="grid">
       <div v-for="(row, wi) in rows" :key="row.dates[0]" class="week">
         <div class="bars" :style="{ gridTemplateRows: `repeat(${row.lanes}, var(--bar-h))` }">
           <EventBar v-for="b in row.bars" :key="b.item.id" :bar="b" :dates="row.dates" chip />
@@ -150,6 +170,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
         </template>
       </div>
     </div>
+    </div>
   </section>
 </template>
 
@@ -158,6 +179,11 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 0; }
 .wd { text-align: center; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .grid { flex: 1; min-height: 0; display: grid; border-top: 1px solid var(--md-sys-color-outline-variant); }
+/* the weeks' box: zoomed in, the grid is taller than it and it scrolls up and down (never sideways: a swipe changes the month) */
+.port { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; }
+.port:not(.zoomed) { overflow-y: hidden; }
+.port.zoomed .grid { flex: none; }
+.block .port { display: contents; }
 /* a list block: header, then weeks of a fixed height; it is a snap page in "one month at a time" */
 .block { flex: none; scroll-snap-align: start; scroll-snap-stop: always; }
 .block .grid { flex: none; border-top: 0; }

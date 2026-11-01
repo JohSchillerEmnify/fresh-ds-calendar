@@ -67,6 +67,12 @@ Then('the top bar names the view {string}', async function (this: World, name: s
   await expect(this.page.getByTestId('top-bar').getByTestId('view-title')).toHaveText(exactText(name));
 });
 
+Then('the top bar shows no date', async function (this: World) {
+  const bar = this.page.getByTestId('top-bar');
+  await expect(bar.getByTestId('view-title')).toBeVisible();
+  await expect(bar.getByTestId('period-title')).toHaveCount(0);
+});
+
 Then('the top bar has no date navigation', async function (this: World) {
   const bar = this.page.getByTestId('top-bar');
   await expect(bar.getByTestId('view-title')).toBeVisible();
