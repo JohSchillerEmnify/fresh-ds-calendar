@@ -39,8 +39,8 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 |---|---|---|---|---|---|
 | Default view | filled select | view the app opens in | Month | S `defaultView` | no |
 | Minimum event length | segmented Off/15/30 | short events drawn at least this long | Off | P `minEventMinutes` | no |
-| Day view: events side by side | segmented 2/3/4 | overlap columns in the day view | 4 | P `daySideBySide` | no |
-| Week view: events side by side | segmented 2/3 | overlap columns in the week view | 2 | P `weekSideBySide` | no |
+| Day view: events side by side | segmented Only 1/2/3/4 | overlap columns in the day view | 4 | P `daySideBySide` | no |
+| Week view: events side by side | segmented Only 1/2/3 | overlap columns in the week view | 2 | P `weekSideBySide` | no |
 | Top bar size | segmented Expressive/Compact | phone top bar height | auto (Compact on phones) | P `headerLayout` | no |
 | Bottom bar size | segmented Expressive/Compact | phone bottom bar height | auto | P `bottomBarSize` | no |
 | Month view scrolls | filled select | sideways / up-down / up-down snapping | Sideways | P `monthScroll` | no |

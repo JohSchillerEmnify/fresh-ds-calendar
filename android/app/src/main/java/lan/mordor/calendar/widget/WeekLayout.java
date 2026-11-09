@@ -92,7 +92,7 @@ final class WeekLayout {
      * {@link #MAX_STACK_DEPTH}), unless that would hide a title, in which case they open one more column, but only one
      * ({@code limit + 1} columns at most, owner 2026-10-25).
      *
-     * @param limit the most columns side by side before entries cascade; 0 keeps the start-group cascade
+     * @param limit the most columns side by side before entries cascade; 0 or 1 keeps the start-group cascade
      */
     static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength, int limit) {
         return packColumns(items, minMinutes, minLength, limit, 0);
@@ -108,7 +108,7 @@ final class WeekLayout {
         List<WeekData.Item> timed = new ArrayList<>();
         for (WeekData.Item i : items) if (i.timed()) timed.add(i);
         timed.sort(Comparator.comparingInt((WeekData.Item i) -> i.startMin).thenComparingInt(i -> -i.endMin));
-        if (limit > 0) return packSideBySide(timed, minMinutes, minLength, limit, titleMinutes);
+        if (limit > 1) return packSideBySide(timed, minMinutes, minLength, limit, titleMinutes);
         List<Placed> out = new ArrayList<>();
         List<Group> groups = new ArrayList<>();
         int clusterEnd = -1;

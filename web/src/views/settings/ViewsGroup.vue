@@ -24,10 +24,10 @@ const minEventOptions = computed(() => ([0, 15, 30] as const).map((n) => ({
 const monthScrollOptions = computed(() => ([['sideways', 'sideways'], ['vertical', 'vertical'], ['vertical-snap', 'verticalSnap']] as const).map(([value, key]) => ({ value, label: t(`settings.calendar.monthScroll.${key}`) })));
 /** "Up to N" options of the day or week "events side by side" setting. */
 const sideBySide = (view: 'day' | 'week', ns: readonly number[]) => computed(() => ns.map((n) => ({
-  value: String(n), label: t('settings.calendar.sideBySide.upTo', { n }), testid: `settings-${view}-side-by-side-${n}`,
+  value: String(n), label: t(n === 1 ? 'settings.calendar.sideBySide.only' : 'settings.calendar.sideBySide.upTo', { n }), testid: `settings-${view}-side-by-side-${n}`,
 })));
-const dayOptions = sideBySide('day', [2, 3, 4]);
-const weekOptions = sideBySide('week', [2, 3]);
+const dayOptions = sideBySide('day', [1, 2, 3, 4]);
+const weekOptions = sideBySide('week', [1, 2, 3]);
 /** The track length while the slider moves; saved when the move ends. */
 const liveHours = ref(prefs.approachWindowHours);
 watch(() => prefs.approachWindowHours, (h) => { liveHours.value = h; });
