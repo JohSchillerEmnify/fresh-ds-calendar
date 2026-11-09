@@ -212,6 +212,7 @@ Feature: Creating, editing and deleting task lists
     Then I see the task list "Groceries" on 2026-10-14
     And I do not see the task list "Changed"
 
+  @iphone
   Scenario: Delete a task list
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
