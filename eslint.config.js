@@ -79,6 +79,7 @@ export default tseslint.config(
     // Allow-list for the rule above: per-device UI state (collapse, last view, once-per-session flags), never a setting.
     files: [
       'web/src/components/settings/themeLivePreviewSample.ts', // collapsed state of the live-preview panel
+      'web/src/features/calendar/transitionWarning.ts', // which reminders this device already showed
       'web/src/features/tasklists/section.ts', // which list section this device shows
       'web/src/features/tasklists/collapse.ts', // collapsed task list cards on this device
       'web/src/features/tasklists/canvasStore.ts', // last canvas view on this device

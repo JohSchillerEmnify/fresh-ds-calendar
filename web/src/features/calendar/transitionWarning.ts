@@ -80,6 +80,22 @@ function morningPushPlan(days: ReadonlyArray<{ date: string; segs: Segment[] }>,
   });
 }
 
+/** localStorage key of the reminders the app already showed on this device (planned key -> start of its item, epoch ms). */
+const SHOWN_KEY = 'cal.remindersShown';
+
+/** The shown reminders stored on this device (storage may be unavailable or hold junk). */
+function loadShown(): Map<string, number> {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(SHOWN_KEY) ?? '{}');
+    return new Map(Object.entries(raw && typeof raw === 'object' ? raw : {}).filter(([, v]) => typeof v === 'number') as Array<[string, number]>);
+  } catch { return new Map(); }
+}
+
+/** Stores the shown reminders on this device. */
+function saveShown(shown: Map<string, number>): void {
+  try { localStorage.setItem(SHOWN_KEY, JSON.stringify(Object.fromEntries(shown))); } catch { /* private window: the in-memory set still holds */ }
+}
+
 let scope: EffectScope | null = null;
 
 /** Starts the watchers on the active Pinia (previous ones are stopped first). Returns a stop function. */
@@ -90,12 +106,12 @@ export function startTransitionWarnings(): () => void {
   const cals = useCalendarsStore();
   const ui = useUiStore();
   const prefs = usePrefsStore();
-  const warned = new Set<string>();
+  /** Reminders already said, kept on this device so reopening the app does not repeat them; pruned once the item started. */
+  const warned = loadShown();
   /** occurrence -> { snackbar id, start (epoch ms), item title } of the reminders currently shown. */
   const shown = new Map<string, { id: number; startAt: number; itemTitle: string }>();
   /** The snackbar text at `minuteStart`: the minutes really left, so it stays right while it is open. */
   const liveText = (itemTitle: string, startAt: number, minuteStart: number): string => reminderText(itemTitle, Math.round((startAt - minuteStart) / 60_000));
-  let day = clock.today;
 
   /** The next `PLAN_DAYS` days with their segments, today first, without the calendars the person switched off. */
   const datedDays = (): Array<{ date: string; segs: Segment[] }> => Array.from({ length: PLAN_DAYS }, (_, i) => {
@@ -122,8 +138,9 @@ export function startTransitionWarnings(): () => void {
     watch(
       () => [clock.nowTick, items.byDate, cals.hidden, prefs.notify.tasklists, language.value] as const,
       () => {
-        if (clock.today !== day) { day = clock.today; warned.clear(); }
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
+        let warnedChanged = false;
+        for (const [k, startAt] of warned) if (startAt < minuteStart) { warned.delete(k); warnedChanged = true; }
         // in the app events always remind; task lists only with the Reminders switch
         const all = plan({ events: true, tasklists: prefs.notify.tasklists });
         const occurrences = new Set(all.map((p) => p.occurrence));
@@ -145,7 +162,7 @@ export function startTransitionWarnings(): () => void {
         }
         for (const [occurrence, p] of nearest) {
           const fresh = !warned.has(p.key);
-          for (const q of all) if (q.occurrence === occurrence && q.at <= minuteStart) warned.add(q.key);
+          for (const q of all) if (q.occurrence === occurrence && q.at <= minuteStart && !warned.has(q.key)) { warned.set(q.key, q.startAt); warnedChanged = true; }
           if (!fresh) continue;
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
@@ -154,6 +171,7 @@ export function startTransitionWarnings(): () => void {
           const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning', countdown: true });
           shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
+        if (warnedChanged) saveShown(warned);
       },
       { immediate: true },
     );
