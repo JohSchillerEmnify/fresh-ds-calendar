@@ -34,6 +34,10 @@ subprojects {
                 targetCompatibility JavaVersion.VERSION_17
             }
         }
+        // Kotlin plugins (e.g. @capacitor/filesystem) target 21 on their own; Gradle refuses a 17/21 mix in one module
+        p.plugins.withId('org.jetbrains.kotlin.android') {
+            p.kotlin.jvmToolchain(17)
+        }
     }
 }
 
