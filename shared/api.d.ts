@@ -9,9 +9,8 @@ export interface Calendar {
   name: string;
   color: string;
   primary: boolean;
+  /** Google role owner or writer: events are created, moved and edited only in these (feature events-readonly). */
   writable: boolean;
-  /** True for the person's own calendars: events go only there (feature events-readonly). */
-  own: boolean;
   /** The person's choice (`GET /api/calendars`). */
   hidden?: boolean;
   /** Popup reminder lead times of Google's calendar default, in minutes, in Google's order. */

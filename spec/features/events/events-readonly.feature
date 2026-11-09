@@ -1,9 +1,9 @@
 @events-readonly @id:events-readonly
-Feature: Only my own events can be edited
-  Events I organise in my own calendars are editable. So is everything in a shared group calendar I may write, such as
-  the family calendar, whoever created the event (owner, 2026-11-09). Invitations from other people and everything in
-  calendars that belong to other people (their own address) are look-only, even when Google would allow editing (owner,
-  2026-10-16).
+Feature: Editing follows Google's permissions
+  A calendar I may write in Google (owner or writer) is editable, whoever owns it: my own, a shared family calendar, or
+  another person's calendar shared with me with edit rights (owner, 2026-11-09). Calendars I may only read stay
+  look-only ("Calendar of ..."). Invitations are look-only unless the organiser lets guests edit; an event whose
+  organiser is its own calendar is the calendar's own event.
 
   Background:
     Given the calendar is empty
@@ -23,8 +23,15 @@ Feature: Only my own events can be edited
     And I open the event "Potluck"
     Then the event dialog is editable
 
-  Scenario: An event in someone else's shared calendar is read-only even with edit rights
+  Scenario: An event in someone else's calendar shared with edit rights is editable
     Given a calendar "Anna" shared with me with edit rights by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    Then the event dialog is editable
+
+  Scenario: An event in a calendar shared with me read-only is read-only
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
     And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
     When I open the week view for 2026-10-12
     And I open the event "Yoga"
@@ -49,8 +56,13 @@ Feature: Only my own events can be edited
     When I try to rename the event "Barbecue" through the API
     Then the API answers 200
 
-  Scenario: Someone else's calendar is not offered for new events
+  Scenario: Someone else's calendar I may edit is offered for new events
     Given a calendar "Anna" shared with me with edit rights by "anna@example.org"
+    When I start a new event
+    Then the calendar picker offers "Anna"
+
+  Scenario: A calendar shared with me read-only is not offered for new events
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
     When I start a new event
     Then the calendar picker does not offer "Anna"
 

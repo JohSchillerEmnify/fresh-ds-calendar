@@ -27,7 +27,7 @@ const list = (id: string, date: string | null, title = id): TaskList => ({
   completedOn: null, canvas: null, etag: 'e', updated: '2026-10-12T08:00:00+02:00',
 });
 const tpl = (id: string, name: string) => ({ id, name, items: [{ title: 'x' }], estimateMinutes: null, categoryId: null });
-const cal = { id: 'primary', name: 'Me', color: '#039be5', primary: true, hidden: false, own: true, writable: true, defaultReminders: [] };
+const cal = { id: 'primary', name: 'Me', color: '#039be5', primary: true, hidden: false, writable: true, defaultReminders: [] };
 
 describe('the device store', () => {
   let kv: ReturnType<typeof memoryKv>;
