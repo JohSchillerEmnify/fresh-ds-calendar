@@ -33,6 +33,17 @@ Then(
   },
 );
 
+/** Waits until the element's box stops changing: the wheel zoom commits its re-layout a moment after the last event, later on a slow machine. */
+async function layoutRests(el: Locator) {
+  let last = '';
+  await expect.poll(async () => {
+    const now = JSON.stringify(await el.evaluate((e) => e.getBoundingClientRect().toJSON()));
+    const rest = now === last;
+    last = now;
+    return rest;
+  }, { message: 'zoom layout rests', intervals: [300] }).toBe(true);
+}
+
 /** Opens `date` in one of the views that lay out time. */
 async function look(w: World, view: string, date: string) {
   const at = async (path: string, ready: Locator) => {
@@ -63,7 +74,7 @@ async function look(w: World, view: string, date: string) {
       }
       await expect(grid).toBeVisible();
       // the zoom about the cell's middle can leave the day's first blocks above the viewport: pan (plain wheel) until they are in view
-      await w.page.waitForTimeout(300);
+      await layoutRests(grid);
       await grid.evaluate(async (el) => {
         const port = el.closest('.port')!;
         const blocks = [...el.querySelectorAll('.blk')].map((b) => b.getBoundingClientRect());
@@ -71,7 +82,7 @@ async function look(w: World, view: string, date: string) {
         const mid = (Math.min(...blocks.map((r) => r.top)) + Math.max(...blocks.map((r) => r.bottom))) / 2;
         port.dispatchEvent(new WheelEvent('wheel', { deltaY: mid - (pr.top + pr.height / 2), bubbles: true, cancelable: true }));
       });
-      return w.page.waitForTimeout(300);
+      return layoutRests(grid);
     }
     case 'Labs horizontal view': return at(`/horizontal/${date}`, w.page.getByTestId('htime-row'));
     default: throw new Error(`no way to look at the ${view} from a browser`);
