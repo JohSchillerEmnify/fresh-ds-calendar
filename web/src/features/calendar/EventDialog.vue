@@ -37,7 +37,7 @@ import { specialMarker } from '@/lib/items';
 import { fromWallMinutes, wallMinutes } from './zone';
 import { t, type MessageKey } from '@/i18n';
 
-const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; minutes?: number; draft?: EventForm; draftEvent?: CalendarEvent; error?: string }>();
+const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; minutes?: number; title?: string; draft?: EventForm; draftEvent?: CalendarEvent; error?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const outbox = useOutboxStore();
@@ -75,7 +75,7 @@ const label = computed(() => {
 
 function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
-  return newForm(ctx.date, ctx.time, 'primary', null, props.minutes);
+  return { ...newForm(ctx.date, ctx.time, 'primary', null, props.minutes), title: props.title ?? '' };
 }
 const hasDraft = !!(props.draft || props.draftEvent);
 const form = ref<EventForm>(props.draft ? { ...props.draft } : props.draftEvent ? formFromEvent(props.draftEvent) : blank());
@@ -312,7 +312,7 @@ function remove() {
       </div>
     </section>
     <form v-else-if="birthdayMode" ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="saveBirthday" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!isEdit" kind="birthday" :date="form.startDate" />
+      <NewKindSwitch v-if="!isEdit" kind="birthday" :date="form.startDate" :title="form.title" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
         <h2 class="t">{{ isEdit ? t('calendar.birthday.editTitle') : t('calendar.birthday.newTitle') }}</h2>
@@ -334,7 +334,7 @@ function remove() {
       </div>
     </form>
     <form v-else ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" :minutes="props.minutes" />
+      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" :minutes="props.minutes" :title="form.title" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
         <h2 class="t">{{ isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle') }}</h2>

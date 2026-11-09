@@ -105,6 +105,10 @@ Then('the birthday date cannot be changed', async function (this: World) {
   await expect(this.byTestId('birthday-date-locked')).toBeVisible();
 });
 
+Then('the birthday name is {string}', async function (this: World, name: string) {
+  await expect(this.byTestId('birthday-name')).toHaveValue(name);
+});
+
 Then('the birthday name can be changed', async function (this: World) {
   await expect(this.byTestId('birthday-name')).toBeEditable();
 });
