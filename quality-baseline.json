@@ -108,6 +108,7 @@
    "no-circular|web/src/stores/settings.ts|web/src/stores/theme.ts > web/src/stores/device.ts > web/src/stores/settings.ts": 1,
    "no-circular|web/src/stores/sync.ts|web/src/stores/device.ts > web/src/stores/items.ts > web/src/stores/sync.ts": 1,
    "no-circular|web/src/theme/index.ts|web/src/theme/presets.ts > web/src/theme/index.ts": 1,
+   "no-orphans|shared/zone.js|": 1,
    "no-orphans|web/src/i18n/keys.ts|": 1,
    "no-orphans|web/src/i18n/raw-text.ts|": 1,
    "service-not-to-route|server/src/auth/peopleStore.ts|server/src/api/types.ts": 1,
@@ -594,6 +595,14 @@
     "comments"
    ],
    "keys": 3
+  },
+  {
+   "date": "2026-11-09",
+   "reason": "shared/zone.js is reached through the package export, which no-orphans does not know; add it to the pathNot list in .dependency-cruiser.cjs (edited on another branch) and this entry goes",
+   "gates": [
+    "arch"
+   ],
+   "keys": 1
   }
  ]
 }
