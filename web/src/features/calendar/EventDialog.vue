@@ -164,7 +164,7 @@ const duration = computed(() => {
 watch(() => form.value.place, async (p, before) => {
   if (!p || p === before) return;
   await nextTick();
-  sheet.value?.querySelector('.map-box')?.scrollIntoView({ block: 'nearest' });
+  sheet.value?.querySelector('.map-wrap')?.scrollIntoView({ block: 'nearest' });
 });
 
 watch(() => form.value.title, () => { if (error.value === t('calendar.event.validation.titleRequired')) error.value = ''; });

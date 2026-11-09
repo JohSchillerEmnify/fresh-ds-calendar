@@ -138,6 +138,9 @@ export default {
       credit: '© OpenStreetMap',
       map: 'Kardn vo {name}',
       offline: 'Die Kardn kummd, wennst online bist',
+      openIn: 'Den Ord in a Kardn aufmachn',
+      google: 'Google Maps',
+      osm: 'OpenStreetMap',
     },
     validation: {
       titleRequired: 'Ohne Didl gehd des ned',

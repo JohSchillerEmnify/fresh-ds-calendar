@@ -193,12 +193,48 @@ Then('the map is shown without scrolling the event dialog', async function (this
 /** Per scenario: the page a tap on the map opened. */
 const opened = new WeakMap<World, Promise<import('@playwright/test').Page>>();
 
+/** Clicks a link and remembers the tab it opens; the test machine has no internet, so both map sites answer a stub. */
+async function tapOpening(world: World, link: import('@playwright/test').Locator): Promise<void> {
+  const ctx = world.page.context();
+  for (const site of ['https://www.openstreetmap.org/**', 'https://www.google.com/maps/**']) {
+    await ctx.route(site, (r) => r.fulfill({ contentType: 'text/html', body: 'map' }));
+  }
+  opened.set(world, ctx.waitForEvent('page'));
+  await link.click();
+}
+
 When('I tap the map', async function (this: World) {
-  // the test machine has no internet: OpenStreetMap answers with a stub page
-  await this.page.context().route('https://www.openstreetmap.org/**', (r) => r.fulfill({ contentType: 'text/html', body: 'OpenStreetMap' }));
-  opened.set(this, this.page.context().waitForEvent('page'));
+  await tapOpening(this, dialog(this).locator(`${tid('event-map')}, ${tid('event-map-placeholder')}`).first());
+});
+
+const BUTTON_IDS: Record<string, string> = { 'Google Maps': 'event-map-google', OpenStreetMap: 'event-map-osm' };
+
+When('I tap the map button {string}', async function (this: World, name: string) {
+  await tapOpening(this, dialog(this).getByTestId(BUTTON_IDS[name] ?? name));
+});
+
+Then('I see the map buttons {string} under the map', async function (this: World, list: string) {
+  const group = dialog(this).getByTestId('event-map-buttons');
+  await expect(group).toBeVisible();
+  await expect(group.getByRole('link')).toHaveText(list.split(', '));
   const map = dialog(this).locator(`${tid('event-map')}, ${tid('event-map-placeholder')}`).first();
-  await map.click();
+  const [m, g] = [await map.boundingBox(), await group.boundingBox()];
+  expect(g!.y, 'buttons below the map').toBeGreaterThanOrEqual(m!.y + m!.height - 0.5);
+});
+
+/** The Google Maps search page for a place: its position as `query=<lat>,<lon>`. */
+Then('the Google Maps page of the place {string} opens in a new tab', async function (this: World, name: string) {
+  const p = place(this, name);
+  const tab = await opened.get(this);
+  if (!tab) throw new Error('nothing was tapped');
+  await tab.waitForURL(/google\.com\/maps/);
+  const url = new URL(tab.url());
+  expect(url.pathname).toBe('/maps/search/');
+  expect(url.searchParams.get('api')).toBe('1');
+  const [lat, lon] = (url.searchParams.get('query') ?? '').split(',').map(Number);
+  expect(lat!.toFixed(4)).toBe(p.lat.toFixed(4));
+  expect(lon!.toFixed(4)).toBe(p.lon.toFixed(4));
+  await tab.close();
 });
 
 /** The OpenStreetMap page marking a place: its position as `mlat`/`mlon`, 4 decimals or more. */
