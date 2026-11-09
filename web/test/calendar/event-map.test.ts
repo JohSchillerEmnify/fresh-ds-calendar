@@ -55,4 +55,22 @@ describe('event map', () => {
     const w = mount(EventMap, { props: { place: weber, tileUrl: '' } });
     expect(w.find(tid('event-map-placeholder')).exists()).toBe(true);
   });
+
+  it('offers the place in Google Maps and on OpenStreetMap under the map, also as placeholder', async () => {
+    const w = mount(EventMap, { props: { place: weber, tileUrl } });
+    const group = w.get(tid('event-map-buttons'));
+    const g = group.get(tid('event-map-google'));
+    const o = group.get(tid('event-map-osm'));
+    expect(g.element.tagName).toBe('A');
+    expect(g.text()).toBe('Google Maps');
+    expect(g.attributes('href')).toBe('https://www.google.com/maps/search/?api=1&query=52.4867,13.3536');
+    expect(o.text()).toBe('OpenStreetMap');
+    expect(o.attributes('href')).toBe('https://www.openstreetmap.org/?mlat=52.4867&mlon=13.3536#map=16/52.4867/13.3536');
+    for (const a of [g, o]) {
+      expect(a.attributes('target')).toBe('_blank');
+      expect(a.attributes('rel')).toBe('noopener noreferrer');
+    }
+    await w.findAll('img')[0]!.trigger('error');
+    expect(w.find(tid('event-map-buttons')).exists()).toBe(true);
+  });
 });

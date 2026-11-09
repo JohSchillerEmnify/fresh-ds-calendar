@@ -3359,6 +3359,9 @@ I have seen the map of the event {string}
 Google changes the location of the event {string} to {string}
 I tap the map
 the OpenStreetMap page of the place {string} opens in a new tab
+I tap the map button {string}
+the Google Maps page of the place {string} opens in a new tab
+I see the map buttons {string} under the map
 the phone is asked to show the place {string} in a maps app
 I ask to find the location on the map
 the event form starts with the fields {string}
@@ -3393,6 +3396,10 @@ the map is shown without scrolling the event dialog
   pictures are then in the device's cache.
 - "I tap the map": taps `event-map` (or the placeholder). "the OpenStreetMap page of the place N opens in a new tab":
   a new page opens whose URL is the OpenStreetMap page marking N's position.
+- "I see the map buttons L under the map": `event-map-buttons` (a group) lies below `event-map` or its placeholder and holds
+  exactly the links named in the comma-separated list L, in order. "I tap the map button B": taps the link B
+  (`event-map-google`, `event-map-osm`). "the Google Maps page of the place N opens in a new tab": a new page opens at
+  `www.google.com/maps/search/` with `api=1` and `query=<lat>,<lon>` of N's position (4 decimals or more).
 - "the phone is asked to show the place N in a maps app": native, proven by the app's own tests (a `geo:` intent with
   N's position and name); `@backlog` for Playwright.
 - "the location's address line says A": `event-location-address` (the small line right under the location field) is

@@ -10,6 +10,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Place } from '@/api/types';
 import { IconLocationOn } from '@/components/icons';
+import Button from '@/components/m3/Button.vue';
+import ButtonGroup from '@/components/m3/ButtonGroup.vue';
 import { t } from '@/i18n';
 import { tileLayout, tileSrc } from './place';
 
@@ -49,11 +51,14 @@ onMounted(() => {
 });
 onBeforeUnmount(() => observer?.disconnect());
 
-/** OpenStreetMap's own page with a marker on the place: a tap on the map opens it in a new tab. */
+/** OpenStreetMap's own page with a marker on the place: a tap on the map opens it in a new tab, like the OpenStreetMap button. */
 const osmPage = computed(() => {
   const { lat, lon } = props.place;
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=${ZOOM}/${lat}/${lon}`;
 });
+
+/** Google's documented URL for a search at a position (no key needed); a phone hands it to the Maps app. */
+const googlePage = computed(() => `https://www.google.com/maps/search/?api=1&query=${props.place.lat},${props.place.lon}`);
 
 function onLoad(src: string): void {
   loaded.value = new Set(loaded.value).add(src);
@@ -61,6 +66,7 @@ function onLoad(src: string): void {
 </script>
 
 <template>
+  <div class="map-wrap">
   <a ref="root" class="map-box" :href="osmPage" target="_blank" rel="noopener noreferrer">
     <div
       v-if="usable" class="map" role="img" :aria-label="t('calendar.event.place.map', { name: place.name })" data-testid="event-map"
@@ -79,11 +85,17 @@ function onLoad(src: string): void {
       <span class="ph-note">{{ t('calendar.event.place.offline') }}</span>
     </div>
   </a>
+  <ButtonGroup :label="t('calendar.event.place.openIn')" data-testid="event-map-buttons">
+    <Button variant="tonal" :href="googlePage" data-testid="event-map-google">{{ t('calendar.event.place.google') }}</Button>
+    <Button variant="tonal" :href="osmPage" data-testid="event-map-osm">{{ t('calendar.event.place.osm') }}</Button>
+  </ButtonGroup>
+  </div>
 </template>
 
 <style scoped>
 /* scrolled into view above the dialog's sticky actions bar */
-.map-box { display: block; height: 140px; flex: none; scroll-margin-bottom: 88px; color: inherit; text-decoration: none; }
+.map-wrap { display: flex; flex-direction: column; gap: 8px; flex: none; scroll-margin-bottom: 88px; }
+.map-box { display: block; height: 140px; flex: none; color: inherit; text-decoration: none; }
 /* the pictures are OpenStreetMap's own look; the box takes the app's field corners */
 .map { position: relative; height: 100%; overflow: hidden; border-radius: var(--md-sys-shape-corner-small); background: #f2efe9; }
 .tile { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; pointer-events: none; }

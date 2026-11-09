@@ -171,6 +171,9 @@ export default {
       credit: '© OpenStreetMap',
       map: 'Karte von {name}',
       offline: 'Die Karte erscheint, wenn du online bist',
+      openIn: 'Den Ort in einer Karte öffnen',
+      google: 'Google Maps',
+      osm: 'OpenStreetMap',
     },
     validation: {
       titleRequired: 'Der Titel fehlt',

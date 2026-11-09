@@ -19,7 +19,8 @@ Feature: Places for an event's location
   location field, and in the read-only sheet of events that cannot be edited (owner, 2026-10-26). When an event with a
   location is opened, the location and its map sit right under the title, so the map shows without scrolling; a new
   event keeps the location field in its usual place. Tapping the map opens the place in the phone's maps app in the
-  Android app and on the OpenStreetMap website in a browser (owner).
+  Android app and on the OpenStreetMap website in a browser (owner). Under the map two buttons, "Google Maps" and
+  "OpenStreetMap", open the place in that map (owner, 2026-11-09); no place is searched for a location typed as text.
 
   Background:
     Given the calendar is empty
@@ -214,6 +215,28 @@ Feature: Places for an event's location
       And I tap the map
       Then the phone is asked to show the place "Zahnarztpraxis Dr. Weber" in a maps app
 
+  Rule: Under the map two buttons open the place in Google Maps or on OpenStreetMap
+
+    Scenario: A place's map has the buttons Google Maps and OpenStreetMap under it
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      Then I see the map buttons "Google Maps, OpenStreetMap" under the map
+
+    Scenario: The Google Maps button opens Google Maps at the place's position
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      And I tap the map button "Google Maps"
+      Then the Google Maps page of the place "Zahnarztpraxis Dr. Weber" opens in a new tab
+
+    Scenario: The OpenStreetMap button opens OpenStreetMap at the place
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      And I tap the map button "OpenStreetMap"
+      Then the OpenStreetMap page of the place "Zahnarztpraxis Dr. Weber" opens in a new tab
+
   Rule: Events that cannot be edited show their place's map too
 
     Scenario: A read-only event with a picked place shows the map
@@ -223,12 +246,13 @@ Feature: Places for an event's location
       And I open the event "Swimming"
       Then the event dialog is read-only
       And the event dialog shows a map with a pin on "Stadtbad Neukölln"
+      And I see the map buttons "Google Maps, OpenStreetMap" under the map
 
-  Rule: Later slice — a location typed elsewhere can be found on the map, only on request
+  Rule: Later slice — a location typed elsewhere can be looked up as a place, only on request
     The location text is sent to the place search only when the person asks (owner, 2026-10-26).
 
     @backlog
-    Scenario: A location from Google without a place offers to find it on the map
+    Scenario: A location from Google without a place offers to look it up as a place
       Given the calendar contains an event "Swim" on 2026-10-15 from 18:00 to 19:00 at "Stadtbad Neukölln"
       When I open the week view for 2026-10-12
       And I open the event "Swim"
