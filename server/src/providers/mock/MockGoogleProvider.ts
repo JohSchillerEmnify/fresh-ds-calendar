@@ -318,7 +318,8 @@ export class MockGoogleProvider implements CalendarProvider {
     if ('colorId' in color) {
       const known = GOOGLE_CALENDAR_COLORS.find((c) => c.id === color.colorId);
       if (!known) throw new ProviderError(`Unknown colorId ${color.colorId}`);
-      Object.assign(entry, { colorId: known.id, backgroundColor: known.background, foregroundColor: known.foreground });
+      // like Google: an RGB colour already on the entry supersedes colorId, so a bare colorId does not change what is shown
+      Object.assign(entry, { colorId: known.id });
     } else {
       Object.assign(entry, color, { colorId: undefined });
     }

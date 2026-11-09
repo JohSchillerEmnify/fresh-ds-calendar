@@ -145,8 +145,10 @@ export class CalendarService {
     const cal = (await this.eventCalendars()).find((c) => c.id === id);
     if (!cal) throw notFound('Calendar not found');
     if ('colorId' in pick) {
-      if (!(await this.colorPalette()).some((c) => c.id === pick.colorId)) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
-      await this.provider.setCalendarColor(id, { colorId: pick.colorId });
+      const entry = (await this.colorPalette()).find((c) => c.id === pick.colorId);
+      if (!entry) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
+      // Google lets an RGB colour on the list entry supersede colorId, so a palette pick is written as its RGB too
+      await this.provider.setCalendarColor(id, { backgroundColor: entry.background, foregroundColor: entry.foreground });
     } else {
       await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
     }
