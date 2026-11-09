@@ -7,7 +7,7 @@
  * above it. Hidden outside calendar views.
  */
 import Pressable from '@/components/m3/Pressable.vue';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import { barHostsRow } from '@/lib/barHost';
 import { useNavPosition } from '@/composables/useNavPosition';
@@ -21,7 +21,8 @@ import { showProgress } from './format';
 import { useUiStore } from '@/stores/ui';
 import { compareOpen, useTaskListsStore } from './store';
 import { useTaskCategories } from './categories';
-import TaskListView from './TaskListView.vue';
+// the list views are fetched when the tray first opens, not with the bar's row
+const TaskListView = defineAsyncComponent(() => import('./TaskListView.vue'));
 
 const route = useRoute();
 const { position: navPosition } = useNavPosition();
@@ -32,6 +33,9 @@ const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
 /** The list is showing: phone = expanded bar, desktop = not collapsed to the edge strip. */
 const listShown = computed(() => (isPhone.value ? expanded.value : !ui.trayCollapsedDesktop));
+/** Set when the list first shows; the list views are only created from then on. */
+const opened = ref(false);
+watch(listShown, (v) => { if (v) opened.value = true; }, { immediate: true });
 const root = ref<HTMLElement | null>(null);
 function toggle() {
   if (isPhone.value) expanded.value = !expanded.value;
@@ -140,7 +144,7 @@ function toggleFold(id: string) {
             :aria-label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: neutralName(r.list) }) : t('tasks.tray.showItems', { title: neutralName(r.list) })" @click="toggleFold(r.list.id)"
           ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></Pressable>
         </div>
-        <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
+        <TaskListView v-if="opened && (!r.fin || unfolded.has(r.list.id))" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
       </li>
       <li v-if="!lists.count" key="empty" class="empty">{{ t('tasks.tray.empty') }}</li>
     </TransitionGroup>

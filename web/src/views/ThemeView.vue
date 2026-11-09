@@ -11,7 +11,7 @@ import Pressable from '@/components/m3/Pressable.vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
+import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport, loadIconSet } from '@/components/icons';
 import type { StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
 import type { SunflowersMode, ThemeMode } from '@/api/types';
@@ -135,6 +135,8 @@ const choices = computed<{ key: 'density' | 'checkbox' | 'checkFill' | 'check' |
   { key: 'icons', label: t('theme.iconSet.label'), testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: t(`theme.iconSet.${v}`) })) },
 ]);
 /** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
+// the picker shows every set's samples, so all three chunks are fetched here
+for (const set of ICON_SETS) void loadIconSet(set);
 const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
 const choiceValue = (c: (typeof choices.value)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
 /** Attributes for an option's sample: the current look with this one option swapped in. */
@@ -265,7 +267,7 @@ function back() {
           <span class="lab">{{ c.label }}</span>
           <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
             <template v-if="c.key === 'icons'" #option="{ option }">
-              <span class="isamp" aria-hidden="true"><component :is="ic.variants[option.value as 'sharp']" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
+              <span class="isamp" aria-hidden="true"><component :is="ic" :set="option.value as 'sharp'" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
             </template>
           </SegmentedButton>
         </div>
