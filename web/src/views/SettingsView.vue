@@ -105,7 +105,7 @@ function choose(hit: SearchHit) {
 .lab { font: var(--md-sys-typescale-body-large); font-weight: 500; color: var(--md-sys-color-on-surface); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .empty { padding: 24px 16px; text-align: center; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface-variant); }
-.box .group { min-height: 64px; padding: 4px 8px; column-gap: 12px; }
+.box .group { margin: 0; width: 100%; min-height: 64px; padding: 4px 8px; column-gap: 12px; }
 .icon {
   display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
   background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);

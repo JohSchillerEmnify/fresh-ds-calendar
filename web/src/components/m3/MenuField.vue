@@ -26,19 +26,18 @@ async function toggle(): Promise<void> {
   open.value = true;
   await nextTick();
   panel.value?.scrollIntoView?.({ block: 'nearest' });
-  panel.value?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus({ preventScroll: true });
 }
 function choose(v: T): void {
   close(true);
   if (v !== props.modelValue) emit('update:modelValue', v);
 }
-const { onKey } = useMenuNav({ open: () => open.value, panel, trigger, close, itemSelector: '[role="option"]' });
+const { onKey } = useMenuNav({ open: () => open.value, panel, trigger, close, itemSelector: '[role="option"]', preferSelector: '[aria-selected="true"]' });
 </script>
 
 <template>
   <div class="fw" @keydown="onKey">
     <button
-      ref="trigger" v-bind="$attrs" type="button" class="field" :class="{ open }" aria-haspopup="listbox" :aria-expanded="open" :aria-controls="listId" @click="toggle"
+      ref="trigger" v-bind="$attrs" type="button" class="field" :class="{ open }" aria-haspopup="listbox" :aria-expanded="open" :aria-controls="open ? listId : undefined" @click="toggle"
     >
       <span class="lab">{{ label }}</span><span class="val">{{ current }}</span><IconExpand class="chev" aria-hidden="true" />
     </button>

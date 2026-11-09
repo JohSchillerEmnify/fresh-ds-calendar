@@ -19,6 +19,14 @@ describe('MenuField', () => {
     expect(w.get('[aria-selected="true"]').text()).toBe('Month');
   });
 
+  it('puts the focus on the chosen option when it opens', async () => {
+    w = mount(MenuField, { props: { modelValue: 'week', options, label: 'Default view' }, attachTo: document.body });
+    await w.get('button').trigger('click');
+    await nextTick();
+    await nextTick();
+    expect(document.activeElement?.textContent?.trim()).toBe('Week');
+  });
+
   it('emits the chosen option and closes the menu', async () => {
     w = field();
     await w.get('button').trigger('click');

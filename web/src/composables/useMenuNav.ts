@@ -15,6 +15,8 @@ export interface MenuNavOptions {
   closeOnMove?: boolean;
   /** CSS selector of the items inside the panel (default menu items; a listbox passes its options). */
   itemSelector?: string;
+  /** Item that gets the focus on opening when present (a listbox's chosen option), else the first item. */
+  preferSelector?: string;
 }
 
 /** The index to focus after `key` from item `at` of `count` (-1: none focused); null when the key moves nothing. */
@@ -52,7 +54,8 @@ export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => vo
     await nextTick();
     // closed again while waiting
     if (!o.open()) return;
-    items()[0]?.focus({ preventScroll: true });
+    const preferred = o.preferSelector ? o.panel.value?.querySelector<HTMLElement>(o.preferSelector) : null;
+    (preferred ?? items()[0])?.focus({ preventScroll: true });
     stops.push(
       listen(document, 'pointerdown', (e) => { if (!inside(e.target as Node)) o.close(false); }, { capture: true }),
       listen(document, 'focusin', (e) => { if (!inside(e.target as Node)) o.close(false); }),
