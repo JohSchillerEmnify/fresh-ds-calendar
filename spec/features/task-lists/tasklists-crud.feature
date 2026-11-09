@@ -273,6 +273,27 @@ Feature: Creating, editing and deleting task lists
     And I save the task list
     Then the task list "Errands" is positioned at 15:00
 
+  # owner, 2026-11-09: a title typed before noticing the wrong kind is not lost; only the title travels, not kind-specific fields
+  @day
+  Scenario: The typed title stays when switching between event, task list and birthday
+    When I open the day view for 2026-10-14
+    And I click the time slot 15:00 on 2026-10-14
+    And I fill in the event form with:
+      | title | Dentist |
+    And I switch the new dialog to "Task list"
+    Then the task list form shows:
+      | title | Dentist    |
+      | date  | 2026-10-14 |
+      | time  | 15:00      |
+    When I tap beside the dialog
+    Then the task list form shows:
+      | title | Dentist |
+    When I switch the new dialog to "Birthday"
+    Then the birthday name is "Dentist"
+    When I switch the new dialog to "Event"
+    Then the event form shows:
+      | title | Dentist |
+
   # owner, 2026-10-25: a drawn block can become a task list; the drawn length is its estimate (feature event-editing)
   Scenario: A block drawn on the empty grid can become a task list lasting the drawn length
     When I open the day view for 2026-10-14

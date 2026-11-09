@@ -36,8 +36,9 @@ When('I start creating a task list', async function (this: World) {
 });
 
 When('I switch the new dialog to {string}', async function (this: World, kind: string) {
-  await this.page.getByTestId(kind === 'Task list' ? 'new-kind-tasklist' : 'new-kind-event').click();
-  await expect(this.page.getByTestId(kind === 'Task list' ? 'tasklist-dialog' : 'event-dialog')).toBeVisible();
+  const [button, shown] = kind === 'Task list' ? ['new-kind-tasklist', 'tasklist-dialog'] : kind === 'Birthday' ? ['create-birthday', 'birthday-dialog'] : ['new-kind-event', 'event-dialog'];
+  await this.page.getByTestId(button).click();
+  await expect(this.page.getByTestId(shown)).toBeVisible();
 });
 
 When('I fill in the task list form with:', async function (this: World, table: DataTable) {

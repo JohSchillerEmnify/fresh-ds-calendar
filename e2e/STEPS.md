@@ -1576,6 +1576,7 @@ the calendar {string} has a birthday {string} on {date} linked to a contact
 I choose {string} in the create menu
 I enter the birthday name {string}
 I change the birthday name to {string}
+the birthday name is {string}
 I set the birthday date to {date}
 I save the birthday
 the birthday date cannot be changed
@@ -2135,8 +2136,8 @@ every option of the {string} setting shows a sample icon
   has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.
 - New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
-  (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
-  "Task list".
+  (`tasklist-dialog`); date, time and the typed title carry over when switching (also to "Birthday", `create-birthday`,
+  whose name field `birthday-name` takes the title). "I start creating a task list" = "+" then switch to "Task list".
 
 - Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the

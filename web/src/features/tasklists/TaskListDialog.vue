@@ -41,7 +41,7 @@ import TemplatePill from './TemplatePill.vue';
 import { fillFromTemplate, inkLinesOf, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; draftList?: TaskList }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; title?: string; draftList?: TaskList }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 // handwriting (feature handwritten-lists): ink lines for the new list, in a wider ruled dialog where a pen is used
@@ -67,7 +67,7 @@ let originalTitle = '';
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
-const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes));
+const form = reactive<TaskListForm>({ ...newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes), title: (props.title ?? '').slice(0, TITLE_MAX) });
 const error = ref('');
 const saving = ref(false);
 /** The list being edited, for the sharing controls (a shared list says who it is shared with). */
@@ -101,7 +101,8 @@ onMounted(async () => {
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
     if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => i.title).join('\n'); }
-    original = JSON.stringify(form);
+    // a carried title is unsaved input: the original stays untitled so closing asks first
+    original = JSON.stringify(props.draftList ? form : { ...form, title: '' });
     // the names already taken, for "Also save as template"
     templates.load().catch(() => undefined);
     return;
@@ -230,7 +231,7 @@ function remove() {
 <template>
   <AdaptiveSheet open :wide="wide" :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" />
+      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" :title="form.title" />
       <div class="headrow">
         <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
