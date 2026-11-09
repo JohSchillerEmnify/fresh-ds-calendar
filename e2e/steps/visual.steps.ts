@@ -22,6 +22,8 @@ function region(w: World, name: string): Locator {
     case 'clock': return w.byTestId('clock-view').locator('svg.face');
     case 'template save sheet': return w.byTestId('template-save-dialog');
     case 'templates page': return w.byTestId('templates-page');
+    case 'settings page': return w.byTestId('settings-view');
+    case 'theme page': return w.byTestId('theme-view');
     case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }

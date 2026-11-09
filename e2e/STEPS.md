@@ -900,6 +900,49 @@ the settings are changed elsewhere to the theme mode {string}
   a new page; all following steps act on it.
 - `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
 
+### Settings in Expressive (`@settings-expressive`)
+
+```
+the settings title {string} is bold at {int} px in a {int} px bar
+the settings Back button is a tonal round icon button
+the settings bar shows no scene
+the settings bar is {int} px high
+the section {string} is one rounded container
+the rows of the section {string} are {int} px high at least
+the settings page shows the section {string}
+the section containers are another tone than the page
+the settings groups {string} are items of one rounded container
+every settings group shows a 40 px tonal icon
+the settings search bar is full round and {int} px high
+the button {string} in the settings is a tonal button
+{string} offers {string} as a connected button group
+{string} and {string} are one connected button group in the settings
+the options of {string} show their full labels on whole lines
+the options of the theme setting {string} show their full labels on whole lines
+the row {string} shows a grey value and a chevron
+the value of {string} is a tonal button
+{string} is an outlined field showing {string}
+I open the field {string}
+the menu lists {string} and marks {string} as chosen
+I choose {string} in the menu
+the menu is closed
+the menu stays inside the screen
+```
+
+- Hooks: the bar is `settings-bar` (title `settings-title`, Back `settings-back`); each section is a `settings-section`
+  with `data-section` = its title (also the untitled first section of a page); the home's group list is `settings-groups`
+  (container of the `settings-group` items, each with a `settings-group-icon`); the search bar is `settings-search-bar`
+  (the label around the `settings-search` input); the Back up now / Restore pair is `settings-backup-actions`.
+- A field is a `button[aria-haspopup="listbox"]` inside the `settings-row` (it carries the control's own test id;
+  its text is the label and a `.val` with the chosen option); its menu is a `role="listbox"` of `role="option"`
+  buttons (`aria-selected`) outside the row. `chooseOption` / `selectedLabel` / the step `I choose X for S in the
+  settings` handle such a field like a native select. Dialogs and sheets keep their native selects (sharing,
+  calendar plan).
+- "tonal" = the computed background equals `--md-sys-color-secondary-container`; "rounded container" = corner radius at
+  least 28 px and background `--md-sys-color-surface-container`; "connected" = at most 4 px between neighbours, side by side
+  or stacked; "whole lines" = no label wider than its button and no word per line.
+- "the settings bar is N px high" measures `settings-bar` (the test device has no safe area).
+
 ### Settings groups and search (`@settings-groups`, `@settings-search`)
 
 ```
@@ -948,7 +991,7 @@ the setting {string} is highlighted
 - "is highlighted": the `settings-row` S carries `data-flash` and is inside the viewport.
 - `I choose X for S in the settings` picks option X in the segmented button or menu of row S; `X is chosen for S`
   reads the selected option.
-- "name first, control at the end": in every `settings-row` the label's left edge is left of the control's left edge
+- "name first, control at the end": in every `settings-row` the label's left edge is left of the control's left edge, or the label starts above it (a group or field under the name)
   (mirrored in left-handed mode is out of scope of this step).
 - The calendar page: `I open the calendar C in the settings` taps the `settings-row` C on the Calendars page. Its
   `Plan` row (`data-setting-id="plan"`) opens the calendar plan sheet of feature calendar-off-plan (its own steps);
@@ -3101,7 +3144,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `theme page` (`theme-view`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
