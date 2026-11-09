@@ -11,7 +11,7 @@ export default {
   stop: 'Ned mehr deiln',
   leave: 'Verlassn',
   sharedWith: 'Geteilt mit {names}',
-  noPeople: 'Etz kann nuch keiner dazu: der muss sich erschd amal anmeldn.',
+  noPeople: 'Etz kann noch keiner dazu. Der muss sich erschd amal in der App anmeldn.',
   shareFailed: 'Die Lisdn hat sich ned deiln lassn.',
   stopFailed: 'Des Deiln hat sich ned beendn lassn.',
   leaveFailed: 'Die Lisdn hat sich ned verlassn lassn.',
@@ -27,6 +27,6 @@ export default {
   self: 'Mit dir selber deiln bassd ned.',
   unknownPerson: 'Die Person kann ned dazu.',
   repeating: 'A Lisdn, die sich widdaholt, kann ma ned deiln.',
-  ownerCannotLeave: 'Der Besitzer löscht die Lisdn oder hörd mit em Deiln auf.',
+  ownerCannotLeave: 'Als Besitzer kannsd die Lisdn löschn oder mitm Deiln aufhörn.',
   categoryOwnerOnly: 'Nur der Besitzer kann die Kategorie vo ner geteildn Lisdn ändern.',
 } satisfies NonNullable<PartialMessages['sharing']>;

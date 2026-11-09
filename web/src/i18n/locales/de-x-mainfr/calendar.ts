@@ -68,7 +68,7 @@ export default {
     createAt: 'Anlegn am {date} um {time}',
   },
   item: {
-    noItems: 'Kein Eindrag',
+    noItems: 'Kane Einträge',
     range: '{title}, {start} bis {end}',
     birthday: 'Geburtsdooch',
     anniversary: 'Jahresdooch',
@@ -92,7 +92,7 @@ export default {
     progress: 'Wie viel Zeid no bleibd',
     nextTask: 'Nächsde Aufgab: {task}',
     freeUntil: 'Frei bis {time}',
-    freeRest: 'Heid is nix mehr',
+    freeRest: 'Heid den ganzn Resd frei',
     more: '{count} mehr',
     alsoNow: 'Aa grad: {titles}',
   },
@@ -113,9 +113,9 @@ export default {
     personal: 'Privad',
     allDay: 'Ganzdägig',
     days: '{count} Dag | {count} Däg',
-    saving: 'Speichert …',
+    saving: 'Werd gspeichert …',
     loadFailed: 'Der Termin konnd ned gladn wern',
-    readOnly: 'Kimmt aus Google Kontakte. Do kannsd as ändern.',
+    readOnly: 'Kimmt aus Google Kontakte. Do kannsd na ändern.',
     readOnlyInvitation: 'Eiladung vo {by}',
     readOnlyCalendar: 'Kalender vo {by}',
     genericError: 'Des is schiefgangen',
@@ -171,7 +171,7 @@ export default {
   },
   undo: {
     deleted: 'Gelöschd: {title}',
-    undo: 'Zurück',
+    undo: 'Rückgängig',
   },
   apk: {
     available: 'Neue App-Version da',

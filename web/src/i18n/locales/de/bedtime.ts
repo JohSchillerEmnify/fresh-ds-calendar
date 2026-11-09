@@ -7,7 +7,7 @@ export default {
   notification: 'Schlafenszeit um {time}',
   sun: 'Aufstehen {time}',
   settings: {
-    on: { label: 'Schlafenszeit', hint: 'Zeigt die Nacht in den Kalenderansichten und erinnert dich vor dem Schlafengehen' },
+    on: { label: 'Schlafenszeit-Modus', hint: 'Zeigt die Nacht in den Kalenderansichten und erinnert dich vor dem Schlafengehen' },
     mode: { label: 'Schlafenszeit ist', fixed: 'Feste Zeiten', dynamic: 'Nach meinem ersten Termin' },
     bedtime: 'Schlafenszeit',
     wake: 'Aufstehen',
@@ -23,7 +23,7 @@ export default {
     header: 'Noch {left} bis ins Bett · {free} frei',
     now: 'Jetzt {time}',
     bed: 'Bett {time}',
-    off: 'Die Schlafenszeit ist aus – stell sie in den Einstellungen ein',
+    off: 'Die Schlafenszeit ist aus – stelle sie in den Einstellungen ein',
     passed: 'Schlafenszeit war um {time}',
     openSettings: 'Einstellungen öffnen',
   },

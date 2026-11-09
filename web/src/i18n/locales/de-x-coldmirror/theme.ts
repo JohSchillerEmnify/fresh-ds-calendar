@@ -78,7 +78,7 @@ export default {
     pictureDark: 'Bild für den Dunkelmodus (kann, muss nicht)',
     chooseSvg: 'SVG-Datei wählen, Digga',
     chooseSvgDark: 'SVG-Datei für Dunkel wählen, fresh',
-    notJson: 'Das ist kein gültiges JSON, du Oberpflaume. Sag der KI, sie soll nur das JSON in einem Codeblock antworten.',
+    notJson: 'Das ist kein gültiges JSON, du Oberpflaume. Sag der KI, sie soll nur mit dem JSON in einem Codeblock antworten.',
     fileTooLarge: 'Die Datei ist größer als {kb} KB, Digga. Fresh D. ist beeindruckt, aber nö.',
     pictureTooLarge: 'Das Bild ist größer als {kb} KB, yo. Zu fett.',
     repairLabel: 'Reparatur-Prompt, yo',

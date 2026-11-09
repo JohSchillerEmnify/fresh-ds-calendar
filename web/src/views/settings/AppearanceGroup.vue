@@ -66,7 +66,7 @@ const LAYOUT_OF = { auto: 'auto', expressive: 'two-rows', compact: 'one-row' } a
   <SettingRow id="syncIndicator" :label="t('settingsNav.labels.syncIndicator')" :hint="t('settings.calendar.syncIndicator.hint')">
     <Switch :model-value="prefs.syncIndicator" :label="t('settingsNav.labels.syncIndicator')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" />
   </SettingRow>
-  <SettingRow id="versionCorner" :label="t('settings.account.versionCorner.label')" :hint="t('settings.account.versionCorner.hint')">
+  <SettingRow id="versionCorner" :label="t('settings.account.versionCorner.label')">
     <Switch :model-value="prefs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" />
   </SettingRow>
 </template>

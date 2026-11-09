@@ -23,6 +23,6 @@ export default {
   },
   colors: {
     red: 'Rot wie Rons Ohren', orange: 'Orange, Kürbissaft', yellow: 'Gelb wie Hagrids Zähne', green: 'Grün, Slytherin-Style',
-    teal: 'Türkis, yo', blue: 'Blau, Ravenclaw', purple: 'Violett wie Voldemorts Laune', pink: 'Rosa wie Umbridges Büro',
+    teal: 'Petrol, yo', blue: 'Blau, Ravenclaw', purple: 'Violett wie Voldemorts Laune', pink: 'Rosa wie Umbridges Büro',
   },
 } satisfies NonNullable<PartialMessages['canvas']>;

@@ -86,7 +86,7 @@ export default {
     labelUntitledDone: 'Aufgabenliste, erledigt, yo',
     labelUntitledOpen: 'Aufgabenliste, nicht erledigt, yo',
     noItems: 'Keine Einträge, Digga',
-    from: 'Von {date}, yo',
+    from: 'Vom {date}, yo',
     fromEarlier: 'Von früher, Gentlemen, a short view back to the past',
     estimateMin: '~{min} Min.',
     estimateHours: '~{hours} Std.',

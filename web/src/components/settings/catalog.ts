@@ -68,7 +68,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('appearance', 'bars', 'bottomBarSize', 'settings.calendar.bottomBarSize.label', { hint: 'settings.calendar.bottomBarSize.hint' }),
   e('appearance', 'more', 'leftHanded', 'settings.leftHanded.label', { hint: 'settings.leftHanded.hint', synonyms: 'settingsNav.synonyms.leftHanded' }),
   e('appearance', 'more', 'syncIndicator', 'settingsNav.labels.syncIndicator', { hint: 'settings.calendar.syncIndicator.hint' }),
-  e('appearance', 'more', 'versionCorner', 'settings.account.versionCorner.label', { hint: 'settings.account.versionCorner.hint' }),
+  e('appearance', 'more', 'versionCorner', 'settings.account.versionCorner.label'),
   e('appearance', undefined, 'sunflowers', 'settings.sunflowers.label', { hint: 'settings.sunflowers.hint', parent: 'theme' }),
 
   e('focus', undefined, 'calmMode', 'settings.motivation.calmMode.label', { hint: 'settings.motivation.calmMode.hint', synonyms: 'settingsNav.synonyms.calmMode' }),
@@ -96,7 +96,7 @@ export const SETTINGS: readonly SettingEntry[] = [
 
   e('account', 'account', 'signOutAll', 'settings.account.signOutAll.label', { hint: 'settings.account.signOutAll.hint' }),
   e('account', undefined, 'backup', 'backup.label', { hint: 'backup.hint', synonyms: 'settingsNav.synonyms.backup' }),
-  e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label', { hint: 'settings.account.whatsNew.hint' }),
+  e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label'),
   e('account', 'app', 'errorLog', 'deviceLog.row.label', { hint: 'deviceLog.row.hint', synonyms: 'settingsNav.synonyms.errorLog' }),
   e('account', 'app', 'version', 'settingsNav.labels.version', { synonyms: 'settingsNav.synonyms.version' }),
 ];

@@ -3,7 +3,7 @@ import type { PartialMessages } from '../../schema';
 
 export default {
   label: 'Sicherung in Google Drive',
-  hint: 'Deine Einstellungen, Themes un die Tafel liegn in am versteckdn Ordner in deim Google Drive',
+  hint: 'Deine Einstellungen, Designs un die Tafel liegn in am versteckdn Ordner in deim Google Drive',
   allow: {
     label: 'Sicherung in Google Drive is aus',
     hint: 'Erlaub der App, a Sicherung in ihrm eigenen versteckdn Drive-Ordner abzulegn. Google fragt di nur amol.',
@@ -22,7 +22,7 @@ export default {
   restoreFailed: 'Widdaherstelln hat ned geklabbd: {reason}',
   restoreDialog: {
     title: 'Aus Sicherung widdaherstelln?',
-    message: 'Des ersetzt deine Einstellungen, Themes un die Tafel auf dem Server durch die neuesde Sicherung. Vorher wird der jetzige Stand gsichert.',
+    message: 'Des ersetzt deine Einstellungen, Designs un die Tafel durch die neuesde Sicherung. Vorher wird der jetzige Stand gsichert.',
     ok: 'Widdaherstelln',
   },
 } satisfies NonNullable<PartialMessages['backup']>;

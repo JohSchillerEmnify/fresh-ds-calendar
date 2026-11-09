@@ -3,7 +3,7 @@ import type { Messages } from '../../schema';
 
 export default {
   label: 'Sicherung in Google Drive',
-  hint: 'Deine Einstellungen, Themes und die Tafel liegen in einem versteckten Ordner deines Google Drive',
+  hint: 'Deine Einstellungen, Designs und die Tafel liegen in einem versteckten Ordner deines Google Drive',
   allow: {
     label: 'Sicherungen in Google Drive sind aus',
     hint: 'Erlaube der App, eine Sicherung in ihrem eigenen versteckten Drive-Ordner abzulegen. Google fragt dich einmal.',
@@ -22,7 +22,7 @@ export default {
   restoreFailed: 'Wiederherstellen nicht möglich: {reason}',
   restoreDialog: {
     title: 'Aus Sicherung wiederherstellen?',
-    message: 'Das ersetzt deine Einstellungen, Themes und Tafel auf diesem Server durch die neueste Sicherung. Vorher wird der jetzige Stand gesichert.',
+    message: 'Das ersetzt deine Einstellungen, Designs und Tafel durch die neueste Sicherung. Vorher wird der jetzige Stand gesichert.',
     ok: 'Wiederherstellen',
   },
 } satisfies Messages['backup'];

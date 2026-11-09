@@ -13,6 +13,6 @@ describe('task list texts in other languages', () => {
   it('translates estimates and the carried-over label', async () => {
     await applyLanguage('de');
     expect(formatEstimate(90)).toBe('~1 Std. 30 Min.');
-    expect(carriedLabel('2026-10-10')).toMatch(/^Von Sa/);
+    expect(carriedLabel('2026-10-10')).toMatch(/^Vom Sa/);
   });
 });

@@ -49,7 +49,7 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 | Approaching track | switch | track of what comes next in the card | on | P `approachBar` | no |
 | Track reaches ahead | select 3/6/12/Custom + number field | track length in hours | 3 | P `approachWindowHours` | no |
 | Sync indicator | switch | sync icon always vs only on failure | off | P `syncIndicator` | no |
-| Show tasks calendar in Google | switch | the hidden task-lists calendar visible in Google | off | P `tasksCalendarVisible` | no |
+| Show the task lists calendar in Google | switch | the hidden task-lists calendar visible in Google | off | P `tasksCalendarVisible` | no |
 | Left-handed mode | switch | mirrors the phone layout | off | P `leftHanded` | no |
 | View switcher · On phones | filled select | bottom/top/rail/side menu | Bottom | P `navPhone` | no |
 | View switcher · On desktop | filled select | bottom/top/rail | Rail | P `navDesktop` | no |
@@ -138,7 +138,7 @@ What's new; **Show version in the corner** (P `versionInCorner`, off).
    tasks calendar and four Approaching-card rows. The card is 4 screens long.
 7. **Dependent rows always shown** — Time left, Approaching track and Track reaches ahead do nothing while the
    Approaching card is off; they are still shown and active.
-8. **Wrong places**: Sunflowers (only applies to one theme scene) sits in Focus; "Show tasks calendar in Google"
+8. **Wrong places**: Sunflowers (only applies to one theme scene) sits in Focus; "Show the task lists calendar in Google"
    (a task-lists thing) sits in Calendar; "Show version in the corner" (layout) sits in Account; left-handed mode,
    view switcher and bar sizes (layout) sit in Calendar; "Add category" sits below unrelated rows instead of under the
    category list; the Labs master switch is called "Experimental views" but also gates AI themes, handwriting and the
