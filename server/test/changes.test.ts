@@ -313,6 +313,25 @@ describe('robustness', () => {
       expect(titles(back.events.upserts)).toEqual(['Holiday']);
     });
 
+    it('a refused token (410) whose full read then fails is dropped from the cursor: the next poll lists in full without asking Google with it again', async () => {
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new SyncTokenExpiredError('Sync token expired');
+        return real(id, tok);
+      });
+      const c0 = (await changes()).cursor;
+      expect(decodeCursor(c0)!.tokens.work).toBeTruthy();
+      const list = vi.spyOn(t.app.ctx.mock!, 'listEvents').mockRejectedValueOnce(new ProviderError('boom'));
+      const failed = await changes(c0);
+      expect(failed.events.failed).toEqual(['work']);
+      expect(decodeCursor(failed.cursor)!.tokens.work).toBeUndefined();
+      list.mockRestore();
+      const next = await changes(failed.cursor);
+      expect(lookups(spy, 'work')).toBe(1);
+      expect(next.events.failed).toEqual([]);
+      expect(next.events.replace).toContain('work');
+    });
+
     it('a calendar whose fresh tokens Google never accepts is compared by content after the back-off: no more 410s, changes still arrive', async () => {
       await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
       const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
