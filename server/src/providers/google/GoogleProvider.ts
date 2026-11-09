@@ -103,8 +103,8 @@ export class GoogleProvider implements CalendarProvider {
       return r;
     } catch (e) {
       // an error rewrapped inside `fn` (the 410 of a sync token) is described by Google's own answer it carries
-      const { status, reason, code, retry } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
-      logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, durationMs: Date.now() - started });
+      const { status, reason, code, retry, field, message } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
+      logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, field, message, durationMs: Date.now() - started });
       if (isRateLimit(status, reason)) throw this.guard.noteRateLimited(op, retryAfterSec(e));
       throw mapGoogleError(e);
     }
