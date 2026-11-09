@@ -266,6 +266,18 @@ When('I untick the item {string}', async function (this: World, title: string) {
   await item.getByTestId('tasklist-item-checkbox').click();
 });
 
+When('I tick the title of the expanded task list', async function (this: World) {
+  await this.expanded.getByTestId('tasklist-title-item-checkbox').click();
+});
+
+Then('the expanded task list offers a tick box for its title {string}', async function (this: World, title: string) {
+  await expect(this.expanded.getByTestId('tasklist-title-item')).toHaveAttribute('data-title', title);
+});
+
+Then('the expanded task list offers no tick box for its title', async function (this: World) {
+  await expect(this.expanded.getByTestId('tasklist-title-item')).toHaveCount(0);
+});
+
 Then('the item {string} is ticked', async function (this: World, title: string) {
   await expect(this.expandedItem(title)).toHaveAttribute('data-done', 'true');
 });

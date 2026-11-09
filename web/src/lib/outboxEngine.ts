@@ -171,7 +171,7 @@ export function writes(s: OutboxState) {
       return localTaskList(id, input);
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
-    addItem: (listId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...scoped(scope) }, { title: text }),
+    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...scoped(scope) }, { title: text }),
     /** A handwritten item at the end of the list; returns its id. */
     addInkItem(listId: string, strokes: InkStroke[]): string {
       const itemId = newItemId();

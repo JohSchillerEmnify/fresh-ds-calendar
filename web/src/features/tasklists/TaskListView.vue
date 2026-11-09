@@ -116,11 +116,22 @@ function tick(item: TaskItem, done: boolean) {
   // a new completion strikes the title through at once unless the cat comes to do it
   strikeDraw.value = null;
   patchItem(props.id, item.id, { done });
-  if (!willComplete) return;
+  if (willComplete) finish();
+}
+function finish() {
   celebrate();
   maybeCat();
   lists.markFinished(props.id);
   emit('completed', cat.value ? catDuration(cat.value.level) : 0);
+}
+/** A list with a title and no items is one task: ticking its title makes the title the first item, already ticked. */
+const titleTick = computed(() => !!tl.value && tl.value.items.length === 0 && !!displayTitle(tl.value));
+function tickTitle() {
+  if (!tl.value || !titleTick.value) return;
+  strikeDraw.value = null;
+  // ticks stay with each list, so no "following lists" question: later occurrences remain title-only and tickable
+  addItem(props.id, displayTitle(tl.value).slice(0, TITLE_MAX), 'this', true);
+  finish();
 }
 
 /** The emotional support cat: rolled once per finished list (about one in ten, every time with "Every time"), never at level Off or set to Off. */
@@ -323,6 +334,10 @@ defineExpose({ root, busy });
       <div v-if="!collapsed" class="tlc-body">
         <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
 
+        <div v-if="titleTick" class="row" data-testid="tasklist-title-item" :data-title="displayTitle(tl)">
+          <RewardCheckbox :model-value="false" :label="undefined" data-testid="tasklist-title-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: displayTitle(tl) })" @update:model-value="tickTitle" />
+          <span class="ititle plain"><span class="tt">{{ displayTitle(tl) }}</span></span>
+        </div>
         <ul class="list">
           <li
             v-for="(item, i) in tl.items" :key="item.id" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
@@ -348,7 +363,7 @@ defineExpose({ root, busy });
             <IconButton v-if="inkWriting.draft.value.length" variant="tonal" :label="t('ink.done')" data-testid="ink-next-done" @click="inkWriting.flush"><IconCheck /></IconButton>
           </span>
         </div>
-        <p v-if="!tl.items.length && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
+        <p v-if="!tl.items.length && !titleTick && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 
         <form v-if="adding && !compact" class="add" @submit.prevent="add">
           <input
@@ -400,6 +415,7 @@ html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; 
 .ititle {
   flex: 1; min-width: 0; text-align: left; min-height: 44px; padding: 0 4px; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large);
 }
+.ititle.plain { display: flex; align-items: center; }
 .tt { background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0% 1.6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 html:not([data-motion='off']) .tt { transition: background-size 280ms cubic-bezier(0.3, 0, 0.2, 1) 60ms; }
 html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms; }

@@ -81,7 +81,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `transition-warning` | snackbar |
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
-| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
+| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-title-item` (`data-title`; a list without items shows its title as a tick row, checkbox `tasklist-title-item-checkbox`), `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (swatches `event-color-option` with `data-color`; order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create: the list's items; edit: items to add), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
@@ -318,6 +318,9 @@ no task list is expanded
 the expanded task list items are {string}
 the expanded task list fits within the viewport
 I tick the item {string}
+I tick the title of the expanded task list
+the expanded task list offers a tick box for its title {string}
+the expanded task list offers no tick box for its title
 I untick the item {string}
 the item {string} is ticked
 the item {string} is not ticked

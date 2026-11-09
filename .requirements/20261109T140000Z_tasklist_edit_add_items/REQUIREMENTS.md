@@ -15,4 +15,4 @@
 ## Assumptions
 - A1: "editing" = the details dialog opened by the edit action. Items are only appended, existing ones are edited in the list.
 - A2: Title-only tick: the list keeps its title; one item with the same title is created and done (list = 1/1 complete). Applies only at 0 items; titleless lists get no tick row.
-- A3: Repeating lists ask the usual scope question for both.
+- A3: Edit-dialog items ask the repeat-scope question. The title tick does not: ticks stay per list, the item is added for this list only (the server ignores done on a following-scope add).
