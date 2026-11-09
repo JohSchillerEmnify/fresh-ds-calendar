@@ -121,6 +121,8 @@ export function logDevice(kind: LogKind, data: LogData): void {
 export function installDeviceLog(target: EventTarget = window): () => void {
   const onError = (ev: Event): void => {
     const e = ev as ErrorEvent;
+    // the browser's ResizeObserver loop notice is harmless and would drown real errors in the 500 entries
+    if (!e.error && /^ResizeObserver loop/.test(e.message ?? '')) return;
     const f = errorFacts(e.error ?? e.message);
     logDevice('error', { name: f.errorName, message: f.errorMessage, stack: f.stack });
   };
