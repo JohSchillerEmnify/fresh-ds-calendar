@@ -7,11 +7,19 @@ import { useUiStore } from '@/stores/ui';
 
 const ui = useUiStore();
 const host = ref<HTMLElement | null>(null);
-/** While a snackbar stays, the page leaves the strip it covers free (`--snack-room`, used by the shell), so no control sits under it. */
+/** While a snackbar stays, the shell keeps the strip it overlaps free: `--snack-room` is the overlap beyond the room the layout already keeps at the bottom, `--snack-reach` its distance from the screen bottom. */
 function measure() {
   const el = host.value;
-  const room = el && ui.snackbars.some((s) => s.duration === 0) ? el.offsetHeight + (parseFloat(getComputedStyle(el).bottom) || 0) : 0;
+  let reach = 0;
+  let room = 0;
+  if (el && ui.snackbars.some((s) => s.duration === 0)) {
+    reach = el.offsetHeight + (parseFloat(getComputedStyle(el).bottom) || 0);
+    const edge = document.querySelector('[data-content-edge]');
+    const kept = edge ? window.innerHeight - edge.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(edge).paddingBottom) || 0) : 0;
+    room = Math.max(0, reach - kept);
+  }
   document.documentElement.style.setProperty('--snack-room', `${room}px`);
+  document.documentElement.style.setProperty('--snack-reach', `${reach}px`);
 }
 useResizeObserver(host, measure);
 // the bar sliding away or the layout switching moves the snackbar without resizing it
@@ -28,7 +36,7 @@ function arm() {
 }
 const stopWatch = ui.$subscribe(arm);
 onMounted(() => { arm(); measure(); });
-onBeforeUnmount(() => { document.documentElement.style.removeProperty('--snack-room'); stopWatch(); timers.forEach((s) => s()); timers.clear(); });
+onBeforeUnmount(() => { ['--snack-room', '--snack-reach'].forEach((v) => document.documentElement.style.removeProperty(v)); stopWatch(); timers.forEach((s) => s()); timers.clear(); });
 </script>
 
 <template>

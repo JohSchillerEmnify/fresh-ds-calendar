@@ -30,6 +30,7 @@ describe('a counting-down snackbar (feature reminders)', () => {
 
 describe('room for a snackbar that stays (issue 62)', () => {
   const room = () => document.documentElement.style.getPropertyValue('--snack-room');
+  const reach = () => document.documentElement.style.getPropertyValue('--snack-reach');
 
   it('tells the page how far from the screen bottom the snackbars reach, only while one stays', async () => {
     // jsdom lays nothing out: the host is 56 px tall and sits 80 px above the bottom edge
@@ -45,9 +46,22 @@ describe('room for a snackbar that stays (issue 62)', () => {
     const id = ui.notify('Not saved', { duration: 0 });
     await w.vm.$nextTick();
     expect(room()).toBe('136px');
+    expect(reach()).toBe('136px');
     ui.dismiss(id);
     await w.vm.$nextTick();
     expect(room()).toBe('0px');
+    expect(reach()).toBe('0px');
+    // a layout that keeps 100 px free at the bottom already: only the overlap beyond it counts
+    const edge = document.createElement('div');
+    edge.setAttribute('data-content-edge', '');
+    document.body.append(edge);
+    vi.spyOn(edge, 'getBoundingClientRect').mockReturnValue({ bottom: window.innerHeight } as DOMRect);
+    style.mockReturnValue({ bottom: '80px', paddingBottom: '100px' } as CSSStyleDeclaration);
+    ui.notify('Not saved', { duration: 0 });
+    await w.vm.$nextTick();
+    await w.vm.$nextTick();
+    expect(room()).toBe('36px');
+    edge.remove();
     w.unmount();
     height.mockRestore();
     style.mockRestore();

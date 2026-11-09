@@ -25,7 +25,6 @@ Feature: An error log on this device that I can send
     And the error log has an entry "event.delete refused"
     And the error log does not contain "Dentist"
 
-  @mobile
   Scenario: A refused-change notice that stays covers no row of the settings
     Given the calendar contains an event "Dentist Meyer" on 2026-10-13 from 10:00 to 11:00
     And I have seen the week view for 2026-10-12
