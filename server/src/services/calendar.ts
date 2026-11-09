@@ -6,7 +6,7 @@ import type {
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
 import type { Clock } from '../lib/clock.js';
-import { GOOGLE_COLORS } from '@calendar/shared/colors';
+import { GOOGLE_COLORS, onColor } from '@calendar/shared/colors';
 import { ApiException, forbidden, notFound, preconditionFailed, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
@@ -122,6 +122,15 @@ export class CalendarService {
     await this.provider.setCalendarDefaultReminders(calId, next);
     this.calCache = null;
     return minutes;
+  }
+
+  /** Sets the person's list colour of a calendar (per person, also one they only read) with a readable text colour. */
+  async setColor(id: string, color: string): Promise<string> {
+    const cal = (await this.eventCalendars()).find((c) => c.id === id);
+    if (!cal) throw notFound('Calendar not found');
+    await this.provider.setCalendarColor(id, color, onColor(color));
+    this.calCache = null;
+    return color;
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */

@@ -7,7 +7,7 @@ import { useCanvasStore } from '@/features/tasklists/canvasStore';
 import { useInkStore } from '@/stores/ink';
 import { useMotivationStore } from '@/features/motivation/store';
 import {
-  applyChanges, dropItem, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
+  applyChanges, dropItem, recolourEvents, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
 } from '@/lib/deviceData';
 import { deviceDb, devicePerson, onDeviceWipe, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { withPending } from '@/lib/outbox';
@@ -259,10 +259,13 @@ export const useDeviceStore = defineStore('device', () => {
     data.value = { ...data.value, files: { ...data.value.files, [name]: value } };
     scheduleSave();
   }
-  /** A changed list of calendars (hidden, reminder defaults). */
+  /** A changed list of calendars (hidden, reminder defaults, colour); the events that follow a recoloured calendar change with it. */
   function putCalendars(list: DeviceData['calendars']): void {
     if (!data.value) return;
-    data.value = { ...data.value, calendars: list };
+    const held = data.value.events;
+    const events = recolourEvents(held, data.value.calendars, list);
+    data.value = { ...data.value, calendars: list, events };
+    if (events !== held) useItemsStore().refreshFromDevice();
     scheduleSave();
   }
 

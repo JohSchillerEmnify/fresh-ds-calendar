@@ -1487,6 +1487,27 @@ they hide the calendar {string} in the filter bar
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
 
+## A colour for every calendar (`@id:calendar-colours`)
+
+```
+the calendar {string} has an event {string} on {date} from {time} to {time} in the colour {string}
+the calendar sheet offers 11 colours
+the colour {string} is chosen in the calendar sheet
+I choose the colour {string} in the calendar sheet
+I recolour the calendar {string} to {string}
+the event {string} is drawn in the colour {string}
+the event {string} is drawn in its own calendar colour
+Google lists the calendar {string} in the colour {string}
+```
+
+- Colour names are the 11 Google colours of the event dialog (Lavender ... Tomato, hexes in `event-colors.feature`). The swatches
+  are `calendar-color-option` (`data-name`, `aria-checked`) inside `calendar-plan-sheet`; exactly one is pressed when the calendar's
+  colour is in the palette. "has an event ... in the colour C" inserts it in Google with that `colorId`. "I choose the colour"
+  clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I recolour the calendar C to N" long-presses its chip
+  (filter bar shown first) and does the same. "is drawn in the colour N": the event chip's `data-color` equals N's hex;
+  "its own calendar colour": the colour the calendar was set up with. "Google lists": the mock Google calendar list's
+  `backgroundColor` of that calendar of the signed-in person.
+
 ## Calendar off by a plan (`@id:calendar-off-plan`)
 
 ```

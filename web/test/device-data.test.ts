@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent, TaskList } from '@/api/types';
 import {
-  applyChanges, covers, dropItem, isQuiet, emptyData, itemsIn, putItem, summaryOf, windowOf, type ChangeSet, type DeviceData,
+  applyChanges, covers, dropItem, isQuiet, emptyData, itemsIn, putItem, recolourEvents, summaryOf, windowOf, type ChangeSet, type DeviceData,
 } from '@/lib/deviceData';
 import { eventFixture } from './helpers';
 
@@ -146,5 +146,26 @@ describe('window, quiet answers and deletes', () => {
   it('a delete of an event takes only the one of its calendar when ids repeat', () => {
     const d = held([ev('same', '2026-10-13', 'primary'), ev('same', '2026-10-13', 'work')]);
     expect(dropItem(d, 'same', 'work').events.map((e) => e.calendarId)).toEqual(['primary']);
+  });
+});
+
+describe('recolourEvents (feature calendar-colours)', () => {
+  const dressed = (id: string, calendarId: string, color: string, colorId: string | null = null) => ({ ...ev(id, '2026-10-13', calendarId), color, colorId }) as CalendarEvent;
+  const events = [dressed('a', 'primary', '#039be5'), dressed('b', 'primary', '#d50000', '11'), dressed('c', 'other', '#039be5')];
+
+  it('recolours the events that follow the changed calendar and no others', () => {
+    const next = recolourEvents(events, [{ id: 'primary', color: '#039be5' }, { id: 'other', color: '#039be5' }] as never, [{ id: 'primary', color: '#0b8043' }, { id: 'other', color: '#039be5' }] as never);
+    expect(next.map((e) => e.color)).toEqual(['#0b8043', '#d50000', '#039be5']);
+  });
+
+  it('keeps the very same list when no colour changed', () => {
+    const cals = [{ id: 'primary', color: '#039be5' }] as never;
+    expect(recolourEvents(events, cals, cals)).toBe(events);
+  });
+
+  it('applyChanges recolours held events when the answer brings a new calendar colour', () => {
+    const data = { ...held(events), calendars: [{ id: 'primary', color: '#039be5' }, { id: 'other', color: '#039be5' }] as never };
+    const next = applyChanges(data, answer({ calendars: [{ id: 'primary', color: '#0b8043' }, { id: 'other', color: '#039be5' }] as never, events: { calendars: ['primary', 'other'], replace: [], series: [], removed: [], upserts: [], failed: [] } }));
+    expect(next.events.map((e) => e.color)).toEqual(['#0b8043', '#d50000', '#039be5']);
   });
 });

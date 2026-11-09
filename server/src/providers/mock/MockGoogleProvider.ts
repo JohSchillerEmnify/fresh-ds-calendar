@@ -310,6 +310,13 @@ export class MockGoogleProvider implements CalendarProvider {
     return this.collect({ calendarId, timeMin, timeMax }).items.filter((e) => e.id === seriesId || e.recurringEventId === seriesId);
   }
 
+  async setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void> {
+    this.check();
+    this.requireCalendar(calendarId);
+    Object.assign(this.calendars.find((c) => c.id === calendarId)!, { backgroundColor, foregroundColor });
+    this.scheduleFlush();
+  }
+
   // ---- internals ----
   private requireCalendar(id: string): void {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);

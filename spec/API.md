@@ -301,7 +301,12 @@ short hash of date and text. A missing or unparsable file gives an empty list.
 
 ### `PATCH /api/calendars/:id` → 200
 
-Body `{ hidden?: boolean; defaultReminders?: number[] }` (at least one). `hidden` stores the person's choice. `defaultReminders`
+Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string }` (at least one). `hidden` stores the person's choice. `color`
+(`#rrggbb`, answered lower-case; anything else `400`) is the person's colour of the calendar: it goes to Google as the person's
+calendar list colour (`calendarList.patch` with `colorRgbFormat=true`: `backgroundColor` = `color`, `foregroundColor` = black or
+white, whichever reads better). It works for every calendar in `GET /api/calendars`, also one the person cannot edit (Google keeps
+the list colour per person), and recolours the `color` of the calendar's events that follow it (`colorId` null, see `CalendarEvent`);
+no server-wide copy exists. The app's calendar sheet offers the 11 Google event colours (feature calendar-colours). `defaultReminders`
 (at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
 stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 404 for an unknown id.
 

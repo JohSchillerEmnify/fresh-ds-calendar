@@ -45,6 +45,8 @@ const leadMinutes = v.pipe(
 const reminders = so({ useDefault: v.boolean('useDefault must be a boolean'), minutes: leadMinutes });
 /** `PATCH /api/calendars/:id` and `PATCH /api/reminders/tasks-calendar`: the new popup default list. */
 export const defaultRemindersSchema = leadMinutes;
+/** `PATCH /api/calendars/:id`: the person's calendar colour, stored lower-case. */
+export const calendarColorSchema = v.pipe(hex, v.transform((c) => c.toLowerCase()));
 /** A whole number of canvas units (feature tasks-canvas). */
 const canvasInt = (min: number, max: number, msg: string) => v.pipe(v.number(msg), v.integer(msg), v.minValue(min, msg), v.maxValue(max, msg));
 const canvasPlace = v.nullable(so({ x: canvasInt(0, 10_000, 'Canvas x must be a whole number from 0 to 10000'), y: canvasInt(0, 10_000, 'Canvas y must be a whole number from 0 to 10000') }));
