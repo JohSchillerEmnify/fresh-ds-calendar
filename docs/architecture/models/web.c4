@@ -104,7 +104,7 @@ model {
       description 'The top app bar, the add button and the swipe carousel around the active view'
     }
     viewSwitcher = component 'View switcher' {
-      description 'The tabs that change the view, as a bottom bar, top tabs or a rail, with a flask-marked tab per Labs view switched on'
+      description 'The tabs that change the view, as a bottom bar, top tabs or a rail, with a tab per main view that is on (Year, Month, Week, Day, Tasks, Clock), then a flask-marked tab per Labs view switched on'
     }
     router = component 'Router' {
       description 'Maps each URL to a view and period, keeps the filter query and sends unknown paths to the current month'
@@ -208,7 +208,7 @@ model {
   extend calendar.web {
     labsRegistry = library 'Labs registry' {
       #experimental
-      description 'The one list of Labs views with their route and default'
+      description 'The one list of Labs views with their route and default; the Clock (rings) route lives here too but is a main view, listed by the stable views registry'
     }
     labsClock = component 'Labs clock' {
       #experimental

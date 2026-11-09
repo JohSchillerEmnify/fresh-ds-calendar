@@ -39,8 +39,8 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 |---|---|---|---|---|---|
 | Default view | filled select | view the app opens in | Month | S `defaultView` | no |
 | Minimum event length | segmented Off/15/30 | short events drawn at least this long | Off | P `minEventMinutes` | no |
-| Day view: events side by side | segmented 2/3/4 | overlap columns in the day view | 4 | P `daySideBySide` | no |
-| Week view: events side by side | segmented 2/3 | overlap columns in the week view | 2 | P `weekSideBySide` | no |
+| Day view: events side by side | segmented Only 1/2/3/4 | overlap columns in the day view | 4 | P `daySideBySide` | no |
+| Week view: events side by side | segmented Only 1/2/3 | overlap columns in the week view | 2 | P `weekSideBySide` | no |
 | Top bar size | segmented Expressive/Compact | phone top bar height | auto (Compact on phones) | P `headerLayout` | no |
 | Bottom bar size | segmented Expressive/Compact | phone bottom bar height | auto | P `bottomBarSize` | no |
 | Month view scrolls | filled select | sideways / up-down / up-down snapping | Sideways | P `monthScroll` | no |
@@ -49,7 +49,7 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 | Approaching track | switch | track of what comes next in the card | on | P `approachBar` | no |
 | Track reaches ahead | select 3/6/12/Custom + number field | track length in hours | 3 | P `approachWindowHours` | no |
 | Sync indicator | switch | sync icon always vs only on failure | off | P `syncIndicator` | no |
-| Show tasks calendar in Google | switch | the hidden task-lists calendar visible in Google | off | P `tasksCalendarVisible` | no |
+| Show the task lists calendar in Google | switch | the hidden task-lists calendar visible in Google | off | P `tasksCalendarVisible` | no |
 | Left-handed mode | switch | mirrors the phone layout | off | P `leftHanded` | no |
 | View switcher · On phones | filled select | bottom/top/rail/side menu | Bottom | P `navPhone` | no |
 | View switcher · On desktop | filled select | bottom/top/rail | Rail | P `navDesktop` | no |
@@ -99,8 +99,11 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 Per calendar: Google's default reminders (one card per calendar). Browser push on/off (D, push subscription).
 Task lists: **"Remind about task lists"** switch (= `notify.tasklists` again) and default task-list reminders.
 
+### Views (main view switches)
+One switch per main view (`stableViews`: Year, Month, Week, Day, Tasks, Clock), all on; the last one on cannot be turned off.
+
 ### Labs
-Master switch "Experimental views" (`labs`, off); per view switches (`labsViews`: Clock, Clock rings, Timeline, Strip,
+Master switch "Experimental views" (`labs`, off); per view switches (`labsViews`: Plain clock, Timeline, Strip,
 Zoom, Horizontal, Runway, Now & next); "Generate themes with AI" (`labsOwnThemes`); "Handwritten lists"
 (`labsHandwriting`) + "Draw with a finger" (`labsDrawWithFinger`); "Two-row week overview" (`weekTwoRow`) + "Days on the
 top row" (`weekTwoRowTop` 4).
@@ -135,7 +138,7 @@ What's new; **Show version in the corner** (P `versionInCorner`, off).
    tasks calendar and four Approaching-card rows. The card is 4 screens long.
 7. **Dependent rows always shown** — Time left, Approaching track and Track reaches ahead do nothing while the
    Approaching card is off; they are still shown and active.
-8. **Wrong places**: Sunflowers (only applies to one theme scene) sits in Focus; "Show tasks calendar in Google"
+8. **Wrong places**: Sunflowers (only applies to one theme scene) sits in Focus; "Show the task lists calendar in Google"
    (a task-lists thing) sits in Calendar; "Show version in the corner" (layout) sits in Account; left-handed mode,
    view switcher and bar sizes (layout) sit in Calendar; "Add category" sits below unrelated rows instead of under the
    category list; the Labs master switch is called "Experimental views" but also gates AI themes, handwriting and the

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient, ApiError, setApi } from '@/api/client';
 import {
-  clearDeviceLog, DEVICE_LOG_KEY, deviceLog, exportDeviceLog, installDeviceLog, logDevice, MAX_ENTRIES, reloadDeviceLog, routeOf, scrub, shareDeviceLog,
+  clearDeviceLog, DEVICE_LOG_KEY, deviceLog, downloadDeviceLog, exportDeviceLog, installDeviceLog, logDevice, MAX_ENTRIES, reloadDeviceLog, routeOf, scrub, shareDeviceLog,
 } from '@/lib/deviceLog';
 
 describe('device log redaction', () => {
@@ -68,23 +68,73 @@ describe('device log', () => {
     expect(deviceLog.value.map((e) => e.summary)).toEqual(['TypeError: boom', 'unhandled RangeError: bad range']);
   });
 
+  it('leaves out the harmless ResizeObserver loop warning', () => {
+    const target = new EventTarget();
+    const stop = installDeviceLog(target);
+    target.dispatchEvent(Object.assign(new Event('error'), { message: 'ResizeObserver loop completed with undelivered notifications.' }));
+    target.dispatchEvent(Object.assign(new Event('error'), { message: 'ResizeObserver loop limit exceeded' }));
+    stop();
+    expect(deviceLog.value).toEqual([]);
+  });
+
   describe('share', () => {
     afterEach(() => vi.unstubAllGlobals());
+    const stubDownload = () => {
+      URL.createObjectURL = vi.fn(() => 'blob:x');
+      URL.revokeObjectURL = vi.fn();
+      return vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    };
+    const stubApp = (plugins: Record<string, unknown>) => vi.stubGlobal('Capacitor', { isNativePlatform: () => true, Plugins: plugins });
 
-    it('shares a file where the device can', async () => {
+    it('shares a text file (Chrome refuses .json) where the device can, straight from the click', async () => {
       const share = vi.fn().mockResolvedValue(undefined);
-      vi.stubGlobal('navigator', { ...navigator, share, canShare: () => true });
-      expect(await shareDeviceLog()).toBe('shared');
-      expect((share.mock.calls[0]![0] as { files: File[] }).files[0]!.name).toMatch(/^calendar-error-log.*\.json$/);
+      vi.stubGlobal('navigator', { ...navigator, share, canShare: (d: { files: File[] }) => d.files[0]!.type === 'text/plain' });
+      const done = shareDeviceLog();
+      expect(share).toHaveBeenCalledTimes(1); // no await before it: the click's user activation is still alive
+      expect(await done).toBe('shared');
+      const f = (share.mock.calls[0]![0] as { files: File[] }).files[0]!;
+      expect([f.name, f.type]).toEqual([expect.stringMatching(/^calendar-error-log-\d{4}-\d{2}-\d{2}\.txt$/), 'text/plain']);
+      expect(JSON.parse(await f.text())).toMatchObject({ entries: [] }); // content is the unchanged JSON export
     });
 
     it('downloads where the device cannot share files', async () => {
       vi.stubGlobal('navigator', { ...navigator, share: undefined, canShare: undefined });
-      URL.createObjectURL = vi.fn(() => 'blob:x');
-      URL.revokeObjectURL = vi.fn();
-      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+      const click = stubDownload();
       expect(await shareDeviceLog()).toBe('downloaded');
       expect(click).toHaveBeenCalled();
+    });
+
+    it('downloads when the share sheet fails, and stops quietly when it is closed', async () => {
+      const share = vi.fn().mockRejectedValueOnce(new DOMException('no', 'NotAllowedError')).mockRejectedValueOnce(new DOMException('closed', 'AbortError'));
+      vi.stubGlobal('navigator', { ...navigator, share, canShare: () => true });
+      const click = stubDownload();
+      expect(await shareDeviceLog()).toBe('downloaded');
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(await shareDeviceLog()).toBe('cancelled');
+      expect(click).toHaveBeenCalledTimes(1);
+    });
+
+    it('in the app writes the log to the cache and opens the native share sheet on it (Share and Download alike)', async () => {
+      const writeFile = vi.fn().mockResolvedValue({ uri: 'file:///cache/log.json' });
+      const share = vi.fn().mockResolvedValue({});
+      stubApp({ Filesystem: { writeFile }, Share: { share } });
+      const click = stubDownload();
+      expect(await shareDeviceLog()).toBe('shared');
+      expect(await downloadDeviceLog()).toBe('shared');
+      expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({ path: expect.stringMatching(/\.json$/), directory: 'CACHE', encoding: 'utf8', data: exportDeviceLog() }));
+      expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: ['file:///cache/log.json'] }));
+      expect(click).not.toHaveBeenCalled();
+    });
+
+    it('in the app reports "failed" (nothing left the device) when the plugins are missing or throw, "cancelled" when the sheet is closed', async () => {
+      const click = stubDownload();
+      stubApp({});
+      expect(await shareDeviceLog()).toBe('failed');
+      stubApp({ Filesystem: { writeFile: vi.fn().mockRejectedValue(new Error('disk full')) }, Share: { share: vi.fn() } });
+      expect(await downloadDeviceLog()).toBe('failed');
+      stubApp({ Filesystem: { writeFile: vi.fn().mockResolvedValue({ uri: 'file:///x' }) }, Share: { share: vi.fn().mockRejectedValue(new Error('Share canceled')) } });
+      expect(await shareDeviceLog()).toBe('cancelled');
+      expect(click).not.toHaveBeenCalled();
     });
   });
 });

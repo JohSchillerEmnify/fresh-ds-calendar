@@ -18,5 +18,5 @@ export default {
     done: 'Basst',
     resize: 'Bereich {name} größer oder kleiner machn',
   },
-  colors: { red: 'Rod', orange: 'Orange', yellow: 'Gelb', green: 'Grün', teal: 'Dürkis', blue: 'Blau', purple: 'Violedd', pink: 'Rosa' },
+  colors: { red: 'Rod', orange: 'Orange', yellow: 'Gelb', green: 'Grün', teal: 'Petrol', blue: 'Blau', purple: 'Lila', pink: 'Pink' },
 } satisfies NonNullable<PartialMessages['canvas']>;

@@ -41,10 +41,17 @@ export interface GoogleErrorInfo {
   code?: string;
   /** Retry attempt the client library had reached, when it retries at all. */
   retry?: number;
+  /** The request field Google objected to (`errors[0].location`, e.g. `backgroundColor`). */
+  field?: string;
+  /** Google's own error text, only when it holds no address or id-like token (at most 120 characters). */
+  message?: string;
 }
 
 const CODE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const safe = (v: unknown): string | undefined => (typeof v === 'string' && CODE.test(v) ? v : undefined);
+/** Plain words only: no `@`, no long tokens, so no address or calendar id can reach the log. */
+const plainText = (v: unknown): string | undefined =>
+  typeof v === 'string' && v.length <= 120 && /^[\w .,:;'()-]*$/.test(v) && !/[A-Za-z0-9_-]{25,}/.test(v) ? v : undefined;
 
 /** Pulls the status, Google reason, network code and retry attempt out of a googleapis/gaxios error. */
 export function describeGoogleError(e: unknown): GoogleErrorInfo {
@@ -60,8 +67,10 @@ export function describeGoogleError(e: unknown): GoogleErrorInfo {
   const body = err.response?.data?.error;
   if (typeof body === 'string') out.reason = safe(body);
   else if (body && typeof body === 'object') {
-    const b = body as { errors?: { reason?: unknown }[]; details?: { reason?: unknown }[]; status?: unknown };
+    const b = body as { errors?: { reason?: unknown; location?: unknown; message?: unknown }[]; details?: { reason?: unknown }[]; status?: unknown; message?: unknown };
     out.reason = safe(b.errors?.[0]?.reason) ?? safe(b.details?.[0]?.reason) ?? safe(b.status);
+    out.field = safe(b.errors?.[0]?.location);
+    out.message = plainText(b.errors?.[0]?.message) ?? plainText(b.message);
   }
   if (out.status === undefined) {
     out.code = safe(err.code) ?? safe(err.cause?.code) ?? safe(err.cause?.cause?.code);

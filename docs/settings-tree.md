@@ -16,7 +16,7 @@ Settings  [search bar: "Search settings"]
 │  │  │                                         feature calendar-off-plan, same as the chip's long press)
 │  │  └─ Default reminders              list    (moved from the Reminders page, per calendar)
 │  └─ Task lists calendar  ›            (the hidden calendar that holds task lists)
-│     └─ Show in Google                 switch  (moved from Calendar: "Show tasks calendar in Google")
+│     └─ Show in Google                 switch  (moved from Calendar: "Show the task lists calendar in Google")
 │
 ├─ Views                                        "Default view, month, week and day"
 │  ├─ General

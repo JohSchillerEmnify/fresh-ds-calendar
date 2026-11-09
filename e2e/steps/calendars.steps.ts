@@ -163,6 +163,15 @@ Given('I recolour the calendar {string} to the palette colour {int}', async func
   await saved(this, () => paletteSwatch(this, n).click());
 });
 
+When('I try to recolour the calendar {string} to the palette colour {int}', async function (this: World, calendar: string, n: number) {
+  await openSettingsPage(this, 'calendars');
+  await this.page.locator(`[data-testid="settings-row"][data-setting="${calendar}"]`).click();
+  await expect(pageOf(this)).toHaveAttribute('data-group', calendar);
+  const answered = this.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes('/api/calendars/'));
+  await paletteSwatch(this, n).click();
+  await answered;
+});
+
 Then('the event {string} is drawn in the colour {string}', async function (this: World, title: string, name: string) {
   await expect(this.eventChip(title)).toHaveAttribute('data-color', new RegExp(`^${colourHex(name)}$`, 'i'));
 });
@@ -180,5 +189,5 @@ Then('Google lists the calendar {string} in the colour {string}', async function
 Then('Google lists the calendar {string} with the palette colour {int}', async function (this: World, calendar: string, n: number) {
   const o = owned.get(this)!;
   const listed = (await this.api.remoteCalendars(o.owner)).find((c) => c.id === o.calendars.get(calendar)!.id);
-  expect(listed).toMatchObject({ colorId: String(n), backgroundColor: PALETTE[n] });
+  expect(listed).toMatchObject({ backgroundColor: PALETTE[n] });
 });

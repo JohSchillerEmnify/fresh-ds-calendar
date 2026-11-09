@@ -160,12 +160,13 @@ describe('icon set', () => {
 
   it('draws the variant of the current set in every app icon', async () => {
     const { mount } = await import('@vue/test-utils');
-    const { IconClose } = await import('@/components/icons');
+    const { IconClose, loadIconSet } = await import('@/components/icons');
     const { iconSet } = await import('@/theme/iconSet');
     iconSet.value = 'outlined';
     const w = mount(IconClose);
     const outlined = w.html();
     iconSet.value = 'sharp';
+    await loadIconSet('sharp');
     await w.vm.$nextTick();
     expect(w.html()).not.toBe(outlined);
     expect(w.get('svg').attributes('data-icon-set')).toBe('sharp');

@@ -9,7 +9,7 @@ vi.hoisted(() => {
   globalThis.matchMedia = ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as unknown as typeof matchMedia;
 });
 
-const cal = (id: string, name: string, color: string, primary = false) => ({ id, name, color, primary, own: true, writable: true, hidden: false, defaultReminders: [] });
+const cal = (id: string, name: string, color: string, primary = false) => ({ id, name, color, primary, writable: true, hidden: false, defaultReminders: [] });
 
 describe('the event dialog calendar colour', () => {
   beforeEach(() => {

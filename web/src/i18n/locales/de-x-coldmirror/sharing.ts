@@ -30,6 +30,6 @@ export default {
   self: 'Mit dir selbst teilen? Das ist Narzissmus wie bei Lockhart.',
   unknownPerson: 'Die Person kann nicht dazu, die steht nicht auf der Liste des Hutes.',
   repeating: 'Eine wiederkehrende Liste kann man nicht teilen, die kommt wieder wie Peeves.',
-  ownerCannotLeave: 'Der Boss löscht die Liste oder hört auf zu teilen, yo.',
+  ownerCannotLeave: 'Als Boss löschst du die Liste oder hörst auf zu teilen, yo.',
   categoryOwnerOnly: 'Nur der Boss der Liste darf die Kategorie ändern, du Oberpflaume.',
 } satisfies Messages['sharing'];

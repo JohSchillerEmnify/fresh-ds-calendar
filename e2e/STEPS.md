@@ -1504,6 +1504,7 @@ I pick the custom colour {string} on the calendar's settings page
 I type the colour {string} on the calendar's settings page
 the colour field shows the error {string}
 I recolour the calendar {string} to the palette colour {int}
+I try to recolour the calendar {string} to the palette colour {int}
 the event {string} is drawn in the colour {string}
 the event {string} is drawn in its own calendar colour
 Google lists the calendar {string} in the colour {string}
@@ -1517,9 +1518,9 @@ Google lists the calendar {string} with the palette colour {int}
   (a native colour input) and the hex field `calendar-color-hex` with its error `calendar-color-error`. "I choose the palette colour"
   clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I pick the custom colour" sets the colour input's value (input
   and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
-  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it. "is drawn in the
+  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it; "I try to recolour ..." does the same waiting for the PATCH's answer, whatever its status (the server may refuse it). "is drawn in the
   colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
-  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `colorId`
+  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `backgroundColor` is that palette colour
   is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
 
 ## Calendar off by a plan (`@id:calendar-off-plan`)
@@ -1640,7 +1641,7 @@ the calendar picker offers {string}
 - "I try to rename the event T through the API": `PATCH /api/events/:id` with a new title, without the UI; "the API
   answers N" compares the status of that call.
 - "the event dialog is editable": `event-save` is visible and `event-readonly` does not exist. "the read-only reason
-  says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the own
+  says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the writable
   calendars are loaded (the picker `event-calendar` lists "Work"), no option is named C. "the calendar picker offers C": the same wait, then an option named C exists.
 
 ## Reduced motion override
@@ -1655,6 +1656,39 @@ I allow full animations despite the device setting
   it at Reduced as before. Kept per person.
 - "shows the location": the event chip's `event-chip-location` is visible with that text (it may be ellipsised at the
   end only when the block is narrower than the text).
+
+## View switcher (`@view-switcher`)
+
+```
+I switch the view {string} on in the settings
+I switch the view {string} off in the settings
+the view switches are on for {string}
+the view switch {string} is on and cannot be turned off
+the views settings say {string}
+I choose {string} in the view switcher
+the view switcher does not mark {string} as experimental
+the Labs settings have a switch for {string}
+the Labs settings have no switch for {string}
+the default view choices are {string}
+the default view is {string}
+the view {string} is switched off for me
+the clock shows its {string} variant
+```
+
+- The main views' switches are `settings-view-switch-<id>` (`year`, `month`, `week`, `day`, `tasks`, `clock-rings`; the
+  name "Clock" is the id `clock-rings`) on Settings › Views. "I switch the view V on/off in the settings" sets the switch
+  (waiting for the `PATCH /api/prefs` 200) and leaves the settings, like the Labs switch steps.
+- "the view switch V is on and cannot be turned off": `aria-checked="true"` and the button is disabled.
+  "the views settings say T": the note `settings-views-note` has exactly the text T.
+- "I choose V in the view switcher" clicks the tab named V inside `view-switcher` (not the side menu).
+- "the view switcher does not mark V as experimental": `view-switch-<id>` is visible without `data-experimental`.
+- "the Labs settings have a switch for V" looks for `settings-labs-view-<id>` (the Labs labels "Plain clock" and "Zoom month" are the ids
+  `clock` and `zoom`); "no switch for V" expects none. Both open Settings › Labs first.
+- "the default view choices are L": the option labels of `settings-default-view`, joined with ", ".
+- "the default view is V" (Given): `PATCH /api/settings { defaultView }` through the API before the page is opened.
+- "the view V is switched off for me" (Given): `PATCH /api/prefs { stableViews: { <id>: false } }` through the API.
+- "the clock shows its V variant": `clock-view` has `data-variant` `rings` for "rings", `classic` for "plain".
+- `the view switcher shows "A, B"` (Language) lists the main views that are on, then the Labs views that are on.
 
 ## Labs (`@labs`)
 
@@ -1838,7 +1872,8 @@ I note the height of {string} on the runway
   X in the list next to the clock" clicks the `clock-overflow` chip with `data-title` X. Entries on rings beyond the
   narrowest band (6 on the clock, 4 on the rings clock) have no arc and are only listed.
 - Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
-  ("Clock: rings" → `clock-rings`).
+  ("Strip" → `strip`); the plain clock's label "Plain clock" is the id `clock`. The Clock ("Clock: rings" before) is a
+  main view now: see "View switcher".
 - Both "the middle of the clock says" steps first wait for `clock-view` `data-tomorrow-loaded="true"` (today's clock
   sets it once a cached range holds tomorrow, whose first entry the middle may name).
 - "the middle of the clock says X": exactly one line, `clock-now-line` text X, and no `clock-now-when`. "says X over
@@ -1898,7 +1933,7 @@ I note the height of {string} on the runway
 
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
   `zoom`, `horizontal`, `runway`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
-- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `clock-rings`,
+- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock` = the Plain clock,
   `timeline`, `strip`, `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "no bar of the approach track lies on top of the month picker": every `approach-block` whose centre lies inside the open
@@ -3206,10 +3241,10 @@ the event {string} has the normal block padding
 the event {string} stays inside its day column
 ```
 
-- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (2, 3 or 4; default 4) or
-  `weekSideBySide` (2 or 3; default 2) through the API.
+- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (1, 2, 3 or 4; default 4) or
+  `weekSideBySide` (1, 2 or 3; default 2); 1 is "Only 1" (the start-group cascade) through the API.
 - "I choose up to N ... in the day/week view": on the settings screen picks the option `settings-day-side-by-side-N` /
-  `settings-week-side-by-side-N` of that segmented button (labels "Up to N") and waits for the `PATCH /api/prefs`
+  `settings-week-side-by-side-N` of that segmented button (labels "Up to N", and "Only 1" for 1) and waits for the `PATCH /api/prefs`
   response (status 200). "the settings show up to N ...": that option is the selected one (`aria-pressed="true"`).
 - "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
   (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
@@ -3915,6 +3950,8 @@ the server holds no ink for the task list {string}
 
 ```
 I open the error log in the settings
+I set the colour of the calendar {string} {int} seconds ago
+a sync answer brings back the old colour of the calendar {string}
 the error log has an entry {string}
 the error log does not contain {string}
 an unexpected error {string} happens in the app
@@ -3926,6 +3963,11 @@ I download the error log
 I share the error log
 this device cannot share files
 the downloaded error log holds {int} entries
+this device shares only text files
+I share the error log with the share sheet
+the shared error log is a text file with {int} entries
+the app cannot open its share sheet
+the error log is copied and I am told so
 ```
 
 - The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &

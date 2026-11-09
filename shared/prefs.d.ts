@@ -32,10 +32,10 @@ export type TaskOpen = 'inline' | 'drawer';
 export type ApproachWindowHours = number;
 /** The minimum event length choices, in minutes (0 = off). */
 export type MinEventMinutes = 0 | 15 | 30;
-/** How many overlapping events the day view places side by side (feature event-display). */
-export type DaySideBySide = 2 | 3 | 4;
-/** How many overlapping events the week view places side by side (feature event-display). */
-export type WeekSideBySide = 2 | 3;
+/** How many overlapping events the day view places side by side, 1 = the start-group cascade (feature event-display). */
+export type DaySideBySide = 1 | 2 | 3 | 4;
+/** How many overlapping events the week view places side by side, 1 = the start-group cascade (feature event-display). */
+export type WeekSideBySide = 1 | 2 | 3;
 
 /** The languages the app is translated into. */
 export declare const LANGUAGE_VALUES: readonly ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror'];
@@ -78,6 +78,8 @@ export interface NotifyPrefs {
 export interface Prefs {
   /** Per Labs view id: shown in the view switcher or not; an id that is missing follows the client's registry default. */
   labsViews: Record<string, boolean>;
+  /** Per main view id (`year`, `month`, `week`, `day`, `tasks`, `clock-rings`): offered in the view switcher or not; a missing id is on. */
+  stableViews: Record<string, boolean>;
   labs: boolean;
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;

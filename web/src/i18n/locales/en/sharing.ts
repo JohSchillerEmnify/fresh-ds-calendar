@@ -13,7 +13,7 @@ export default {
   stop: 'Stop sharing',
   leave: 'Leave',
   sharedWith: 'Shared with {names}',
-  noPeople: 'Nobody else can be added yet: they have to sign in once.',
+  noPeople: 'Nobody can be added yet. A person has to sign in to the app once first.',
   shareFailed: "Couldn't share the list.",
   stopFailed: "Couldn't stop sharing.",
   leaveFailed: "Couldn't leave the list.",
@@ -29,6 +29,6 @@ export default {
   self: 'You cannot share with yourself.',
   unknownPerson: 'This person cannot be added.',
   repeating: 'A repeating task list cannot be shared.',
-  ownerCannotLeave: 'The owner deletes the list or stops sharing it.',
+  ownerCannotLeave: 'As the owner, you can delete the list or stop sharing it.',
   categoryOwnerOnly: 'Only the owner can change the category of a shared list.',
 };

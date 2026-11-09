@@ -130,7 +130,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.072
+   "duplicated-percent": 0.071
   },
   "types": {
    "AppConfig": 1,
@@ -147,7 +147,7 @@
    "@typescript-eslint/no-explicit-any|server/test/birthdays.test.ts": 1,
    "@typescript-eslint/no-explicit-any|server/test/canvas.test.ts": 2,
    "@typescript-eslint/no-explicit-any|server/test/changes.test.ts": 11,
-   "@typescript-eslint/no-explicit-any|server/test/events-readonly.test.ts": 3,
+   "@typescript-eslint/no-explicit-any|server/test/events-readonly.test.ts": 1,
    "@typescript-eslint/no-explicit-any|server/test/events.test.ts": 5,
    "@typescript-eslint/no-explicit-any|server/test/google.test.ts": 5,
    "@typescript-eslint/no-explicit-any|server/test/helpers.ts": 1,
@@ -285,7 +285,7 @@
    "long|server/src/services/canvasStore.ts": 1,
    "long|server/src/services/changeBus.ts": 1,
    "long|server/src/services/changeFeed.ts": 2,
-   "long|server/src/services/ownership.ts": 3,
+   "long|server/src/services/ownership.ts": 2,
    "long|server/src/services/place.ts": 4,
    "long|server/src/services/prefsStore.ts": 3,
    "long|server/src/services/push.ts": 4,

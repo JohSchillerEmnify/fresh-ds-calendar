@@ -11,7 +11,7 @@ export default {
     views: { title: 'Ansichdn', summary: 'Startansichd, Monad, Woche und Dag' },
     tasklists: { title: 'Aufgabnlisdn', summary: 'Kategorien, Vorlaachn, was a Dibbn machd' },
     reminders: { title: 'Erinnerunga', summary: 'Bescheid vor Terminen, Lisdn und dem Dag' },
-    appearance: { title: 'Aussehn & Aufbau', summary: 'Design, Sproch, Leisdn und Händ' },
+    appearance: { title: 'Aussehn & Aufbau', summary: 'Design, Sproch, Leisdn, Linkshänder-Modus' },
     focus: { title: 'Fokus & Ruh', summary: 'Ruhemodus, Bewegung, Dön, Serie, Bettzeit' },
     labs: { title: 'Labor', summary: 'Sachn ausbrobiern, die no ned ferdich sin' },
     account: { title: 'Kondo & App', summary: 'Google-Kondo, Sicherung, Installiern, Version' },

@@ -1,4 +1,4 @@
-/** Steps of spec/features/events-readonly.feature: invitations and other people's calendars are look-only. */
+/** Steps of spec/features/events-readonly.feature: invitations and calendars shared read-only are look-only. */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { berlinIso } from './support/dates.js';
@@ -79,7 +79,7 @@ Then('the read-only reason says {string}', async function (this: World, text: st
 Then('the calendar picker does not offer {string}', async function (this: World, name: string) {
   const picker = this.page.locator(tid('event-calendar'));
   await expect(picker).toBeVisible();
-  // the list loads after the dialog opens: wait for the own calendars, then check the other one is not among them
+  // the list loads after the dialog opens: wait for the writable calendars, then check the other one is not among them
   await expect.poll(async () => await optionLabels(picker), { message: 'calendar picker options' }).toContain('Work');
   expect(await optionLabels(picker)).not.toContain(name);
 });

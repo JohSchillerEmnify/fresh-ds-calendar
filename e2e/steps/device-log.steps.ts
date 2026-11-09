@@ -29,6 +29,14 @@ Given('this device cannot share files', async function (this: World) {
   });
 });
 
+Given('this device shares only text files', async function (this: World) {
+  await this.context.addInitScript(() => {
+    const w = window as unknown as { sharedLogFile?: { name: string; type: string; text: Promise<string> } };
+    Object.defineProperty(Navigator.prototype, 'canShare', { value: (d: { files?: File[] }) => !!d.files?.length && d.files.every((f) => f.type === 'text/plain'), configurable: true });
+    Object.defineProperty(Navigator.prototype, 'share', { value: async (d: { files: File[] }) => { const f = d.files[0]!; w.sharedLogFile = { name: f.name, type: f.type, text: f.text() }; }, configurable: true });
+  });
+});
+
 When('I open the error log in the settings', async function (this: World) {
   if (await page(this).isVisible()) return;
   if (!this.page.url().startsWith('http')) {
@@ -80,4 +88,18 @@ When('I share the error log', async function (this: World) { await download(this
 Then('the downloaded error log holds {int} entries', async function (this: World, n: number) {
   const path = (this as World & { deviceLogFile?: string }).deviceLogFile!;
   expect(JSON.parse(await readFile(path, 'utf8')).entries).toHaveLength(n);
+});
+
+When('I share the error log with the share sheet', async function (this: World) {
+  await this.page.getByTestId('device-log-share').click();
+  await this.page.waitForFunction(() => 'sharedLogFile' in window);
+});
+
+Then('the shared error log is a text file with {int} entries', async function (this: World, n: number) {
+  const file = await this.page.evaluate(async () => {
+    const f = (window as unknown as { sharedLogFile: { name: string; type: string; text: Promise<string> } }).sharedLogFile;
+    return { name: f.name, type: f.type, text: await f.text };
+  });
+  expect([file.type, file.name]).toEqual(['text/plain', expect.stringMatching(/^calendar-error-log-\d{4}-\d{2}-\d{2}\.txt$/)]);
+  expect(JSON.parse(file.text).entries).toHaveLength(n);
 });

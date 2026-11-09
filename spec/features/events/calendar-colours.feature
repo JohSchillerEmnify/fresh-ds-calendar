@@ -10,8 +10,8 @@ Feature: A colour for every calendar
   has now is always chosen: a palette colour is marked, any other colour (a custom one, or the 11 event colours Google
   gave a new calendar) is shown as one extra "Current color" swatch in front of the palette, marked. A colour picker
   ("Custom") and a field for a hex value (`#1a73e8`, checked like the theme's seed colour) set any other colour. A
-  palette colour goes to Google as the person's calendar list `colorId`, a custom one as `backgroundColor` and
-  `foregroundColor` (Google keeps the list colour per person, also for calendars the person cannot edit). Picking one
+  palette colour and a custom one both go to Google as the person's calendar list `backgroundColor` and
+  `foregroundColor` (Google's own colour on the list supersedes a bare `colorId`) (Google keeps the list colour per person, also for calendars the person cannot edit). Picking one
   recolours the calendar's events at once on this device and it holds on every device. Events that have a colour of
   their own keep it.
 
@@ -63,7 +63,7 @@ Feature: A colour for every calendar
     And I leave the settings
     Then the event "Dinner" is drawn in the colour "#f83a22"
 
-  Scenario: A palette colour goes to Google as its colour id
+  Scenario: A palette colour goes to Google as that colour, replacing the one Google holds
     When I open the settings
     And I open the settings group "Calendars"
     And I open the calendar "Family" in the settings

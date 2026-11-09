@@ -1,10 +1,17 @@
 # Changelog
 
 ## 2026-11-09
+- Clearer settings descriptions and corrected German texts throughout the app. A change the server refuses now says why.
+- Settings › Views: switch each view of the view switcher on or off (at least one stays on). The Clock with rings is now a regular view; the plain clock stays in Labs.
+- Settings › Views: events side by side can be set to "Only 1" in the day and week view: events starting close together sit side by side, later overlapping ones are stacked on top, as before.
+- Fixed: the colour and the default reminders of your main calendar could not be saved; they can now.
+- The error log also notes when the app had to undo a change or a sync replaced one you had just made, and its Share button works in Chrome (and in the Android app after its next update).
+- Fixed: a calendar colour picked from Google's colours no longer jumps back to the old one.
+- The app starts a little faster: it loads only the icon style you use.
 - When you edit a task list you can add new items (one per line).
 - A task list with only a title can be ticked off: the title becomes its first item, ticked.
 - Every calendar can now get its own colour: Settings › Calendars › the calendar › Colour. Pick one of Google's calendar colours or any colour with the colour picker; the current colour is always shown. It is saved in Google for you only.
-- Shared calendars like your family calendar can now be edited by everyone who may edit them in Google: open, change, move and delete their events, and add new ones to them.
+- Editing now follows Google: every calendar you may edit in Google (your family calendar, a calendar someone shared with you with edit rights) can be edited here too, and new events can go into it. Calendars shared with you for viewing stay look-only.
 
 ## 2026-11-01
 - New look (Material 3 Expressive): floating bottom bar that slides away while you scroll (or a side menu instead), Compact or Expressive bar sizes, task lists in a row inside the bar, theme scenes always fully visible.

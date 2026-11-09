@@ -29,6 +29,14 @@ async function copy() {
   ui.notify(t(await copyText(text.value, field.value) ? 'deviceLog.copied' : 'deviceLog.copyFailed'));
 }
 
+/** Runs Share or Download; when nothing could leave the device, copies the log and says so, so the button never does nothing. */
+async function leave(how: () => Promise<string>) {
+  if (await how() !== 'failed') return;
+  text.value = exportDeviceLog();
+  await new Promise((r) => requestAnimationFrame(r));
+  ui.notify(t(await copyText(text.value, field.value) ? 'deviceLog.sendCopied' : 'deviceLog.sendFailed'));
+}
+
 function back() {
   if (window.history.state?.back) router.back();
   else router.push('/settings/account');
@@ -45,9 +53,9 @@ function back() {
       <section class="card">
         <p class="sub hint">{{ t('deviceLog.hint') }}</p>
         <div class="actions">
-          <Button variant="tonal" :disabled="!entries.length" data-testid="device-log-share" @click="shareDeviceLog()"><template #icon><IconShare /></template>{{ t('deviceLog.share') }}</Button>
+          <Button variant="tonal" :disabled="!entries.length" data-testid="device-log-share" @click="leave(shareDeviceLog)"><template #icon><IconShare /></template>{{ t('deviceLog.share') }}</Button>
           <Button variant="outlined" :disabled="!entries.length" data-testid="device-log-copy" @click="copy"><template #icon><IconCopy /></template>{{ t('deviceLog.copy') }}</Button>
-          <Button variant="outlined" :disabled="!entries.length" data-testid="device-log-download" @click="downloadDeviceLog()"><template #icon><IconDownload /></template>{{ t('deviceLog.download') }}</Button>
+          <Button variant="outlined" :disabled="!entries.length" data-testid="device-log-download" @click="leave(downloadDeviceLog)"><template #icon><IconDownload /></template>{{ t('deviceLog.download') }}</Button>
           <Button variant="text" :disabled="!entries.length" data-testid="device-log-clear" @click="clearDeviceLog()"><template #icon><IconDelete /></template>{{ t('deviceLog.clear') }}</Button>
         </div>
         <textarea ref="field" v-model="text" class="copy-field" readonly aria-hidden="true" tabindex="-1" />

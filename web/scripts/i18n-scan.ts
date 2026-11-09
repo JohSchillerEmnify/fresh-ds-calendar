@@ -23,6 +23,9 @@ const ALLOWED: { file: string; text: string; why: string }[] = [
   { file: 'web/src/features/tasklists/ops.ts', text: 'replaced below', why: 'placeholder `apply` that is always overwritten before use; a programming error, never shown' },
   { file: 'web/src/features/tasklists/ops.ts', text: 'delete failed', why: 'fallback error object handed to a promise rejection when the queue gave none; the snackbar text comes from the failed request' },
   { file: 'web/src/features/tasklists/TaskListCard.vue', text: 'TaskListCard needs a task list', why: 'developer error: the card was mounted with a non-task-list item' },
+  { file: 'web/src/features/calendar/place.ts', text: 'place search answered ${res.status}', why: 'LocationField catches it and only empties the suggestions; never shown' },
+  { file: 'web/src/native/apkHint.ts', text: 'Download', why: 'button name quoted in a code comment inside the notify call, not a literal' },
+  { file: 'web/src/native/apkHint.ts', text: 'Later', why: 'button name quoted in a code comment inside the notify call, not a literal' },
 ];
 
 const args = process.argv.slice(2);

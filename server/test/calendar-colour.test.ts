@@ -57,12 +57,14 @@ describe('Google calendar palette', () => {
     expect(r.body.colors[0]).toEqual({ id: '1', background: '#ac725e', foreground: '#1d1d1d' });
   });
 
-  it('colorId sets the palette colour in Google and the calendar follows it', async () => {
+  it('a palette pick replaces the RGB colour Google already holds (Google lets RGB supersede colorId)', async () => {
+    expect((await remote('primary')).backgroundColor).toBe('#039be5');
     const r = await t.json('PATCH', '/api/calendars/primary', { colorId: '16' });
     expect(r.status).toBe(200);
     expect(r.body.color).toBe('#4986e7');
-    const g = await remote('primary');
-    expect(g).toMatchObject({ colorId: '16', backgroundColor: '#4986e7' });
+    expect((await remote('primary')).backgroundColor).toBe('#4986e7');
+    // Google answered "Invalid foreground color." to the palette's own #1d1d1d: the text colour is black or white
+    expect((await remote('primary')).foregroundColor).toBe('#000000');
   });
 
   it('a custom colour clears the palette id', async () => {

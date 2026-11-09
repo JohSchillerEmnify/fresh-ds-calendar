@@ -7,7 +7,9 @@ import { useCalendarStore } from '@/stores/calendar';
 import { RETURN_KEY, useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useDeviceStore } from '@/stores/device';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
+import { firstStableView, isStableViewOn, stableViewPath } from '@/features/views';
 
 const CAL_VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
 
@@ -65,7 +67,10 @@ const routes: RouteRecordRaw[] = [
       // back to the page the person wanted before being sent to /signin
       const view = useSettingsStore().settings.defaultView;
       const target = homeTarget(takeReturn(), resumePath(), null);
-      return target ?? { path: routePath(view, useClockStore().todayDate), query: to.query };
+      // a default view the person switched off gives way to the first main view that is on
+      const chosen = usePrefsStore().stableViews;
+      const start = isStableViewOn(view, chosen) ? routePath(view, useClockStore().todayDate) : stableViewPath(firstStableView(chosen), useClockStore().todayDate);
+      return target ?? { path: start, query: to.query };
     },
   },
   ...CAL_VIEWS.map(viewRoute),

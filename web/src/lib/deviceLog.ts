@@ -2,6 +2,8 @@
  * Error log on this device (feature device-log): the last entries in `localStorage`, kept over sign-out (every text is scrubbed: no personal data).
  */
 import { shallowRef } from 'vue';
+import { isNativeApp } from '@/native/app';
+import { shareFileNative } from '@/native/shareFile';
 import { isIos, isStandalone } from '@/pwa/install';
 
 export const DEVICE_LOG_KEY = 'calendar.deviceLog';
@@ -10,7 +12,7 @@ const MAX_TEXT = 300;
 /** The build version (as `pwa/update` reads it; not imported: the API client imports this module). */
 const runningVersion = (): string => document.documentElement.dataset.appVersion ?? __APP_VERSION__;
 
-export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace';
+export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision';
 export type LogData = Record<string, string | number | boolean | undefined>;
 
 export interface LogEntry {
@@ -98,6 +100,7 @@ function summarize(kind: LogKind, d: LogData): string {
     case 'api': return join(d.method as string, d.route as string, d.status as number, d.code as string);
     case 'outbox': return join(`${d.op} ${d.decision}`, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'sync': return join('sync', d.task as string, d.status as number, d.code as string, err);
+    case 'decision': return join(d.what as string, d.decision as string, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'trace': return join(d.step as string, d.detail as string);
     case 'sw': return join('service worker', d.step as string, err);
     default: return d.name ? `${d.prefix ? `${d.prefix} ` : ''}${d.name}: ${d.message ?? ''}` : String(d.message ?? '');
@@ -118,6 +121,8 @@ export function logDevice(kind: LogKind, data: LogData): void {
 export function installDeviceLog(target: EventTarget = window): () => void {
   const onError = (ev: Event): void => {
     const e = ev as ErrorEvent;
+    // the browser's ResizeObserver loop notice is harmless and would drown real errors in the 500 entries
+    if (!e.error && /^ResizeObserver loop/.test(e.message ?? '')) return;
     const f = errorFacts(e.error ?? e.message);
     logDevice('error', { name: f.errorName, message: f.errorMessage, stack: f.stack });
   };
@@ -134,20 +139,33 @@ export function installDeviceLog(target: EventTarget = window): () => void {
 export function exportDeviceLog(): string {
   return JSON.stringify({ app: runningVersion(), exportedAt: new Date().toISOString(), entries: deviceLog.value }, null, 2);
 }
-const fileName = (): string => `calendar-error-log-${new Date().toISOString().slice(0, 10)}.json`;
+const fileName = (ext: 'json' | 'txt' = 'json'): string => `calendar-error-log-${new Date().toISOString().slice(0, 10)}.${ext}`;
 
-export function downloadDeviceLog(): void {
+/** What Share or Download did; `failed` means nothing left the device, so the caller must offer another way out. */
+export type ShareOutcome = 'shared' | 'downloaded' | 'cancelled' | 'failed';
+
+/** The app's WebView has neither Web Share nor blob downloads: the file goes through the native share sheet. */
+async function viaNativeSheet(): Promise<ShareOutcome> {
+  const r = await shareFileNative(fileName(), exportDeviceLog());
+  return r === 'unavailable' ? 'failed' : r;
+}
+
+export async function downloadDeviceLog(): Promise<ShareOutcome> {
+  if (isNativeApp()) return viaNativeSheet();
   const url = URL.createObjectURL(new Blob([exportDeviceLog()], { type: 'application/json' }));
   const a = Object.assign(document.createElement('a'), { href: url, download: fileName() });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return 'downloaded';
 }
 
-/** The Web Share sheet with the log as a file where the device can share files, else a download. */
-export async function shareDeviceLog(): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const file = new File([exportDeviceLog()], fileName(), { type: 'application/json' });
+/** The share sheet with the log as a file (native sheet in the app; Web Share elsewhere, as .txt: Chrome refuses .json), else a download. */
+export async function shareDeviceLog(): Promise<ShareOutcome> {
+  if (isNativeApp()) return viaNativeSheet();
+  // no await before navigator.share: it needs the click's user activation
+  const file = new File([exportDeviceLog()], fileName('txt'), { type: 'text/plain' });
   if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: file.name });
@@ -156,6 +174,5 @@ export async function shareDeviceLog(): Promise<'shared' | 'downloaded' | 'cance
       if ((e as Error)?.name === 'AbortError') return 'cancelled';
     }
   }
-  downloadDeviceLog();
-  return 'downloaded';
+  return downloadDeviceLog();
 }

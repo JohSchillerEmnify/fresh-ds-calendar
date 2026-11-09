@@ -27,5 +27,5 @@ Feature: Task lists live in their own calendar
 
   Scenario: The tasks calendar can be shown in Google from the settings
     Given Google has a hidden calendar "Calendar app: tasks"
-    When I turn on "Show tasks calendar in Google" in the settings
+    When I turn on "Show the task lists calendar in Google" in the settings
     Then Google shows the calendar "Calendar app: tasks"

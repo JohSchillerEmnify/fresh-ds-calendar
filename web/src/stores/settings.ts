@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { Category, Settings, SettingsPatch } from '@/api/types';
 import { applyTheme, applyThemeMode, DEFAULT_SEED } from '@/theme';
+import { logUndone } from '@/lib/decisionLog';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
 import { usePrefsStore } from './prefs';
@@ -75,6 +76,7 @@ export const useSettingsStore = defineStore('settings', () => {
         s.value = saved;
       }
     } catch (e) {
+      logUndone('setting', e);
       s.value = before;
       saveError.value = e instanceof ApiError ? e.userMessage : 'Could not save settings';
       throw e;
@@ -108,6 +110,7 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       s.value = keep(await api.reorderCategories(ids));
     } catch (e) {
+      logUndone('category order', e);
       s.value = before;
       throw e;
     }

@@ -103,8 +103,8 @@ export class GoogleProvider implements CalendarProvider {
       return r;
     } catch (e) {
       // an error rewrapped inside `fn` (the 410 of a sync token) is described by Google's own answer it carries
-      const { status, reason, code, retry } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
-      logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, durationMs: Date.now() - started });
+      const { status, reason, code, retry, field, message } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
+      logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, field, message, durationMs: Date.now() - started });
       if (isRateLimit(status, reason)) throw this.guard.noteRateLimited(op, retryAfterSec(e));
       throw mapGoogleError(e);
     }
@@ -142,18 +142,27 @@ export class GoogleProvider implements CalendarProvider {
     return { id: res.data.id!, summary: res.data.summary ?? summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden: false };
   }
 
+  /** The id a calendarList write needs: Google refuses the `primary` keyword there ("Invalid resource id value"). */
+  private async listEntryId(calendarId: string): Promise<string> {
+    if (calendarId !== 'primary') return calendarId;
+    return (await this.listCalendars()).find((c) => c.primary)?.owner ?? calendarId;
+  }
+
   async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }), true, calendarId);
+    const id = await this.listEntryId(calendarId);
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId: id, requestBody: { hidden } }), true, calendarId);
   }
 
   async setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void> {
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true, calendarId);
+    const id = await this.listEntryId(calendarId);
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId: id, requestBody: { defaultReminders: reminders } }), true, calendarId);
   }
 
   async setCalendarColor(calendarId: string, color: { colorId: string } | { backgroundColor: string; foregroundColor: string }): Promise<void> {
     // a palette id is written as such; RGB needs colorRgbFormat (Google then picks the nearest colorId itself)
     const rgb = 'backgroundColor' in color;
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, ...(rgb ? { colorRgbFormat: true } : {}), requestBody: color }), true, calendarId);
+    const id = await this.listEntryId(calendarId);
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId: id, ...(rgb ? { colorRgbFormat: true } : {}), requestBody: color }), true, calendarId);
   }
 
   async calendarColors(): Promise<CalendarColor[]> {

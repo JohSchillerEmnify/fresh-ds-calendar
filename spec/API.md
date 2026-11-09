@@ -73,8 +73,7 @@ interface Calendar {
   name: string;            // 'Personal' | 'Work' in the mock
   color: string;           // '#rrggbb'
   primary: boolean;
-  writable: boolean;       // Google role owner or writer
-  own: boolean;            // editable calendar: the person's own, or a shared group calendar (family) they may write; events are created and moved only into these (see CalendarEvent.readOnly)
+  writable: boolean;       // Google role owner or writer, whoever owns the calendar: editing follows Google's permissions; events are created and moved only into these (see CalendarEvent.readOnly)
 }
 
 interface CalendarEvent {
@@ -91,7 +90,7 @@ interface CalendarEvent {
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
   color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for an event of the contacts Birthdays calendar)
   special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
-  readOnly?: true;         // not in an editable calendar (another person's own calendar, even with write rights), or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
+  readOnly?: true;         // not in a writable calendar (Google role reader or freeBusyReader; reason `calendar`, "Calendar of …"), or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not writable; PATCH/DELETE answer 400
   readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };  // with readOnly: "Invitation from <by>" / "Calendar of <by>"; absent for the contacts Birthdays calendar
   dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
@@ -189,6 +188,10 @@ default `true`) shows the "From <day>" label on task lists carried over to today
 The person pref `labsViews` (object, default `{}`): per Labs view id (`clock`, `timeline`, `strip`, …) whether the view
 switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; anything else is a 400). `PATCH` merges
 per id. A missing id follows the client's registry default (Strip off, others on).
+The person pref `stableViews` (object, default `{}`) is the same for the main views of the view switcher (`year`,
+`month`, `week`, `day`, `tasks`, `clock-rings`; the last is the Clock): per id whether the switcher offers the view.
+Same validation (a 400 for anything but ids mapped to booleans) and per-id merge; a missing id is on. The server does
+not keep one view on: the client disables the last switch, and when every view is off it offers all of them.
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
 open the list sheet.
@@ -243,9 +246,10 @@ on, unless `switchedAt` is later than the plan's last switch, then the person's 
 calendar: plans are the person's choice like the other prefs and must apply offline from the device copy (ADR 0023).
 Anything invalid answers 400 `VALIDATION_ERROR` (field `calendarPlans`).
 
-**Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
+**Events side by side** (`prefs.daySideBySide` `1 | 2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `1 | 2 | 3`, default `2`;
 per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
-columns next to each other before laying further ones over the last column. Any other value answers 400
+columns next to each other before laying further ones over the last column; `1` is "Only 1": the earlier start-group cascade (close starts side by side,
+later overlaps stacked on top). Any other value answers 400
 `VALIDATION_ERROR` (field `daySideBySide` / `weekSideBySide`).
 
 **Bedtime** (`prefs.bedtime`, per person, feature bedtime): an object
@@ -310,7 +314,8 @@ per-person file `calendarColors`, so the app has the palette on the device (it s
 
 Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string; colorId?: string }` (at least one). `hidden` stores the
 person's choice. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
-person's calendar list colour (`calendarList.patch` with `colorId`; Google then answers its background colour). `color`
+person's calendar list colour, written as that colour's RGB like a custom one (Google lets an RGB colour already on the list entry
+supersede a bare `colorId`, so a `colorId` alone would not change what is shown). `color`
 (`#rrggbb`, answered lower-case; anything else `400`) is a custom colour: `calendarList.patch` with `colorRgbFormat=true`,
 `backgroundColor` = `color`, `foregroundColor` = black or white, whichever reads better (Google then clears or re-derives the
 palette id). `color` together with `colorId` is `400`. Both work for every calendar in `GET /api/calendars`, also one the person
@@ -516,7 +521,7 @@ answers `400` (`calendar.birthday.leapDay`: the yearly rule would have to change
 answer is the opened instance (same `id`) with the change applied. `DELETE` removes the whole series (Google does not touch
 Contacts). `If-Match` is checked against the instance.
 
-Only events in editable calendars (own calendars and shared group calendars the person may write, e.g. the family calendar; an event whose organiser is its calendar is not an invitation) are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
+Editing follows Google's permissions: only events in calendars the person may write (role owner or writer, whoever owns the calendar, e.g. the family calendar or another person's calendar shared with edit rights; an event whose organiser is its calendar is not an invitation) are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
 (`calendar.event.notOwn`), as do `POST` into a calendar that is not editable and a `PATCH` moving an event into one (`calendarId`).
 The checks come before `If-Match`.
 
@@ -1001,7 +1006,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/lookups` | – | How many change lookups the server has made against the mock Google since reset (live sync). `200 { count }` |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
-| `POST` | `/api/__test/refuse-next-write` | `{ status?: 400 \| 404 }` (default 400) | The next event or task list write request (`POST`, `PATCH`, `DELETE` on `/api/events` or `/api/tasklists`, incl. items), answers that status (`400 VALIDATION_ERROR` or `404 NOT_FOUND`) without changing anything; later writes are normal ("the server refuses the next change as invalid", feature offline-changes). Cleared by reset. `200 { status }` |
+| `POST` | `/api/__test/refuse-next-write` | `{ status?: 400 \| 404 }` (default 400) | The next event, task list or calendar write request (`POST`, `PATCH`, `DELETE` on `/api/events`, `/api/tasklists` or `/api/calendars`, incl. items), answers that status (`400 VALIDATION_ERROR` or `404 NOT_FOUND`) without changing anything; later writes are normal ("the server refuses the next change as invalid", feature offline-changes). Cleared by reset. `200 { status }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |
 | `POST` | `/api/__test/places` | `{ places: { name, address, lat, lon }[] }` | The places the stand-in place search knows (feature event-location), in order; cleared by reset. `200 { places }` |
 | `GET` | `/api/__test/photon?q&lang&limit` | – | Photon's GeoJSON answer (`FeatureCollection` of `Point` features with `name`, `street`, `housenumber`, `postcode`, `city`): the known places whose name or address contains every word of `q` (case-insensitive), in order, at most `min(limit, 5)`. `200` |

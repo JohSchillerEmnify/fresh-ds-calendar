@@ -18,12 +18,14 @@ export interface LabsView {
   dateless?: true;
   /** A date-less view with the Today button (no arrows): the view brings itself back to now (`useViewToday`). */
   today?: true;
+  /** A main view of the switcher (see `features/views/stableViews`): not experimental, no Labs switch. */
+  stable?: true;
 }
 
 /** Every Labs view; adding an entry here adds its switch in the settings and its tab in the view switcher. */
 export const LABS_VIEWS: readonly LabsView[] = [
   { id: 'clock', labelKey: 'views.clock', icon: IconClock, route: '/clock', defaultOn: true },
-  { id: 'clock-rings', labelKey: 'views.clockRings', icon: IconClock, route: '/clock-rings', defaultOn: false },
+  { id: 'clock-rings', labelKey: 'views.clockRings', icon: IconClock, route: '/clock-rings', defaultOn: true, stable: true },
   { id: 'timeline', labelKey: 'views.timeline', icon: IconTimeline, route: '/timeline', defaultOn: true, dateless: true, today: true },
   { id: 'strip', labelKey: 'views.strip', icon: IconStrip, route: '/strip', defaultOn: false },
   { id: 'zoom', labelKey: 'views.zoom', icon: IconZoomIn, route: '/zoom', defaultOn: true },
@@ -37,9 +39,9 @@ export function isLabsViewOn(id: string, chosen: Record<string, boolean>): boole
   return chosen[id] ?? LABS_VIEWS.find((v) => v.id === id)?.defaultOn ?? true;
 }
 
-/** The Labs views the view switcher offers: none with Labs off, else those switched on. */
+/** The Labs views the view switcher offers: none with Labs off, else those switched on (the main views are not Labs views here). */
 export function visibleLabsViews(labsOn: boolean, chosen: Record<string, boolean>): LabsView[] {
-  return labsOn ? LABS_VIEWS.filter((v) => isLabsViewOn(v.id, chosen)) : [];
+  return labsOn ? LABS_VIEWS.filter((v) => !v.stable && isLabsViewOn(v.id, chosen)) : [];
 }
 
 /** The registry entry of `lab` when it is a date-less view (see {@link LabsView.dateless}), else undefined. */

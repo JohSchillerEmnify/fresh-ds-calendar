@@ -25,7 +25,8 @@ import {
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { placeLeads, placeOf, placeProps } from './place.js';
-import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
+import { calHash, logEvent } from '../lib/diag.js';
+import { hasWriteRole, readOnlyReason } from './ownership.js';
 import { CalendarChanges, type CalendarHealth, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
@@ -55,6 +56,7 @@ const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDA
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
+  private calGen = 0;
   /** Calendars too large to walk for a sync token, and until when they are left alone (see {@link CalendarChanges}). */
   private readonly noTokenUntil = new Map<string, number>();
   /** Calendars Google keeps refusing, and their back-off (see {@link CalendarChanges}). */
@@ -75,7 +77,7 @@ export class CalendarService {
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
   ) {
-    this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
+    this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
   }
 
   private get tz() { return this.config.tz; }
@@ -85,7 +87,7 @@ export class CalendarService {
     return (this.provider.cooldownMs?.() ?? 0) > 0;
   }
   invalidate(): void {
-    this.calCache = null;
+    this.dropCalendars();
     this.tasks.forget();
   }
 
@@ -93,9 +95,17 @@ export class CalendarService {
   private async providerCalendars(): Promise<ProviderCalendar[]> {
     const now = this.clock.real();
     if (this.calCache && now - this.calCache.at < CAL_TTL_MS) return this.calCache.cals;
+    const gen = this.calGen;
     const cals = await this.provider.listCalendars();
-    this.calCache = { at: now, cals };
+    // a list read before a write (a new colour) must not be kept as fresh
+    if (gen === this.calGen) this.calCache = { at: now, cals };
     return cals;
+  }
+
+  /** Forgets the cached calendar list after a write, including a read still under way. */
+  private dropCalendars(): void {
+    this.calCache = null;
+    this.calGen++;
   }
 
   /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
@@ -105,10 +115,9 @@ export class CalendarService {
   }
 
   async calendars(): Promise<Calendar[]> {
-    this.calCache = null; // the endpoint always hits the provider (outages must surface)
-    const all = await this.providerCalendars();
+    this.dropCalendars(); // the endpoint always hits the provider (outages must surface)
     return (await this.eventCalendars()).map((c) => ({
-      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c), own: isOwnCalendar(c, all),
+      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
       defaultReminders: popups(c.defaultReminders),
     }));
   }
@@ -124,7 +133,7 @@ export class CalendarService {
     if (!cal) throw notFound('Calendar not found');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
     await this.provider.setCalendarDefaultReminders(calId, next);
-    this.calCache = null;
+    this.dropCalendars();
     return minutes;
   }
 
@@ -146,12 +155,17 @@ export class CalendarService {
     const cal = (await this.eventCalendars()).find((c) => c.id === id);
     if (!cal) throw notFound('Calendar not found');
     if ('colorId' in pick) {
-      if (!(await this.colorPalette()).some((c) => c.id === pick.colorId)) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
-      await this.provider.setCalendarColor(id, { colorId: pick.colorId });
+      const entry = (await this.colorPalette()).find((c) => c.id === pick.colorId);
+      if (!entry) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
+      // Google lets an RGB colour on the list entry supersede colorId, so a palette pick is written as its RGB too;
+      // the text colour is black or white: Google refused the palette's own #1d1d1d ("Invalid foreground color.")
+      logEvent('calendar_color_write', { calHash: calHash(id), kind: 'palette', background: entry.background, foreground: onColor(entry.background) });
+      await this.provider.setCalendarColor(id, { backgroundColor: entry.background, foregroundColor: onColor(entry.background) });
     } else {
+      logEvent('calendar_color_write', { calHash: calHash(id), kind: 'custom', background: pick.color, foreground: onColor(pick.color) });
       await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
     }
-    this.calCache = null;
+    this.dropCalendars();
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
@@ -201,13 +215,12 @@ export class CalendarService {
     if (!(await this.eventCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
   }
 
-  /** Events go only into the person's own calendars (403 `calendar.event.notOwn` otherwise). */
+  /** Events go only into calendars the person may write in Google (403 `calendar.event.notOwn` otherwise). */
   private async requireOwnCalendar(id: string): Promise<void> {
-    const all = await this.providerCalendars();
-    if (!isOwnCalendar(all.find((c) => c.id === id), all)) throw notOwn();
+    if (!hasWriteRole((await this.providerCalendars()).find((c) => c.id === id))) throw notOwn();
   }
 
-  /** An ordinary event can be changed only when it is in an own calendar and organised by the person (403 `calendar.event.notOwn`). */
+  /** An ordinary event can be changed only when its calendar is writable and organised by the person (403 `calendar.event.notOwn`). */
   private async requireOwnEvent(ev: GoogleEvent): Promise<void> {
     if (readOnlyReason(ev, await this.providerCalendars())) throw notOwn();
   }
@@ -472,7 +485,7 @@ export class CalendarService {
   /** Birthdays of the contacts calendar and of calendars the person cannot write stay read-only. */
   private async requireEditableBirthday(cur: GoogleEvent): Promise<void> {
     const cal = (await this.providerCalendars()).find((c) => c.id === cur.calendarId);
-    if (inContactsCalendar(cur) || !isOwnCalendar(cal, await this.providerCalendars())) throw readOnlyBirthday();
+    if (inContactsCalendar(cur) || !hasWriteRole(cal)) throw readOnlyBirthday();
   }
 
   /** Start and end of the opened instance after the series moved to the month and day of `masterDate`. */
