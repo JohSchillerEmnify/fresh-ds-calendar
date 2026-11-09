@@ -2,6 +2,8 @@
  * Error log on this device (feature device-log): the last entries in `localStorage`, kept over sign-out (every text is scrubbed: no personal data).
  */
 import { shallowRef } from 'vue';
+import { isNativeApp } from '@/native/app';
+import { shareFileNative } from '@/native/shareFile';
 import { isIos, isStandalone } from '@/pwa/install';
 
 export const DEVICE_LOG_KEY = 'calendar.deviceLog';
@@ -135,20 +137,33 @@ export function installDeviceLog(target: EventTarget = window): () => void {
 export function exportDeviceLog(): string {
   return JSON.stringify({ app: runningVersion(), exportedAt: new Date().toISOString(), entries: deviceLog.value }, null, 2);
 }
-const fileName = (): string => `calendar-error-log-${new Date().toISOString().slice(0, 10)}.json`;
+const fileName = (ext: 'json' | 'txt' = 'json'): string => `calendar-error-log-${new Date().toISOString().slice(0, 10)}.${ext}`;
 
-export function downloadDeviceLog(): void {
+/** What Share or Download did; `failed` means nothing left the device, so the caller must offer another way out. */
+export type ShareOutcome = 'shared' | 'downloaded' | 'cancelled' | 'failed';
+
+/** The app's WebView has neither Web Share nor blob downloads: the file goes through the native share sheet. */
+async function viaNativeSheet(): Promise<ShareOutcome> {
+  const r = await shareFileNative(fileName(), exportDeviceLog());
+  return r === 'unavailable' ? 'failed' : r;
+}
+
+export async function downloadDeviceLog(): Promise<ShareOutcome> {
+  if (isNativeApp()) return viaNativeSheet();
   const url = URL.createObjectURL(new Blob([exportDeviceLog()], { type: 'application/json' }));
   const a = Object.assign(document.createElement('a'), { href: url, download: fileName() });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return 'downloaded';
 }
 
-/** The Web Share sheet with the log as a file where the device can share files, else a download. */
-export async function shareDeviceLog(): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const file = new File([exportDeviceLog()], fileName(), { type: 'application/json' });
+/** The share sheet with the log as a file (native sheet in the app; Web Share elsewhere, as .txt: Chrome refuses .json), else a download. */
+export async function shareDeviceLog(): Promise<ShareOutcome> {
+  if (isNativeApp()) return viaNativeSheet();
+  // no await before navigator.share: it needs the click's user activation
+  const file = new File([exportDeviceLog()], fileName('txt'), { type: 'text/plain' });
   if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: file.name });
@@ -157,6 +172,5 @@ export async function shareDeviceLog(): Promise<'shared' | 'downloaded' | 'cance
       if ((e as Error)?.name === 'AbortError') return 'cancelled';
     }
   }
-  downloadDeviceLog();
-  return 'downloaded';
+  return downloadDeviceLog();
 }

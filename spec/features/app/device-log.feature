@@ -81,3 +81,25 @@ Feature: An error log on this device that I can send
     When I open the error log in the settings
     And I share the error log
     Then the downloaded error log holds 2 entries
+
+  Scenario: Share hands the log to the share sheet as a text file
+    Given this device shares only text files
+    And this device's error log holds:
+      | at               | message                  |
+      | 2026-10-12 08:01 | Error: sync stopped      |
+      | 2026-10-12 08:05 | Error: worker not loaded |
+    When I open the error log in the settings
+    And I share the error log with the share sheet
+    Then the shared error log is a text file with 2 entries
+
+  # The Android app has no Web Share and ignores blob downloads: its native share sheet needs the app's plugins.
+  # unit: web/test/error-log-view.test.ts:copies the log and says so when the app cannot open its share sheet
+  @unit
+  Scenario: Share copies the log when the app cannot open its share sheet
+    Given the app cannot open its share sheet
+    And this device's error log holds:
+      | at               | message             |
+      | 2026-10-12 08:01 | Error: sync stopped |
+    When I open the error log in the settings
+    And I share the error log
+    Then the error log is copied and I am told so

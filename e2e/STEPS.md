@@ -3929,6 +3929,11 @@ I download the error log
 I share the error log
 this device cannot share files
 the downloaded error log holds {int} entries
+this device shares only text files
+I share the error log with the share sheet
+the shared error log is a text file with {int} entries
+the app cannot open its share sheet
+the error log is copied and I am told so
 ```
 
 - The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &

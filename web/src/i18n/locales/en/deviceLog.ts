@@ -10,6 +10,8 @@ export default {
   empty: 'No errors logged on this device.',
   copied: 'Error log copied',
   copyFailed: 'Could not copy the error log',
+  sendCopied: 'Could not share it, so the error log was copied',
+  sendFailed: 'Could not share or copy the error log',
   standalone: 'installed',
   kind: { error: 'Error', api: 'Request', outbox: 'Change', sw: 'Update', sync: 'Sync', trace: 'Step', decision: 'Decision' },
 };
