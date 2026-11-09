@@ -309,7 +309,8 @@ per-person file `calendarColors`, so the app has the palette on the device (it s
 
 Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string; colorId?: string }` (at least one). `hidden` stores the
 person's choice. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
-person's calendar list colour (`calendarList.patch` with `colorId`; Google then answers its background colour). `color`
+person's calendar list colour, written as that colour's RGB like a custom one (Google lets an RGB colour already on the list entry
+supersede a bare `colorId`, so a `colorId` alone would not change what is shown). `color`
 (`#rrggbb`, answered lower-case; anything else `400`) is a custom colour: `calendarList.patch` with `colorRgbFormat=true`,
 `backgroundColor` = `color`, `foregroundColor` = black or white, whichever reads better (Google then clears or re-derives the
 palette id). `color` together with `colorId` is `400`. Both work for every calendar in `GET /api/calendars`, also one the person

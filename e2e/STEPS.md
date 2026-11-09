@@ -1519,7 +1519,7 @@ Google lists the calendar {string} with the palette colour {int}
   and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
   the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it. "is drawn in the
   colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
-  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `colorId`
+  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `backgroundColor` is that palette colour
   is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
 
 ## Calendar off by a plan (`@id:calendar-off-plan`)

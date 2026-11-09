@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- Fixed: a calendar colour picked from Google's colours no longer jumps back to the old one.
 - The app starts a little faster: it loads only the icon style you use.
 - When you edit a task list you can add new items (one per line).
 - A task list with only a title can be ticked off: the title becomes its first item, ticked.
