@@ -50,7 +50,7 @@ export default defineConfig({
     environment: 'jsdom',
     testTimeout: 30000,
     include: ['test/**/*.test.ts'],
-    setupFiles: ['test/setup/eager-scenes.ts'],
+    setupFiles: ['test/setup/eager-scenes.ts', 'test/setup/auto-unmount.ts'],
     // MCU 0.4.0 ships extensionless ESM imports that Node cannot resolve; let Vite transform it.
     server: { deps: { inline: ['@material/material-color-utilities'] } },
   },
