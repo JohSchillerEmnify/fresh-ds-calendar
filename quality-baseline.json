@@ -135,7 +135,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.071
+   "duplicated-percent": 0.07
   },
   "types": {
    "AppConfig": 1,
@@ -493,7 +493,10 @@
    "long|web/src/lib/timers.ts": 1,
    "long|web/src/motion/RewardCheckbox.vue": 1,
    "long|web/src/motion/animate.ts": 1,
-   "long|web/src/motion/drag.ts": 6,
+   "long|web/src/motion/drag.ts": 3,
+   "long|web/src/motion/dragGrids.ts": 1,
+   "long|web/src/motion/dragTypes.ts": 1,
+   "long|web/src/motion/dragWatch.ts": 1,
    "long|web/src/motion/effects.ts": 1,
    "long|web/src/motion/level.ts": 2,
    "long|web/src/motion/sound.ts": 1,
@@ -583,6 +586,14 @@
     "comments"
    ],
    "keys": 14
+  },
+  {
+   "date": "2026-11-09",
+   "reason": "drag.ts split: moved long comment blocks count per file, total unchanged",
+   "gates": [
+    "comments"
+   ],
+   "keys": 3
   }
  ]
 }
