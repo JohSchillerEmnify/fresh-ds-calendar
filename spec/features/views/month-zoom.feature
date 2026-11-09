@@ -24,6 +24,7 @@ Feature: Zooming the month view
     And the calendar contains an event "Yoga" on 2026-10-14 from 18:00 to 19:00
     And the calendar contains an event "Kino" on 2026-10-28 from 20:00 to 21:30
 
+  @mobile
   Scenario: Pinching the month makes the weeks taller and shows more of each day
     Given the calendar contains an event "Coffee" on 2026-10-14 from 07:00 to 07:30
     And the calendar contains an event "Post" on 2026-10-14 from 08:00 to 08:30

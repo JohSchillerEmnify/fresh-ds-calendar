@@ -278,13 +278,15 @@ Feature: Displaying events in the calendar views
       | E04   | 11:30 | 12:00 |
       | E05   | 12:00 | 12:30 |
       | E06   | 12:30 | 13:00 |
+      | E07   | 13:00 | 13:30 |
+      | E08   | 13:30 | 14:00 |
     When I open the month view for 2026-10
     Then I see the event "Dentist" on 2026-10-14
     And every entry in the month cell of 2026-10-14 can be seen at least in part
-    And the month cell of 2026-10-14 leaves out the entry "E06"
+    And the month cell of 2026-10-14 leaves out the entry "E07"
     And the entries on 2026-10-14 fade out towards the bottom of the month cell
     When I tap the day 2026-10-14 in the month view
-    Then I see the event "E06" on 2026-10-14
+    Then I see the event "E07" on 2026-10-14
 
   @month @desktop
   Scenario: Task list cards in a narrow month grid do not flicker

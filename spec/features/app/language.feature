@@ -47,8 +47,18 @@ Feature: Language
 
   Scenario: German shows dates in German
     Given the browser language is "de-DE"
-    When I open the day view for 2026-10-13
-    Then the period title is "Dienstag, 13. Oktober 2026"
     When I open the month view for 2026-10
     Then the period title is "Oktober 2026"
     And the weekday headers are "Mo, Di, Mi, Do, Fr, Sa, So"
+
+  @desktop
+  Scenario: German shows the day title in full on a desktop
+    Given the browser language is "de-DE"
+    When I open the day view for 2026-10-13
+    Then the period title is "Dienstag, 13. Oktober 2026"
+
+  @mobile
+  Scenario: German shows the day title short on a phone
+    Given the browser language is "de-DE"
+    When I open the day view for 2026-10-13
+    Then the period title is "Di., 13. Okt."

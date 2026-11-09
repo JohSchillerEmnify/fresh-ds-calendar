@@ -67,6 +67,7 @@ Feature: A calendar that switches off by itself
       Then I see the event "Planning" on 2026-11-09
       And the calendar chip "Work" does not show that it switches by itself
 
+    @mobile
     Scenario: The calendar's row in the side menu opens the same sheet
       Given the view switcher on phones is set to "side menu"
       When I open the week view for 2026-11-02
