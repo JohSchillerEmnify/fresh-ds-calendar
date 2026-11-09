@@ -40,8 +40,21 @@ jobs:
           fetch-depth: 0 # scripts/version.sh counts commits since the last tag
           persist-credentials: false
 
+      # a late CI run or a re-run of an older commit must never replace a newer live version
+      - name: Skip a commit the live version already contains
+        id: fresh
+        run: |
+          : "${APP_URL:?set the repository variable APP_URL, e.g. https://cal.example.org}"
+          live="$(curl -fsS --retry 3 "${APP_URL%/}/api/health" | sed -n 's/.*"version":"[^"+]*+\([0-9a-f]*\)".*/\1/p' || true)"
+          if [[ -n "$live" ]] && git cat-file -e "$live^{commit}" 2>/dev/null && [[ "$(git rev-parse "$live")" != "$SHA" ]] \
+             && git merge-base --is-ancestor "$SHA" "$live"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::live $live already contains $SHA: not deploying an older version"
+          fi
+
       - name: Build and push the image to GHCR
         id: image
+        if: steps.fresh.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
@@ -58,6 +71,7 @@ jobs:
           echo "Pushed $repo:$SHA ($digest), version $version"
 
       - name: Run the digest on the VPS (forced command, health check and rollback happen there)
+        if: steps.fresh.outputs.skip != 'true'
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DIGEST: ${{ steps.image.outputs.digest }}
@@ -71,6 +85,7 @@ jobs:
             -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" "$DEPLOY_USER@$DEPLOY_HOST" "$DIGEST"
 
       - name: Check the public health endpoint
+        if: steps.fresh.outputs.skip != 'true'
         run: |
           : "${APP_URL:?set the repository variable APP_URL, e.g. https://cal.example.org}"
           curl --retry 10 --retry-delay 3 --retry-all-errors -fsS "${APP_URL%/}/api/health"
