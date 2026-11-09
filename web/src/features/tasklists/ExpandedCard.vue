@@ -20,7 +20,7 @@ import { blockGeometry, displayTitle, neutralName, TITLE_ROW_PX } from '@/lib/it
 import { useEffectiveHourHeight } from '@/composables/useHourHeight';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { anchorVisible, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
+import { anchorVisible, clipAboveBar, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
 import TaskListCard from './TaskListCard.vue';
 import { useTaskList } from './useTaskList';
 
@@ -63,10 +63,15 @@ function bounds(): Box {
     // a fit-mode grid clips instead of scrolling (`overflow: hidden`), so its area bounds the expansion just the same
     if ((o === 'auto' || o === 'scroll' || n.hasAttribute('data-scroll-area')) && n.scrollHeight > n.clientHeight) {
       const r = n.getBoundingClientRect();
-      return { left: Math.max(vp.left, r.left), top: Math.max(vp.top, r.top), right: Math.min(vp.right, r.right), bottom: Math.min(vp.bottom, r.bottom) };
+      return clipAboveBar({ left: Math.max(vp.left, r.left), top: Math.max(vp.top, r.top), right: Math.min(vp.right, r.right), bottom: Math.min(vp.bottom, r.bottom) }, barBox());
     }
   }
-  return vp;
+  return clipAboveBar(vp, barBox());
+}
+// The bottom bar floats over the calendar on a phone: the grid continues under it, so its rect is no room for the card.
+function barBox(): Box | null {
+  const bar = document.querySelector<HTMLElement>('[data-testid="bottom-bar"][data-position="bottom"]');
+  return bar ? bar.getBoundingClientRect() : null;
 }
 function place() {
   const el = panel.value;
