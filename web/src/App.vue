@@ -132,10 +132,10 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
     <SyncErrorBanner />
     <LastUpdatedNote />
     <FilterBar v-if="filterShown" />
-    <div class="body" :class="{ 'edge-pad': edgePad }">
+    <div class="body" :class="{ 'edge-pad': edgePad }" data-content-edge>
       <NavigationRail v-if="hasShell && navPosition === 'rail'" :items="items" :model-value="activeView" :phone="isPhone" :side="railSide" @update:model-value="switchTo" />
       <div class="col">
-        <SwipeCarousel :disabled="swipeDisabled" :class="{ 'reserve-end': fixedView }">
+        <SwipeCarousel :disabled="swipeDisabled" class="carousel" :class="{ 'reserve-end': fixedView }">
           <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
         </SwipeCarousel>
         <component :is="t" v-for="(t, i) in trayComponents" :key="i" />
@@ -154,7 +154,8 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
 <style scoped>
 .shell { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: clip; } /* the app never scrolls as a whole: overlays (month picker scrim) must not extend the document */
 .body { flex: 1; min-height: 0; display: flex; }
-.reserve-end { padding-bottom: var(--bar-reserve); }
+.carousel { padding-bottom: var(--snack-room, 0px); } /* a snackbar that stays never covers a control: only what it overlaps beyond the room the bar keeps */
+.reserve-end { padding-bottom: max(var(--bar-reserve), var(--snack-reach, 0px)); }
 .body.edge-pad { padding-bottom: var(--safe-bottom); }
 /* tablet and desktop: the floating bar never covers content */
 @media (min-width: 768px) { html[data-nav-pos='bottom'] .body { padding-bottom: var(--bar-reserve); } }

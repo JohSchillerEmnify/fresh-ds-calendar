@@ -25,6 +25,18 @@ Feature: An error log on this device that I can send
     And the error log has an entry "event.delete refused"
     And the error log does not contain "Dentist"
 
+  Scenario: A refused-change notice that stays covers no row of the settings
+    Given the calendar contains an event "Dentist Meyer" on 2026-10-13 from 10:00 to 11:00
+    And I have seen the week view for 2026-10-12
+    And the server refuses the next change as invalid
+    When I open the event "Dentist Meyer"
+    And I delete the event
+    And the undo time is over
+    Then I am told that the change to "Dentist Meyer" was not saved because the server refused it
+    When I open the settings
+    And I scroll the settings to the end
+    Then the notice covers no row of the settings
+
   Scenario: A calendar colour the server refused is in the error log as rolled back
     Given "jo@example.com" and "anna@example.com" may use the calendar
     And "jo@example.com" has the calendar "Jo" and the shared calendar "Family"
