@@ -47,7 +47,7 @@ Feature: A calendar that switches off by itself
       Then I do not see the event "Standup"
       And I see the event "Dentist" on 2026-11-07
       And the calendar chip "Work" is off
-      And the calendar chip "Work" shows "Back Fri 6"
+      And the calendar chip "Work" shows "Back on Fri 6"
       When the time is 2026-11-06 00:00
       And I open the app again
       And I show the filters
@@ -140,7 +140,7 @@ Feature: A calendar that switches off by itself
       When I open the week view for 2026-11-09
       And I show the filters
       Then I do not see the event "Planning"
-      And the calendar chip "Work" shows "Back Tue 10"
+      And the calendar chip "Work" shows "Back on Tue 10"
       When the time is 2026-11-10 00:00
       And I open the app again
       Then I see the event "Planning" on 2026-11-09

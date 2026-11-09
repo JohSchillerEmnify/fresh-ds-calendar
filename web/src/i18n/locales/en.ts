@@ -83,7 +83,7 @@ export default {
     showsTwice: 'This list shows twice on {date}. Delete the other copy, then try again.',
     titleOrItem: 'Add a title or an item',
     tooManyItems: 'A task list can have at most 200 items',
-    tagsUnique: 'Tags must be unique',
+    tagsUnique: 'Each tag can only be used once.',
   },
   settings: {
     title: 'Settings',
@@ -133,7 +133,7 @@ export default {
       approachWindow: {
         label: 'How far ahead the track shows',
       },
-      tasksCalendar: { label: 'Show tasks calendar in Google', hint: 'Task lists stay in the app either way' },
+      tasksCalendar: { label: 'Show the task lists calendar in Google', hint: 'Task lists stay in the app either way' },
     },
     tasklists: {
       carriedFrom: { label: 'Show where carried-over lists come from', hint: 'Open lists moved on to today get a label like “From Sat 10 Oct”. When off, they just show up today.' },

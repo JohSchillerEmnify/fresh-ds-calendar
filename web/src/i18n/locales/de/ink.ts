@@ -3,7 +3,7 @@ import type { Messages } from '../../schema';
 export default {
   settings: {
     label: 'Handgeschriebene Listen',
-    hint: 'Die Einträge einer Aufgabenliste mit dem Stift von Hand schreiben. Mit der Maus wird nicht gezeichnet.',
+    hint: 'Schreibe die Einträge einer Aufgabenliste von Hand mit einem Stift, auf jedem Gerät, das einen unterstützt.',
   },
   mode: { ink: 'Handschrift, zur Tastatur wechseln', text: 'Tastatur, zur Handschrift wechseln' },
   undo: 'Letzten Strich zurücknehmen',

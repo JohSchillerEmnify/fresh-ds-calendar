@@ -2,7 +2,7 @@
 export default {
   settings: {
     label: 'Handwritten lists',
-    hint: 'Write the items of a task list by hand with a pen. A mouse does not draw.',
+    hint: 'Write the items of a task list by hand with a stylus on any device that supports one.',
   },
   mode: { ink: 'Writing by hand, switch to keyboard', text: 'Writing with the keyboard, switch to handwriting' },
   undo: 'Undo last stroke',

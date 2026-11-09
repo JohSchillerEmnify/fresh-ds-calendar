@@ -119,7 +119,7 @@ describe('outbox: sending', () => {
 
   it('refuses what the server refuses: undone on the device, noticed with Edit again, later entries go on', async () => {
     const m = mockFetch({
-      'PATCH /api/events/a': () => apiError(400, 'VALIDATION_ERROR'),
+      'PATCH /api/events/a': () => apiError(400, 'VALIDATION_ERROR', 'Title is too long'),
       'GET /api/events/a': () => eventFixture('a', 's', 'e'),
       'PATCH /api/tasklists/G/items/m': () => tick(list(), 'm'),
     });
@@ -135,10 +135,21 @@ describe('outbox: sending', () => {
     expect(out.count).toBe(0);
     expect(m.calls.map((c) => c.method + c.path)).toContain('PATCH/api/tasklists/G/items/m');
     const notice = useUiStore().snackbars.find((s) => s.testid === 'outbox-notice')!;
-    expect(notice.text).toBe('The change to “X” was not saved because it was rejected.');
+    expect(notice.text).toBe('The change to “X” was not saved because it was rejected by the server with “Title is too long”.');
     expect(notice.action?.testid).toBe('outbox-edit-again');
     notice.action!.run();
     expect(useUiStore().dialog).toMatchObject({ kind: 'event', props: { id: 'a', draftEvent: { title: 'X' } } });
+  });
+
+  it('a refusal without a message is noticed without a reason', async () => {
+    mockFetch({ 'PATCH /api/events/a': () => apiError(400, 'VALIDATION_ERROR', ''), 'GET /api/events/a': () => eventFixture('a', 's', 'e') });
+    const items = useItemsStore();
+    const ev = eventFixture('a', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00') as CalendarEvent;
+    items.upsert(ev);
+    useOutboxStore().saveEvent({ ...ev, title: 'X' }, { title: 'X' }, false);
+    await flushPromises();
+    const notice = useUiStore().snackbars.find((s) => s.testid === 'outbox-notice')!;
+    expect(notice.text).toBe('The change to “X” was not saved because it was rejected.');
   });
 
   it('a change to something deleted elsewhere is refused as "deleted elsewhere", a tick offers no Edit again', async () => {

@@ -23,6 +23,9 @@ const MAX_REFETCH = 3;
 /** The strokes of a line are sent at the latest this long after its last stroke (decision W2 of handwritten-lists). */
 const INK_IDLE_MS = 10_000;
 
+/** Ids in a server message are no use to the person. */
+const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+
 type Outcome = 'sent' | 'retry' | 'refused';
 
 /** The state one outbox store keeps. */
@@ -282,7 +285,9 @@ function editAgain(e: OutboxEntry): void {
 /** The notice of a refused change: persistent, with a way to try again where the person typed something. */
 function tell(d: OutboxEntry, err: ApiError): void {
   // a change the person must sort out first (409, e.g. a list shown twice) says what to do
-  const text = err.status === 409 ? err.userMessage : t(err.status === 404 ? 'outbox.gone' : 'outbox.refused', { title: d.title });
+  const reason = err.userMessage.replace(UUID, '').replace(/\s+/g, ' ').trim();
+  const refused = reason ? t('outbox.refused', { title: d.title, reason }) : t('outbox.refusedNoReason', { title: d.title });
+  const text = err.status === 409 ? err.userMessage : err.status === 404 ? t('outbox.gone', { title: d.title }) : refused;
   const action = editable(d.change) ? { action: { label: t('outbox.editAgain'), testid: 'outbox-edit-again', keep: true, run: () => editAgain(d) } } : {};
   useUiStore().notify(text, { duration: 0, testid: 'outbox-notice', ...action });
 }
