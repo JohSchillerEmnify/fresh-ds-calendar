@@ -64,6 +64,7 @@ Feature: Settings in a few groups
 
     Scenario: A plan set on the calendar's page shows on the Calendars page and switches the calendar
       Given the calendar contains an event "Standup" in the calendar "Work" on 2026-11-04 from 09:00 to 09:15
+      And the time is 2026-11-04 07:00
       When I open the settings
       And I open the settings group "Calendars"
       And I open the calendar "Work" in the settings
@@ -72,7 +73,8 @@ Feature: Settings in a few groups
       And I set the off time from "Wed" 08:00 to "Wed" 20:00 in the calendar sheet
       And I choose "Done" in the calendar sheet
       Then the settings show the plan "Off Wed 08:00 – Wed 20:00" for the calendar "Work"
-      When I open the week view for 2026-11-02
+      When the time is 2026-11-04 09:00
+      And I open the week view for 2026-11-02
       Then I do not see the event "Standup"
 
   Rule: One setting, one control
