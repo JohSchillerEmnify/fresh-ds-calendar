@@ -30,6 +30,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.overrides = {};
     ctx.health = null;
     ctx.calendar.invalidate();
+    ctx.calendar.forgetFeedHealth();
     ctx.auth.reset();
     ctx.resetPeople();
     ctx.prefs.reset();
