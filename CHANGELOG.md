@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- Fixed: the colour and the default reminders of your main calendar could not be saved; they can now.
 - The error log also notes when the app had to undo a change or a sync replaced one you had just made, and its Share button works in Chrome (and in the Android app after its next update).
 - Fixed: a calendar colour picked from Google's colours no longer jumps back to the old one.
 - The app starts a little faster: it loads only the icon style you use.

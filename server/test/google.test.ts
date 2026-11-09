@@ -126,11 +126,19 @@ describe('GoogleProvider (mocked HTTP)', () => {
     const r = await provider.listEvents({ calendarId: 'primary' });
     expect(r.items[0]!.reminders).toEqual({ useDefault: false, overrides: [{ method: 'popup', minutes: 15 }, { method: 'email', minutes: 5 }] });
     expect(r.items[1]!.reminders).toEqual({ useDefault: true });
+    // Google refuses the `primary` keyword on calendarList writes ("Invalid resource id value"): the real id is sent
     await provider.setCalendarDefaultReminders('primary', [{ method: 'popup', minutes: 10 }]);
     const p = calls.at(-1)!;
     expect(p.method).toBe('PATCH');
-    expect(p.url.pathname).toBe('/calendar/v3/users/me/calendarList/primary');
+    expect(p.url.pathname).toBe('/calendar/v3/users/me/calendarList/me%40gmail.com');
     expect(p.body).toEqual({ defaultReminders: [{ method: 'popup', minutes: 10 }] });
+    await provider.setCalendarColor('primary', { backgroundColor: '#4986e7', foregroundColor: '#1d1d1d' });
+    const c = calls.at(-1)!;
+    expect(c.url.pathname).toBe('/calendar/v3/users/me/calendarList/me%40gmail.com');
+    expect(c.url.searchParams.get('colorRgbFormat')).toBe('true');
+    expect(c.body).toEqual({ backgroundColor: '#4986e7', foregroundColor: '#1d1d1d' });
+    await provider.setCalendarHidden('primary', true);
+    expect(calls.at(-1)!.url.pathname).toBe('/calendar/v3/users/me/calendarList/me%40gmail.com');
   });
 
   it('pings with a cheap call', async () => {
