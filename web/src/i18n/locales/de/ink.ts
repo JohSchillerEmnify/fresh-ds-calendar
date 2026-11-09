@@ -19,5 +19,5 @@ export default {
   item: 'Handgeschriebener Eintrag {n} von {total}',
   itemTicked: 'Handgeschriebener Eintrag {n} von {total}, abgehakt',
   placeholder: 'Handgeschriebener Eintrag',
-  full: 'Diese Liste ist voll mit Tinte. Fang eine neue Liste an.',
+  full: 'Diese Liste ist vollgeschrieben. Fang eine neue Liste an.',
 } satisfies Messages['ink'];

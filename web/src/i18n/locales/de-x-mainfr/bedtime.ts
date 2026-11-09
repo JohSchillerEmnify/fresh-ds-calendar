@@ -21,10 +21,10 @@ export default {
   },
   runway: {
     header: 'Noch {left} bis ins Bedd · {free} frei',
-    now: 'Edz {time}',
+    now: 'Etz {time}',
     bed: 'Bedd {time}',
     off: 'Bettzeit is aus – stell sa in die Einstellunga ei',
     passed: 'Ins Bedd wärs um {time} ganga',
-    openSettings: 'Einstellunga aufmach',
+    openSettings: 'Einstellunga aufmachn',
   },
 } satisfies PartialMessages['bedtime'];

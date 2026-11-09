@@ -129,7 +129,7 @@ export default {
       approachWindow: {
         label: 'Wie weit die Leiste vorausschaut, yo',
       },
-      tasksCalendar: { label: 'Aufgabenkalender in Google zeigen, yo', hint: 'Aufgabenlisten bleiben in jedem Fall in der App, Digga' },
+      tasksCalendar: { label: 'Kalender der Aufgabenlisten in Google zeigen, yo', hint: 'Aufgabenlisten bleiben in jedem Fall in der App, Digga' },
     },
     tasklists: {
       carriedFrom: { label: 'Zeigen, woher verschobene Listen kommen, yo', hint: 'Offene Listen von früher kriegen ein „Vom Sa., 10. Okt.“-Etikett. Wenn aus, stehen die einfach bei heute, Digga.' },
@@ -166,7 +166,7 @@ export default {
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Google Kalender ist nicht erlaubt, Schinken! Erlaub ihn und setz auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalender erlauben, yo' },
       resetDemo: { label: 'Demodaten resetten, yo', hint: 'Ersetzt den Demokalender durch frische Demotermine. Kind auf die Türmatte, klingeln, wegrennen.', button: 'Hokus Pokus', done: 'Back from the Underground: Der Phönix ersteht aus seiner Asche, Demodaten sind da. Yo, vielen lieben thank und schönen day noch!', failed: 'Ich bin alt, ich bin bald tot, aus Grün wird Rot: Demodaten nicht resettet' },
       version: 'Version {version}, yo',
-      appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleich es, bevor du ein Update installierst.' },
+      appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was geht ab, yo' },
       androidApp: { label: 'Android-App, fresh', updateLabel: 'App-Update, yo', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Läuft überall, Digga', download: 'Runterladen, yo' },
       installApp: { label: 'App installieren, yo', hint: 'Fresh D. auf deinen Home-Bildschirm, Digga', button: 'Zeig mal', title: 'Fresh D. installieren', step1: 'Tipp auf den Teilen-Button, yo', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügen, BÄMbus!', close: 'Alles klar, Digga' },

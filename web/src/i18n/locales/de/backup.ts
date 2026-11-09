@@ -3,7 +3,7 @@ import type { Messages } from '../../schema';
 
 export default {
   label: 'Sicherung in Google Drive',
-  hint: 'Deine Einstellungen, Themes und die Tafel liegen in einem versteckten Ordner deines Google Drive',
+  hint: 'Deine Einstellungen, Designs und die Tafel liegen in einem versteckten Ordner deines Google Drive',
   allow: {
     label: 'Sicherungen in Google Drive sind aus',
     hint: 'Erlaube der App, eine Sicherung in ihrem eigenen versteckten Drive-Ordner abzulegen. Google fragt dich einmal.',

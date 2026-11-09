@@ -39,7 +39,7 @@ export default {
     awayHint: 'Ab 00:00 an dem Tag ist er wieder da.',
     untilPast: 'Nimm einen Tag nach heute.',
     done: 'Fertig',
-    back: 'Zurück {day}',
+    back: 'Wieder an {day}, yo',
     mark: 'Schaltet sich von selbst an und aus, yo',
     window: 'Aus {from} – {to}',
   },

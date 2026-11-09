@@ -76,7 +76,7 @@ export default {
       events: { label: 'Vor Termin' },
       tasklists: 'Vor Listen mit Uhrzeit',
       morning: { label: 'Überblick in der Früh', hint: 'Dei Tag auf an Blick, wann du willst', time: 'Uhrzeit vom Überblick' },
-      overview: { title: 'Dei Tag', appointments: 'ka Termin | 1 Termin | {count} Termin', lists: 'ka Listen | 1 Listn | {count} Listen', first: 'zerst: {title} {time}' },
+      overview: { title: 'Dei Tag', appointments: 'ka Termin | 1 Termin | {count} Termin', lists: 'ka Lisdn | 1 Lisdn | {count} Lisdn', first: 'zerst: {title} {time}' },
     },
     theme: {
       label: 'Design',
@@ -91,7 +91,7 @@ export default {
       approachTimeLeft: { label: 'Restzeid', hint: 'Zeichd in der Gleich-Karden, wie lang der Termin noch gehd. Wenn aus, stehd des am Termin selber.' },
       minEventLength: { label: 'Mindesdlänge für Termine', hint: 'Kürzere Termine wern so lang hiigmold, dass mer ihrn Titel noch lesn ko', off: 'Aus', minutes: '{n} Min.' },
       sideBySide: { hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}', only: 'Nur {n}' },
-      tasksCalendar: { label: 'Aufgabnkalender in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
+      tasksCalendar: { label: 'Kalender vo die Aufgabnlisdn in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
     },
     tasklists: {
       carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Offne Listen, die auf heut grutscht sin, kriegn a „Vom Sa., 10. Okt.“ dran. Wenn aus, stehn die halt bei heut.' },
@@ -114,7 +114,7 @@ export default {
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
     navPosition: { hint: 'Wo Jahr, Monad, Woche un Dag liegn', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn', drawer: 'Seidnmenü' },
     sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
-    ownThemes: { label: 'Designs mit KI erzeuge', hint: 'Experimentell: a Prompt für a KI hole un des Design importiere, wo sie liefert' },
+    ownThemes: { label: 'Designs mit KI machn', hint: 'Experimentell: an Prompt für a KI holn un des Design importiern, des wo sie liefert' },
   },
   themePreview: {
     label: 'Live-Vorschau',

@@ -10,7 +10,7 @@ export default {
   empty: 'Auf diesem Gerät wurden keine Fehler protokolliert.',
   copied: 'Fehlerprotokoll kopiert',
   copyFailed: 'Fehlerprotokoll konnte nicht kopiert werden',
-  sendCopied: 'Teilen ging nicht, das Fehlerprotokoll wurde kopiert',
+  sendCopied: 'Teilen hat nicht geklappt, deshalb wurde das Fehlerprotokoll kopiert',
   sendFailed: 'Fehlerprotokoll konnte weder geteilt noch kopiert werden',
   standalone: 'installiert',
   kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung' },

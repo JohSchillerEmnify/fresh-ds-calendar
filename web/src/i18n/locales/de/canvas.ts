@@ -18,5 +18,5 @@ export default {
     done: 'Fertig',
     resize: 'Größe von Bereich {name} ändern',
   },
-  colors: { red: 'Rot', orange: 'Orange', yellow: 'Gelb', green: 'Grün', teal: 'Türkis', blue: 'Blau', purple: 'Violett', pink: 'Rosa' },
+  colors: { red: 'Rot', orange: 'Orange', yellow: 'Gelb', green: 'Grün', teal: 'Türkis', blue: 'Blau', purple: 'Lila', pink: 'Pink' },
 } satisfies Messages['canvas'];

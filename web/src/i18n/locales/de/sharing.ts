@@ -11,7 +11,7 @@ export default {
   stop: 'Nicht mehr teilen',
   leave: 'Verlassen',
   sharedWith: 'Geteilt mit {names}',
-  noPeople: 'Noch kann niemand hinzugefügt werden. Eine Person muss sich zuerst einmal in der App anmelden.',
+  noPeople: 'Es kann noch niemand hinzugefügt werden. Eine Person muss sich zuerst einmal in der App anmelden.',
   shareFailed: 'Die Liste konnte nicht geteilt werden.',
   stopFailed: 'Das Teilen konnte nicht beendet werden.',
   leaveFailed: 'Die Liste konnte nicht verlassen werden.',

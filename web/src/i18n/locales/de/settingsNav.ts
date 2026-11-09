@@ -7,7 +7,7 @@ export default {
     results: 'Suchergebnisse',
   },
   groups: {
-    calendars: { title: 'Kalender', summary: 'Welche Kalender sichtbar sind, und wann' },
+    calendars: { title: 'Kalender', summary: 'Welche Kalender sichtbar sind und wann' },
     views: { title: 'Ansichten', summary: 'Startansicht, Monat, Woche und Tag' },
     tasklists: { title: 'Aufgabenlisten', summary: 'Kategorien, Vorlagen, was ein Tippen tut' },
     reminders: { title: 'Erinnerungen', summary: 'Benachrichtigungen vor Terminen, Listen und dem Tag' },
