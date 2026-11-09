@@ -2,7 +2,7 @@ name: Nightly
 
 # Everything, once a night, but only when main changed since the last nightly run: full verify, goldens, the whole e2e suite
 # (mobile, desktop, tablet and the @perf, @visual, @slow scenarios; sharded), the Android unit tests, the leak check and the
-# iOS jobs on a Mac. A failure opens (or updates) one "Nightly e2e failed" issue. Not a required check.
+# WebKit job on a Mac. A failure opens (or updates) one "Nightly e2e failed" issue. Not a required check.
 on:
   schedule:
     # 03:47 UTC: off the top of the hour, in the quietest global window, so GitHub's scheduled-run delays stay short
@@ -179,17 +179,17 @@ jobs:
         env:
           LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
 
-  # The Mac jobs of ios-safari.yml: Playwright @iphone on macOS WebKit and Mobile Safari in an iPhone simulator.
-  ios:
+  # The Playwright @iphone scenarios on macOS WebKit.
+  webkit:
     needs: changes
     if: needs.changes.outputs.changed == 'true'
-    uses: ./.github/workflows/ios-safari.yml
+    uses: ./.github/workflows/safari-webkit.yml
     permissions:
       contents: read
 
   # One issue for the whole night: every failed job and scenario. The only job with a write permission.
   report:
-    needs: [changes, verify, goldens, e2e, android-unit, leaks, ios]
+    needs: [changes, verify, goldens, e2e, android-unit, leaks, webkit]
     if: always() && needs.changes.outputs.changed == 'true' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
     runs-on: ubuntu-latest
     timeout-minutes: 5

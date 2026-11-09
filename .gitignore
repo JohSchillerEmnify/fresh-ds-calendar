@@ -22,5 +22,3 @@ deploy/*.bak*
 
 *.key
 
-# iOS Safari simulator run output
-e2e/ios/artifacts/

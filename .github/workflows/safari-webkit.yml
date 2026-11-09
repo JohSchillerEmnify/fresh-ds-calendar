@@ -1,0 +1,60 @@
+name: Safari (WebKit)
+
+# The @iphone Playwright scenarios (incl. deleting a task list, GitHub issue #9) on macOS WebKit, much closer to Safari
+# than Linux WebKit, on a hosted Mac (free for public repos).
+# Not a required check: it runs only nightly (the nightly workflow calls it through workflow_call, and only when main
+# changed that day) or by hand: gh workflow run safari-webkit.yml --ref <branch>
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Called from the nightly workflow every run gets its own group: the caller's name would collide with the caller's own group.
+concurrency:
+  group: safari-webkit-${{ (github.event_name == 'push' || github.event_name == 'pull_request') && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  playwright-webkit:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run build:e2e
+      # macOS needs no system packages: only the browser matching the locked @playwright/test version.
+      - run: pnpm -F @calendar/e2e exec playwright install webkit
+      - name: Run the @iphone scenarios on the iphone project
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: |
+          # Same environment as e2e/run.sh: loopback only, mock provider, test endpoints on.
+          HOST=127.0.0.1 PORT=3000 TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR="$RUNNER_TEMP/data" \
+            POLL_INTERVAL_MS=30000 TZ=Europe/Berlin NODE_ENV=production ALLOW_INSECURE_MOCK=1 \
+            node --expose-gc server/dist/index.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
+          cd e2e
+          pnpm exec bddgen
+          pnpm exec playwright test --project=iphone --workers=1
+      - name: Upload the report and results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: webkit-playwright-results
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            e2e/results.json
+            ${{ runner.temp }}/server.log
+          if-no-files-found: ignore
