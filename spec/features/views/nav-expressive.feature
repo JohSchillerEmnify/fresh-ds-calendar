@@ -188,7 +188,7 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
       Given the view switcher on phones is set to "side menu"
       When I open the week view for 2026-10-12
       And I open the side menu
-      Then the side menu shows the calendars "Personal, Work" with a colour checkbox each
+      Then the side menu shows the calendars "Personal, Work, Birthdays" with a colour checkbox each
 
     @mobile
     Scenario: Unticking a calendar in the drawer hides its events
