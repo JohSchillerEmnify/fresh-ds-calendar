@@ -158,7 +158,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
 .body.edge-pad { padding-bottom: var(--safe-bottom); }
 /* tablet and desktop: the floating bar never covers content */
 @media (min-width: 768px) { html[data-nav-pos='bottom'] .body { padding-bottom: var(--bar-reserve); } }
-.col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--snack-room, 0px); } /* a snackbar that stays never covers a control */
 /* Desktop: the open tasks tray is a right-hand side panel. */
 @media (min-width: 768px) { .col { flex-direction: row; } }
 </style>
