@@ -55,6 +55,27 @@ module.exports = {
       to: { path: '^web/src/features/[^/]+/', pathNot: ['^web/src/features/$1/', '^web/src/features/[^/]+/index\\.ts$'] },
     },
     {
+      name: 'plan-rule-only-in-scheduler',
+      comment: 'A calendar plan sets the hidden flag (ADR 0037); only the scheduler reads the plan rule, so no reader can start evaluating plans again.',
+      severity: 'error',
+      from: { pathNot: '^server/src/services/calendarPlanScheduler\\.ts$' },
+      to: { path: '^server/src/lib/planEdges\\.ts$' },
+    },
+    {
+      name: 'plan-helpers-only-in-plan-ui',
+      comment: 'The web plan helpers describe a plan for the plan UI and the calendars store; they never decide visibility (ADR 0037).',
+      severity: 'error',
+      from: { pathNot: '^web/src/(components/settings/planSummary\\.ts|components/shell/FilterBar\\.vue|features/calendar/|stores/calendars\\.ts)' },
+      to: { path: '^web/src/lib/calendarPlan\\.ts$' },
+    },
+    {
+      name: 'ui-not-to-device-db',
+      comment: 'The device copy and outbox (ADR 0023/0025) are reached through stores/device.ts and stores/outbox.ts. UI code never opens IndexedDB (idb, lib/deviceDb.ts) itself; settings use stores/prefs.ts.',
+      severity: 'error',
+      from: { path: '^web/src/(components|views|features)/' },
+      to: { path: ['node_modules/idb/', '^web/src/lib/deviceDb\\.ts$'] },
+    },
+    {
       name: 'no-circular',
       comment: 'No circular dependencies.',
       severity: 'error',

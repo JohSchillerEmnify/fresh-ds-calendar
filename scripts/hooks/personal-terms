@@ -1,0 +1,21 @@
+# Words that make a public text personal: relationships and gendered pronouns. Write "a user" / "another user".
+# One extended regex per line, matched case-insensitively on whole words (commit-msg hook and the gh guard).
+girl ?friends?
+boy ?friends?
+wife
+husband
+spouse
+fianc[ée]e?
+my partner
+her partner
+his partner
+freundin
+freund
+ehefrau
+ehemann
+mum|mom|mother|mutter|mama
+dad|father|vater|papa
+sisters?|brothers?|schwester|bruder
+daughters?|sons?|tochter|sohn|kids?|kinder
+my family|unsere? familie|family group
+she|her|hers|he|him|his

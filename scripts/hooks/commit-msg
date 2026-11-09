@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Blocks a commit message that names people (relationships, gendered pronouns): the repo is public, so commits and
+# GitHub texts speak of "a user" / "another user". The words are in scripts/hooks/personal-terms (also read by the
+# gh guard), matched case-insensitively on whole words.
+terms="$(dirname "$0")/personal-terms"
+[ -s "$terms" ] || exit 0
+msg=$(grep -v '^#' "$1" | grep -vi '^Co-Authored-By:')
+while IFS= read -r t; do
+  [ -z "$t" ] || [ "${t#\#}" != "$t" ] && continue
+  w=$(printf '%s' "$msg" | grep -oiwE -- "($t)" | head -1)
+  if [ -n "$w" ]; then echo "commit-msg: personal word \"$w\" — anonymise it (\"a user\", \"another user\")" >&2; exit 1; fi
+done < "$terms"

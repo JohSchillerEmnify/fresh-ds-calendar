@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- A calendar's plan (off at set times, or off for a while) now switches the calendar off and on for real, so the widget and your other devices follow it too.
 - The title you typed stays when you switch a new entry between event, task list and birthday.
 - Clearer settings descriptions and corrected German texts throughout the app. A change the server refuses now says why.
 - Settings › Views: switch each view of the view switcher on or off (at least one stays on). The Clock with rings is now a regular view; the plain clock stays in Labs.

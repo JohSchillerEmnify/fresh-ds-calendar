@@ -146,7 +146,7 @@ export interface Prefs {
 
 /** A point in the week: `day` 0 = Sunday, `time` HH:MM wall time in the calendar zone. */
 export interface WeekPoint { day: number; time: string }
-/** A calendar's plan: weekly off-windows and/or off until 00:00 of `until`; `switchedAt` = the last tap (wall time `YYYY-MM-DDTHH:MM`). */
+/** A calendar's plan: weekly off-windows and/or off until 00:00 of `until`; `switchedAt` is retired (accepted from old devices, ignored; ADR 0037). */
 export interface CalendarPlan {
   windows?: { from: WeekPoint; to: WeekPoint }[];
   until?: string;

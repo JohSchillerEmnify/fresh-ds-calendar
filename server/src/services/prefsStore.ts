@@ -23,6 +23,8 @@ interface StoredPrefs extends Prefs {
   hiddenCalendars: string[];
   /** The person's "Calendar app: tasks" calendar, once found or created (feature tasklists-own-calendar). */
   tasksCalendarId: string | null;
+  /** Per calendar, the plan and the switch of it the scheduler last applied to `hiddenCalendars` (feature calendar-off-plan). */
+  planApplied?: Record<string, { plan: string; edge: number | null }>;
   theme?: StoredTheme;
 }
 
@@ -130,6 +132,16 @@ export class PrefsStore {
     const p = this.read(sub);
     const rest = p.hiddenCalendars.filter((i) => i !== calendarId);
     this.files.write(sub, { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest });
+  }
+
+  /** What the plan scheduler last applied per calendar (empty until it has). */
+  planApplied(sub: string): Record<string, { plan: string; edge: number | null }> {
+    return this.read(sub).planApplied ?? {};
+  }
+
+  /** Records what the plan scheduler applied, replacing the whole map. */
+  setPlanApplied(sub: string, applied: Record<string, { plan: string; edge: number | null }>): void {
+    this.merge(sub, { planApplied: applied });
   }
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */

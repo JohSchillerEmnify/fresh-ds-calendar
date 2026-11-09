@@ -5,7 +5,7 @@ import type { Calendar } from '@/api/types';
 import type { CalendarPlan } from '@calendar/shared/prefs';
 import { saveCalendarColor } from '@/lib/calendarColor';
 import { logUndone } from '@/lib/decisionLog';
-import { awayActive, hasPlan, planEffectiveHidden, wallNow } from '@/lib/calendarPlan';
+import { awayActive, hasPlan, wallNow } from '@/lib/calendarPlan';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
 
@@ -22,11 +22,11 @@ export const useCalendarsStore = defineStore('calendars', () => {
   const list = ref<Calendar[]>([]);
   let saving = 0;
   const clock = useClockStore();
-  // the clock's minute tick lands on every plan edge (edges are whole minutes), so no timer of its own is needed
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
   const planOf = (id: string): CalendarPlan | undefined => source.value.plans()[id];
 
-  const hidden = computed(() => new Set(list.value.filter((c) => planEffectiveHidden(!!c.hidden, planOf(c.id), nowWall.value)).map((c) => c.id)));
+  // the server switches `hidden` at a plan's edges, so this is the one flag every view reads
+  const hidden = computed(() => new Set(list.value.filter((c) => c.hidden).map((c) => c.id)));
   const isHidden = (calendarId: string) => hidden.value.has(calendarId);
 
   /** Takes the list the device holds; a poll must not undo a toggle that is still being saved. */
@@ -49,21 +49,19 @@ export const useCalendarsStore = defineStore('calendars', () => {
     return source.value.save(plans);
   }
 
-  /** A tap: switches what the person sees now; with a plan the tap holds until the plan's next switch and ends "Off for a while". */
+  /** A tap: switches what the person sees now; it holds until the plan's next edge, and ends "Off for a while". */
   async function toggle(id: string): Promise<void> {
     const cur = list.value.find((c) => c.id === id);
     if (!cur) return;
-    const next = !isHidden(id);
     const plan = planOf(id);
-    if (hasPlan(plan)) {
+    if (hasPlan(plan) && awayActive(plan, nowWall.value)) {
       const kept = { ...plan };
       delete kept.until;
       delete kept.since;
       // the tap still counts when the plan cannot be saved; the plan's own rollback keeps the old one
-      await savePlan(id, { ...(awayActive(plan, nowWall.value) ? kept : plan), switchedAt: nowWall.value }).catch(() => undefined);
+      await savePlan(id, kept).catch(() => undefined);
     }
-    if (!!cur.hidden === next) return;
-    await setHidden(id, next);
+    await setHidden(id, !cur.hidden);
   }
 
   /** Sets the plan from the sheet (undefined = "Always on", which also switches the calendar on). */
@@ -71,6 +69,8 @@ export const useCalendarsStore = defineStore('calendars', () => {
     const fresh = plan && { ...(plan.windows?.length ? { windows: plan.windows } : {}), ...(plan.until ? { until: plan.until, since: plan.since ?? nowWall.value } : {}) };
     await savePlan(id, fresh);
     if (!hasPlan(fresh) && list.value.find((c) => c.id === id)?.hidden) await setHidden(id, false);
+    // the server applies a new plan at once; read its flags now instead of waiting for the next sync
+    else if (hasPlan(fresh)) await api.calendars().then((r) => { fromDevice(r.calendars); useDeviceStore().putCalendars(r.calendars); }).catch((e) => logUndone('calendar plan refresh', e));
   }
 
   async function setHidden(id: string, next: boolean): Promise<void> {

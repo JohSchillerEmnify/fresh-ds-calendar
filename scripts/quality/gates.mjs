@@ -127,4 +127,26 @@ async function knip() {
   return { counts, summary: `${by('files')} files, ${by('exports')} exports, ${by('types')} types, ${by('dependencies') + by('devDependencies')} deps unused` };
 }
 
-export const GATES = { arch, dedup, types, lint, comments, knip };
+/** Recursively lists .vue files below a directory. */
+function vueFiles(dir) {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    return statSync(p).isDirectory() ? vueFiles(p) : n.endsWith('.vue') ? [p] : [];
+  });
+}
+
+/** Hard-coded colour literals (#hex, rgb(), hsl()) per .vue file; the theme tokens (web/src/theme) and the m3 kit are the only sources. */
+async function colors() {
+  const literal = /(?<![\w&])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|\b(?:rgba?|hsla?)\(/g;
+  const counts = {};
+  for (const f of vueFiles(join(root, 'web/src'))) {
+    const rel = relative(root, f);
+    if (rel.startsWith('web/src/components/m3/')) continue;
+    const n = (readFileSync(f, 'utf8').match(literal) ?? []).length;
+    if (n) counts[rel] = n;
+  }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, summary: `${total} colour literals in ${Object.keys(counts).length} .vue files (use theme tokens: var(--...) from web/src/theme)` };
+}
+
+export const GATES = { arch, dedup, types, lint, comments, knip, colors };

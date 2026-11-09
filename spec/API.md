@@ -241,9 +241,12 @@ default `{}`, replaced as a whole. `CalendarPlan = { windows?: { from: { day: 0-
 time: 'HH:MM' } }[]; until?: 'YYYY-MM-DD'; since?: 'YYYY-MM-DDTHH:MM'; switchedAt?: 'YYYY-MM-DDTHH:MM' }` (`day` 0 =
 Sunday, at most 7 windows, `from` ≠ `to`; at most 200 calendars). Times are wall times in the calendar zone. A window
 is off from `from` to `to` every week; `until` is off from `since` to 00:00 of `until`; `switchedAt` is the last tap on
-the calendar's switch. The device works out on/off itself: inside a window or an `until` the calendar is off, outside
-on, unless `switchedAt` is later than the plan's last switch, then the person's `hidden` holds. Why a pref, not the
-calendar: plans are the person's choice like the other prefs and must apply offline from the device copy (ADR 0023).
+the calendar's switch. The server carries the plan out (ADR 0037): at a window's start, and when "off for a while" is saved, it sets the
+person's `hidden` of that calendar to true; at the window's end and at 00:00 of `until` it sets it to false. Saving a
+plan applies its current state at once; a restart applies an edge that passed meanwhile. A tap (`PATCH /api/calendars/:id`
+`hidden`) holds until the plan's next edge. Nothing else reads the plan to decide visibility. `switchedAt` is retired:
+accepted, ignored. A device offline at an edge shows the old state until its next sync. Why a pref, not the calendar:
+plans are the person's choice like the other prefs and are applied for the person, whichever device is open (ADR 0023).
 Anything invalid answers 400 `VALIDATION_ERROR` (field `calendarPlans`).
 
 **Events side by side** (`prefs.daySideBySide` `1 | 2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `1 | 2 | 3`, default `2`;
@@ -465,7 +468,8 @@ The response then also carries `also: { from, to }`; items present in both range
 
 Optional `&excludeHidden=1` leaves out the items of the calendars the signed-in person switched off (`PATCH /api/calendars/:id`).
 The web app filters hidden calendars itself, instantly; the Android widget fetches this endpoint natively, cannot see
-that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget).
+that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget). A calendar whose plan has
+it off is left out too, because the plan's scheduler sets `hidden` (see "Calendar plans").
 
 ### Events
 
