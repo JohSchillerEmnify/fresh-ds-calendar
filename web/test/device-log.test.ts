@@ -115,15 +115,22 @@ describe('device log', () => {
     });
 
     it('in the app writes the log to the cache and opens the native share sheet on it (Share and Download alike)', async () => {
-      const writeFile = vi.fn().mockResolvedValue({ uri: 'file:///cache/log.json' });
-      const share = vi.fn().mockResolvedValue({});
-      stubApp({ Filesystem: { writeFile }, Share: { share } });
-      const click = stubDownload();
-      expect(await shareDeviceLog()).toBe('shared');
-      expect(await downloadDeviceLog()).toBe('shared');
-      expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({ path: expect.stringMatching(/\.json$/), directory: 'CACHE', encoding: 'utf8', data: exportDeviceLog() }));
-      expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: ['file:///cache/log.json'] }));
-      expect(click).not.toHaveBeenCalled();
+      // the export carries an exportedAt timestamp: a frozen clock keeps the compared copy identical
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-09T20:35:25.620Z'));
+      try {
+        const writeFile = vi.fn().mockResolvedValue({ uri: 'file:///cache/log.json' });
+        const share = vi.fn().mockResolvedValue({});
+        stubApp({ Filesystem: { writeFile }, Share: { share } });
+        const click = stubDownload();
+        expect(await shareDeviceLog()).toBe('shared');
+        expect(await downloadDeviceLog()).toBe('shared');
+        expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({ path: expect.stringMatching(/\.json$/), directory: 'CACHE', encoding: 'utf8', data: exportDeviceLog() }));
+        expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: ['file:///cache/log.json'] }));
+        expect(click).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('in the app reports "failed" (nothing left the device) when the plugins are missing or throw, "cancelled" when the sheet is closed', async () => {
