@@ -199,6 +199,18 @@ Feature: Several reminders per event, read from and written to Google
     And 40 minutes pass
     Then I do not see a transition warning
 
+  Scenario: A reminder already shown does not come back when the app is opened again
+    A reminder is said once per device: closing and reopening the app inside the same window does not repeat it.
+    Given the calendar "Personal" has the default reminders "900"
+    And the calendar contains an all-day event "Anna's birthday" on 2026-10-13
+    And the time is 2026-10-12 08:55 and the clock is running
+    When I open the week view for 2026-10-12
+    And 5 minutes pass
+    Then I see the transition warning "Anna's birthday starts in 15 h"
+    When I dismiss the transition warning
+    And I open the app again
+    Then I do not see a transition warning
+
   @web-push
   Scenario: A multi-day all-day event rings once, saying its day
     Only its first day rings; the notification gives the day and "all day", never "in 30 min".

@@ -132,7 +132,7 @@ describe('now card', () => {
 });
 
 describe('transition warning (fake timers, one shared ticker)', () => {
-  beforeEach(() => { vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }); vi.setSystemTime(at('10:25')); document.body.innerHTML = ''; });
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }); vi.setSystemTime(at('10:25')); document.body.innerHTML = ''; localStorage.clear(); });
   afterEach(() => { stopTransitionWarnings(); useClockStore().stopTicker(); vi.useRealTimers(); });
 
   it('appears 10 min before, once, dismissible, and leaves no timers behind', async () => {
@@ -194,10 +194,30 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     // joining late: both leads are due, only the nearest speaks, with the minutes really left
     stopTransitionWarnings();
     ui.snackbars = [];
+    localStorage.clear();
     vi.setSystemTime(at('10:50'));
     clock.nowTick = at('10:50').getTime();
     startTransitionWarnings();
     expect(warn()).toEqual(['Dentist starts in 10 min']);
+  });
+
+  it('does not show a reminder again when the app is opened again, but still shows a later lead', async () => {
+    const { clock, items } = await boot('10:25', true);
+    items.applyResponse(D, W, [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
+    const ui = useUiStore();
+    startTransitionWarnings();
+    clock.startTicker();
+    const warn = () => ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text);
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    expect(warn()).toEqual(['Dentist starts in 30 min']);
+    // the app is closed and opened again with the same time: the 30 min reminder was said
+    stopTransitionWarnings();
+    ui.snackbars = [];
+    startTransitionWarnings();
+    expect(warn()).toEqual([]);
+    // the later lead still speaks
+    await vi.advanceTimersByTimeAsync(15 * 60000);
+    expect(warn()).toEqual(['Dentist starts in 15 min']);
   });
 
   it('stays quiet for an event of a hidden calendar and speaks up when it is shown again', async () => {
