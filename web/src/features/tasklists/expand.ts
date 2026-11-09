@@ -35,7 +35,7 @@ export function placeExpanded(anchor: Box, bounds: Box, contentH: number): Place
 
 /** Cut `bounds` above a bar floating over its bottom edge: what the bar covers is not room (null or slid out of view: unchanged). */
 export function clipAboveBar(bounds: Box, bar: Box | null): Box {
-  if (!bar || bar.right <= bounds.left || bar.left >= bounds.right || bar.top >= bounds.bottom) return bounds;
+  if (!bar || bar.right <= bounds.left || bar.left >= bounds.right || bar.top >= bounds.bottom || bar.bottom <= bounds.top) return bounds;
   return { ...bounds, bottom: Math.max(bounds.top, bar.top) };
 }
 
