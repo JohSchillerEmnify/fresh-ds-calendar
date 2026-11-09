@@ -67,7 +67,7 @@ let originalTitle = '';
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
-const form = reactive<TaskListForm>({ ...newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes), title: props.title ?? '' });
+const form = reactive<TaskListForm>({ ...newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes), title: (props.title ?? '').slice(0, TITLE_MAX) });
 const error = ref('');
 const saving = ref(false);
 /** The list being edited, for the sharing controls (a shared list says who it is shared with). */
@@ -101,7 +101,8 @@ onMounted(async () => {
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
     if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => i.title).join('\n'); }
-    original = JSON.stringify(form);
+    // a carried title is unsaved input: the original stays untitled so closing asks first
+    original = JSON.stringify(props.draftList ? form : { ...form, title: '' });
     // the names already taken, for "Also save as template"
     templates.load().catch(() => undefined);
     return;

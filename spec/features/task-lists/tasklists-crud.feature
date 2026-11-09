@@ -285,6 +285,9 @@ Feature: Creating, editing and deleting task lists
       | title | Dentist    |
       | date  | 2026-10-14 |
       | time  | 15:00      |
+    When I tap beside the dialog
+    Then the task list form shows:
+      | title | Dentist |
     When I switch the new dialog to "Birthday"
     Then the birthday name is "Dentist"
     When I switch the new dialog to "Event"

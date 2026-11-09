@@ -79,7 +79,8 @@ function blank(): EventForm {
 }
 const hasDraft = !!(props.draft || props.draftEvent);
 const form = ref<EventForm>(props.draft ? { ...props.draft } : props.draftEvent ? formFromEvent(props.draftEvent) : blank());
-const initial = ref<string>(JSON.stringify(form.value));
+// a carried title is unsaved input: the baseline stays untitled so closing asks first
+const initial = ref<string>(JSON.stringify(props.title && !hasDraft ? { ...form.value, title: '' } : form.value));
 /** Time carried to the task list form on switching: a tapped slot's or one the person changed, never the default. */
 const startShown = form.value.startTime;
 const switchTime = computed(() => (form.value.allDay ? null : props.time != null || form.value.startTime !== startShown ? form.value.startTime : undefined));
