@@ -188,6 +188,10 @@ default `true`) shows the "From <day>" label on task lists carried over to today
 The person pref `labsViews` (object, default `{}`): per Labs view id (`clock`, `timeline`, `strip`, …) whether the view
 switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; anything else is a 400). `PATCH` merges
 per id. A missing id follows the client's registry default (Strip off, others on).
+The person pref `stableViews` (object, default `{}`) is the same for the main views of the view switcher (`year`,
+`month`, `week`, `day`, `tasks`, `clock-rings`; the last is the Clock): per id whether the switcher offers the view.
+Same validation (a 400 for anything but ids mapped to booleans) and per-id merge; a missing id is on. The server does
+not keep one view on: the client disables the last switch, and when every view is off it offers all of them.
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
 open the list sheet.

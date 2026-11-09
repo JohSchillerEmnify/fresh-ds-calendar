@@ -1,5 +1,6 @@
 /** The settings catalogue (features settings-groups, settings-search); search is normalized substring matching, as the spec asks for no typo tolerance. */
 import { LABS_VIEWS } from '@/features/labs';
+import { STABLE_VIEWS } from '@/features/views';
 import { t, type MessageKey } from '@/i18n';
 
 /** The groups of the settings home, in their order. */
@@ -35,6 +36,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('calendars', undefined, 'tasksCalendar', 'settingsNav.labels.tasksCalendar', { hint: 'settingsNav.labels.tasksCalendarHint' }),
   e('calendars', 'tasksCalendar', 'tasksCalendarVisible', 'settings.calendar.tasksCalendar.label', { hint: 'settings.calendar.tasksCalendar.hint', page: 'tasks-calendar' }),
 
+  ...STABLE_VIEWS.map((v) => e('views', 'switcher', `stableView-${v.id}`, v.labelKey)),
   e('views', 'general', 'defaultView', 'settings.calendar.defaultView', { synonyms: 'settingsNav.synonyms.defaultView' }),
   e('views', 'general', 'minEventLength', 'settings.calendar.minEventLength.label', { hint: 'settings.calendar.minEventLength.hint', synonyms: 'settingsNav.synonyms.minEventLength' }),
   e('views', 'month', 'monthScroll', 'settings.calendar.monthScroll.label'),
@@ -86,7 +88,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('focus', 'bedtime', 'bedtimeReminder', 'settingsNav.labels.bedtimeReminder', { page: 'bedtime', parent: 'bedtimeOn', synonyms: 'settingsNav.synonyms.bedtimeReminder' }),
 
   e('labs', undefined, 'labs', 'settingsNav.labels.showLabs', { hint: 'settingsNav.labels.showLabsHint', synonyms: 'settingsNav.synonyms.labs' }),
-  ...LABS_VIEWS.map((v) => e('labs', 'views', `labsView-${v.id}`, v.labelKey, { labs: true })),
+  ...LABS_VIEWS.filter((v) => !v.stable).map((v) => e('labs', 'views', `labsView-${v.id}`, v.labelKey, { labs: true })),
   e('labs', 'more', 'weekTwoRow', 'settings.labs.weekTwoRow.label', { hint: 'settings.labs.weekTwoRow.hint', labs: true }),
   e('labs', 'more', 'weekTwoRowSplit', 'settings.labs.weekTwoRow.split', { parent: 'weekTwoRow', labs: true }),
   e('labs', 'more', 'handwriting', 'ink.settings.label', { hint: 'ink.settings.hint', labs: true }),

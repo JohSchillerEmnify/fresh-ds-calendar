@@ -1,24 +1,17 @@
-@labs @clock @id:labs-clock-rings
-Feature: Labs: the clock with names along its rings
-  A variant of the 24-hour clock (labs-clock) to compare with it on the phone (owner, 2026-10-23: "you may create
-  copies or versions of it as experimental views"). It is the same dial with the same gestures and middle text, but the
+@clock @id:labs-clock-rings
+Feature: The Clock, with names along its rings
+  A variant of the plain 24-hour clock (labs-clock), started as an experiment (owner, 2026-10-23) and a main view since
+  2026-11-09. It is the same dial with the same gestures and middle text, but the
   rings are wide lanes, each drawn on a faint track, and every name is written along its ring inside the lane: it
   starts at its arc and runs on along the free ring, turned on the lower half of the dial so it is never upside down.
   An entry that would cut the name before it short goes one ring further in; a name that still has no room for three
-  characters is listed next to the dial with its time, like the clock. It is off until switched on in the Labs
-  settings.
+  characters is listed next to the dial with its time, like the plain clock. It is the Clock, one of the main views
+  of the view switcher (view-switcher).
 
   Background:
     Given the calendar is empty
     And today is 2026-10-14
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-
-  Scenario: The rings clock is offered only once it is switched on
-    When I open the week view for 2026-10-12
-    And I turn on experimental views in the settings
-    Then the view switcher does not offer "Clock: rings"
-    When I switch the Labs view "Clock: rings" on in the settings
-    Then the view switcher offers the experimental views "Clock, Clock: rings"
 
   Scenario: Names run along their arcs and are never upside down
     Given the calendar contains an event "Lunch with Sam" on 2026-10-14 from 12:00 to 14:00

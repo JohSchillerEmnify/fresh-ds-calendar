@@ -1,10 +1,10 @@
 <script setup lang="ts">
-defineProps<{ modelValue: boolean; label: string }>();
+defineProps<{ modelValue: boolean; label: string; disabled?: boolean }>();
 defineEmits<{ 'update:modelValue': [v: boolean] }>();
 </script>
 
 <template>
-  <button class="switch" type="button" role="switch" :aria-checked="modelValue" :aria-label="label" :class="{ on: modelValue }" @click="$emit('update:modelValue', !modelValue)">
+  <button class="switch" type="button" role="switch" :aria-checked="modelValue" :aria-label="label" :disabled="disabled" :class="{ on: modelValue }" @click="$emit('update:modelValue', !modelValue)">
     <span class="track"><span class="thumb" /></span>
   </button>
 </template>
@@ -21,5 +21,6 @@ defineEmits<{ 'update:modelValue': [v: boolean] }>();
 }
 .on .track { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
 .on .thumb { width: 24px; height: 24px; margin-top: -12px; background: var(--md-sys-color-on-primary); transform: translateX(18px); left: 4px; }
+.switch:disabled { opacity: 0.38; }
 .switch:active .thumb { width: 28px; }
 </style>

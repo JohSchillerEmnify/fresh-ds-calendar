@@ -1657,6 +1657,39 @@ I allow full animations despite the device setting
 - "shows the location": the event chip's `event-chip-location` is visible with that text (it may be ellipsised at the
   end only when the block is narrower than the text).
 
+## View switcher (`@view-switcher`)
+
+```
+I switch the view {string} on in the settings
+I switch the view {string} off in the settings
+the view switches are on for {string}
+the view switch {string} is on and cannot be turned off
+the views settings say {string}
+I choose {string} in the view switcher
+the view switcher does not mark {string} as experimental
+the Labs settings have a switch for {string}
+the Labs settings have no switch for {string}
+the default view choices are {string}
+the default view is {string}
+the view {string} is switched off for me
+the clock shows its {string} variant
+```
+
+- The main views' switches are `settings-view-switch-<id>` (`year`, `month`, `week`, `day`, `tasks`, `clock-rings`; the
+  name "Clock" is the id `clock-rings`) on Settings › Views. "I switch the view V on/off in the settings" sets the switch
+  (waiting for the `PATCH /api/prefs` 200) and leaves the settings, like the Labs switch steps.
+- "the view switch V is on and cannot be turned off": `aria-checked="true"` and the button is disabled.
+  "the views settings say T": the note `settings-views-note` has exactly the text T.
+- "I choose V in the view switcher" clicks the tab named V inside `view-switcher` (not the side menu).
+- "the view switcher does not mark V as experimental": `view-switch-<id>` is visible without `data-experimental`.
+- "the Labs settings have a switch for V" looks for `settings-labs-view-<id>` (the Labs labels "Plain clock" and "Zoom month" are the ids
+  `clock` and `zoom`); "no switch for V" expects none. Both open Settings › Labs first.
+- "the default view choices are L": the option labels of `settings-default-view`, joined with ", ".
+- "the default view is V" (Given): `PATCH /api/settings { defaultView }` through the API before the page is opened.
+- "the view V is switched off for me" (Given): `PATCH /api/prefs { stableViews: { <id>: false } }` through the API.
+- "the clock shows its V variant": `clock-view` has `data-variant` `rings` for "rings", `classic` for "plain".
+- `the view switcher shows "A, B"` (Language) lists the main views that are on, then the Labs views that are on.
+
 ## Labs (`@labs`)
 
 ```
@@ -1839,7 +1872,8 @@ I note the height of {string} on the runway
   X in the list next to the clock" clicks the `clock-overflow` chip with `data-title` X. Entries on rings beyond the
   narrowest band (6 on the clock, 4 on the rings clock) have no arc and are only listed.
 - Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
-  ("Clock: rings" → `clock-rings`).
+  ("Strip" → `strip`); the plain clock's label "Plain clock" is the id `clock`. The Clock ("Clock: rings" before) is a
+  main view now: see "View switcher".
 - Both "the middle of the clock says" steps first wait for `clock-view` `data-tomorrow-loaded="true"` (today's clock
   sets it once a cached range holds tomorrow, whose first entry the middle may name).
 - "the middle of the clock says X": exactly one line, `clock-now-line` text X, and no `clock-now-when`. "says X over
@@ -1899,7 +1933,7 @@ I note the height of {string} on the runway
 
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
   `zoom`, `horizontal`, `runway`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
-- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `clock-rings`,
+- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock` = the Plain clock,
   `timeline`, `strip`, `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "no bar of the approach track lies on top of the month picker": every `approach-block` whose centre lies inside the open

@@ -35,8 +35,8 @@ export default {
     week: 'Woche',
     day: 'Tag',
     tasks: 'Aufgaben',
-    clock: 'Uhr',
-    clockRings: 'Uhr: Ringe',
+    clock: 'Einfache Uhr',
+    clockRings: 'Uhr',
     timeline: 'Zeitstrahl',
     strip: 'Streifen',
     zoom: 'Zoom-Monat',
@@ -113,6 +113,7 @@ export default {
     },
     calendar: {
       defaultView: 'Standardansicht',
+      viewsKeepOne: 'Mindestens eine Ansicht bleibt eingeschaltet.',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
       approachTimeLeft: { label: 'Restzeit', hint: 'Zeigt in der Karte „Gleich“, wie lange der laufende Termin noch dauert. Wenn aus, steht das am Termin selbst.' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden mindestens so lang angezeigt, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
