@@ -116,12 +116,17 @@
    "service-not-to-route|server/src/services/calendar.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/canvasStore.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/changeFeed.ts|server/src/api/types.ts": 1,
+   "service-not-to-route|server/src/services/eventRules.ts|server/src/api/types.ts": 1,
+   "service-not-to-route|server/src/services/eventWrites.ts|server/src/api/types.ts": 1,
+   "service-not-to-route|server/src/services/itemQueries.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/motivation.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/place.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/reminderOverrides.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/settingsStore.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/sharedLists.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/taskCodec.ts|server/src/api/types.ts": 1,
+   "service-not-to-route|server/src/services/taskSeries.ts|server/src/api/types.ts": 1,
+   "service-not-to-route|server/src/services/taskSharing.ts|server/src/api/types.ts": 1,
    "service-not-to-route|server/src/services/templateStore.ts|server/src/api/types.ts": 1,
    "store-not-to-route|server/src/auth/peopleStore.ts|server/src/api/types.ts": 1,
    "store-not-to-route|server/src/services/canvasStore.ts|server/src/api/types.ts": 1,
@@ -130,7 +135,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.071
+   "duplicated-percent": 0.07
   },
   "types": {
    "AppConfig": 1,
@@ -244,9 +249,13 @@
    "sonarjs/cognitive-complexity|server/src/providers/mock/MockGoogleProvider.ts": 3,
    "sonarjs/cognitive-complexity|server/src/services/backupService.ts": 1,
    "sonarjs/cognitive-complexity|server/src/services/birthday.ts": 1,
-   "sonarjs/cognitive-complexity|server/src/services/calendar.ts": 6,
+   "sonarjs/cognitive-complexity|server/src/services/calendar.ts": 2,
    "sonarjs/cognitive-complexity|server/src/services/changeFeed.ts": 1,
+   "sonarjs/cognitive-complexity|server/src/services/eventWrites.ts": 1,
+   "sonarjs/cognitive-complexity|server/src/services/itemQueries.ts": 1,
    "sonarjs/cognitive-complexity|server/src/services/push.ts": 1,
+   "sonarjs/cognitive-complexity|server/src/services/taskSeries.ts": 1,
+   "sonarjs/cognitive-complexity|server/src/services/taskSharing.ts": 1,
    "sonarjs/cognitive-complexity|server/test/google.test.ts": 1,
    "sonarjs/cognitive-complexity|shared/index.js": 1,
    "sonarjs/cognitive-complexity|web/scripts/mock-api.mjs": 1,
@@ -297,10 +306,12 @@
    "long|server/src/services/backup.ts": 2,
    "long|server/src/services/backupService.ts": 3,
    "long|server/src/services/birthday.ts": 3,
-   "long|server/src/services/calendar.ts": 13,
+   "long|server/src/services/calendar.ts": 3,
    "long|server/src/services/canvasStore.ts": 1,
    "long|server/src/services/changeBus.ts": 1,
    "long|server/src/services/changeFeed.ts": 2,
+   "long|server/src/services/eventWrites.ts": 2,
+   "long|server/src/services/itemQueries.ts": 1,
    "long|server/src/services/ownership.ts": 2,
    "long|server/src/services/place.ts": 4,
    "long|server/src/services/prefsStore.ts": 3,
@@ -311,6 +322,8 @@
    "long|server/src/services/sharedLists.ts": 1,
    "long|server/src/services/sharedListsBackup.ts": 1,
    "long|server/src/services/taskCodec.ts": 1,
+   "long|server/src/services/taskSeries.ts": 5,
+   "long|server/src/services/taskSharing.ts": 2,
    "long|server/src/services/tasksCalendar.ts": 1,
    "long|server/src/services/templateStore.ts": 1,
    "long|server/src/services/themeStore.ts": 1,
@@ -496,7 +509,10 @@
    "long|web/src/lib/timers.ts": 1,
    "long|web/src/motion/RewardCheckbox.vue": 1,
    "long|web/src/motion/animate.ts": 1,
-   "long|web/src/motion/drag.ts": 6,
+   "long|web/src/motion/drag.ts": 3,
+   "long|web/src/motion/dragGrids.ts": 1,
+   "long|web/src/motion/dragTypes.ts": 1,
+   "long|web/src/motion/dragWatch.ts": 1,
    "long|web/src/motion/effects.ts": 1,
    "long|web/src/motion/level.ts": 2,
    "long|web/src/motion/sound.ts": 1,
@@ -541,10 +557,11 @@
    "long|web/src/views/ThemeView.vue": 1,
    "long|web/src/views/WeekView.vue": 1,
    "owner|server/src/providers/CalendarProvider.ts": 1,
-   "owner|server/src/services/calendar.ts": 5,
+   "owner|server/src/services/calendar.ts": 4,
    "owner|server/src/services/ownership.ts": 1,
    "owner|server/src/services/sharedLists.ts": 10,
    "owner|server/src/services/sharedListsBackup.ts": 2,
+   "owner|server/src/services/taskSharing.ts": 1,
    "owner|web/src/api/client.ts": 1,
    "owner|web/src/components/calendar/TimeGrid.vue": 1,
    "owner|web/src/features/tasklists/sharing.ts": 1,
@@ -658,6 +675,16 @@
     "lint"
    ],
    "keys": 16
+  },
+  {
+   "date": "2026-11-09",
+   "reason": "#15 split: moved code keeps its per-file counts; arch +5 = the existing api/types import now in 5 split server files",
+   "gates": [
+    "arch",
+    "lint",
+    "comments"
+   ],
+   "keys": 17
   }
  ]
 }

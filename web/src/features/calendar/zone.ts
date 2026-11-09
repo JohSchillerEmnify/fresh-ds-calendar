@@ -1,23 +1,7 @@
-/** Wall-clock <-> RFC 3339 helpers for the calendar time zone (DST safe, mirrors server/src/lib/time.ts). */
+/** Wall-clock <-> RFC 3339 helpers for the calendar time zone (DST safe; the offset lookup is shared with the server). */
+import { offsetMinutes } from '@calendar/shared/zone';
 
-const fmts = new Map<string, Intl.DateTimeFormat>();
-function fmt(tz: string): Intl.DateTimeFormat {
-  let f = fmts.get(tz);
-  if (!f) {
-    f = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-    });
-    fmts.set(tz, f);
-  }
-  return f;
-}
-
-/** Offset of `tz` at the instant `ms`, in minutes east of UTC. */
-export function offsetMinutes(ms: number, tz: string): number {
-  const p = Object.fromEntries(fmt(tz).formatToParts(ms).map((x) => [x.type, x.value]));
-  const wall = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
-  return Math.round((wall - Math.floor(ms / 1000) * 1000) / 60000);
-}
+export { offsetMinutes };
 
 /** Wall-clock fields -> minutes since 1970 as if they were UTC (pure arithmetic, no zone). */
 export function wallMinutes(date: string, time: string): number {

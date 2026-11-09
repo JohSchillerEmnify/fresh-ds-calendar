@@ -10,6 +10,7 @@
     "./ink": { "types": "./ink.d.ts", "default": "./ink.js" },
     "./limits": { "types": "./limits.d.ts", "default": "./limits.js" },
     "./prefs": { "types": "./prefs.d.ts", "default": "./prefs.js" },
+    "./zone": { "types": "./zone.d.ts", "default": "./zone.js" },
     "./theme.schema.json": "./theme.schema.json"
   }
 }

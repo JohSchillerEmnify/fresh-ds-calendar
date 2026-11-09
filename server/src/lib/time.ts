@@ -3,6 +3,10 @@
  * zone (default Europe/Berlin). DST-safe: offsets are looked up per instant.
  */
 
+import { offsetMinutes, zonedParts } from '@calendar/shared/zone';
+
+export { offsetMinutes };
+
 const LOCAL_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 /** RFC 3339 date-time with mandatory offset or Z. */
 const DATETIME_RE = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.\d{1,9})?)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i;
@@ -60,48 +64,6 @@ export function addMonthsClamp(date: string, months: number): { date: string; ex
 
 function pad(n: number, w = 2): string {
   return String(n).padStart(w, '0');
-}
-
-const fmtCache = new Map<string, Intl.DateTimeFormat>();
-function formatter(tz: string): Intl.DateTimeFormat {
-  let f = fmtCache.get(tz);
-  if (!f) {
-    f = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      hourCycle: 'h23',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    fmtCache.set(tz, f);
-  }
-  return f;
-}
-
-interface ZonedParts {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: number;
-}
-
-function zonedParts(ms: number, tz: string): ZonedParts {
-  const parts = formatter(tz).formatToParts(new Date(ms));
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
-  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour') % 24, minute: get('minute'), second: get('second') };
-}
-
-/** Offset of the zone from UTC at the instant, in minutes (Berlin summer: +120). */
-export function offsetMinutes(ms: number, tz: string): number {
-  const p = zonedParts(ms, tz);
-  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
-  const floored = Math.floor(ms / 1000) * 1000;
-  return Math.round((asUtc - floored) / 60_000);
 }
 
 /**

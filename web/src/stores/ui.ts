@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { StorageSerializers, useStorage } from '@vueuse/core';
 import { appTimeout, type Disposer } from '@/lib/timers';
 
@@ -58,8 +58,9 @@ export const useUiStore = defineStore('ui', () => {
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
   /** Desktop side tray collapsed to its slim edge strip (persisted in this browser; default open). The phone has `trayExpanded`. */
-  const trayCollapsedDesktop = ref((() => { try { return localStorage.getItem(TRAY_COLLAPSED_KEY) === '1'; } catch { return false; } })());
-  watch(trayCollapsedDesktop, (v) => { try { localStorage.setItem(TRAY_COLLAPSED_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } });
+  const trayCollapsedDesktop = useStorage(TRAY_COLLAPSED_KEY, false, undefined, {
+    listenToStorageChanges: false, writeDefaults: false, flush: 'sync', onError: () => {}, serializer: { read: (v) => v === '1', write: (v) => (v ? '1' : '0') },
+  });
   /** Ids of the lists the desktop tray shows right now; empty while it is collapsed, hidden or on a phone (published by `TaskTray`). */
   const trayListIds = ref<string[]>([]);
   /** The tray row that is briefly highlighted by `revealTask`. */
