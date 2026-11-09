@@ -91,6 +91,8 @@ export function windowOf(today: string): { from: string; to: string } {
 }
 
 export class CalendarChanges {
+  /** Errors of a full read that followed a refused (410) sync token: the cursor must not keep that dead token. */
+  private readonly afterRefusal = new WeakSet<object>();
   private readonly range: { timeMin: string; timeMax: string; minMs: number; maxMs: number };
 
   constructor(private readonly provider: CalendarProvider, private readonly tz: string, private readonly deps: FeedDeps, private readonly today: string) {
@@ -205,7 +207,7 @@ export class CalendarChanges {
       // only the provider's own failures degrade; a rate limit, a sign-in problem or a bug (a TypeError) fails the request
       if (e instanceof RateLimitedError || !(e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError)) throw e;
       if (e instanceof NotFoundError || e instanceof ProviderForbiddenError) this.strike(calendarId, e instanceof NotFoundError ? 'notFound' : 'forbidden');
-      return { failed: true, replace: false, series: [], removed: [], upserts: [], token: prev?.tokens[calendarId] };
+      return { failed: true, replace: false, series: [], removed: [], upserts: [], token: this.afterRefusal.has(e) ? undefined : prev?.tokens[calendarId] };
     }
   }
 
@@ -232,6 +234,7 @@ export class CalendarChanges {
     const kept = prev?.tokens[calendarId];
     const token = kept?.startsWith(VERSION_PREFIX) ? undefined : kept;
     const gap = prev ? dayNumber(windowOf(this.today).to) - dayNumber(prev.to) : 0;
+    let refused = false;
     if (token && !forced && gap <= MAX_GAP_DAYS) {
       try {
         const part = await this.incremental(calendarId, token, spec);
@@ -239,11 +242,22 @@ export class CalendarChanges {
         return part;
       } catch (e) {
         if (!(e instanceof SyncTokenExpiredError)) throw e;
+        refused = true;
       }
     }
-    const full = await spec.full();
+    const full = await this.fullMarked(spec, refused);
     this.health(calendarId).fullToken = full.token;
     return { replace: true, series: [], removed: [], upserts: full.upserts, token: full.token };
+  }
+
+  /** The full read; when it fails right after a refused token the error is marked, so the cursor does not keep that dead token. */
+  private async fullMarked<T>(spec: Spec<T>, refused: boolean): Promise<{ upserts: T[]; token?: string }> {
+    try {
+      return await spec.full();
+    } catch (e) {
+      if (refused && e instanceof Object) this.afterRefusal.add(e);
+      throw e;
+    }
   }
 
   /** A token-less calendar: listed in full, answered as `replace` only when its content moved since the version the device got. */
