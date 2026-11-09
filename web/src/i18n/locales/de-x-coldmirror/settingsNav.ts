@@ -21,6 +21,7 @@ export default {
   sub: {
     appointments: 'Termine und dein Tag, yo',
     general: 'Allgemein, yo',
+    switcher: 'Angezeigte Ansichten, yo',
     month: 'Monat',
     weekDay: 'Woche und Tag',
     approaching: 'Karte „Gleich“',

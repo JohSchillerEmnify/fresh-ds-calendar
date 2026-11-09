@@ -5,7 +5,7 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
   "Compact" (52 px tall, icons only, just the open view labelled, the + button beside the bar). The bar slides away
   while the person scrolls down and comes back on the first scroll up; the calendar keeps extra space at the bottom so
   the + button never hides the last hour. A new choice for where the views sit, "Side menu", has no bottom bar: a ☰
-  button at the left of the top bar opens a drawer with Year, Month, Week, Day and Tasks, the calendars with colour
+  button at the left of the top bar opens a drawer with Year, Month, Week, Day, Tasks and Clock, the calendars with colour
   checkboxes (they replace the filter button) and Settings at the bottom; the top bar then has only Today at its right,
   no filter and no settings button. The choices are personal and follow the person to every device. Defaults (owner
   2026-10-30): phones start with Compact bars (52 px bottom bar, one-row top bar); tablets and desktop start with
@@ -171,7 +171,7 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
       Given the view switcher on phones is set to "side menu"
       When I open the week view for 2026-10-12
       And I open the side menu
-      Then the side menu lists "Year, Month, Week, Day, Tasks"
+      Then the side menu lists "Year, Month, Week, Day, Tasks, Clock"
       And the side menu has the "Settings" entry at its bottom
 
     @mobile

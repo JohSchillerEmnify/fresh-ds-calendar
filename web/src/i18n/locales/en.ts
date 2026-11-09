@@ -41,8 +41,8 @@ export default {
     week: 'Week',
     day: 'Day',
     tasks: 'Tasks',
-    clock: 'Clock',
-    clockRings: 'Clock: rings',
+    clock: 'Plain clock',
+    clockRings: 'Clock',
     timeline: 'Timeline',
     strip: 'Strip',
     zoom: 'Zoom month',
@@ -119,6 +119,7 @@ export default {
     },
     calendar: {
       defaultView: 'Default view',
+      viewsKeepOne: 'At least one view stays on.',
       barSize: { expressive: 'Expressive', compact: 'Compact' },
       topBarSize: { label: 'Top bar size', hint: 'On phones; Expressive shows the whole scene, Compact is one row' },
       bottomBarSize: { label: 'Bottom bar size', hint: 'On phones' },

@@ -35,9 +35,9 @@ export const usePrefsStore = defineStore('prefs', () => {
   }
 
   /** Reads the preferences from the device store; the server only before the device has had its first sync. */
-  async function load(): Promise<void> {
+  async function load(signal?: AbortSignal): Promise<void> {
     try {
-      apply(useDeviceStore().file<Prefs>('prefs') ?? await api.prefs());
+      apply(useDeviceStore().file<Prefs>('prefs') ?? await api.prefs({ signal }));
       loaded.value = true;
     } catch { /* offline or signed out: switches keep their defaults */ }
   }

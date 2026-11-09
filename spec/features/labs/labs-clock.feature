@@ -1,5 +1,5 @@
 @labs @clock @id:labs-clock
-Feature: Labs: experimental views and the 24-hour clock
+Feature: Labs: experimental views and the plain 24-hour clock
   Experimental views are tried out behind a Labs switch in the settings: when it is on, the view switcher offers them,
   marked as experimental; when it is off, nothing changes. The clock view shows one day as a 24-hour circle: events are
   arcs from their start to their end, task lists with a time are arcs as long as their estimate (30 minutes without
@@ -31,7 +31,7 @@ Feature: Labs: experimental views and the 24-hour clock
   Scenario: Turning Labs on offers the experimental views
     When I open the week view for 2026-10-12
     And I turn on experimental views in the settings
-    Then the view switcher offers the experimental views "Clock, Timeline"
+    Then the view switcher offers the experimental views "Plain clock, Timeline"
 
   Scenario: Strip is off by default
     When I open the week view for 2026-10-12
@@ -42,10 +42,10 @@ Feature: Labs: experimental views and the 24-hour clock
     When I open the week view for 2026-10-12
     And I turn on experimental views in the settings
     And I switch the Labs view "Strip" on in the settings
-    Then the view switcher offers the experimental views "Clock, Timeline, Strip"
-    When I switch the Labs view "Clock" off in the settings
+    Then the view switcher offers the experimental views "Plain clock, Timeline, Strip"
+    When I switch the Labs view "Plain clock" off in the settings
     Then the view switcher offers the experimental views "Timeline, Strip"
-    And the view switcher does not offer "Clock"
+    And the view switcher does not offer "Plain clock"
 
   Scenario: The clock shows the day as a 24-hour circle
     Given the time is 2026-10-14 09:30
@@ -278,4 +278,4 @@ Feature: Labs: experimental views and the 24-hour clock
   Scenario: A Labs view that is not offered still opens by its address
     When I open the clock view for 2026-10-14
     Then the event "Dentist" is an arc from 09:00 to 10:00
-    And the view switcher does not offer "Clock"
+    And the view switcher does not offer "Plain clock"

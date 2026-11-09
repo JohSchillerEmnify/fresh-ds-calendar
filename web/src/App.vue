@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks } from '@/components/icons';
 import { visibleLabsViews } from '@/features/labs/labs';
+import { visibleStableViews } from '@/features/views';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
@@ -71,16 +71,9 @@ const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
 /** Calendar views and the Tasks view share the shell: top bar, navigation, create button. */
 const hasShell = computed(() => isCalendar.value || !!route.meta.tasks);
 const activeView = computed(() => (route.meta.tasks ? 'tasks' : (route.meta.lab as string | undefined) ?? cal.view));
-const baseItems = computed<NavItem[]>(() => [
-  { id: 'year', label: t('views.year'), icon: IconYear, testid: 'view-switch-year' },
-  { id: 'month', label: t('views.month'), icon: IconMonth, testid: 'view-switch-month' },
-  { id: 'week', label: t('views.week'), icon: IconWeek, testid: 'view-switch-week' },
-  { id: 'day', label: t('views.day'), icon: IconDay, testid: 'view-switch-day' },
-  { id: 'tasks', label: t('views.tasks'), icon: IconTasks, testid: 'view-switch-tasks' },
-]);
-// Labs views are offered only with the Labs switch on and the view's own switch on, marked as experimental.
+// The main views the person has on, then the Labs views (only with the Labs switch on and the view's own switch on), marked as experimental.
 const items = computed<NavItem[]>(() => [
-  ...baseItems.value,
+  ...visibleStableViews(labs.stableViews).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}` })),
   ...visibleLabsViews(labs.labs, labs.labsViews).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}`, experimental: true })),
 ]);
 /** A phone without a bottom bar and without the tray (Tasks, Labs views) still keeps clear of the bottom safe area. */

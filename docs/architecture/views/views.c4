@@ -273,7 +273,7 @@ views {
     calendar.web.settings -> calendar.web.prefs 'saves the Labs switch and the choice'
     calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
     calendar.web.viewSwitcher -> calendar.web.prefs 'reads the Labs switch and the choices'
-    calendar.web.viewSwitcher -> calendar.web.labsRegistry 'offers Clock, Timeline and Strip: choices, else defaults'
+    calendar.web.viewSwitcher -> calendar.web.labsRegistry 'offers the main views that are on, then Plain clock, Timeline and Strip: choices, else defaults'
   }
 
   // Themes

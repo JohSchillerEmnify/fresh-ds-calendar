@@ -31,7 +31,7 @@ function toTasksFilter(v) {
   return { categories: [...categories], when };
 }
 
-/** A `labsViews` value: at most 32 view ids (lowercase, digits, hyphens) mapped to booleans, or null. */
+/** A `labsViews` or `stableViews` value: at most 32 view ids (lowercase, digits, hyphens) mapped to booleans, or null. */
 function toLabsViews(raw) {
   if (!isObject(raw)) return null;
   const entries = Object.entries(raw);
@@ -87,6 +87,7 @@ const parseNotify = fields('notify', { bedtime: BOOLEAN, events: BOOLEAN, taskli
 export const PREFS = {
   labs: bool(false),
   labsViews: { default: {}, merge: true, parse: (v) => { const r = toLabsViews(v); return r ? ok(r) : { error: 'labsViews must map view ids to booleans' }; } },
+  stableViews: { default: {}, merge: true, parse: (v) => { const r = toLabsViews(v); return r ? ok(r) : { error: 'stableViews must map view ids to booleans' }; } },
   approachBar: bool(true),
   approachWindowHours: { default: 3, parse: (v) => (Number.isInteger(v) && v >= 1 && v <= 24 ? ok(v) : { error: 'approachWindowHours must be a whole number from 1 to 24' }) },
   approachingCard: bool(true),

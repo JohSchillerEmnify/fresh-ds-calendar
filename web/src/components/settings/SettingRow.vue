@@ -23,6 +23,7 @@ function open() {
     <IconNext class="chev" aria-hidden="true" />
   </Pressable>
   <div v-else class="row" :class="{ wide }" data-testid="settings-row" :data-setting="label" :data-setting-id="id">
+    <span v-if="$slots.icon" class="ico" aria-hidden="true"><slot name="icon" /></span>
     <span class="text" :data-testid="testid"><span class="lab">{{ label }}</span><span v-if="hint" class="sub">{{ hint }}</span><slot name="sub" /></span>
     <span class="ctl"><slot /></span>
   </div>
@@ -30,6 +31,8 @@ function open() {
 
 <style scoped>
 .row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: 10px 16px; min-height: 56px; width: 100%; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
+.ico { display: flex; width: 24px; height: 24px; color: var(--md-sys-color-on-surface-variant); }
+.ico :deep(svg) { width: 24px; height: 24px; }
 .text { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; }
 .ctl { margin-left: auto; display: flex; align-items: center; gap: 8px; max-width: 100%; }
 /* wide controls (segmented buttons, sliders) take a line of their own under the text, still ending at the row's end */

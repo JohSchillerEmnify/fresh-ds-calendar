@@ -1,6 +1,6 @@
 @nav-position @id:nav-position
 Feature: Where the view switcher sits
-  The view switcher (Year, Month, Week, Day, Tasks, plus the Labs views when Labs is on) sits in a place the person
+  The view switcher (Year, Month, Week, Day, Tasks, Clock, plus the Labs views when Labs is on) sits in a place the person
   chooses in the settings: at the bottom (a bottom navigation bar), at the top (a tabs row under the top app bar) or
   at the side (a slim navigation rail). There is one choice for phones and one for desktop and tablets, kept per
   person. Nothing else offers the choice: there is no quick toggle. Without a choice, phones keep the bottom bar and
@@ -29,7 +29,7 @@ Feature: Where the view switcher sits
     And the view switcher is directly under the top bar
     And the view switcher is above the calendar
     And there is no bottom bar
-    And the view switcher shows "Year, Month, Week, Day, Tasks"
+    And the view switcher shows "Year, Month, Week, Day, Tasks, Clock"
 
   @mobile
   Scenario: Switching the view still works from the top view switcher

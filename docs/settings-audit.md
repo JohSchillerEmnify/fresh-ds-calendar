@@ -99,8 +99,11 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 Per calendar: Google's default reminders (one card per calendar). Browser push on/off (D, push subscription).
 Task lists: **"Remind about task lists"** switch (= `notify.tasklists` again) and default task-list reminders.
 
+### Views (main view switches)
+One switch per main view (`stableViews`: Year, Month, Week, Day, Tasks, Clock), all on; the last one on cannot be turned off.
+
 ### Labs
-Master switch "Experimental views" (`labs`, off); per view switches (`labsViews`: Clock, Clock rings, Timeline, Strip,
+Master switch "Experimental views" (`labs`, off); per view switches (`labsViews`: Plain clock, Timeline, Strip,
 Zoom, Horizontal, Runway, Now & next); "Generate themes with AI" (`labsOwnThemes`); "Handwritten lists"
 (`labsHandwriting`) + "Draw with a finger" (`labsDrawWithFinger`); "Two-row week overview" (`weekTwoRow`) + "Days on the
 top row" (`weekTwoRowTop` 4).

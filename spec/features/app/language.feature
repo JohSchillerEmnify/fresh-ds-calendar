@@ -14,7 +14,7 @@ Feature: Language
   Scenario: A German browser shows German navigation and settings
     Given the browser language is "de-DE"
     When I open the week view for 2026-10-13
-    Then the view switcher shows "Jahr, Monat, Woche, Tag, Aufgaben"
+    Then the view switcher shows "Jahr, Monat, Woche, Tag, Aufgaben, Uhr"
     And the page language is "de"
     When I open the settings
     Then the settings groups are "Kalender, Ansichten, Aufgabenlisten, Erinnerungen, Aussehen & Aufbau, Fokus & Ruhe, Labor, Konto & App"
@@ -28,14 +28,14 @@ Feature: Language
     And the page language is "en"
     And the page was not reloaded
     When I leave the settings
-    Then the view switcher shows "Year, Month, Week, Day, Tasks"
+    Then the view switcher shows "Year, Month, Week, Day, Tasks, Clock"
 
   Scenario: The language choice follows the person to another device
     When I open the settings
     And I choose "Deutsch" as the language
     And I switch to another device
     And I open the week view for 2026-10-13
-    Then the view switcher shows "Jahr, Monat, Woche, Tag, Aufgaben"
+    Then the view switcher shows "Jahr, Monat, Woche, Tag, Aufgaben, Uhr"
 
   Scenario: Fränggisch shows dialect labels and falls back to German where untranslated
     When I open the settings
@@ -43,7 +43,7 @@ Feature: Language
     Then the settings groups are "Kalender, Ansichdn, Aufgabnlisdn, Erinnerunga, Aussehn & Aufbau, Fokus & Ruh, Labor, Kondo & App"
     And the page language is "de-x-mainfr"
     When I leave the settings
-    Then the view switcher shows "Jahr, Monad, Woche, Dag, Aufgabn"
+    Then the view switcher shows "Jahr, Monad, Woche, Dag, Aufgabn, Uhr"
 
   Scenario: German shows dates in German
     Given the browser language is "de-DE"
