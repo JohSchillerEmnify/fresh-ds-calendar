@@ -110,12 +110,31 @@ jobs:
       - run: ./gradlew testDebugUnitTest
         working-directory: android
 
+  # The repo is public: commit messages that name people (scripts/hooks/personal-terms) fail here too, also when the
+  # local commit-msg hook did not run.
+  commit-messages:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check the new commit messages
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # a new branch has no "before": check just the head commit
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then BASE="$HEAD_SHA~1"; fi
+          scripts/check-commit-messages.sh "$BASE..$HEAD_SHA"
+
   # The one required status check: green only when every job above succeeded or was skipped. It runs even when a job
   # failed or was cancelled, so a branch ruleset needs just this name and new jobs only have to be added to `needs`.
   ci-result:
     name: CI result
     if: always()
-    needs: [verify, e2e-smoke, android-unit]
+    needs: [verify, e2e-smoke, android-unit, commit-messages]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
