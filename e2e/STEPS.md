@@ -3505,6 +3505,8 @@ the top bar's widgets are in reverse order
   smaller. The streak flame (`streak-flame`) and the sync icon (`sync-status`) are not buttons and are not checked.
   "... other than the plant ...": the same, leaving out `plant-button`. "the plant's tap area is at least W by H
   pixels": the same check for `plant-button` alone (W wide, H tall).
+- "I export the theme N": opens the theme menu if needed and taps `theme-export` of the gallery card N (built-in or own).
+  "the theme file F is downloaded": the file name of that download is exactly F (e.g. "Spring.theme.json").
 - "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
   `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
 - "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the

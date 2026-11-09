@@ -83,7 +83,6 @@ Feature: Importing my own theme, optionally made with an AI
     When I delete the theme "Ocean"
     Then the gallery does not offer the theme "Ocean"
 
-  @backlog
   Scenario: I can export my own theme as a file
     Given "jo@example.com" may use the calendar
     And "jo@example.com" imported the theme file "ocean.json"

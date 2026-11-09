@@ -146,12 +146,11 @@ Feature: A smaller header: two rows or one row
       And I open the day view for 2026-10-12
       Then the top bar is in one row
 
-    @backlog
     Scenario: A theme file does not carry the header layout
       Given the header layout is set to "One row"
       When I open the theme menu
       And I export the theme "Spring"
-      Then the theme file "Spring" is downloaded
+      Then the theme file "Spring.theme.json" is downloaded
       And the downloaded theme file has no header layout
 
     @mobile
