@@ -2,13 +2,14 @@
 /** The colour of one calendar (feature calendar-colours): Google's palette, the current colour when it is none of them, a colour picker and a hex field. */
 import { computed, onMounted, ref, watch } from 'vue';
 import { GOOGLE_CALENDAR_COLORS, type CalendarColor } from '@calendar/shared/colors';
-import { api } from '@/api/client';
+import { api, ApiError } from '@/api/client';
 import { isHexColor } from '@/api/colors';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useDeviceStore } from '@/stores/device';
+import { useUiStore } from '@/stores/ui';
 
 const props = defineProps<{ calendarId: string }>();
 const cals = useCalendarsStore();
@@ -28,9 +29,11 @@ const swatches = computed(() => {
   return [{ value: current.value, name: t('settingsNav.labels.calendarColorCurrent'), color: current.value, testid: 'calendar-color-option' }, ...own];
 });
 
-/** Recolours the calendar at once; a refused save puts the old colour back (the store rolls back). */
+/** Recolours the calendar at once; a refused save puts the old colour back (the store rolls back) and says why. */
 function save(hex: string, colorId?: string) {
-  void cals.setColor(props.calendarId, hex, colorId).catch(() => undefined);
+  void cals.setColor(props.calendarId, hex, colorId).catch((e: unknown) => {
+    useUiStore().notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
+  });
 }
 function pick(hex: string) {
   if (hex !== current.value) save(hex, palette.value.find((c) => c.background === hex)?.id);

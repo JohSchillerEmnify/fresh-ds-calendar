@@ -55,6 +55,7 @@ const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDA
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
+  private calGen = 0;
   /** Calendars too large to walk for a sync token, and until when they are left alone (see {@link CalendarChanges}). */
   private readonly noTokenUntil = new Map<string, number>();
   /** Calendars Google keeps refusing, and their back-off (see {@link CalendarChanges}). */
@@ -75,7 +76,7 @@ export class CalendarService {
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
   ) {
-    this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
+    this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
   }
 
   private get tz() { return this.config.tz; }
@@ -85,7 +86,7 @@ export class CalendarService {
     return (this.provider.cooldownMs?.() ?? 0) > 0;
   }
   invalidate(): void {
-    this.calCache = null;
+    this.dropCalendars();
     this.tasks.forget();
   }
 
@@ -93,9 +94,17 @@ export class CalendarService {
   private async providerCalendars(): Promise<ProviderCalendar[]> {
     const now = this.clock.real();
     if (this.calCache && now - this.calCache.at < CAL_TTL_MS) return this.calCache.cals;
+    const gen = this.calGen;
     const cals = await this.provider.listCalendars();
-    this.calCache = { at: now, cals };
+    // a list read before a write (a new colour) must not be kept as fresh
+    if (gen === this.calGen) this.calCache = { at: now, cals };
     return cals;
+  }
+
+  /** Forgets the cached calendar list after a write, including a read still under way. */
+  private dropCalendars(): void {
+    this.calCache = null;
+    this.calGen++;
   }
 
   /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
@@ -105,7 +114,7 @@ export class CalendarService {
   }
 
   async calendars(): Promise<Calendar[]> {
-    this.calCache = null; // the endpoint always hits the provider (outages must surface)
+    this.dropCalendars(); // the endpoint always hits the provider (outages must surface)
     return (await this.eventCalendars()).map((c) => ({
       id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
       defaultReminders: popups(c.defaultReminders),
@@ -123,7 +132,7 @@ export class CalendarService {
     if (!cal) throw notFound('Calendar not found');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
     await this.provider.setCalendarDefaultReminders(calId, next);
-    this.calCache = null;
+    this.dropCalendars();
     return minutes;
   }
 
@@ -152,7 +161,7 @@ export class CalendarService {
     } else {
       await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
     }
-    this.calCache = null;
+    this.dropCalendars();
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
