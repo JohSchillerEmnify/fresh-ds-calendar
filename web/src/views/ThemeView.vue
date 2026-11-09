@@ -218,7 +218,7 @@ function back() {
             v-for="n in PRESET_NAMES" :key="n" :name="n" :label="presetLabel(n)" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
             @choose="theme.choose(n)"
           >
-            <template #actions>
+            <template #nameAction>
               <IconButton :label="t('theme.export')" data-testid="theme-export" @click="exportTheme(presetDoc(PRESETS[n]))"><IconExport /></IconButton>
             </template>
           </ThemeCard>
