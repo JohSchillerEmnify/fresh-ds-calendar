@@ -256,6 +256,10 @@ When('I tap the title of the expanded task list', async function (this: World) {
   await grown(this).getByTestId('tasklist-card-title').click();
 });
 
+When('I tap the title of the expanded task list {string}', async function (this: World, title: string) {
+  await grown(this, title).getByTestId('tasklist-card-title').click();
+});
+
 Then('no list sheet is open', async function (this: World) {
   await expect(this.page.locator(`${tid('tasklist-expanded')}:not(${attr('data-presentation', 'overlay')})`)).toHaveCount(0);
 });

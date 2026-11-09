@@ -369,6 +369,7 @@ the expanded task list shows the real time block of the card {string} and a slim
 the task list card {string} is still the one-row inline card of its time block
 the task list {string} opens as the list sheet
 I tap outside the expanded task list
+I tap the title of the expanded task list {string}
 I note where the task list cards are
 the task list cards have not moved
 the task list {string} is expanded over the calendar
