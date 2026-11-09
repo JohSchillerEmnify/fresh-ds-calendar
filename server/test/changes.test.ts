@@ -313,6 +313,22 @@ describe('robustness', () => {
       expect(titles(back.events.upserts)).toEqual(['Holiday']);
     });
 
+    it('the test reset forgets a calendar\'s back-off, so the next scenario\'s events are not skipped', async () => {
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new SyncTokenExpiredError('Sync token expired');
+        return real(id, tok);
+      });
+      const r1 = await changes((await changes()).cursor);
+      await changes(r1.cursor);
+      spy.mockRestore();
+      await t.json('POST', '/api/__test/reset', { seed: false });
+      await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
+      const fresh = await changes();
+      expect(fresh.events.replace).toContain('work');
+      expect(titles(fresh.events.upserts)).toEqual(['Holiday']);
+    });
+
     it('a refused token (410) whose full read then fails is dropped from the cursor: the next poll lists in full without asking Google with it again', async () => {
       const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
       const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {

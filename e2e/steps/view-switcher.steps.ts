@@ -2,7 +2,6 @@
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { setLabsSwitch, settingControl } from './support/settings.js';
-import { optionLabels } from './support/ui.js';
 import type { World } from './support/world.js';
 
 /** A main view's name as its id ("Clock" is the route `clock-rings`). */
@@ -53,7 +52,11 @@ Then('the Labs settings have no switch for {string}', async function (this: Worl
 
 Then('the default view choices are {string}', async function (this: World, list: string) {
   const control = await settingControl(this, 'settings-default-view');
-  expect((await optionLabels(control)).join(', ')).toBe(list);
+  // the options only exist while the menu is open
+  await control.click();
+  const options = this.page.getByRole('listbox').getByRole('option');
+  await expect(options).toHaveText(list.split(', '));
+  await this.page.keyboard.press('Escape');
 });
 
 Given('the default view is {string}', async function (this: World, name: string) {

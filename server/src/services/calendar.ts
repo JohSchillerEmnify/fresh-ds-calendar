@@ -114,6 +114,12 @@ export class CalendarService {
     this.tasks.forget();
   }
 
+  /** Forgets the sync back-offs of every calendar (test reset), so a refusal in one scenario cannot silence the change feed in the next. */
+  forgetFeedHealth(): void {
+    this.noTokenUntil.clear();
+    this.calendarHealth.clear();
+  }
+
   // ---------- calendars ----------
   private async providerCalendars(): Promise<ProviderCalendar[]> {
     const now = this.clock.real();
