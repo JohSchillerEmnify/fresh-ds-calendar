@@ -32,6 +32,11 @@ Given('a calendar {string} shared with me with edit rights by {string}', async f
   await this.api.remoteInsertCalendar(name, false, undefined, { id: owner, accessRole: 'writer', ownerEmail: owner });
 });
 
+Given('a family calendar {string} shared with me with edit rights by {string}', async function (this: World, name: string, owner: string) {
+  // a Google group calendar (default id `…@group.calendar.google.com`): the owner's data, my role is writer
+  await this.api.remoteInsertCalendar(name, false, undefined, { accessRole: 'writer', ownerEmail: owner });
+});
+
 Given('a calendar {string} shared with me read-only by {string}', async function (this: World, name: string, owner: string) {
   // another person's primary calendar, my role is reader
   await this.api.remoteInsertCalendar(name, false, undefined, { id: owner, accessRole: 'reader', ownerEmail: owner });
@@ -77,4 +82,10 @@ Then('the calendar picker does not offer {string}', async function (this: World,
   // the list loads after the dialog opens: wait for the own calendars, then check the other one is not among them
   await expect.poll(async () => await optionLabels(picker), { message: 'calendar picker options' }).toContain('Work');
   expect(await optionLabels(picker)).not.toContain(name);
+});
+
+Then('the calendar picker offers {string}', async function (this: World, name: string) {
+  const picker = this.page.locator(tid('event-calendar'));
+  await expect(picker).toBeVisible();
+  await expect.poll(async () => await optionLabels(picker), { message: 'calendar picker options' }).toContain(name);
 });

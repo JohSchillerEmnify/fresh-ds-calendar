@@ -74,7 +74,7 @@ interface Calendar {
   color: string;           // '#rrggbb'
   primary: boolean;
   writable: boolean;       // Google role owner or writer
-  own: boolean;            // one of the person's own calendars: events are created and moved only into these (see CalendarEvent.readOnly)
+  own: boolean;            // editable calendar: the person's own, or a shared group calendar (family) they may write; events are created and moved only into these (see CalendarEvent.readOnly)
 }
 
 interface CalendarEvent {
@@ -91,7 +91,7 @@ interface CalendarEvent {
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
   color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for an event of the contacts Birthdays calendar)
   special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
-  readOnly?: true;         // not in an own calendar, or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
+  readOnly?: true;         // not in an editable calendar (another person's own calendar, even with write rights), or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
   readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };  // with readOnly: "Invitation from <by>" / "Calendar of <by>"; absent for the contacts Birthdays calendar
   dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
@@ -501,8 +501,8 @@ answers `400` (`calendar.birthday.leapDay`: the yearly rule would have to change
 answer is the opened instance (same `id`) with the change applied. `DELETE` removes the whole series (Google does not touch
 Contacts). `If-Match` is checked against the instance.
 
-Only own events are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
-(`calendar.event.notOwn`), as do `POST` into a calendar that is not own and a `PATCH` moving an event into one (`calendarId`).
+Only events in editable calendars (own calendars and shared group calendars the person may write, e.g. the family calendar; an event whose organiser is its calendar is not an invitation) are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
+(`calendar.event.notOwn`), as do `POST` into a calendar that is not editable and a `PATCH` moving an event into one (`calendarId`).
 The checks come before `If-Match`.
 
 Birthdays with `readOnly` (the contacts Birthdays calendar, calendars that are not the person's own) answer `PATCH` and `DELETE`

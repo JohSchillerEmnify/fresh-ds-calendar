@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-09
+- Shared calendars like your family calendar can now be edited by everyone who may edit them in Google: open, change, move and delete their events, and add new ones to them.
+
 ## 2026-11-01
 - New look (Material 3 Expressive): floating bottom bar that slides away while you scroll (or a side menu instead), Compact or Expressive bar sizes, task lists in a row inside the bar, theme scenes always fully visible.
 - Month view can scroll up and down: Settings › month scrolling: Sideways, Up and down, or Up and down one month at a time.

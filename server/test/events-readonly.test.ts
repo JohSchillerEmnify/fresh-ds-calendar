@@ -29,8 +29,15 @@ describe('own calendar', () => {
     expect(isOwnCalendar(c, [me, c])).toBe(false);
   });
 
-  it('is not a calendar of someone else even with the owner role (dataOwner differs)', () => {
-    const c = cal({ id: 'team@group.calendar.google.com', owner: 'anna@example.org' });
+  it('is a shared group calendar the person may write, whoever owns its data (family calendar)', () => {
+    const owner = cal({ id: 'family@group.calendar.google.com', owner: 'anna@example.org' });
+    const writer = cal({ id: 'family2@group.calendar.google.com', owner: 'anna@example.org', accessRole: 'writer' });
+    expect(isOwnCalendar(owner, [me, owner])).toBe(true);
+    expect(isOwnCalendar(writer, [me, writer])).toBe(true);
+  });
+
+  it('is not a group calendar the person can only read', () => {
+    const c = cal({ id: 'family@group.calendar.google.com', accessRole: 'reader' });
     expect(isOwnCalendar(c, [me, c])).toBe(false);
   });
 
@@ -58,6 +65,12 @@ describe('read-only reason of an event', () => {
 
   it('has none when the organiser lets guests edit', () => {
     expect(readOnlyReason(ev({ organizer: { email: 'anna@example.org' }, guestsCanModify: true }), all)).toBeNull();
+  });
+
+  it('has none for an event someone else made in a shared group calendar the person may write', () => {
+    const fam = cal({ id: 'family@group.calendar.google.com', accessRole: 'writer', owner: 'anna@example.org' });
+    expect(readOnlyReason(ev({ calendarId: fam.id, organizer: { email: fam.id, self: false } }), [me, fam])).toBeNull();
+    expect(readOnlyReason(ev({ calendarId: fam.id, organizer: { email: 'anna@example.org' } }), [me, fam])).toEqual({ kind: 'invitation', by: 'anna@example.org' });
   });
 
   it('is the calendar of its owner in a shared calendar with write rights, even if the person organises the event', () => {
@@ -105,10 +118,18 @@ describe('only own events are editable (API)', () => {
     expect((await t.json('GET', '/api/calendars')).body.calendars.find((c: any) => c.id === shared.id)).toMatchObject({ writable: true, own: false });
   });
 
-  it('keeps events of a calendar someone else owns look-only even with the owner role', async () => {
-    const other = (await t.json('POST', '/api/__test/remote/calendars', { summary: 'Team', id: 'team@group.calendar.google.com', ownerEmail: 'anna@example.org' })).body;
-    const e = await remote({ calendarId: other.id });
-    expect((await t.json('PATCH', `/api/events/${e.id}`, { title: 'X' })).status).toBe(403);
+  it('lets a shared group calendar with write rights be used like an own one (family calendar)', async () => {
+    const fam = (await t.json('POST', '/api/__test/remote/calendars', { summary: 'Family', id: 'family@group.calendar.google.com', accessRole: 'writer', ownerEmail: 'anna@example.org' })).body;
+    const e = await remote({ calendarId: fam.id, organizer: { email: fam.id, self: false } });
+    expect((await items()).find((i) => i.id === e.id)).toMatchObject({ calendarId: fam.id });
+    expect((await items()).find((i) => i.id === e.id)?.readOnly).toBeFalsy();
+    expect((await t.json('PATCH', `/api/events/${e.id}`, { title: 'X' })).status).toBe(200);
+    const created = await t.json('POST', '/api/events', { title: 'New', allDay: false, start: '2026-10-14T09:00:00+02:00', end: '2026-10-14T10:00:00+02:00', calendarId: fam.id });
+    expect(created.status).toBe(201);
+    const made = (await items()).find((i) => i.id === created.body.id);
+    expect(made?.readOnly).toBeFalsy();
+    expect((await t.json('DELETE', `/api/events/${e.id}`)).status).toBeLessThan(300);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.find((c: { id: string }) => c.id === fam.id)).toMatchObject({ own: true });
   });
 
   it('keeps the person\'s own secondary calendar editable', async () => {
