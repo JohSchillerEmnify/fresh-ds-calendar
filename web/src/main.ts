@@ -4,7 +4,7 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import { loadIconSet } from './components/icons';
 import { iconSet } from './theme/iconSet';
-import { applyLanguage, cachedLanguagePref } from './i18n';
+import { applyLanguage } from './i18n';
 import { createAppRouter, warmView } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useAuthStore } from './stores/auth';
@@ -51,9 +51,9 @@ async function bootstrap() {
   if (!shown) await loads;
   device.install();
   if (clock.config.testMode) enableTimerCounting();
-  // the language chosen on this device last time (or the device's), before the first paint
+  // the person's language as the prefs now hold it (the device cache until the server answered), before the first paint
   // the cached icon set's chunk, so the first paint has its icons
-  await Promise.all([applyLanguage(cachedLanguagePref()), loadIconSet(iconSet.value).catch(() => { /* a missing chunk must not stop the app: it mounts without icons */ })]);
+  await Promise.all([applyLanguage(usePrefsStore().language), loadIconSet(iconSet.value).catch(() => { /* a missing chunk must not stop the app: it mounts without icons */ })]);
   installMotion();
   settings.installAppearance();
   registerBuiltinExtensions();
