@@ -13,6 +13,10 @@ export interface MenuNavOptions {
   close: (refocus: boolean) => void;
   /** Dismiss on any scroll and on resize (for a menu placed once, in fixed coordinates). */
   closeOnMove?: boolean;
+  /** CSS selector of the items inside the panel (default menu items; a listbox passes its options). */
+  itemSelector?: string;
+  /** Item that gets the focus on opening when present (a listbox's chosen option), else the first item. */
+  preferSelector?: string;
 }
 
 /** The index to focus after `key` from item `at` of `count` (-1: none focused); null when the key moves nothing. */
@@ -27,7 +31,7 @@ function nextIndex(key: string, at: number, count: number): number | null {
 
 /** Wires a menu: returns the `keydown` handler to put on the panel (and the trigger); the outside listeners live while it is open. */
 export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => void } {
-  const items = (): HTMLElement[] => [...(o.panel.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+  const items = (): HTMLElement[] => [...(o.panel.value?.querySelectorAll<HTMLElement>(o.itemSelector ?? '[role="menuitem"]') ?? [])];
   const inside = (n: Node | null): boolean => !!n && (!!o.panel.value?.contains(n) || !!o.trigger?.value?.contains(n));
 
   function onKey(e: KeyboardEvent): void {
@@ -50,7 +54,8 @@ export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => vo
     await nextTick();
     // closed again while waiting
     if (!o.open()) return;
-    items()[0]?.focus({ preventScroll: true });
+    const preferred = o.preferSelector ? o.panel.value?.querySelector<HTMLElement>(o.preferSelector) : null;
+    (preferred ?? items()[0])?.focus({ preventScroll: true });
     stops.push(
       listen(document, 'pointerdown', (e) => { if (!inside(e.target as Node)) o.close(false); }, { capture: true }),
       listen(document, 'focusin', (e) => { if (!inside(e.target as Node)) o.close(false); }),

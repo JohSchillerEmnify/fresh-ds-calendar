@@ -84,7 +84,8 @@ Then('every settings row shows its name first and its control at the end', async
   const bad = await rows.evaluateAll((els) => els.flatMap((el) => {
     const label = el.querySelector('.lab')?.getBoundingClientRect();
     const ctl = el.querySelector('.ctl')?.firstElementChild?.getBoundingClientRect();
-    return label && ctl && !(label.left < ctl.left) ? [el.getAttribute('data-setting') ?? '?'] : [];
+    // a control under the name (wide groups, outlined fields) counts as after it
+    return label && ctl && !(label.left < ctl.left || (label.top < ctl.top && (el.classList.contains('wide') || !!el.querySelector('.fld')))) ? [el.getAttribute('data-setting') ?? '?'] : [];
   }));
   expect(bad, 'rows whose control does not come after the name').toEqual([]);
 });

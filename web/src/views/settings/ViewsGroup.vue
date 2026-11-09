@@ -5,8 +5,9 @@ import type { DaySideBySide, MinEventMinutes, MonthScroll, ViewName, WeekSideByS
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Slider from '@/components/m3/Slider.vue';
 import Switch from '@/components/m3/Switch.vue';
-import RowSelect from '@/components/settings/RowSelect.vue';
+import MenuField from '@/components/m3/MenuField.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import { useSavePrefs, useSaveSettings } from '@/composables/useSaveSettings';
 import { isStableViewOn, STABLE_VIEWS } from '@/features/views';
 import { t } from '@/i18n';
@@ -39,50 +40,55 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
 </script>
 
 <template>
-  <h2>{{ t('settingsNav.sub.switcher') }}</h2>
-  <p class="note" data-testid="settings-views-note">{{ t('settings.calendar.viewsKeepOne') }}</p>
-  <SettingRow v-for="v in STABLE_VIEWS" :id="`stableView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
-    <template #icon><component :is="v.icon" /></template>
-    <Switch :model-value="isStableViewOn(v.id, prefs.stableViews)" :label="t(v.labelKey)" :disabled="lastOn && isStableViewOn(v.id, prefs.stableViews)" :data-testid="`settings-view-switch-${v.id}`" @update:model-value="savePrefs({ stableViews: { [v.id]: $event } })" />
-  </SettingRow>
-
-  <h2>{{ t('settingsNav.sub.general') }}</h2>
-  <SettingRow v-if="views.length" id="defaultView" :label="t('settings.calendar.defaultView')">
-    <RowSelect :model-value="settings.settings.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" />
-  </SettingRow>
-  <SettingRow id="minEventLength" wide :label="t('settings.calendar.minEventLength.label')" :hint="t('settings.calendar.minEventLength.hint')">
-    <SegmentedButton :model-value="String(prefs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" />
-  </SettingRow>
-
-  <h2>{{ t('settingsNav.sub.month') }}</h2>
-  <SettingRow id="monthScroll" :label="t('settings.calendar.monthScroll.label')">
-    <RowSelect :model-value="prefs.monthScroll" :options="monthScrollOptions" :label="t('settings.calendar.monthScroll.label')" data-testid="settings-month-scroll" @update:model-value="savePrefs({ monthScroll: $event as MonthScroll })" />
-  </SettingRow>
-
-  <h2>{{ t('settingsNav.sub.weekDay') }}</h2>
-  <p class="note">{{ t('settings.calendar.sideBySide.hint') }}</p>
-  <SettingRow id="daySideBySide" wide :label="t('settingsNav.labels.sideBySideDay')">
-    <SegmentedButton :model-value="String(prefs.daySideBySide)" :options="dayOptions" :label="t('settingsNav.labels.sideBySideDay')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" />
-  </SettingRow>
-  <SettingRow id="weekSideBySide" wide :label="t('settingsNav.labels.sideBySideWeek')">
-    <SegmentedButton :model-value="String(prefs.weekSideBySide)" :options="weekOptions" :label="t('settingsNav.labels.sideBySideWeek')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" />
-  </SettingRow>
-
-  <h2>{{ t('settingsNav.sub.approaching') }}</h2>
-  <SettingRow id="approachingCard" :label="t('settings.calendar.approachingCard.label')" :hint="t('settings.calendar.approachingCard.hint')">
-    <Switch :model-value="prefs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" />
-  </SettingRow>
-  <template v-if="prefs.approachingCard">
-    <SettingRow id="approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" :hint="t('settings.calendar.approachTimeLeft.hint')">
-      <Switch :model-value="prefs.approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" data-testid="settings-approach-time-left" @update:model-value="savePrefs({ approachTimeLeft: $event })" />
+  <SettingSection :title="t('settingsNav.sub.switcher')">
+    <p class="note" data-testid="settings-views-note">{{ t('settings.calendar.viewsKeepOne') }}</p>
+    <SettingRow v-for="v in STABLE_VIEWS" :id="`stableView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
+      <template #icon><component :is="v.icon" /></template>
+      <Switch :model-value="isStableViewOn(v.id, prefs.stableViews)" :label="t(v.labelKey)" :disabled="lastOn && isStableViewOn(v.id, prefs.stableViews)" :data-testid="`settings-view-switch-${v.id}`" @update:model-value="savePrefs({ stableViews: { [v.id]: $event } })" />
     </SettingRow>
-    <SettingRow id="approachBar" :label="t('settings.calendar.approachBar.label')" :hint="t('settings.calendar.approachBar.hint')">
-      <Switch :model-value="prefs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" />
+  </SettingSection>
+
+  <SettingSection :title="t('settingsNav.sub.general')">
+    <SettingRow v-if="views.length" id="defaultView" field :label="t('settings.calendar.defaultView')">
+      <MenuField :model-value="settings.settings.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" />
     </SettingRow>
-    <SettingRow v-if="prefs.approachBar" id="approachWindow" wide :label="t('settings.calendar.approachWindow.label')" :hint="hoursText(liveHours)">
-      <Slider class="track" :model-value="liveHours" :min="1" :max="24" :label="t('settings.calendar.approachWindow.label')" :value-text="hoursText(liveHours)" testid="settings-approach-window" @update:model-value="liveHours = $event" @commit="savePrefs({ approachWindowHours: $event })" />
+    <SettingRow id="minEventLength" wide :label="t('settings.calendar.minEventLength.label')" :hint="t('settings.calendar.minEventLength.hint')">
+      <SegmentedButton connected :model-value="String(prefs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" />
     </SettingRow>
-  </template>
+  </SettingSection>
+
+  <SettingSection :title="t('settingsNav.sub.month')">
+    <SettingRow id="monthScroll" field :label="t('settings.calendar.monthScroll.label')">
+      <MenuField :model-value="prefs.monthScroll" :options="monthScrollOptions" :label="t('settings.calendar.monthScroll.label')" data-testid="settings-month-scroll" @update:model-value="savePrefs({ monthScroll: $event as MonthScroll })" />
+    </SettingRow>
+  </SettingSection>
+
+  <SettingSection :title="t('settingsNav.sub.weekDay')">
+    <p class="note">{{ t('settings.calendar.sideBySide.hint') }}</p>
+    <SettingRow id="daySideBySide" wide :label="t('settingsNav.labels.sideBySideDay')">
+      <SegmentedButton connected :model-value="String(prefs.daySideBySide)" :options="dayOptions" :label="t('settingsNav.labels.sideBySideDay')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" />
+    </SettingRow>
+    <SettingRow id="weekSideBySide" wide :label="t('settingsNav.labels.sideBySideWeek')">
+      <SegmentedButton connected :model-value="String(prefs.weekSideBySide)" :options="weekOptions" :label="t('settingsNav.labels.sideBySideWeek')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" />
+    </SettingRow>
+  </SettingSection>
+
+  <SettingSection :title="t('settingsNav.sub.approaching')">
+    <SettingRow id="approachingCard" :label="t('settings.calendar.approachingCard.label')" :hint="t('settings.calendar.approachingCard.hint')">
+      <Switch :model-value="prefs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" />
+    </SettingRow>
+    <template v-if="prefs.approachingCard">
+      <SettingRow id="approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" :hint="t('settings.calendar.approachTimeLeft.hint')">
+        <Switch :model-value="prefs.approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" data-testid="settings-approach-time-left" @update:model-value="savePrefs({ approachTimeLeft: $event })" />
+      </SettingRow>
+      <SettingRow id="approachBar" :label="t('settings.calendar.approachBar.label')" :hint="t('settings.calendar.approachBar.hint')">
+        <Switch :model-value="prefs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" />
+      </SettingRow>
+      <SettingRow v-if="prefs.approachBar" id="approachWindow" wide :label="t('settings.calendar.approachWindow.label')" :hint="hoursText(liveHours)">
+        <Slider class="track" :model-value="liveHours" :min="1" :max="24" :label="t('settings.calendar.approachWindow.label')" :value-text="hoursText(liveHours)" testid="settings-approach-window" @update:model-value="liveHours = $event" @commit="savePrefs({ approachWindowHours: $event })" />
+      </SettingRow>
+    </template>
+  </SettingSection>
 </template>
 
 <style scoped>

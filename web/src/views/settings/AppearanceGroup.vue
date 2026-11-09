@@ -4,8 +4,9 @@ import { computed } from 'vue';
 import type { BarSize, NavPhonePosition, NavPosition } from '@/api/types';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
-import RowSelect from '@/components/settings/RowSelect.vue';
+import MenuField from '@/components/m3/MenuField.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { LANGUAGE_NAMES, LANGUAGES, t, type LanguagePref } from '@/i18n';
 import { NAV_POSITIONS } from '@/lib/navPosition';
@@ -37,36 +38,42 @@ const LAYOUT_OF = { auto: 'auto', expressive: 'two-rows', compact: 'one-row' } a
 </script>
 
 <template>
-  <SettingRow id="theme" to="/settings/theme" :label="t('settings.theme.label')" :hint="t('settings.theme.hint')" :value="themeLabel" testid="settings-theme" value-testid="settings-theme-name" />
-  <SettingRow id="language" :label="t('settings.language.label')">
-    <RowSelect :model-value="prefs.language" :options="languageOptions" :label="t('settings.language.label')" data-testid="settings-language" @update:model-value="savePrefs({ language: $event as LanguagePref })" />
-  </SettingRow>
+  <SettingSection>
+    <SettingRow id="theme" to="/settings/theme" :label="t('settings.theme.label')" :hint="t('settings.theme.hint')" :value="themeLabel" testid="settings-theme" value-testid="settings-theme-name" />
+    <SettingRow id="language" field :label="t('settings.language.label')">
+      <MenuField :model-value="prefs.language" :options="languageOptions" :label="t('settings.language.label')" data-testid="settings-language" @update:model-value="savePrefs({ language: $event as LanguagePref })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.navigation') }}</h2>
-  <p class="note">{{ t('settings.navPosition.hint') }}</p>
-  <SettingRow id="navPhone" :label="t('settingsNav.labels.navPhone')">
-    <RowSelect :model-value="prefs.navPhone" :options="navOptions('phone')" :label="t('settingsNav.labels.navPhone')" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPhonePosition })" />
-  </SettingRow>
-  <SettingRow id="navDesktop" :label="t('settingsNav.labels.navDesktop')">
-    <RowSelect :model-value="prefs.navDesktop" :options="navOptions('desktop')" :label="t('settingsNav.labels.navDesktop')" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" />
-  </SettingRow>
+  <SettingSection :title="t('settingsNav.sub.navigation')">
+    <p class="note">{{ t('settings.navPosition.hint') }}</p>
+    <SettingRow id="navPhone" field :label="t('settingsNav.labels.navPhone')">
+      <MenuField :model-value="prefs.navPhone" :options="navOptions('phone')" :label="t('settingsNav.labels.navPhone')" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPhonePosition })" />
+    </SettingRow>
+    <SettingRow id="navDesktop" field :label="t('settingsNav.labels.navDesktop')">
+      <MenuField :model-value="prefs.navDesktop" :options="navOptions('desktop')" :label="t('settingsNav.labels.navDesktop')" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.bars') }}</h2>
-  <SettingRow id="topBarSize" wide :label="t('settings.calendar.topBarSize.label')" :hint="t('settings.calendar.topBarSize.hint')">
-    <SegmentedButton :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: LAYOUT_OF[$event] })" />
-  </SettingRow>
-  <SettingRow id="bottomBarSize" wide :label="t('settings.calendar.bottomBarSize.label')" :hint="t('settings.calendar.bottomBarSize.hint')">
-    <SegmentedButton :model-value="prefs.bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event })" />
-  </SettingRow>
+  <SettingSection :title="t('settingsNav.sub.bars')">
+    <SettingRow id="topBarSize" wide :label="t('settings.calendar.topBarSize.label')" :hint="t('settings.calendar.topBarSize.hint')">
+      <SegmentedButton connected :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: LAYOUT_OF[$event] })" />
+    </SettingRow>
+    <SettingRow id="bottomBarSize" wide :label="t('settings.calendar.bottomBarSize.label')" :hint="t('settings.calendar.bottomBarSize.hint')">
+      <SegmentedButton connected :model-value="prefs.bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.more') }}</h2>
-  <SettingRow id="leftHanded" :label="t('settings.leftHanded.label')" :hint="t('settings.leftHanded.hint')">
-    <Switch :model-value="prefs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" />
-  </SettingRow>
-  <SettingRow id="syncIndicator" :label="t('settingsNav.labels.syncIndicator')" :hint="t('settings.calendar.syncIndicator.hint')">
-    <Switch :model-value="prefs.syncIndicator" :label="t('settingsNav.labels.syncIndicator')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" />
-  </SettingRow>
-  <SettingRow id="versionCorner" :label="t('settings.account.versionCorner.label')">
-    <Switch :model-value="prefs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" />
-  </SettingRow>
+  <SettingSection :title="t('settingsNav.sub.more')">
+    <SettingRow id="leftHanded" :label="t('settings.leftHanded.label')" :hint="t('settings.leftHanded.hint')">
+      <Switch :model-value="prefs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" />
+    </SettingRow>
+    <SettingRow id="syncIndicator" :label="t('settingsNav.labels.syncIndicator')" :hint="t('settings.calendar.syncIndicator.hint')">
+      <Switch :model-value="prefs.syncIndicator" :label="t('settingsNav.labels.syncIndicator')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" />
+    </SettingRow>
+    <SettingRow id="versionCorner" :label="t('settings.account.versionCorner.label')">
+      <Switch :model-value="prefs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" />
+    </SettingRow>
+  </SettingSection>
+
 </template>

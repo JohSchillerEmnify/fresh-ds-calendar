@@ -6,6 +6,7 @@ import { api } from '@/api/client';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import { useSavePrefs, useSaveSettings } from '@/composables/useSaveSettings';
 import { StreakFlame, useMotivationStore } from '@/features/motivation';
 import { t } from '@/i18n';
@@ -39,38 +40,44 @@ onBeforeUnmount(() => motivation.stop());
 </script>
 
 <template>
-  <SettingRow id="calmMode" :label="t('settings.motivation.calmMode.label')" :hint="t('settings.motivation.calmMode.hint')">
-    <Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" />
-  </SettingRow>
+  <SettingSection>
+    <SettingRow id="calmMode" :label="t('settings.motivation.calmMode.label')" :hint="t('settings.motivation.calmMode.hint')">
+      <Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.motion') }}</h2>
-  <SettingRow id="animations" wide :label="t('settings.motion.animations')">
-    <template v-if="systemReducedMotion" #sub><span class="sub" data-testid="settings-system-reduced-motion">{{ t('settings.motion.systemReduced') }}</span></template>
-    <SegmentedButton :model-value="s.animationLevel" :options="levels" :label="t('settings.motion.animations')" data-testid="settings-animation-level" @update:model-value="save({ animationLevel: $event as AnimationLevel })" />
-  </SettingRow>
-  <SettingRow v-if="systemReducedMotion" id="ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" :hint="t('settings.motion.ignoreSystem.hint')">
-    <Switch :model-value="s.ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" data-testid="settings-ignore-system-motion" @update:model-value="save({ ignoreSystemMotion: $event })" />
-  </SettingRow>
-  <SettingRow id="sounds" :label="t('settings.motion.sounds')">
-    <Switch :model-value="s.sounds" :label="t('settings.motion.sounds')" data-testid="settings-sounds" @update:model-value="save({ sounds: $event })" />
-  </SettingRow>
+  <SettingSection :title="t('settingsNav.sub.motion')">
+    <SettingRow id="animations" wide :label="t('settings.motion.animations')">
+      <template v-if="systemReducedMotion" #sub><span class="sub" data-testid="settings-system-reduced-motion">{{ t('settings.motion.systemReduced') }}</span></template>
+      <SegmentedButton connected :model-value="s.animationLevel" :options="levels" :label="t('settings.motion.animations')" data-testid="settings-animation-level" @update:model-value="save({ animationLevel: $event as AnimationLevel })" />
+    </SettingRow>
+    <SettingRow v-if="systemReducedMotion" id="ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" :hint="t('settings.motion.ignoreSystem.hint')">
+      <Switch :model-value="s.ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" data-testid="settings-ignore-system-motion" @update:model-value="save({ ignoreSystemMotion: $event })" />
+    </SettingRow>
+    <SettingRow id="sounds" :label="t('settings.motion.sounds')">
+      <Switch :model-value="s.sounds" :label="t('settings.motion.sounds')" data-testid="settings-sounds" @update:model-value="save({ sounds: $event })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.motivation') }}</h2>
-  <SettingRow id="streak" wide :label="t('settings.motivation.streak.label')">
-    <template #sub>
-      <span class="sub streak">
-        <template v-if="currentStreak !== null">{{ t('settings.motivation.currentStreak') }} <StreakFlame :count="currentStreak" /> · </template>
-        {{ t('settings.motivation.bestStreak') }} <span data-testid="settings-best-streak">{{ best ?? '–' }}</span>
-      </span>
-    </template>
-    <SegmentedButton :model-value="prefs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" />
-  </SettingRow>
-  <SettingRow id="supportCat" wide :label="t('settings.motivation.supportCat')">
-    <SegmentedButton :model-value="prefs.supportCat" :options="supportCats" :label="t('settings.motivation.supportCat')" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" />
-  </SettingRow>
+  <SettingSection :title="t('settingsNav.sub.motivation')">
+    <SettingRow id="streak" wide :label="t('settings.motivation.streak.label')">
+      <template #sub>
+        <span class="sub streak">
+          <template v-if="currentStreak !== null">{{ t('settings.motivation.currentStreak') }} <StreakFlame :count="currentStreak" /> · </template>
+          {{ t('settings.motivation.bestStreak') }} <span data-testid="settings-best-streak">{{ best ?? '–' }}</span>
+        </span>
+      </template>
+      <SegmentedButton connected :model-value="prefs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" />
+    </SettingRow>
+    <SettingRow id="supportCat" wide :label="t('settings.motivation.supportCat')">
+      <SegmentedButton connected :model-value="prefs.supportCat" :options="supportCats" :label="t('settings.motivation.supportCat')" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" />
+    </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.bedtime') }}</h2>
-  <SettingRow id="bedtime" to="/settings/focus/bedtime" :label="t('settings.sections.bedtime')" :hint="t('settingsNav.labels.bedtimeHint')" testid="settings-bedtime" />
+  <SettingSection :title="t('settingsNav.sub.bedtime')">
+    <SettingRow id="bedtime" to="/settings/focus/bedtime" :label="t('settings.sections.bedtime')" :hint="t('settingsNav.labels.bedtimeHint')" testid="settings-bedtime" />
+  </SettingSection>
+
 </template>
 
 <style scoped>

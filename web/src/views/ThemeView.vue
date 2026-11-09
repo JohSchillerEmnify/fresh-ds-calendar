@@ -11,13 +11,14 @@ import Pressable from '@/components/m3/Pressable.vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport, loadIconSet } from '@/components/icons';
+import { IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport, loadIconSet } from '@/components/icons';
 import type { StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
 import type { SunflowersMode, ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import SettingsBar from '@/components/settings/SettingsBar.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Slider from '@/components/m3/Slider.vue';
 import TextField from '@/components/m3/TextField.vue';
@@ -182,10 +183,7 @@ function back() {
 
 <template>
   <section class="page" data-testid="theme-view">
-    <header class="bar">
-      <IconButton :label="t('settings.back')" data-testid="theme-back" @click="back"><IconBack /></IconButton>
-      <h1>{{ t('theme.title') }}</h1>
-    </header>
+    <SettingsBar :title="t('theme.title')" back-testid="theme-back" @back="back" />
     <div class="content">
       <DefineGroup v-slot="{ g }">
         <div class="group" role="group" :aria-label="g.label">
@@ -209,7 +207,7 @@ function back() {
 
       <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
         <h2 id="h-cal">{{ t('theme.seasonal.title') }}</h2>
-        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" :label="t('theme.seasonal.title')" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <SegmentedButton connected :model-value="theme.pref.seasonal" :options="seasonalOptions" :label="t('theme.seasonal.title')" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
         <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
       </section>
 
@@ -236,7 +234,7 @@ function back() {
         <div class="group">
           <span class="lab">{{ t('settings.sunflowers.label') }}</span>
           <span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span>
-          <SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" />
+          <SegmentedButton connected :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" />
         </div>
       </section>
 
@@ -244,7 +242,7 @@ function back() {
         <h2 id="h-fine">{{ t('theme.fine.title') }}</h2>
         <div class="group">
           <span class="lab">{{ t('theme.fine.mode') }}</span>
-          <SegmentedButton :model-value="s.themeMode" :options="modes" :label="t('theme.fine.mode')" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
+          <SegmentedButton connected :model-value="s.themeMode" :options="modes" :label="t('theme.fine.mode')" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
         </div>
         <div class="group">
           <span class="lab">{{ t('theme.fine.seed') }}</span>
@@ -265,7 +263,7 @@ function back() {
         </template>
         <div v-for="c in choices" :key="c.key" class="group">
           <span class="lab">{{ c.label }}</span>
-          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
+          <SegmentedButton connected :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
             <template v-if="c.key === 'icons'" #option="{ option }">
               <span class="isamp" aria-hidden="true"><component :is="ic" :set="option.value as 'sharp'" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
             </template>
@@ -282,10 +280,8 @@ function back() {
 
 <style scoped>
 .page { height: 100%; overflow-y: auto; overflow-x: clip; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
-.bar { display: flex; align-items: center; gap: 4px; padding: calc(var(--safe-top) + 8px) 8px 8px; position: sticky; top: 0; background: var(--md-sys-color-surface); z-index: 2; }
-h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 720px; margin: 0 auto; }
-.card { background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 12px 14px; }
+.card { background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 12px 14px; }
 h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
 /* desktop: settings left, the live preview sticky in a right column (it spans the four section rows) */
 @media (min-width: 900px) {

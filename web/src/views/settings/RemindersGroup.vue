@@ -6,6 +6,7 @@ import { api, ApiError } from '@/api/client';
 import Switch from '@/components/m3/Switch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import TimeField from '@/components/settings/TimeField.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { t } from '@/i18n';
@@ -58,15 +59,14 @@ async function saveTasks(minutes: number[]) {
 </script>
 
 <template>
-  <template v-if="pushAvailable">
-    <h2>{{ t('settingsNav.sub.where') }}</h2>
+  <SettingSection v-if="pushAvailable" :title="t('settingsNav.sub.where')">
     <SettingRow id="push" :label="t('settingsNav.labels.push')" :hint="t('settingsNav.labels.pushHint')">
       <Switch :model-value="pushEndpoint !== null" :label="t('settingsNav.labels.push')" data-testid="reminders-push" @update:model-value="setPush" />
     </SettingRow>
     <p v-if="pushDenied" class="note" data-testid="reminders-push-denied">{{ t('settings.reminders.push.denied') }}</p>
-  </template>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.appointments') }}</h2>
+  <SettingSection :title="t('settingsNav.sub.appointments')">
   <SettingRow id="notifyEvents" :label="t('settings.notifications.events.label')" :hint="t('settingsNav.labels.notifyEventsHint')">
     <Switch :model-value="prefs.notify.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" />
   </SettingRow>
@@ -76,14 +76,16 @@ async function saveTasks(minutes: number[]) {
   <SettingRow v-if="prefs.notify.morning" id="morningTime" :label="t('settings.notifications.morning.time')">
     <TimeField :model-value="prefs.notify.morningTime" :label="t('settings.notifications.morning.time')" data-testid="settings-notify-morning-time" @update:model-value="saveNotify({ morningTime: $event })" />
   </SettingRow>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.tasklists') }}</h2>
+  <SettingSection :title="t('settingsNav.sub.tasklists')">
   <SettingRow id="notifyTasklists" :label="t('settings.notifications.tasklists')" :hint="t('settingsNav.labels.notifyTasklistsHint')">
     <Switch :model-value="prefs.notify.tasklists" :label="t('settings.notifications.tasklists')" data-testid="reminders-tasklists" @update:model-value="saveNotify({ tasklists: $event })" />
   </SettingRow>
   <SettingRow id="tasklistDefaults" wide :label="t('settings.reminders.tasklists.default')">
     <ReminderEditor class="editor" :model-value="{ useDefault: false, minutes: tasksDefault }" prefix="tasks-default" data-testid="reminders-tasks-calendar" @update:model-value="saveTasks($event.minutes)" />
   </SettingRow>
+  </SettingSection>
 </template>
 
 <style scoped>

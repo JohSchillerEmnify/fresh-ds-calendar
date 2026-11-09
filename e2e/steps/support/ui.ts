@@ -48,6 +48,12 @@ export async function chooseOption(control: Locator, label: string) {
     await control.selectOption({ label });
     return;
   }
+  // an outlined field opens a menu (`role=listbox`, outside the field)
+  if ((await control.getAttribute('aria-haspopup')) === 'listbox') {
+    await control.click();
+    await control.page().getByRole('listbox').getByRole('option', { name: label, exact: true }).click();
+    return;
+  }
   const byName = (role: 'radio' | 'option' | 'button' | 'menuitemradio') =>
     control.getByRole(role, { name: label, exact: true });
   const target = byName('radio')
@@ -63,6 +69,7 @@ export async function chooseOption(control: Locator, label: string) {
 export async function selectedLabel(control: Locator): Promise<string> {
   return control.evaluate((root) => {
     if (root instanceof HTMLSelectElement) return root.selectedOptions[0]?.label.trim() ?? '';
+    if (root.getAttribute('aria-haspopup') === 'listbox') return root.querySelector('.val')?.textContent?.trim() ?? '';
     const sel = root.querySelector(
       'input:checked, [aria-checked="true"], [aria-selected="true"], [aria-pressed="true"], option:checked',
     ) as HTMLElement | null;

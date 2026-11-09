@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import Pressable from '@/components/m3/Pressable.vue';
 import { IconChevronRight as IconNext } from '@/components/icons';
 
-const props = defineProps<{ id: string; label: string; hint?: string; to?: string; link?: boolean; value?: string; wide?: boolean;
+const props = defineProps<{ id: string; label: string; hint?: string; to?: string; link?: boolean; value?: string; wide?: boolean; /** The control is an outlined field that carries the label itself: the row shows only the control. */ field?: boolean;
   /** Test hook of the row's text (the row itself is `settings-row`) and of its value (`<testid>-name`). */
   testid?: string; valueTestid?: string }>();
 const emit = defineEmits<{ open: [] }>();
@@ -18,10 +18,12 @@ function open() {
 
 <template>
   <Pressable v-if="to !== undefined || link" class="row link" data-testid="settings-row" :data-setting="label" :data-setting-id="id" @click="open">
+    <span v-if="$slots.icon" class="ico" aria-hidden="true"><slot name="icon" /></span>
     <span class="text" :data-testid="testid"><span class="lab">{{ label }}</span><span v-if="hint" class="sub">{{ hint }}</span><slot name="sub" /></span>
     <span v-if="value" class="val" :data-testid="valueTestid">{{ value }}</span>
     <IconNext class="chev" aria-hidden="true" />
   </Pressable>
+  <div v-else-if="field" class="row" data-testid="settings-row" :data-setting="label" :data-setting-id="id"><span class="ctl fld"><slot /></span></div>
   <div v-else class="row" :class="{ wide }" data-testid="settings-row" :data-setting="label" :data-setting-id="id">
     <span v-if="$slots.icon" class="ico" aria-hidden="true"><slot name="icon" /></span>
     <span class="text" :data-testid="testid"><span class="lab">{{ label }}</span><span v-if="hint" class="sub">{{ hint }}</span><slot name="sub" /></span>
@@ -30,18 +32,19 @@ function open() {
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: 10px 16px; min-height: 56px; width: 100%; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
-.ico { display: flex; width: 24px; height: 24px; color: var(--md-sys-color-on-surface-variant); }
+.row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: 8px 8px; margin: 0 -8px; width: calc(100% + 16px); min-height: 64px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
+.ico { display: flex; color: var(--md-sys-color-on-surface-variant); }
 .ico :deep(svg) { width: 24px; height: 24px; }
 .text { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; }
 .ctl { margin-left: auto; display: flex; align-items: center; gap: 8px; max-width: 100%; }
 /* wide controls (segmented buttons, sliders) take a line of their own under the text, still ending at the row's end */
+.fld { flex: 1 1 100%; margin-left: 0; }
 .wide .ctl { flex: 1 1 100%; justify-content: flex-end; }
 /* segments take their label's width and break only between words when the row is narrow */
 .wide .ctl :deep(.opt) { flex: 1 1 auto; overflow-wrap: normal; }
-.lab { font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }
+.lab { font: var(--md-sys-typescale-body-large); font-weight: 500; color: var(--md-sys-color-on-surface); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
-.val { font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-on-surface-variant); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.val { font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface-variant); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; color: var(--md-sys-color-on-surface-variant); }
 /* touch screens: no hover state left behind after a tap */
 @media (hover: hover) { .link:hover { background: var(--md-sys-color-surface-container-high); } }

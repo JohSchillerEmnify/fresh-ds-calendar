@@ -57,8 +57,8 @@ function choose(hit: SearchHit) {
 <template>
   <SettingsShell :title="t('settings.title')" up="/">
     <div class="home" data-testid="settings-home">
-      <label class="search">
-        <IconSearch class="lead" aria-hidden="true" />
+      <label class="search" data-testid="settings-search-bar">
+        <IconSearch class="glass" aria-hidden="true" />
         <input
           :value="query" type="search" enterkeyhint="search" autocomplete="off" :placeholder="t('settingsNav.home.search')" :aria-label="t('settingsNav.home.search')"
           data-testid="settings-search" @input="setQuery(($event.target as HTMLInputElement).value)"
@@ -66,7 +66,7 @@ function choose(hit: SearchHit) {
         <IconButton v-if="query" :label="t('settingsNav.home.clear')" data-testid="settings-search-clear" @click="setQuery('')"><IconClose /></IconButton>
       </label>
 
-      <ul v-if="query" class="list" :aria-label="t('settingsNav.home.results')">
+      <ul v-if="query" class="list box" :aria-label="t('settingsNav.home.results')">
         <li v-for="h in hits" :key="h.id">
           <Pressable class="result" data-testid="settings-search-result" :data-setting="h.label" :data-path="h.path" @click="choose(h)">
             <span class="lab">{{ h.label }}</span><span class="sub">{{ h.path }}</span>
@@ -75,12 +75,12 @@ function choose(hit: SearchHit) {
         <li v-if="!hits.length" class="empty" data-testid="settings-search-empty">{{ t('settingsNav.home.empty', { q: query }) }}</li>
       </ul>
 
-      <nav v-else class="list" :aria-label="t('settings.sectionsLabel')">
+      <nav v-else class="list box" data-testid="settings-groups" :aria-label="t('settings.sectionsLabel')">
         <SettingRow
           v-for="g in GROUP_IDS" :id="g" :key="g" :to="`/settings/${g}`" :label="t(`settingsNav.groups.${g}.title`)" :hint="t(`settingsNav.groups.${g}.summary`)"
           class="group" data-testid="settings-group" :data-group="t(`settingsNav.groups.${g}.title`)" :data-group-id="g"
         >
-          <template #sub><component :is="ICONS[g]" class="icon" aria-hidden="true" /></template>
+          <template #icon><span class="icon" data-testid="settings-group-icon"><component :is="ICONS[g]" /></span></template>
         </SettingRow>
       </nav>
     </div>
@@ -88,25 +88,26 @@ function choose(hit: SearchHit) {
 </template>
 
 <style scoped>
-.home { display: flex; flex-direction: column; gap: 8px; }
+.home { display: flex; flex-direction: column; gap: 12px; }
 .search {
-  display: flex; align-items: center; gap: 4px; min-height: 56px; margin: 4px 8px 8px; padding: 0 4px 0 16px; border-radius: var(--md-sys-shape-corner-full);
+  display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 4px 0 20px; border-radius: var(--md-sys-shape-corner-full);
   background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface-variant);
 }
 .search:focus-within { outline: 2px solid var(--md-sys-color-primary); }
-.lead { width: 24px; height: 24px; flex: none; }
+.glass { width: 24px; height: 24px; flex: none; }
 .search input { flex: 1; min-width: 0; height: 48px; border: 0; outline: 0; background: transparent; color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-body-large); padding: 0 8px; }
 .search input::-webkit-search-cancel-button { display: none; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.result { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 64px; padding: 10px 16px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); }
+.box { padding: 8px; border-radius: var(--md-sys-shape-corner-extra-large); background: var(--md-sys-color-surface-container); }
+.result { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 64px; padding: 10px 8px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); }
 /* touch screens: no hover state left behind after a tap */
 @media (hover: hover) { .result:hover { background: var(--md-sys-color-surface-container-high); } }
-.lab { font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }
+.lab { font: var(--md-sys-typescale-body-large); font-weight: 500; color: var(--md-sys-color-on-surface); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .empty { padding: 24px 16px; text-align: center; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface-variant); }
-.group { position: relative; padding-left: 72px; }
+.box .group { margin: 0; width: 100%; min-height: 64px; padding: 4px 8px; column-gap: 12px; }
 .icon {
-  position: absolute; left: 16px; top: 50%; width: 40px; height: 40px; margin-top: -20px; padding: 8px; box-sizing: border-box; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
   background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);
 }
 </style>

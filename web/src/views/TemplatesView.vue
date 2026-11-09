@@ -7,10 +7,11 @@
 import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { IconAdd, IconArrowBack as IconBack, IconDeleteOutline as IconDelete } from '@/components/icons';
+import { IconAdd, IconDeleteOutline as IconDelete } from '@/components/icons';
 import type { TaskTemplate } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import SettingsBar from '@/components/settings/SettingsBar.vue';
 import { t } from '@/i18n';
 import { formatEstimate } from '@/features/tasklists/format';
 import { useTaskCategories } from '@/features/tasklists/categories';
@@ -47,10 +48,7 @@ function back() {
 
 <template>
   <section class="page" data-testid="templates-page">
-    <header class="bar">
-      <IconButton :label="t('settings.back')" data-testid="templates-back" @click="back"><IconBack /></IconButton>
-      <h1>{{ t('tasks.templates.page') }}</h1>
-    </header>
+    <SettingsBar :title="t('tasks.templates.page')" back-testid="templates-back" @back="back" />
     <div class="content">
       <section class="card">
         <div class="top"><Button variant="tonal" data-testid="templates-new" @click="editing = 'new'"><template #icon><IconAdd /></template>{{ t('tasks.templates.newTemplate') }}</Button></div>
@@ -72,10 +70,8 @@ function back() {
 
 <style scoped>
 .page { height: 100%; overflow-y: auto; overflow-x: clip; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
-.bar { display: flex; align-items: center; gap: 4px; padding: calc(var(--safe-top) + 8px) 8px 8px; position: sticky; top: 0; background: var(--md-sys-color-surface); z-index: 2; }
-h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 640px; margin: 0 auto; }
-.card { background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+.card { background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-extra-large); padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; }
 .top { display: flex; padding: 4px 8px 8px; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .row { display: flex; align-items: center; gap: 4px; }
