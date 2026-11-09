@@ -51,7 +51,7 @@ const CODE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const safe = (v: unknown): string | undefined => (typeof v === 'string' && CODE.test(v) ? v : undefined);
 /** Plain words only: no `@`, no long tokens, so no address or calendar id can reach the log. */
 const plainText = (v: unknown): string | undefined =>
-  typeof v === 'string' && v.length <= 120 && /^[\w .,:;'()\-]*$/.test(v) && !/[A-Za-z0-9_-]{25,}/.test(v) ? v : undefined;
+  typeof v === 'string' && v.length <= 120 && /^[\w .,:;'()-]*$/.test(v) && !/[A-Za-z0-9_-]{25,}/.test(v) ? v : undefined;
 
 /** Pulls the status, Google reason, network code and retry attempt out of a googleapis/gaxios error. */
 export function describeGoogleError(e: unknown): GoogleErrorInfo {
