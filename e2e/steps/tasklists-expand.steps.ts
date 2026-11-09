@@ -112,14 +112,17 @@ Then('the task list {string} opens as the list sheet', async function (this: Wor
 
 When('I tap outside the expanded task list', async function (this: World) {
   const exp = await grown(this).boundingBox();
-  // a point that is neither inside the expansion nor on something clickable
+  // a point in the calendar's `main` (bars and side panels leave the expansion open) outside the expansion and on nothing clickable but an empty time slot (a desktop slot is a button)
   const p = await this.page.evaluate((r) => {
     const w = innerWidth, h = innerHeight;
-    for (const [fx, fy] of [[0.97, 0.5], [0.03, 0.5], [0.5, 0.97], [0.97, 0.3], [0.03, 0.7], [0.5, 0.03]] as const) {
+    const spots: (readonly [number, number])[] = [[0.97, 0.5], [0.03, 0.5], [0.5, 0.97], [0.97, 0.3], [0.03, 0.7], [0.5, 0.03]];
+    for (let fx = 0.05; fx < 1; fx += 0.1) for (let fy = 0.05; fy < 1; fy += 0.1) spots.push([fx, fy]);
+    for (const [fx, fy] of spots) {
       const x = Math.round(w * fx), y = Math.round(h * fy);
       const inside = r && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
       const el = document.elementFromPoint(x, y);
-      if (!inside && el && !el.closest('button, a, input, select, textarea, [role="button"], [data-testid="tasklist-card"]')) return { x, y };
+      const clickable = el?.closest('button, a, input, select, textarea, [role="button"], [data-testid="tasklist-card"]');
+      if (!inside && el?.closest('main') && (!clickable || el.matches('[data-testid="time-slot"]'))) return { x, y };
     }
     return null;
   }, exp);
