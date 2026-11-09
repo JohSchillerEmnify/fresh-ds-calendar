@@ -2137,7 +2137,7 @@ every option of the {string} setting shows a sample icon
   with that label inside; waits for the save. "the app text is N px": computed `font-size` of `<body>` (the body text size;
   14 px at Comfortable, 12.6 px Compact, 15.68 px Airy).
 - "the app uses the X icon set": `<html data-icons>` equals X (`outlined`, `rounded`, `sharp`) and the back
-  icon of the menu (`theme-back`) is drawn in that set (its `svg` has `data-icon-set` X; every app icon carries it). "every option of
+  icon of the menu (`theme-back`) is drawn in that set (its `svg` has `data-icon-set` X; every app icon carries it). Every icon on screen (the per-option samples of the menu excepted) carries X, and the drawn glyph paths differ from the set checked before in the same scenario. "every option of
   the S setting shows a sample icon": each button of that control contains an `svg`.
 - "the task item checkboxes are drawn as S with a G mark": `<html data-checkbox>` equals S (`round`, `square`, `rounded`) and
   `data-check` equals G (`tick`, `bold`, `cross`, `dot`), and in the expanded task list every `tasklist-item-checkbox` shows
