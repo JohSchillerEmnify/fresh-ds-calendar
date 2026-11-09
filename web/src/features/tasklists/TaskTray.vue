@@ -21,8 +21,9 @@ import { showProgress } from './format';
 import { useUiStore } from '@/stores/ui';
 import { compareOpen, useTaskListsStore } from './store';
 import { useTaskCategories } from './categories';
-// the list views are fetched when the tray first opens, not with the bar's row
-const TaskListView = defineAsyncComponent(() => import('./TaskListView.vue'));
+// the list views are not part of the first load: fetched shortly after the tray mounts (or at the first open)
+const loadListView = () => import('./TaskListView.vue');
+const TaskListView = defineAsyncComponent(loadListView);
 
 const route = useRoute();
 const { position: navPosition } = useNavPosition();
@@ -99,7 +100,11 @@ watch(() => ui.flashId, (id) => {
   if (!id) return;
   void nextTick(() => root.value?.querySelector(`[data-testid="task-tray-item"][data-list-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 });
-onMounted(() => { void lists.refresh().catch(() => undefined); });
+onMounted(() => {
+  void lists.refresh().catch(() => undefined);
+  // fetched while idle, so the first open looks like it always did
+  appTimeout(() => { void loadListView().catch(() => undefined); }, 1000);
+});
 onBeforeUnmount(() => {
   lingerStops.forEach((stop) => stop());
   ro?.disconnect();
