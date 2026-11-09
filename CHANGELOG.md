@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- Fixed: the language you choose follows you to your other devices again.
 - Settings have the new Material 3 Expressive look: rounded sections, a larger title bar, menus instead of plain drop-downs and grouped buttons.
 - A calendar's plan (off at set times, or off for a while) now switches the calendar off and on for real, so the widget and your other devices follow it too.
 - The title you typed stays when you switch a new entry between event, task list and birthday.
