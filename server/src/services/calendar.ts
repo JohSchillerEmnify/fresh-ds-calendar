@@ -25,6 +25,7 @@ import {
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { placeLeads, placeOf, placeProps } from './place.js';
+import { calHash, logEvent } from '../lib/diag.js';
 import { hasWriteRole, readOnlyReason } from './ownership.js';
 import { CalendarChanges, type CalendarHealth, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
@@ -156,9 +157,12 @@ export class CalendarService {
     if ('colorId' in pick) {
       const entry = (await this.colorPalette()).find((c) => c.id === pick.colorId);
       if (!entry) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
-      // Google lets an RGB colour on the list entry supersede colorId, so a palette pick is written as its RGB too
-      await this.provider.setCalendarColor(id, { backgroundColor: entry.background, foregroundColor: entry.foreground });
+      // Google lets an RGB colour on the list entry supersede colorId, so a palette pick is written as its RGB too;
+      // the text colour is black or white: Google refused the palette's own #1d1d1d ("Invalid foreground color.")
+      logEvent('calendar_color_write', { calHash: calHash(id), kind: 'palette', background: entry.background, foreground: onColor(entry.background) });
+      await this.provider.setCalendarColor(id, { backgroundColor: entry.background, foregroundColor: onColor(entry.background) });
     } else {
+      logEvent('calendar_color_write', { calHash: calHash(id), kind: 'custom', background: pick.color, foreground: onColor(pick.color) });
       await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
     }
     this.dropCalendars();

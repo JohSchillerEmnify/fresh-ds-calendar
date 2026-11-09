@@ -63,6 +63,8 @@ describe('Google calendar palette', () => {
     expect(r.status).toBe(200);
     expect(r.body.color).toBe('#4986e7');
     expect((await remote('primary')).backgroundColor).toBe('#4986e7');
+    // Google answered "Invalid foreground color." to the palette's own #1d1d1d: the text colour is black or white
+    expect((await remote('primary')).foregroundColor).toBe('#000000');
   });
 
   it('a custom colour clears the palette id', async () => {
