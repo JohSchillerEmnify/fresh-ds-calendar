@@ -2,6 +2,7 @@
 import { visibleInk } from '@calendar/shared/ink';
 import { defineStore } from 'pinia';
 import { ref, shallowRef, watch } from 'vue';
+import { useStorage } from '@vueuse/core';
 import type { CalendarItem, InkDoc, InkStroke, TaskList } from '@/api/types';
 import { keptItems, type Change, type OutboxEntry } from '@/lib/outbox';
 import { withPendingInk } from '@/lib/ink';
@@ -12,24 +13,18 @@ const MODE_KEY = 'cal.ink.mode';
 const COLOUR_KEY = 'cal.ink.colour';
 const PEN_KEY = 'cal.ink.pen';
 
-/** A value from `localStorage`, `null` when blocked or empty. */
-function read(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
-/** Remembers a value on this device; a blocked storage only loses it at the next start. */
-function write(key: string, value: string | null): void {
-  try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch { /* not remembered */ }
-}
+/** Per-device remembered values: a blocked storage only loses them at the next start (no error output, defaults not written). */
+const device = { listenToStorageChanges: false, writeDefaults: false, flush: 'sync' as const, onError: () => {} };
 
 export const useInkStore = defineStore('ink', () => {
   const outbox = useOutboxStore();
   const server = shallowRef<InkDoc['items']>({});
   const lists = shallowRef<InkDoc['items']>({});
-  const mode = ref<'ink' | 'text'>(read(MODE_KEY) === 'text' ? 'text' : 'ink');
+  const mode = useStorage<'ink' | 'text'>(MODE_KEY, 'ink', undefined, { ...device, serializer: { read: (v) => (v === 'text' ? 'text' : 'ink'), write: (v) => v } });
   /** `null` = the theme's text colour (decision Q4). */
-  const colour = ref<string | null>(/^#[0-9a-f]{6}$/i.test(read(COLOUR_KEY) ?? '') ? read(COLOUR_KEY) : null);
+  const colour = useStorage<string | null>(COLOUR_KEY, null, undefined, { ...device, serializer: { read: (v) => (/^#[0-9a-f]{6}$/i.test(v) ? v : null), write: (v) => v ?? '' } });
   const eraser = ref(false);
-  const penSeen = ref(read(PEN_KEY) === '1');
+  const penSeen = useStorage(PEN_KEY, false, undefined, { ...device, serializer: { read: (v) => v === '1', write: (v) => (v ? '1' : '0') } });
 
   watch(() => outbox.entries, (es) => { lists.value = withPendingInk(server.value, es); }, { immediate: true });
 
@@ -61,13 +56,12 @@ export const useInkStore = defineStore('ink', () => {
   function strokes(itemId: string): InkStroke[] {
     return visibleInk(lists.value[itemId] ?? []);
   }
-  function setMode(m: 'ink' | 'text'): void { mode.value = m; write(MODE_KEY, m); }
-  function setColour(c: string | null): void { colour.value = c; write(COLOUR_KEY, c); }
+  function setMode(m: 'ink' | 'text'): void { mode.value = m; }
+  function setColour(c: string | null): void { colour.value = c; }
   /** A pen touched the screen: this device has one (decision R4), remembered. */
   function notePen(): void {
     if (penSeen.value) return;
     penSeen.value = true;
-    write(PEN_KEY, '1');
   }
 
   ports.adoptInk = adopt;
