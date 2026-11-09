@@ -1,226 +1,95 @@
 /**
- * The app's icons (feature theme-menu): each is a component that draws the
- * Material Symbols variant of the current icon set (outlined, rounded or sharp). The three variants of every icon are
- * imported as inline SVG by `unplugin-icons`; `iconSet` (the theme's `icons` value) picks one, so switching restyles
- * every icon at once. Where Material Symbols has no separate rounded or sharp drawing, its alias is the same shape.
+ * The app's icons (feature theme-menu): each is a component that draws the Material Symbols variant of the current icon
+ * set (outlined, rounded or sharp). Each set is its own chunk (`icons.<set>.ts`, inline SVG by `unplugin-icons`) that is
+ * fetched only when the set is in use, so the first load carries one set; the service worker precaches all three for
+ * offline use. `loadIconSet` must be awaited before the first mount; until a switched-to set arrives, the loaded set draws.
  */
-import { defineComponent, h, type Component } from 'vue';
+import { defineComponent, h, shallowRef, watch, type Component } from 'vue';
 import { iconSet, type IconSet } from '@/theme/iconSet';
 
-import MoreHorizO from '~icons/material-symbols/more-horiz';
-import MoreHorizR from '~icons/material-symbols/more-horiz-rounded';
-import MoreHorizS from '~icons/material-symbols/more-horiz-sharp';
-import ContentCopyOutlineO from '~icons/material-symbols/content-copy-outline';
-import ContentCopyOutlineR from '~icons/material-symbols/content-copy-outline-rounded';
-import ContentCopyOutlineS from '~icons/material-symbols/content-copy-outline-sharp';
-import ArchiveOutlineO from '~icons/material-symbols/archive-outline';
-import ArchiveOutlineR from '~icons/material-symbols/archive-outline-rounded';
-import ArchiveOutlineS from '~icons/material-symbols/archive-outline-sharp';
-import BookmarkAddO from '~icons/material-symbols/bookmark-add-outline';
-import BookmarkAddR from '~icons/material-symbols/bookmark-add-outline-rounded';
-import BookmarkAddS from '~icons/material-symbols/bookmark-add-outline-sharp';
-import AddO from '~icons/material-symbols/add';
-import AddR from '~icons/material-symbols/add-rounded';
-import AddS from '~icons/material-symbols/add-sharp';
-import ArrowBackO from '~icons/material-symbols/arrow-back';
-import ArrowBackR from '~icons/material-symbols/arrow-back-rounded';
-import ArrowBackS from '~icons/material-symbols/arrow-back-sharp';
-import BedtimeO from '~icons/material-symbols/bedtime';
-import BedtimeR from '~icons/material-symbols/bedtime-rounded';
-import BedtimeS from '~icons/material-symbols/bedtime-sharp';
-import LocationOnO from '~icons/material-symbols/location-on';
-import LocationOnR from '~icons/material-symbols/location-on-rounded';
-import LocationOnS from '~icons/material-symbols/location-on-sharp';
-import SunnyO from '~icons/material-symbols/sunny';
-import SunnyR from '~icons/material-symbols/sunny-rounded';
-import SunnyS from '~icons/material-symbols/sunny-sharp';
-import CalendarMonthO from '~icons/material-symbols/calendar-month';
-import CalendarMonthR from '~icons/material-symbols/calendar-month-rounded';
-import CalendarMonthS from '~icons/material-symbols/calendar-month-sharp';
-import CalendarViewDayO from '~icons/material-symbols/calendar-view-day';
-import CalendarViewDayR from '~icons/material-symbols/calendar-view-day-rounded';
-import CalendarViewDayS from '~icons/material-symbols/calendar-view-day-sharp';
-import CalendarViewMonthO from '~icons/material-symbols/calendar-view-month';
-import CalendarViewMonthR from '~icons/material-symbols/calendar-view-month-rounded';
-import CalendarViewMonthS from '~icons/material-symbols/calendar-view-month-sharp';
-import CalendarViewWeekO from '~icons/material-symbols/calendar-view-week';
-import CalendarViewWeekR from '~icons/material-symbols/calendar-view-week-rounded';
-import CalendarViewWeekS from '~icons/material-symbols/calendar-view-week-sharp';
-import CheckO from '~icons/material-symbols/check';
-import CheckR from '~icons/material-symbols/check-rounded';
-import CheckS from '~icons/material-symbols/check-sharp';
-import ChevronLeftO from '~icons/material-symbols/chevron-left';
-import ChevronLeftR from '~icons/material-symbols/chevron-left-rounded';
-import ChevronLeftS from '~icons/material-symbols/chevron-left-sharp';
-import ChevronRightO from '~icons/material-symbols/chevron-right';
-import ChevronRightR from '~icons/material-symbols/chevron-right-rounded';
-import ChevronRightS from '~icons/material-symbols/chevron-right-sharp';
-import MenuO from '~icons/material-symbols/menu';
-import MenuR from '~icons/material-symbols/menu-rounded';
-import MenuS from '~icons/material-symbols/menu-sharp';
-import CloseO from '~icons/material-symbols/close';
-import CloseR from '~icons/material-symbols/close-rounded';
-import CloseS from '~icons/material-symbols/close-sharp';
-import CloudOffO from '~icons/material-symbols/cloud-off';
-import CloudOffR from '~icons/material-symbols/cloud-off-rounded';
-import CloudOffS from '~icons/material-symbols/cloud-off-sharp';
-import DeleteOutlineO from '~icons/material-symbols/delete-outline';
-import DeleteOutlineR from '~icons/material-symbols/delete-outline-rounded';
-import DeleteOutlineS from '~icons/material-symbols/delete-outline-sharp';
-import DownloadO from '~icons/material-symbols/download';
-import DownloadR from '~icons/material-symbols/download-rounded';
-import DownloadS from '~icons/material-symbols/download-sharp';
-import DrawO from '~icons/material-symbols/draw';
-import DrawR from '~icons/material-symbols/draw-rounded';
-import DrawS from '~icons/material-symbols/draw-sharp';
-import KeyboardO from '~icons/material-symbols/keyboard';
-import KeyboardR from '~icons/material-symbols/keyboard-rounded';
-import KeyboardS from '~icons/material-symbols/keyboard-sharp';
-import UndoO from '~icons/material-symbols/undo';
-import UndoR from '~icons/material-symbols/undo-rounded';
-import UndoS from '~icons/material-symbols/undo-sharp';
-import InkEraserO from '~icons/material-symbols/ink-eraser';
-import InkEraserR from '~icons/material-symbols/ink-eraser-rounded';
-import InkEraserS from '~icons/material-symbols/ink-eraser-sharp';
-import EditOutlineO from '~icons/material-symbols/edit-outline';
-import EditOutlineR from '~icons/material-symbols/edit-outline-rounded';
-import EditOutlineS from '~icons/material-symbols/edit-outline-sharp';
-import TodayO from '~icons/material-symbols/today';
-import TodayR from '~icons/material-symbols/today-rounded';
-import TodayS from '~icons/material-symbols/today-sharp';
-import ExpandMoreO from '~icons/material-symbols/expand-more';
-import ExpandMoreR from '~icons/material-symbols/expand-more-rounded';
-import ExpandMoreS from '~icons/material-symbols/expand-more-sharp';
-import FilterListO from '~icons/material-symbols/filter-list';
-import FilterListR from '~icons/material-symbols/filter-list-rounded';
-import FilterListS from '~icons/material-symbols/filter-list-sharp';
-import IosShareO from '~icons/material-symbols/ios-share';
-import IosShareR from '~icons/material-symbols/ios-share-rounded';
-import IosShareS from '~icons/material-symbols/ios-share-sharp';
-import KeyboardArrowDownO from '~icons/material-symbols/keyboard-arrow-down';
-import KeyboardArrowDownR from '~icons/material-symbols/keyboard-arrow-down-rounded';
-import KeyboardArrowDownS from '~icons/material-symbols/keyboard-arrow-down-sharp';
-import DragIndicatorO from '~icons/material-symbols/drag-indicator';
-import DragIndicatorR from '~icons/material-symbols/drag-indicator-rounded';
-import DragIndicatorS from '~icons/material-symbols/drag-indicator-sharp';
-import KeyboardArrowUpO from '~icons/material-symbols/keyboard-arrow-up';
-import KeyboardArrowUpR from '~icons/material-symbols/keyboard-arrow-up-rounded';
-import KeyboardArrowUpS from '~icons/material-symbols/keyboard-arrow-up-sharp';
-import ChecklistO from '~icons/material-symbols/checklist';
-import ChecklistR from '~icons/material-symbols/checklist-rounded';
-import ChecklistS from '~icons/material-symbols/checklist-sharp';
-import SwapVertO from '~icons/material-symbols/swap-vert';
-import SwapVertR from '~icons/material-symbols/swap-vert-rounded';
-import SwapVertS from '~icons/material-symbols/swap-vert-sharp';
-import SwapHorizO from '~icons/material-symbols/swap-horiz';
-import SwapHorizR from '~icons/material-symbols/swap-horiz-rounded';
-import SwapHorizS from '~icons/material-symbols/swap-horiz-sharp';
-import ScheduleO from '~icons/material-symbols/schedule';
-import ScheduleR from '~icons/material-symbols/schedule-rounded';
-import ScheduleS from '~icons/material-symbols/schedule-sharp';
-import TimelineO from '~icons/material-symbols/timeline';
-import TimelineR from '~icons/material-symbols/timeline-rounded';
-import TimelineS from '~icons/material-symbols/timeline-sharp';
-import ZoomInO from '~icons/material-symbols/zoom-in';
-import ZoomInR from '~icons/material-symbols/zoom-in-rounded';
-import ZoomInS from '~icons/material-symbols/zoom-in-sharp';
-import ViewColumnO from '~icons/material-symbols/view-column';
-import ViewColumnR from '~icons/material-symbols/view-column-rounded';
-import ViewColumnS from '~icons/material-symbols/view-column-sharp';
-import ViewAgendaO from '~icons/material-symbols/view-agenda-outline';
-import ViewAgendaR from '~icons/material-symbols/view-agenda-outline-rounded';
-import ViewAgendaS from '~icons/material-symbols/view-agenda-outline-sharp';
-import UnfoldLessO from '~icons/material-symbols/unfold-less';
-import UnfoldLessR from '~icons/material-symbols/unfold-less-rounded';
-import UnfoldLessS from '~icons/material-symbols/unfold-less-sharp';
-import UnfoldMoreO from '~icons/material-symbols/unfold-more';
-import UnfoldMoreR from '~icons/material-symbols/unfold-more-rounded';
-import UnfoldMoreS from '~icons/material-symbols/unfold-more-sharp';
-import SettingsOutlineO from '~icons/material-symbols/settings-outline';
-import SettingsOutlineR from '~icons/material-symbols/settings-outline-rounded';
-import SettingsOutlineS from '~icons/material-symbols/settings-outline-sharp';
-import SyncO from '~icons/material-symbols/sync';
-import SyncR from '~icons/material-symbols/sync-rounded';
-import SyncS from '~icons/material-symbols/sync-sharp';
-import SyncProblemO from '~icons/material-symbols/sync-problem';
-import SyncProblemR from '~icons/material-symbols/sync-problem-rounded';
-import SyncProblemS from '~icons/material-symbols/sync-problem-sharp';
-import SearchO from '~icons/material-symbols/search';
-import SearchR from '~icons/material-symbols/search-rounded';
-import SearchS from '~icons/material-symbols/search-sharp';
-import PaletteOutlineO from '~icons/material-symbols/palette-outline';
-import PaletteOutlineR from '~icons/material-symbols/palette-outline-rounded';
-import PaletteOutlineS from '~icons/material-symbols/palette-outline-sharp';
-import NotificationsOutlineO from '~icons/material-symbols/notifications-outline';
-import NotificationsOutlineR from '~icons/material-symbols/notifications-outline-rounded';
-import NotificationsOutlineS from '~icons/material-symbols/notifications-outline-sharp';
-import ScienceOutlineO from '~icons/material-symbols/science-outline';
-import ScienceOutlineR from '~icons/material-symbols/science-outline-rounded';
-import ScienceOutlineS from '~icons/material-symbols/science-outline-sharp';
-import AccountCircleOutlineO from '~icons/material-symbols/account-circle-outline';
-import AccountCircleOutlineR from '~icons/material-symbols/account-circle-outline-rounded';
-import AccountCircleOutlineS from '~icons/material-symbols/account-circle-outline-sharp';
-import SelfImprovementO from '~icons/material-symbols/self-improvement';
-import SelfImprovementR from '~icons/material-symbols/self-improvement-rounded';
-import SelfImprovementS from '~icons/material-symbols/self-improvement-sharp';
+type SetIcons = Record<string, Component>;
 
-type Variants = Record<IconSet, Component>;
+const loaders: Record<IconSet, () => Promise<{ default: SetIcons }>> = {
+  outlined: () => import('./icons.outlined'),
+  rounded: () => import('./icons.rounded'),
+  sharp: () => import('./icons.sharp'),
+};
+const loaded = shallowRef<Partial<Record<IconSet, SetIcons>>>({});
 
-/** A component that draws `variants[iconSet]`; attributes (class, aria, ...) fall through to the SVG. */
-function appIcon(name: string, variants: Variants): Component & { variants: Variants } {
-  return Object.assign(defineComponent({ name, setup: () => () => h(variants[iconSet.value], { 'data-icon-set': iconSet.value }) }), { variants });
+/** Fetch one icon set's chunk (once) and make the icon components draw it. */
+export async function loadIconSet(set: IconSet): Promise<void> {
+  if (loaded.value[set]) return;
+  const icons = (await loaders[set]()).default;
+  loaded.value = { ...loaded.value, [set]: icons };
 }
 
-export const IconMoreHoriz = appIcon('IconMoreHoriz', { outlined: MoreHorizO, rounded: MoreHorizR, sharp: MoreHorizS });
-export const IconContentCopyOutline = appIcon('IconContentCopyOutline', { outlined: ContentCopyOutlineO, rounded: ContentCopyOutlineR, sharp: ContentCopyOutlineS });
-export const IconArchiveOutline = appIcon('IconArchiveOutline', { outlined: ArchiveOutlineO, rounded: ArchiveOutlineR, sharp: ArchiveOutlineS });
-export const IconBookmarkAdd = appIcon('IconBookmarkAdd', { outlined: BookmarkAddO, rounded: BookmarkAddR, sharp: BookmarkAddS });
-export const IconAdd = appIcon('IconAdd', { outlined: AddO, rounded: AddR, sharp: AddS });
-export const IconArrowBack = appIcon('IconArrowBack', { outlined: ArrowBackO, rounded: ArrowBackR, sharp: ArrowBackS });
-export const IconCalendarMonth = appIcon('IconCalendarMonth', { outlined: CalendarMonthO, rounded: CalendarMonthR, sharp: CalendarMonthS });
-export const IconCalendarViewDay = appIcon('IconCalendarViewDay', { outlined: CalendarViewDayO, rounded: CalendarViewDayR, sharp: CalendarViewDayS });
-export const IconCalendarViewMonth = appIcon('IconCalendarViewMonth', { outlined: CalendarViewMonthO, rounded: CalendarViewMonthR, sharp: CalendarViewMonthS });
-export const IconCalendarViewWeek = appIcon('IconCalendarViewWeek', { outlined: CalendarViewWeekO, rounded: CalendarViewWeekR, sharp: CalendarViewWeekS });
-export const IconCheck = appIcon('IconCheck', { outlined: CheckO, rounded: CheckR, sharp: CheckS });
-export const IconChevronLeft = appIcon('IconChevronLeft', { outlined: ChevronLeftO, rounded: ChevronLeftR, sharp: ChevronLeftS });
-export const IconChevronRight = appIcon('IconChevronRight', { outlined: ChevronRightO, rounded: ChevronRightR, sharp: ChevronRightS });
-export const IconMenu = appIcon('IconMenu', { outlined: MenuO, rounded: MenuR, sharp: MenuS });
-export const IconClose = appIcon('IconClose', { outlined: CloseO, rounded: CloseR, sharp: CloseS });
-export const IconCloudOff = appIcon('IconCloudOff', { outlined: CloudOffO, rounded: CloudOffR, sharp: CloudOffS });
-export const IconDeleteOutline = appIcon('IconDeleteOutline', { outlined: DeleteOutlineO, rounded: DeleteOutlineR, sharp: DeleteOutlineS });
-export const IconDownload = appIcon('IconDownload', { outlined: DownloadO, rounded: DownloadR, sharp: DownloadS });
-export const IconDraw = appIcon('IconDraw', { outlined: DrawO, rounded: DrawR, sharp: DrawS });
-export const IconKeyboard = appIcon('IconKeyboard', { outlined: KeyboardO, rounded: KeyboardR, sharp: KeyboardS });
-export const IconUndo = appIcon('IconUndo', { outlined: UndoO, rounded: UndoR, sharp: UndoS });
-export const IconInkEraser = appIcon('IconInkEraser', { outlined: InkEraserO, rounded: InkEraserR, sharp: InkEraserS });
-export const IconEditOutline = appIcon('IconEditOutline', { outlined: EditOutlineO, rounded: EditOutlineR, sharp: EditOutlineS });
-export const IconToday = appIcon('IconToday', { outlined: TodayO, rounded: TodayR, sharp: TodayS });
-export const IconExpandMore = appIcon('IconExpandMore', { outlined: ExpandMoreO, rounded: ExpandMoreR, sharp: ExpandMoreS });
-export const IconFilterList = appIcon('IconFilterList', { outlined: FilterListO, rounded: FilterListR, sharp: FilterListS });
-export const IconIosShare = appIcon('IconIosShare', { outlined: IosShareO, rounded: IosShareR, sharp: IosShareS });
-export const IconKeyboardArrowDown = appIcon('IconKeyboardArrowDown', { outlined: KeyboardArrowDownO, rounded: KeyboardArrowDownR, sharp: KeyboardArrowDownS });
-export const IconDragIndicator = appIcon('IconDragIndicator', { outlined: DragIndicatorO, rounded: DragIndicatorR, sharp: DragIndicatorS });
-export const IconKeyboardArrowUp = appIcon('IconKeyboardArrowUp', { outlined: KeyboardArrowUpO, rounded: KeyboardArrowUpR, sharp: KeyboardArrowUpS });
-export const IconChecklist = appIcon('IconChecklist', { outlined: ChecklistO, rounded: ChecklistR, sharp: ChecklistS });
-export const IconSwapVert = appIcon('IconSwapVert', { outlined: SwapVertO, rounded: SwapVertR, sharp: SwapVertS });
-export const IconSwapHoriz = appIcon('IconSwapHoriz', { outlined: SwapHorizO, rounded: SwapHorizR, sharp: SwapHorizS });
-export const IconSchedule = appIcon('IconSchedule', { outlined: ScheduleO, rounded: ScheduleR, sharp: ScheduleS });
-export const IconTimeline = appIcon('IconTimeline', { outlined: TimelineO, rounded: TimelineR, sharp: TimelineS });
-export const IconZoomIn = appIcon('IconZoomIn', { outlined: ZoomInO, rounded: ZoomInR, sharp: ZoomInS });
-export const IconViewColumn = appIcon('IconViewColumn', { outlined: ViewColumnO, rounded: ViewColumnR, sharp: ViewColumnS });
-export const IconViewAgenda = appIcon('IconViewAgenda', { outlined: ViewAgendaO, rounded: ViewAgendaR, sharp: ViewAgendaS });
-export const IconUnfoldLess = appIcon('IconUnfoldLess', { outlined: UnfoldLessO, rounded: UnfoldLessR, sharp: UnfoldLessS });
-export const IconUnfoldMore = appIcon('IconUnfoldMore', { outlined: UnfoldMoreO, rounded: UnfoldMoreR, sharp: UnfoldMoreS });
-export const IconSettingsOutline = appIcon('IconSettingsOutline', { outlined: SettingsOutlineO, rounded: SettingsOutlineR, sharp: SettingsOutlineS });
-export const IconSync = appIcon('IconSync', { outlined: SyncO, rounded: SyncR, sharp: SyncS });
-export const IconSyncProblem = appIcon('IconSyncProblem', { outlined: SyncProblemO, rounded: SyncProblemR, sharp: SyncProblemS });
-export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded: BedtimeR, sharp: BedtimeS });
-export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });
+// a set chosen later in the theme menu is fetched on demand
+watch(iconSet, (set) => { void loadIconSet(set); });
+
+/** A component that draws `key` of the current set (any loaded set until it arrives); attributes fall through to the SVG. */
+function appIcon(name: string, key: string): Component {
+  return defineComponent({
+    name,
+    props: { set: { type: String as () => IconSet, default: undefined } },
+    setup: (props) => () => {
+      const want = props.set ?? iconSet.value;
+      const set = loaded.value[want] ? want : (Object.keys(loaded.value)[0] as IconSet | undefined);
+      const icon = set && loaded.value[set]?.[key];
+      return icon ? h(icon, { 'data-icon-set': set }) : null;
+    },
+  });
+}
+
+export const IconMoreHoriz = appIcon('IconMoreHoriz', 'MoreHoriz');
+export const IconContentCopyOutline = appIcon('IconContentCopyOutline', 'ContentCopyOutline');
+export const IconArchiveOutline = appIcon('IconArchiveOutline', 'ArchiveOutline');
+export const IconBookmarkAdd = appIcon('IconBookmarkAdd', 'BookmarkAdd');
+export const IconAdd = appIcon('IconAdd', 'Add');
+export const IconArrowBack = appIcon('IconArrowBack', 'ArrowBack');
+export const IconCalendarMonth = appIcon('IconCalendarMonth', 'CalendarMonth');
+export const IconCalendarViewDay = appIcon('IconCalendarViewDay', 'CalendarViewDay');
+export const IconCalendarViewMonth = appIcon('IconCalendarViewMonth', 'CalendarViewMonth');
+export const IconCalendarViewWeek = appIcon('IconCalendarViewWeek', 'CalendarViewWeek');
+export const IconCheck = appIcon('IconCheck', 'Check');
+export const IconChevronLeft = appIcon('IconChevronLeft', 'ChevronLeft');
+export const IconChevronRight = appIcon('IconChevronRight', 'ChevronRight');
+export const IconMenu = appIcon('IconMenu', 'Menu');
+export const IconClose = appIcon('IconClose', 'Close');
+export const IconCloudOff = appIcon('IconCloudOff', 'CloudOff');
+export const IconDeleteOutline = appIcon('IconDeleteOutline', 'DeleteOutline');
+export const IconDownload = appIcon('IconDownload', 'Download');
+export const IconDraw = appIcon('IconDraw', 'Draw');
+export const IconKeyboard = appIcon('IconKeyboard', 'Keyboard');
+export const IconUndo = appIcon('IconUndo', 'Undo');
+export const IconInkEraser = appIcon('IconInkEraser', 'InkEraser');
+export const IconEditOutline = appIcon('IconEditOutline', 'EditOutline');
+export const IconToday = appIcon('IconToday', 'Today');
+export const IconExpandMore = appIcon('IconExpandMore', 'ExpandMore');
+export const IconFilterList = appIcon('IconFilterList', 'FilterList');
+export const IconIosShare = appIcon('IconIosShare', 'IosShare');
+export const IconKeyboardArrowDown = appIcon('IconKeyboardArrowDown', 'KeyboardArrowDown');
+export const IconDragIndicator = appIcon('IconDragIndicator', 'DragIndicator');
+export const IconKeyboardArrowUp = appIcon('IconKeyboardArrowUp', 'KeyboardArrowUp');
+export const IconChecklist = appIcon('IconChecklist', 'Checklist');
+export const IconSwapVert = appIcon('IconSwapVert', 'SwapVert');
+export const IconSwapHoriz = appIcon('IconSwapHoriz', 'SwapHoriz');
+export const IconSchedule = appIcon('IconSchedule', 'Schedule');
+export const IconTimeline = appIcon('IconTimeline', 'Timeline');
+export const IconZoomIn = appIcon('IconZoomIn', 'ZoomIn');
+export const IconViewColumn = appIcon('IconViewColumn', 'ViewColumn');
+export const IconViewAgenda = appIcon('IconViewAgenda', 'ViewAgenda');
+export const IconUnfoldLess = appIcon('IconUnfoldLess', 'UnfoldLess');
+export const IconUnfoldMore = appIcon('IconUnfoldMore', 'UnfoldMore');
+export const IconSettingsOutline = appIcon('IconSettingsOutline', 'SettingsOutline');
+export const IconSync = appIcon('IconSync', 'Sync');
+export const IconSyncProblem = appIcon('IconSyncProblem', 'SyncProblem');
+export const IconBedtime = appIcon('IconBedtime', 'Bedtime');
+export const IconSunny = appIcon('IconSunny', 'Sunny');
 /** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */
-export const IconLocationOn = appIcon('IconLocationOn', { outlined: LocationOnO, rounded: LocationOnR, sharp: LocationOnS });
-export const IconSearch = appIcon('IconSearch', { outlined: SearchO, rounded: SearchR, sharp: SearchS });
-export const IconPaletteOutline = appIcon('IconPaletteOutline', { outlined: PaletteOutlineO, rounded: PaletteOutlineR, sharp: PaletteOutlineS });
-export const IconNotificationsOutline = appIcon('IconNotificationsOutline', { outlined: NotificationsOutlineO, rounded: NotificationsOutlineR, sharp: NotificationsOutlineS });
-export const IconScienceOutline = appIcon('IconScienceOutline', { outlined: ScienceOutlineO, rounded: ScienceOutlineR, sharp: ScienceOutlineS });
-export const IconAccountCircleOutline = appIcon('IconAccountCircleOutline', { outlined: AccountCircleOutlineO, rounded: AccountCircleOutlineR, sharp: AccountCircleOutlineS });
-export const IconSelfImprovement = appIcon('IconSelfImprovement', { outlined: SelfImprovementO, rounded: SelfImprovementR, sharp: SelfImprovementS });
+export const IconLocationOn = appIcon('IconLocationOn', 'LocationOn');
+export const IconSearch = appIcon('IconSearch', 'Search');
+export const IconPaletteOutline = appIcon('IconPaletteOutline', 'PaletteOutline');
+export const IconNotificationsOutline = appIcon('IconNotificationsOutline', 'NotificationsOutline');
+export const IconScienceOutline = appIcon('IconScienceOutline', 'ScienceOutline');
+export const IconAccountCircleOutline = appIcon('IconAccountCircleOutline', 'AccountCircleOutline');
+export const IconSelfImprovement = appIcon('IconSelfImprovement', 'SelfImprovement');

@@ -2,6 +2,8 @@ import { createApp } from 'vue';
 import { checkApk } from '@/native/apkHint';
 import { createPinia } from 'pinia';
 import App from './App.vue';
+import { loadIconSet } from './components/icons';
+import { iconSet } from './theme/iconSet';
 import { applyLanguage, cachedLanguagePref } from './i18n';
 import { createAppRouter, warmView } from './router';
 import { enableTimerCounting } from './lib/timers';
@@ -49,7 +51,8 @@ async function bootstrap() {
   device.install();
   if (clock.config.testMode) enableTimerCounting();
   // the language chosen on this device last time (or the device's), before the first paint
-  await applyLanguage(cachedLanguagePref());
+  // the cached icon set's chunk, so the first paint has its icons
+  await Promise.all([applyLanguage(cachedLanguagePref()), loadIconSet(iconSet.value).catch(() => { /* a missing chunk must not stop the app: it mounts without icons */ })]);
   installMotion();
   settings.installAppearance();
   registerBuiltinExtensions();

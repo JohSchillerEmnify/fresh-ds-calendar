@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- The app starts a little faster: it loads only the icon style you use.
 - When you edit a task list you can add new items (one per line).
 - A task list with only a title can be ticked off: the title becomes its first item, ticked.
 - Every calendar can now get its own colour: Settings › Calendars › the calendar › Colour. Pick one of Google's calendar colours or any colour with the colour picker; the current colour is always shown. It is saved in Google for you only.

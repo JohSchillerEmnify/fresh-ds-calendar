@@ -26,6 +26,9 @@ import { catSwipe } from '@/features/motivation/supportCat';
 import { validateForm } from '@/features/tasklists/validate';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
 
+// the tray fetches its list views on first open; warm the module so one flush resolves it
+await import('@/features/tasklists/TaskListView.vue');
+
 const celebrate = vi.fn();
 vi.mock('@/motion/useCelebrate', () => ({ useCelebrate: () => ({ celebrate }) }));
 
@@ -438,6 +441,7 @@ describe('open tasks tray', () => {
     const groceries = tl('Groceries', { done: [false] });
     const packing = tl('Packing', { time: '18:00', done: [false] });
     const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [laundry, groceries, packing] }) });
+    useUiStore().trayExpanded = true;
     const w = mountIn(TaskTray, {}, pinia);
     await flushPromises();
     expect(w.get(tid('task-tray-count')).text()).toBe('3 open');
@@ -475,6 +479,7 @@ describe('open tasks tray', () => {
   it('count follows ticks and shows "No open tasks" when empty', async () => {
     const g = tl('Groceries', { done: [false] });
     const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [g] }) });
+    useUiStore().trayExpanded = true;
     const w = mountIn(TaskTray, {}, pinia);
     await flushPromises();
     expect(w.get(tid('task-tray-count')).text()).toBe('1 open');
@@ -493,6 +498,7 @@ describe('open tasks tray', () => {
     const w = mountIn(TaskTray, {}, pinia);
     await flushPromises();
     useUiStore().trayExpanded = true;
+    await flushPromises();
     useClockStore().config.testMode = true;
     window.__catNext = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -524,6 +530,7 @@ describe('open tasks tray', () => {
       'GET /api/tasklists/open': () => ({ items: [a, b] }),
       'PATCH /api/tasklists/Apples/items/Apples-i1': ({ body }: { body: any }) => ({ ...a, items: [a.items[0], { ...a.items[1], ...body }], doneCount: 2 }),
     });
+    useUiStore().trayExpanded = true;
     const w = mountIn(TaskTray, {}, pinia);
     await flushPromises();
     const titles = () => w.findAll(tid('task-tray-item')).map((r) => r.attributes('data-title'));
@@ -538,6 +545,7 @@ describe('open tasks tray', () => {
       'GET /api/tasklists/open': () => ({ items: [g] }),
       'PATCH /api/tasklists/Groceries/items/Groceries-i1': ({ body }: { body: any }) => ({ ...g, items: [g.items[0], { ...g.items[1], ...body }], doneCount: 2 }),
     });
+    useUiStore().trayExpanded = true;
     const w = mountIn(TaskTray, {}, pinia);
     await flushPromises();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
