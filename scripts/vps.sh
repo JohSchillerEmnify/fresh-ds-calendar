@@ -3,6 +3,7 @@
 #   scripts/vps.sh harden   deploy user + key, SSH keys only, no root login, fail2ban (first run: keep another session open)
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
+#   scripts/vps.sh apk      ship only the Android APK (CD deploys the server; the signing key stays on this machine)
 #   scripts/vps.sh logs     follow the app and Caddy logs
 #   scripts/vps.sh rollback [version]   run the previous image (or calendar:<version>) again; deploy does this itself when health fails
 # The VPS (1 CPU, 1 GB) never builds. ufw, Docker, swap and unattended-upgrades are already set up.
@@ -47,6 +48,34 @@ rollback_to() {
   on_vps "docker image inspect calendar:$1 >/dev/null 2>&1 && docker tag calendar:$1 calendar:latest" \
     || { echo "no image calendar:$1 on the VPS; available:" >&2; on_vps 'docker images calendar --format "{{.Tag}}  {{.CreatedSince}}"' >&2; return 1; }
   up_and_wait
+}
+
+# Uploads the signed APK and its app.json sidecar into the running app container; the server itself is not touched
+ship_apk() {
+  # the APK is not part of the image: it goes into the data volume (/data/downloads/app.apk, served as /app.apk)
+  apk="${CAL_APK:-$here/deploy/data/downloads/app.apk}"
+  if [[ -f "$apk" ]]; then
+    # the server above is already up; an APK that is not signed by the pinned release cert is never uploaded
+    source "$here/scripts/apk-cert.sh"
+    verify_apk_cert "$apk" || { echo "APK NOT uploaded (the server itself is deployed)" >&2; exit 1; }
+    scp "${OPTS[@]}" -q "$apk" "$HOST:/opt/calendar/app.apk.new"
+    on_vps 'set -e; cd /opt/calendar && chmod 644 app.apk.new
+      docker compose exec -T app mkdir -p /data/downloads
+      docker compose cp app.apk.new app:/data/downloads/app.apk.part
+      docker compose exec -T app mv /data/downloads/app.apk.part /data/downloads/app.apk
+      rm -f app.apk.new'
+    # the sidecar with the APK's versionCode/versionName (written by android-build.sh) makes the app offer the download
+    info="${CAL_APK_INFO:-$(dirname "$apk")/app.json}"
+    if [[ -f "$info" ]]; then
+      scp "${OPTS[@]}" -q "$info" "$HOST:/opt/calendar/app.json.new"
+      on_vps 'set -e; cd /opt/calendar && chmod 644 app.json.new
+        docker compose cp app.json.new app:/data/downloads/app.json
+        rm -f app.json.new'
+    fi
+    echo "APK: $(sha256sum "$apk" | cut -c1-16)... -> https://$CAL_DOMAIN/app.apk"
+  else
+    echo "no APK at $apk: /app.apk on the VPS stays as it is (scripts/android-build.sh builds one)" >&2
+  fi
 }
 
 case "${1:-}" in
@@ -130,30 +159,11 @@ REMOTE
     on_vps 'docker images calendar --format "{{.Tag}}" | grep -vxE "latest|previous" | tail -n +4 | xargs -r -I{} docker rmi calendar:{} || true
       docker image prune -f >/dev/null; cd /opt/calendar && docker compose ps'
     if [[ -n "${DRY_RUN:-}" ]]; then echo "[dry-run] APK step skipped" >&2; exit 0; fi
-    # the APK is not part of the image: it goes into the data volume (/data/downloads/app.apk, served as /app.apk)
-    apk="${CAL_APK:-$here/deploy/data/downloads/app.apk}"
-    if [[ -f "$apk" ]]; then
-      # the server above is already up; an APK that is not signed by the pinned release cert is never uploaded
-      source "$here/scripts/apk-cert.sh"
-      verify_apk_cert "$apk" || { echo "APK NOT uploaded (the server itself is deployed)" >&2; exit 1; }
-      scp "${OPTS[@]}" -q "$apk" "$HOST:/opt/calendar/app.apk.new"
-      on_vps 'set -e; cd /opt/calendar && chmod 644 app.apk.new
-        docker compose exec -T app mkdir -p /data/downloads
-        docker compose cp app.apk.new app:/data/downloads/app.apk.part
-        docker compose exec -T app mv /data/downloads/app.apk.part /data/downloads/app.apk
-        rm -f app.apk.new'
-      # the sidecar with the APK's versionCode/versionName (written by android-build.sh) makes the app offer the download
-      info="${CAL_APK_INFO:-$(dirname "$apk")/app.json}"
-      if [[ -f "$info" ]]; then
-        scp "${OPTS[@]}" -q "$info" "$HOST:/opt/calendar/app.json.new"
-        on_vps 'set -e; cd /opt/calendar && chmod 644 app.json.new
-          docker compose cp app.json.new app:/data/downloads/app.json
-          rm -f app.json.new'
-      fi
-      echo "APK: $(sha256sum "$apk" | cut -c1-16)... -> https://$CAL_DOMAIN/app.apk"
-    else
-      echo "no APK at $apk: /app.apk on the VPS stays as it is (scripts/android-build.sh builds one)" >&2
-    fi
+    ship_apk
+    ;;
+  apk)
+    : "${CAL_DOMAIN:?set CAL_DOMAIN to the public host name}"
+    ship_apk
     ;;
   rollback)
     target=${2:-previous}
@@ -165,6 +175,6 @@ REMOTE
     on_vps 'cd /opt/calendar && docker compose logs -f --tail=100'
     ;;
   *)
-    sed -n '2,8p' "$0" >&2; exit 2
+    sed -n '2,9p' "$0" >&2; exit 2
     ;;
 esac

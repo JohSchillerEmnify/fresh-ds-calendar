@@ -34,9 +34,12 @@ subprojects {
                 targetCompatibility JavaVersion.VERSION_17
             }
         }
-        // Kotlin plugins (e.g. @capacitor/filesystem) target 21 on their own; Gradle refuses a 17/21 mix in one module
+        // Kotlin plugins (e.g. @capacitor/filesystem) target 21 on their own; Gradle refuses a 17/21 mix in one module.
+        // A target, not a toolchain: the build image has only JDK 21 and a toolchain would demand an installed 17.
         p.plugins.withId('org.jetbrains.kotlin.android') {
-            p.kotlin.jvmToolchain(17)
+            // the Kotlin plugin is only on the module's classpath, so its JvmTarget is loaded from there
+            def jvmTarget = p.kotlin.class.classLoader.loadClass('org.jetbrains.kotlin.gradle.dsl.JvmTarget')
+            p.kotlin.compilerOptions.jvmTarget.set(jvmTarget.fromTarget('17'))
         }
     }
 }
