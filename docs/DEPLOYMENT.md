@@ -10,7 +10,7 @@ is the source, the public server (VPS) only runs what the laptop ships. The arch
 |---|---|---|
 | Source | `git@github.com:JohSchillerEmnify/fresh-ds-calendar.git` (remote `github`), branch `main` | merge on the laptop, `git push github main` |
 | Production | `https://cal.example.org` (VPS, Caddy terminates HTTPS) | `scripts/vps.sh deploy` from the laptop, by hand after a merge |
-| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built on the laptop with `scripts/android-build.sh --no-publish`, shipped by `scripts/vps.sh deploy` |
+| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built on the laptop with `scripts/android-build.sh --no-publish`, shipped by `scripts/vps.sh apk` (CD deploys the server, the signing key stays on the laptop) |
 
 There is no automatic deploy and no preview deployment any more: to show work before a merge, run it locally
 (`pnpm dev:server` and `pnpm dev:web`). sauron is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`,
