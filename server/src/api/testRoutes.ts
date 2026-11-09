@@ -72,6 +72,7 @@ export function testRoutes(ctx: Ctx): Hono {
     }
     // the push loop runs on the app clock: moving the clock sends what became due, without waiting for its timer
     await ctx.push.tick();
+    ctx.planScheduler.tick();
     return c.json({ now: ctx.clock.now().toISOString(), clockFrozen: ctx.clock.frozen });
   });
 

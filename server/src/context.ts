@@ -18,6 +18,7 @@ import { SettingsStore } from './services/settingsStore.js';
 import { SharedListService } from './services/sharedLists.js';
 import { ThemeStore, vetRestoredFile } from './services/themeStore.js';
 import { BackupService } from './services/backupService.js';
+import { CalendarPlanScheduler } from './services/calendarPlanScheduler.js';
 import { PushService, RecordingSender, loadVapid, webPushSender } from './services/push.js';
 import { registerServerFilesBackup } from './services/serverFilesBackup.js';
 import { registerSharedListsBackup } from './services/sharedListsBackup.js';
@@ -57,6 +58,8 @@ export interface Ctx {
   googlePoller: GooglePoller;
   /** Web Push reminders: subscriptions, plans and the send loop (feature reminders). */
   push: PushService;
+  /** Switches calendars on and off at their plans' edges. */
+  planScheduler: CalendarPlanScheduler;
   /** TEST_MODE push recorder in place of the push services; null otherwise. */
   pushRecorder: RecordingSender | null;
   /** Drive double (TEST_MODE / mock provider); null with the real Google provider. */
@@ -136,7 +139,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
@@ -166,7 +169,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     close() {
       live.closeAll();
       backup.close();
-      push.close();
+      push.close(); ctx.planScheduler.close();
       mock?.close();
     },
   };

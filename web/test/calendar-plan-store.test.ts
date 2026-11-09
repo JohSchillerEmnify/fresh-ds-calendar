@@ -27,62 +27,46 @@ describe('calendars store with a plan (feature calendar-off-plan)', () => {
   beforeEach(() => freshPinia());
   afterEach(() => vi.useRealTimers());
 
-  it('hides the calendar everywhere while the weekly window is on', async () => {
-    const { cals } = await setup('2026-11-07T09:00:00.000Z', weekend); // Sat 10:00 Berlin
+  it('reads only the hidden flag the server sets, whatever the plan says', async () => {
+    const { cals } = await setup('2026-11-07T09:00:00.000Z', weekend); // Sat 10:00 Berlin, inside the window
+    expect(cals.isHidden('work')).toBe(false);
+    cals.fromDevice([{ ...work, hidden: true }] as never);
     expect(cals.isHidden('work')).toBe(true);
   });
 
-  it('a tap shows it and records the tap in the plan', async () => {
+  it('a tap sets hidden and leaves the plan alone', async () => {
     const { cals, m } = await setup('2026-11-07T09:00:00.000Z', weekend);
+    cals.fromDevice([{ ...work, hidden: true }] as never);
     await cals.toggle('work');
     await flushPromises();
     expect(cals.isHidden('work')).toBe(false);
-    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/prefs')?.body).toEqual({ calendarPlans: { work: { ...weekend, switchedAt: '2026-11-07T10:00' } } });
+    expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs')).toBe(false);
   });
 
   it('a tap ends off for a while and keeps the window', async () => {
     const { cals } = await setup('2026-11-07T09:00:00.000Z', { ...weekend, until: '2026-11-10', since: '2026-11-07T09:00' });
+    cals.fromDevice([{ ...work, hidden: true }] as never);
     await cals.toggle('work');
     await flushPromises();
-    expect(usePrefsStore().calendarPlans.work).toEqual({ ...weekend, switchedAt: '2026-11-07T10:00' });
-  });
-
-  it('switches back on at the window end while the app is open', async () => {
-    vi.useFakeTimers({ now: Date.parse('2026-11-08T14:58:00.000Z') });
-    const { cals } = await setup('2026-11-08T14:58:00.000Z', weekend, false); // Sun 15:58 Berlin
-    useClockStore().startTicker();
-    expect(cals.isHidden('work')).toBe(true);
-    vi.advanceTimersByTime(3 * 60_000);
-    expect(cals.isHidden('work')).toBe(false);
-    useClockStore().stopTicker();
+    expect(usePrefsStore().calendarPlans.work).toEqual(weekend);
   });
 
   it('Always on removes the plan and switches the calendar on', async () => {
     const { cals } = await setup('2026-11-07T09:00:00.000Z', weekend);
+    cals.fromDevice([{ ...work, hidden: true }] as never);
     await cals.setPlan('work', undefined);
     expect(usePrefsStore().calendarPlans).toEqual({});
     expect(cals.isHidden('work')).toBe(false);
   });
 
-  it('a new off-for-a-while counts from now', async () => {
+  it('a new off-for-a-while counts from now and shows what the server switched', async () => {
     const { cals } = await setup('2026-11-04T07:00:00.000Z', undefined);
+    mockFetch({
+      'GET /api/calendars': () => ({ calendars: [{ ...work, hidden: true }] }),
+      'PATCH /api/prefs': (r: { body: object }) => ({ ...usePrefsStore().current(), ...r.body }),
+    });
     await cals.setPlan('work', { until: '2026-11-06' });
     expect(usePrefsStore().calendarPlans.work).toEqual({ until: '2026-11-06', since: '2026-11-04T08:00' });
-    expect(cals.isHidden('work')).toBe(true);
-  });
-});
-
-describe('plan source wired late (feature calendar-off-plan)', () => {
-  beforeEach(() => freshPinia());
-
-  it('works the hidden calendars out again once the plans arrive', async () => {
-    mockFetch({ 'GET /api/config': () => config({ now: '2026-11-07T09:00:00.000Z', clockFrozen: true }) });
-    await useClockStore().load();
-    setPlanSource({ plans: () => ({}), save: async () => {} });
-    const cals = useCalendarsStore();
-    cals.fromDevice([{ ...work }] as never);
-    expect(cals.isHidden('work')).toBe(false);
-    setPlanSource({ plans: () => ({ work: weekend }), save: async () => {} });
     expect(cals.isHidden('work')).toBe(true);
   });
 });

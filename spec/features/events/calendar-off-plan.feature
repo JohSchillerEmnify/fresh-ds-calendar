@@ -10,8 +10,10 @@ Feature: A calendar that switches off by itself
   chip in the filter bar, a long press on its row in the side menu, or its row under Settings › Calendars. A chip with
   a plan shows a small clock mark; while "Off for a while" it says when it comes back. The calendar switches at the
   window's edges while the app is open, and when the app is opened again. A tap still switches by hand; that holds
-  until the plan's next switch, and a tap ends an "Off for a while". The plan belongs to the person, holds on every
-  device, and the device applies it from its own copy, also without a connection. Times are the calendar's time zone.
+  until the plan's next switch, and a tap ends an "Off for a while". The plan belongs to the person and holds on every
+  device and in the phone widget: the server switches the calendar's ordinary hidden flag at the plan's edges (ADR 0037),
+  and everything reads that flag. A device that is offline at an edge shows the old state until it syncs. Times are the
+  calendar's time zone.
 
   Background:
     Given the calendar is empty
@@ -159,3 +161,14 @@ Feature: A calendar that switches off by itself
       When I switch to another device
       And I open the week view for 2026-11-09
       Then I do not see the event "Planning"
+
+  # unit: server/test/calendar-plan-scheduler.test.ts:the widget fetch leaves the calendar out while its plan has it off, and has it back after
+  @unit
+  Scenario: The widget leaves out a calendar while its plan has it off
+    Given the calendar "Work" is off every week from "Fri" 17:00 to "Sun" 16:00
+    And the time is 2026-11-07 10:00
+    When I look at 2026-11-09 in the phone widget
+    Then the phone widget does not show the event "Planning"
+    When the time is 2026-11-09 10:00
+    And I look at 2026-11-09 in the phone widget
+    Then the phone widget shows the event "Planning" on 2026-11-09 at 10:00
