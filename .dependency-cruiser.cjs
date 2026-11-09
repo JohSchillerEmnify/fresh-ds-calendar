@@ -69,6 +69,13 @@ module.exports = {
       to: { path: '^web/src/lib/calendarPlan\\.ts$' },
     },
     {
+      name: 'ui-not-to-device-db',
+      comment: 'The device copy and outbox (ADR 0023/0025) are reached through stores/device.ts and stores/outbox.ts. UI code never opens IndexedDB (idb, lib/deviceDb.ts) itself; settings use stores/prefs.ts.',
+      severity: 'error',
+      from: { path: '^web/src/(components|views|features)/' },
+      to: { path: ['node_modules/idb/', '^web/src/lib/deviceDb\\.ts$'] },
+    },
+    {
       name: 'no-circular',
       comment: 'No circular dependencies.',
       severity: 'error',

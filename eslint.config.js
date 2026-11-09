@@ -54,6 +54,52 @@ export default tseslint.config(
     rules: { 'vue/no-restricted-html-elements': ['error', { element: 'button', message: 'no raw buttons outside m3: use Button, IconButton, Chip or Pressable from web/src/components/m3' }] },
   },
   {
+    // Edit permission has one source: server/src/services/ownership.ts. The web app reads `writable` / `readOnly` from the API.
+    files: ['web/src/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-syntax': ['error',
+        { selector: 'Identifier[name=/^(accessRole|dataOwner)$/]', message: 'Do not decide edit rights in the web app: read `writable` (calendar) or `readOnly` (event) from the API; the one rule is server/src/services/ownership.ts.' },
+        { selector: 'Literal[value=/^(accessRole|dataOwner)$/]', message: 'Do not decide edit rights in the web app: read `writable` (calendar) or `readOnly` (event) from the API; the one rule is server/src/services/ownership.ts.' },
+      ],
+    },
+  },
+  {
+    // Settings have one mechanism (stores/prefs.ts + shared/prefs.js, ADR 0035): UI code keeps no setting in browser storage.
+    files: ['web/src/components/**/*.{ts,vue}', 'web/src/views/**/*.{ts,vue}', 'web/src/features/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-globals': ['error',
+        ...['localStorage', 'sessionStorage', 'indexedDB'].map((name) => ({ name, message: 'Settings go through the prefs store (web/src/stores/prefs.ts, shared/prefs.js); offline data through the device copy (stores/device.ts). Per-device UI state: a store in web/src/stores, or the allow-list in eslint.config.js.' })),
+      ],
+      'no-restricted-properties': ['error',
+        ...['window', 'globalThis'].flatMap((object) => ['localStorage', 'sessionStorage', 'indexedDB'].map((property) => ({ object, property, message: 'Settings go through the prefs store (web/src/stores/prefs.ts, shared/prefs.js), not browser storage.' }))),
+      ],
+    },
+  },
+  {
+    // Allow-list for the rule above: per-device UI state (collapse, last view, once-per-session flags), never a setting.
+    files: [
+      'web/src/components/settings/themeLivePreviewSample.ts', // collapsed state of the live-preview panel
+      'web/src/features/tasklists/section.ts', // which list section this device shows
+      'web/src/features/tasklists/collapse.ts', // collapsed task list cards on this device
+      'web/src/features/tasklists/canvasStore.ts', // last canvas view on this device
+      'web/src/features/bedtime/bedtimeReminder.ts', // last night a reminder was shown on this device
+      'web/src/features/motivation/session.ts', // once-per-session animation flags
+      'web/src/features/labs/htime/htime.ts', // labs zoom level on this device (session)
+      'web/src/features/labs/zoom/zoom.ts', // labs zoom level on this device (session)
+    ],
+    rules: { 'no-restricted-globals': 'off', 'no-restricted-properties': 'off' },
+  },
+  {
+    // Device-first (ADR 0023/0025): UI code reads through stores and the device copy, not the API client.
+    // `warn` on purpose: today's importers are the allow-list, held per file by the `lint` ratchet (TODO: move each into a store).
+    files: ['web/src/components/**/*.{ts,vue}', 'web/src/views/**/*.{ts,vue}', 'web/src/features/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['warn', {
+        paths: [{ name: '@/api/client', importNames: ['api'], message: 'Do not call the API from UI code: read through a store (web/src/stores, device copy) and write through the outbox (ADR 0023/0025). ApiError and types are fine.' }],
+      }],
+    },
+  },
+  {
     // Size and comment gates for source code only; today's offenders are ratcheted by `pnpm quality` (scripts/quality.mjs).
     files: ['web/src/**/*.{ts,vue}', 'server/src/**/*.ts', 'shared/**/*.{js,ts}'],
     plugins: { local: { rules: { 'comment-style': commentStyle } } },
