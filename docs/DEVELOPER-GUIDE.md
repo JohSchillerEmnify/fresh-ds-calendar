@@ -131,6 +131,15 @@ In practice:
    - Put your own real values (domain, server IP, e-mails, one per line) in `~/.config/calendar/leak-denylist`, outside
      git. `--no-verify` skips the hooks, but CI catches it anyway. Needs gitleaks or Docker.
 
+**Single-source guards.** Four things have exactly one source; the gates fail when UI code bypasses it (rules in `eslint.config.js`, `.dependency-cruiser.cjs`, `scripts/quality/gates.mjs`).
+
+| One source | Guard | Use instead |
+|---|---|---|
+| Settings: `web/src/stores/prefs.ts` + `shared/prefs.js` (ADR 0035) | ESLint error on `localStorage`, `sessionStorage`, `indexedDB` in `components/`, `views/`, `features/`; dependency-cruiser `ui-not-to-device-db` for `idb` and `lib/deviceDb.ts` | the prefs store. Per-device UI state (collapse, last view) needs a line in the allow-list in `eslint.config.js` with a reason |
+| Device copy: stores + `stores/device.ts`, writes via the outbox (ADR 0023/0025) | ESLint warning on `import { api }` from `@/api/client` in `components/`, `views/`, `features/`; today's importers are held per file in `quality-baseline.json` (`lint`), so new ones fail | a store; `ApiError` and types may still be imported |
+| Colours: theme tokens in `web/src/theme` and the `m3` kit | `pnpm quality` gate `colors`: `#hex`, `rgb()`, `hsl()` per `.vue` file, ratcheted | `var(--...)` tokens |
+| Edit permission: `server/src/services/ownership.ts` | ESLint error on `accessRole` / `dataOwner` in `web/src` | `writable` (calendar) and `readOnly` (event) from the API |
+
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 
 ### Safari (WebKit) and the nightly run
