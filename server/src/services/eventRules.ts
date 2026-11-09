@@ -10,6 +10,14 @@ export function specialOf(ev: GoogleEvent): CalendarEvent['special'] {
   return ev.birthdayProperties?.type === 'anniversary' ? 'anniversary' : 'birthday';
 }
 
+/** Id of the app's virtual Birthdays calendar (ADR 0038): every birthday event, whichever calendar holds it. */
+export const BIRTHDAYS_ID = 'birthdays';
+/** Colour of the virtual Birthdays calendar until the person picks one (the colour of Google's contacts calendar). */
+export const BIRTHDAYS_COLOR = '#9fc6e7';
+
+/** True for Google's old contacts "Birthdays" calendar, which the app folds into {@link BIRTHDAYS_ID}. */
+export const isContactsCalendarId = (id: string) => id.startsWith(BIRTHDAY_CALENDAR_PREFIX);
+
 /** An event of Google's contacts "Birthdays" calendar: made from contacts, never edited here. */
 export const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDAY_CALENDAR_PREFIX);
 

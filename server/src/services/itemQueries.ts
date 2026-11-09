@@ -1,8 +1,10 @@
 import type { CalendarEvent, CalendarItem, Category, SummaryDay, TaskList } from '../api/types.js';
+import { dedupeBirthdays } from '@calendar/shared/birthdays';
 import type { Clock } from '../lib/clock.js';
 import { addDays, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import type { CalendarProvider, GoogleEvent, GoogleReminder, ProviderCalendar } from '../providers/CalendarProvider.js';
 import type { SettingsStore } from './settingsStore.js';
+import { BIRTHDAYS_ID } from './eventRules.js';
 import { isTaskListEvent, isUndatedEvent } from './taskCodec.js';
 import type { TasksCalendar } from './tasksCalendar.js';
 
@@ -27,14 +29,17 @@ export class ItemQueries {
   /** Events of the event calendars plus the task lists of the tasks calendar (`calendarIds` narrows both). */
   async fetchRange(from: string, to: string, calendarIds?: string[], tasklistsOnly = false): Promise<CalendarItem[]> {
     const tasksId = await this.tasks.id();
-    const cals = tasklistsOnly ? [] : (await this.host.eventCalendars()).filter((c) => !calendarIds || calendarIds.includes(c.id));
+    // birthdays live in any calendar, so asking for them reads them all; the result is narrowed by the id each event shows
+    const readAll = !calendarIds || calendarIds.includes(BIRTHDAYS_ID);
+    const cals = tasklistsOnly ? [] : (await this.host.eventCalendars()).filter((c) => readAll || calendarIds.includes(c.id));
     const timeMin = formatInZone(startOfLocalDay(from, this.tz), this.tz);
     const timeMax = formatInZone(startOfLocalDay(to, this.tz), this.tz);
     const cats = this.settings.categories(this.sub);
     const eventLists = cals.map(async (c) => {
       const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
       // task-list-shaped events outside the tasks calendar are not task lists (ADR 0006)
-      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.host.toEvent(e, c.backgroundColor, c.defaultReminders));
+      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.host.toEvent(e, c.backgroundColor, c.defaultReminders))
+        .filter((i) => !calendarIds || calendarIds.includes(i.calendarId));
     });
     const taskLists = (async (): Promise<CalendarItem[]> => {
       if (calendarIds && !calendarIds.includes(tasksId)) return [];
@@ -48,7 +53,8 @@ export class ItemQueries {
       const color = this.host.calendarColorSync(tasksId);
       return this.host.sharedTaskLists(color).filter((l) => l.date !== null && l.date >= from && l.date < to);
     };
-    return [...(await Promise.all([...eventLists, taskLists])).flat(), ...sharedLists()];
+    const [events, ...rest] = await Promise.all([Promise.all(eventLists), taskLists]);
+    return [...dedupeBirthdays(events.flat() as CalendarEvent[]), ...rest.flat(), ...sharedLists()];
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {

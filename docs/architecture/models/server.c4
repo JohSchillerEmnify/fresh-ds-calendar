@@ -13,7 +13,7 @@ model {
       description 'Creates and updates a person\'s task lists, their tags included'
     }
     calendarService = component 'Calendar service' {
-      description 'Reads and writes one person\'s events and task lists through the calendar provider'
+      description 'Reads and writes one person\'s events and task lists through the calendar provider; adds the virtual Birthdays calendar over every birthday event and the old contacts calendar (ADR 0038) and logs the anonymised calendar_shape line'
     }
     plugins = component 'Plugin registry' {
       description 'Mounts each optional plugin only when its configuration enables it, and lists the enabled ones in the health answer; ships with none'

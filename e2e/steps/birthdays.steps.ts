@@ -27,6 +27,33 @@ Given('the Birthdays calendar has an anniversary {string} on {date}', async func
   await addSpecial(this, title, date, 'anniversary');
 });
 
+/** Makes sure the old contacts calendar exists in the mock's list. */
+async function ensureContactsCalendar(world: World) {
+  if (!(await world.api.remoteCalendars()).some((c) => c.id === BIRTHDAYS_ID)) {
+    await world.api.post('/api/__test/remote/calendars', { summary: 'Birthdays', id: BIRTHDAYS_ID, color: BIRTHDAYS_COLOR, readOnly: true });
+  }
+}
+
+Given('Google hides the old Birthdays calendar', async function (this: World) {
+  await ensureContactsCalendar(this);
+  await this.api.put(`/api/__test/remote/calendars/${encodeURIComponent(BIRTHDAYS_ID)}/hidden`, { hidden: true });
+});
+
+Then('the filter bar offers the calendar {string} once', async function (this: World, name: string) {
+  if (!(await this.page.getByTestId('filter-bar').isVisible())) await this.page.getByTestId('filter-button').click();
+  await expect(this.byTestId('filter-chip-calendar', `[data-name="${name}"]`)).toHaveCount(1);
+});
+
+Then('the event {string} is in the calendar {string}', async function (this: World, title: string, name: string) {
+  const id = name === 'Birthdays' ? 'birthdays' : await this.api.calendarId(name);
+  await expect(this.eventChip(title)).toHaveAttribute('data-calendar-id', id);
+});
+
+Then('the event {string} is shown once on {date}', async function (this: World, title: string, date: string) {
+  await this.settled();
+  await expect(this.eventChips(title, date).locator('visible=true')).toHaveCount(1);
+});
+
 const marker = (world: World, title: string) => world.eventChips(title).locator('visible=true').first();
 
 Then('the event {string} is marked as a birthday', async function (this: World, title: string) {

@@ -100,7 +100,7 @@ describe('task lists through the API', () => {
     expect(tasks).toMatchObject({ hidden: true });
     expect(created.body.calendarId).toBe(tasks.id);
     expect((await t.json('GET', '/api/__test/remote/events?calendarId=primary')).body.items).toHaveLength(0);
-    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: any) => c.name)).toEqual(['Personal', 'Work']);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: any) => c.name)).toEqual(['Personal', 'Work', 'Birthdays']);
     expect((await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items.map((i: any) => i.title)).toEqual(['Groceries']);
   });
 
@@ -115,7 +115,7 @@ describe('task lists through the API', () => {
     expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: true })).body).toMatchObject({ tasksCalendarVisible: true });
     const { calendars } = (await t.json('GET', '/api/__test/remote/calendars')).body;
     expect(calendars.filter((c: any) => c.summary === TASKS_CALENDAR_SUMMARY)).toEqual([expect.objectContaining({ hidden: false })]);
-    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: any) => c.name)).toEqual(['Personal', 'Work']);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: any) => c.name)).toEqual(['Personal', 'Work', 'Birthdays']);
     expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: 'yes' })).status).toBe(400);
   });
 });

@@ -1607,9 +1607,19 @@ the Birthdays calendar has an anniversary {string} on {date}
 the event {string} is marked as a birthday
 the event {string} is marked as an anniversary
 the event {string} is not marked as a birthday
+Google hides the old Birthdays calendar
+the filter bar offers the calendar {string} once
+the event {string} is in the calendar {string}
+the event {string} is shown once on {date}
+I hide the calendar {string} in the filter bar
 the event dialog is read-only
 the event dialog has no save or delete button
 ```
+
+- "Google hides the old Birthdays calendar": sets `hidden` on the mock's contacts calendar (created first when missing).
+  "the filter bar offers the calendar C once": after "I show the filters" exactly one chip with that name. "the event E is in
+  the calendar C": the chip's `data-calendar-id` is that calendar's id (`birthdays` for "Birthdays"). "is shown once": exactly one
+  visible chip of that title on the day. "I hide the calendar C in the filter bar": clicks its chip.
 
 Birthdays made in Google Calendar (`@google-birthdays`):
 

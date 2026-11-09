@@ -6,6 +6,7 @@
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
     "./api": { "types": "./api.d.ts" },
+    "./birthdays": { "types": "./birthdays.d.ts", "default": "./birthdays.js" },
     "./colors": { "types": "./colors.d.ts", "default": "./colors.js" },
     "./ink": { "types": "./ink.d.ts", "default": "./ink.js" },
     "./limits": { "types": "./limits.d.ts", "default": "./limits.js" },

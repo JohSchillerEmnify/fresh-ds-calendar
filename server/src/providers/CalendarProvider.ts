@@ -70,6 +70,8 @@ export interface ListEventsParams {
    * master) and its exceptions as events of their own, unexpanded; how the exceptions of a series are found.
    */
   singleEvents?: boolean;
+  /** Google `eventTypes` filter (`birthday`, ...); absent lists every type. */
+  eventTypes?: string[];
 }
 export interface ListEventsResult { items: GoogleEvent[]; nextSyncToken?: string }
 
