@@ -11,5 +11,5 @@ export default {
   copied: 'Error log copied',
   copyFailed: 'Could not copy the error log',
   standalone: 'installed',
-  kind: { error: 'Error', api: 'Request', outbox: 'Change', sw: 'Update', sync: 'Sync', trace: 'Step' },
+  kind: { error: 'Error', api: 'Request', outbox: 'Change', sw: 'Update', sync: 'Sync', trace: 'Step', decision: 'Decision' },
 };

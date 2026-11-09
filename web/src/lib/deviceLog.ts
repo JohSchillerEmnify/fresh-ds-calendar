@@ -10,7 +10,7 @@ const MAX_TEXT = 300;
 /** The build version (as `pwa/update` reads it; not imported: the API client imports this module). */
 const runningVersion = (): string => document.documentElement.dataset.appVersion ?? __APP_VERSION__;
 
-export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace';
+export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision';
 export type LogData = Record<string, string | number | boolean | undefined>;
 
 export interface LogEntry {
@@ -98,6 +98,7 @@ function summarize(kind: LogKind, d: LogData): string {
     case 'api': return join(d.method as string, d.route as string, d.status as number, d.code as string);
     case 'outbox': return join(`${d.op} ${d.decision}`, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'sync': return join('sync', d.task as string, d.status as number, d.code as string, err);
+    case 'decision': return join(d.what as string, d.decision as string, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'trace': return join(d.step as string, d.detail as string);
     case 'sw': return join('service worker', d.step as string, err);
     default: return d.name ? `${d.prefix ? `${d.prefix} ` : ''}${d.name}: ${d.message ?? ''}` : String(d.message ?? '');

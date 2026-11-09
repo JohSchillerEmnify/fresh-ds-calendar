@@ -1,3 +1,4 @@
+import { logUndone } from '@/lib/decisionLog';
 import { defineStore } from 'pinia';
 import { ref, type Ref } from 'vue';
 import { defaultPrefs, mergePref, PREFS, PREF_KEYS } from '@calendar/shared/prefs';
@@ -49,6 +50,7 @@ export const usePrefsStore = defineStore('prefs', () => {
       const saved = await api.patchPrefs(p);
       useDeviceStore().putFile('prefs', saved ?? current());
     } catch (e) {
+      logUndone('preference', e);
       apply(before);
       throw e;
     }

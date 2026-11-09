@@ -6,6 +6,7 @@ import type {
 } from '@/api/types';
 import { covers, itemsIn, summaryOf } from '@/lib/deviceData';
 import { ports } from '@/lib/outboxPorts';
+import { logUndone } from '@/lib/decisionLog';
 import { toIsoDate } from '@/lib/dates';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
 import { addDays } from 'date-fns';
@@ -316,6 +317,7 @@ export const useItemsStore = defineStore('items', () => {
       return fresh ?? undefined;
     } catch (e) {
       pending.delete(id);
+      logUndone('birthday', e);
       if (before) place(before);
       else remove(id);
       return report(e);

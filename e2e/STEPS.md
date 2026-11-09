@@ -1504,6 +1504,7 @@ I pick the custom colour {string} on the calendar's settings page
 I type the colour {string} on the calendar's settings page
 the colour field shows the error {string}
 I recolour the calendar {string} to the palette colour {int}
+I try to recolour the calendar {string} to the palette colour {int}
 the event {string} is drawn in the colour {string}
 the event {string} is drawn in its own calendar colour
 Google lists the calendar {string} in the colour {string}
@@ -1517,7 +1518,7 @@ Google lists the calendar {string} with the palette colour {int}
   (a native colour input) and the hex field `calendar-color-hex` with its error `calendar-color-error`. "I choose the palette colour"
   clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I pick the custom colour" sets the colour input's value (input
   and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
-  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it. "is drawn in the
+  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it; "I try to recolour ..." does the same waiting for the PATCH's answer, whatever its status (the server may refuse it). "is drawn in the
   colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
   "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `backgroundColor` is that palette colour
   is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
@@ -3915,6 +3916,8 @@ the server holds no ink for the task list {string}
 
 ```
 I open the error log in the settings
+I set the colour of the calendar {string} {int} seconds ago
+a sync answer brings back the old colour of the calendar {string}
 the error log has an entry {string}
 the error log does not contain {string}
 an unexpected error {string} happens in the app
