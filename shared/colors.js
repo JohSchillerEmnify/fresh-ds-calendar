@@ -73,3 +73,31 @@ export function contrastRatio(a, b) {
 export function onColor(bg) {
   return contrastRatio(bg, '#000000') >= contrastRatio(bg, '#ffffff') ? '#000000' : '#ffffff';
 }
+
+/** Google's calendar colour palette (`colors.get`, `calendar` map): what the app offers until the server has fetched the live one. */
+export const GOOGLE_CALENDAR_COLORS = [
+  { id: '1', background: '#ac725e', foreground: '#1d1d1d' },
+  { id: '2', background: '#d06b64', foreground: '#1d1d1d' },
+  { id: '3', background: '#f83a22', foreground: '#1d1d1d' },
+  { id: '4', background: '#fa573c', foreground: '#1d1d1d' },
+  { id: '5', background: '#ff7537', foreground: '#1d1d1d' },
+  { id: '6', background: '#ffad46', foreground: '#1d1d1d' },
+  { id: '7', background: '#42d692', foreground: '#1d1d1d' },
+  { id: '8', background: '#16a765', foreground: '#1d1d1d' },
+  { id: '9', background: '#7bd148', foreground: '#1d1d1d' },
+  { id: '10', background: '#b3dc6c', foreground: '#1d1d1d' },
+  { id: '11', background: '#fbe983', foreground: '#1d1d1d' },
+  { id: '12', background: '#fad165', foreground: '#1d1d1d' },
+  { id: '13', background: '#92e1c0', foreground: '#1d1d1d' },
+  { id: '14', background: '#9fe1e7', foreground: '#1d1d1d' },
+  { id: '15', background: '#9fc6e7', foreground: '#1d1d1d' },
+  { id: '16', background: '#4986e7', foreground: '#1d1d1d' },
+  { id: '17', background: '#9a9cff', foreground: '#1d1d1d' },
+  { id: '18', background: '#b99aff', foreground: '#1d1d1d' },
+  { id: '19', background: '#c2c2c2', foreground: '#1d1d1d' },
+  { id: '20', background: '#cabdbf', foreground: '#1d1d1d' },
+  { id: '21', background: '#cca6ac', foreground: '#1d1d1d' },
+  { id: '22', background: '#f691b2', foreground: '#1d1d1d' },
+  { id: '23', background: '#cd74e6', foreground: '#1d1d1d' },
+  { id: '24', background: '#a47ae2', foreground: '#1d1d1d' },
+];

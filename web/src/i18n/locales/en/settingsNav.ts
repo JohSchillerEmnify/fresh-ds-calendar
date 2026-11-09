@@ -54,6 +54,8 @@ export default {
     bedtimeHint: 'Bedtime mode, times and its reminder',
     bedtimeReminder: 'Reminder',
     showCalendar: 'Show this calendar',
+    calendarColorN: 'Calendar color {n}',
+    calendarColorCurrent: 'Current color',
     showCalendarHint: 'Also switched by the calendar\'s chip in the filter bar',
     defaultReminders: 'Default reminders',
     tasksCalendar: 'Task lists calendar',

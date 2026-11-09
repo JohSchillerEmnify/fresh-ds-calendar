@@ -104,10 +104,10 @@ export const useCalendarsStore = defineStore('calendars', () => {
   }
 
   /** Sets the person's colour of a calendar (feature calendar-colours); a poll must not undo it while it is being saved. */
-  async function setColor(id: string, color: string): Promise<void> {
+  async function setColor(id: string, color: string, colorId?: string): Promise<void> {
     saving++;
     try {
-      await saveCalendarColor(list, id, color, useDeviceStore().putCalendars);
+      await saveCalendarColor(list, id, color, colorId, useDeviceStore().putCalendars);
     } finally {
       saving--;
     }

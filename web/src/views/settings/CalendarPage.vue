@@ -1,7 +1,8 @@
 <script setup lang="ts">
-/** One calendar's settings page: whether it shows (same choice as its filter chip), its plan (feature calendar-off-plan) and its default reminders. */
+/** One calendar's settings page: whether it shows (same choice as its filter chip), its colour, its plan (feature calendar-off-plan) and its default reminders. */
 import { computed, onMounted } from 'vue';
 import { ApiError } from '@/api/client';
+import CalendarColorRow from '@/components/settings/CalendarColorRow.vue';
 import Switch from '@/components/m3/Switch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
@@ -32,6 +33,9 @@ async function saveDefaults(minutes: number[]) {
   <template v-if="cal">
     <SettingRow id="showCalendar" :label="t('settingsNav.labels.showCalendar')" :hint="t('settingsNav.labels.showCalendarHint')">
       <Switch :model-value="!cal.hidden" :label="t('settingsNav.labels.showCalendar')" data-testid="settings-calendar-shown" @update:model-value="cals.toggle(cal.id)" />
+    </SettingRow>
+    <SettingRow id="color" wide :label="t('calendar.event.fields.color')">
+      <CalendarColorRow :calendar-id="cal.id" />
     </SettingRow>
     <SettingRow id="plan" link :label="t('settingsNav.labels.plan')" :hint="planSummary(cal.id)" testid="settings-calendar-plan" @open="ui.openDialog('calendar-plan', { calendarId: cal.id })" />
     <SettingRow id="defaultReminders" wide :label="t('settingsNav.labels.defaultReminders')" :hint="t('settings.reminders.intro')">

@@ -11,7 +11,7 @@ const chip = (world: World, name: string) => world.byTestId('filter-chip-calenda
 const sheet = (world: World) => world.page.getByTestId('calendar-plan-sheet');
 
 /** Holds a finger (or the mouse) on the element for 700 ms without moving: the app's long press is 500 ms. */
-export async function longPress(world: World, target: Locator) {
+async function longPress(world: World, target: Locator) {
   await expect(target).toBeVisible();
   // the filter bar scrolls sideways: the chip may sit past the screen edge
   await target.scrollIntoViewIfNeeded();

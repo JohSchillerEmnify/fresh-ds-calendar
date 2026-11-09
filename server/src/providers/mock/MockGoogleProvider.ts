@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { GOOGLE_CALENDAR_COLORS, type CalendarColor } from '@calendar/shared/colors';
 import { googleEventId } from '../../lib/ids.js';
 import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
@@ -310,11 +311,23 @@ export class MockGoogleProvider implements CalendarProvider {
     return this.collect({ calendarId, timeMin, timeMax }).items.filter((e) => e.id === seriesId || e.recurringEventId === seriesId);
   }
 
-  async setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void> {
+  async setCalendarColor(calendarId: string, color: { colorId: string } | { backgroundColor: string; foregroundColor: string }): Promise<void> {
     this.check();
     this.requireCalendar(calendarId);
-    Object.assign(this.calendars.find((c) => c.id === calendarId)!, { backgroundColor, foregroundColor });
+    const entry = this.calendars.find((c) => c.id === calendarId)!;
+    if ('colorId' in color) {
+      const known = GOOGLE_CALENDAR_COLORS.find((c) => c.id === color.colorId);
+      if (!known) throw new ProviderError(`Unknown colorId ${color.colorId}`);
+      Object.assign(entry, { colorId: known.id, backgroundColor: known.background, foregroundColor: known.foreground });
+    } else {
+      Object.assign(entry, color, { colorId: undefined });
+    }
     this.scheduleFlush();
+  }
+
+  async calendarColors(): Promise<CalendarColor[]> {
+    this.check();
+    return [...GOOGLE_CALENDAR_COLORS];
   }
 
   // ---- internals ----

@@ -4,7 +4,7 @@ Feature: Settings in a few groups
   The Settings screen opens on a short list of groups, each with an icon, its name and a one-line summary, and a
   search bar on top. A group opens as its own page; inside, settings are list items (name, supporting text, the
   control at the end) under small section headers. Every setting appears in exactly one group (structure:
-  docs/settings-tree.md, audit: docs/settings-audit.md). Each calendar has its own page with its switch, its plan
+  docs/settings-tree.md, audit: docs/settings-audit.md). Each calendar has its own page with its switch, its colour (feature calendar-colours), its plan
   (feature calendar-off-plan) and its default reminders. The look is Material 3 Expressive (ADR 0032): no filled
   button on a settings page, choices with more than three options open a menu, times open the time picker.
   Replaces the one long page of nine cards; when built, the scenario "Every setting appears once, in its section" of
@@ -52,12 +52,13 @@ Feature: Settings in a few groups
 
   Rule: Each calendar has its own settings page
 
-    Scenario: A calendar's page holds its switch, its plan and its reminders
+    Scenario: A calendar's page holds its switch, its colour, its plan and its reminders
       Given the calendar contains an event "Standup" in the calendar "Work" on 2026-11-04 from 09:00 to 09:15
       When I open the settings
       And I open the settings group "Calendars"
       And I open the calendar "Work" in the settings
       Then the settings page shows the setting "Show this calendar"
+      And the settings page shows the setting "Color"
       And the settings page shows the setting "Plan"
       And the settings page shows the setting "Default reminders"
 

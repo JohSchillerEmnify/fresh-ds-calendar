@@ -13,6 +13,7 @@ import type {
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
+import type { CalendarColor } from '@calendar/shared/colors';
 import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
 import { hasKey, t } from '@/i18n';
@@ -294,9 +295,14 @@ export class ApiClient {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { hidden }, o);
   }
 
-  /** Sets the person's colour of a calendar (`#rrggbb`); goes to Google as their calendar list colour. */
-  setCalendarColor(id: string, color: string, o?: RequestOptions) {
-    return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { color }, o);
+  /** Sets the person's colour of a calendar: a palette `colorId` or a custom `#rrggbb`; goes to Google as their calendar list colour. */
+  setCalendarColor(id: string, pick: { color: string } | { colorId: string }, o?: RequestOptions) {
+    return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, pick, o);
+  }
+
+  /** Google's calendar colour palette (API.md `GET /api/calendar-colors`). */
+  calendarColors(o?: RequestOptions) {
+    return this.request<{ colors: CalendarColor[] }>('GET', '/api/calendar-colors', undefined, o);
   }
 
   /** Replaces the popup reminder defaults of a calendar in Google (email defaults stay). */

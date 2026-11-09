@@ -1,3 +1,5 @@
+import type { CalendarColor } from '@calendar/shared/colors';
+
 /** One Google reminder: `popup` ones are shown and edited by the app, every other method (`email`) is only carried along. */
 export interface GoogleReminder { method: string; minutes: number }
 interface GoogleEventDateTime { date?: string; dateTime?: string; timeZone?: string }
@@ -42,6 +44,8 @@ export type GoogleEventPatch = Partial<Omit<GoogleEventInput, 'extendedPropertie
 export interface ProviderCalendar {
   id: string; summary: string; backgroundColor: string; primary: boolean;
   accessRole: 'owner' | 'writer' | 'reader' | 'freeBusyReader';
+  /** The palette id of the colour, when Google has one for it (`calendarList` entry `colorId`). */
+  colorId?: string;
   /** Switched off in Google's own calendar list (`calendarList` entry `hidden`). */
   hidden?: boolean;
   /**
@@ -82,8 +86,10 @@ export interface CalendarProvider {
   setCalendarHidden(calendarId: string, hidden: boolean): Promise<void>;
   /** Replaces a calendar list entry's `defaultReminders` (`calendarList.patch`). */
   setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void>;
-  /** Sets the person's colour of a calendar list entry (`calendarList.patch` with `colorRgbFormat`). */
-  setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void>;
+  /** Sets the person's colour of a calendar list entry (`calendarList.patch`): a palette `colorId`, or RGB with `colorRgbFormat`. */
+  setCalendarColor(calendarId: string, color: { colorId: string } | { backgroundColor: string; foregroundColor: string }): Promise<void>;
+  /** Google's calendar colour palette (`colors.get`, the `calendar` map). */
+  calendarColors(): Promise<CalendarColor[]>;
   listEvents(p: ListEventsParams): Promise<ListEventsResult>;
   getEvent(calendarId: string, eventId: string): Promise<GoogleEvent>;
   insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent>;
