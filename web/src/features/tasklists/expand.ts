@@ -33,6 +33,12 @@ export function placeExpanded(anchor: Box, bounds: Box, contentH: number): Place
     : { left, top: anchor.bottom - above, width, maxHeight: above, dir: 'up' };
 }
 
+/** Cut `bounds` above a bar floating over its bottom edge: what the bar covers is not room (null or slid out of view: unchanged). */
+export function clipAboveBar(bounds: Box, bar: Box | null): Box {
+  if (!bar || bar.right <= bounds.left || bar.left >= bounds.right || bar.top >= bounds.bottom || bar.bottom <= bounds.top) return bounds;
+  return { ...bounds, bottom: Math.max(bounds.top, bar.top) };
+}
+
 /** True while the anchor is at least partly inside `bounds` (a card scrolled out of sight closes its expansion). */
 export function anchorVisible(anchor: Box, bounds: Box): boolean {
   return anchor.bottom > bounds.top && anchor.top < bounds.bottom && anchor.right > bounds.left && anchor.left < bounds.right;

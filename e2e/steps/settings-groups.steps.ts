@@ -146,3 +146,22 @@ Then('the setting {string} is highlighted', async function (this: World, name: s
   await expect(row(this, name)).toHaveAttribute('data-flash', '');
   await expect(row(this, name)).toBeInViewport();
 });
+
+When('I scroll the settings to the end', async function (this: World) {
+  await this.page.getByTestId('settings-view').evaluate((el) => { el.scrollTop = el.scrollHeight; });
+});
+
+Then('the notice covers no row of the settings', async function (this: World) {
+  const notice = this.page.getByTestId('outbox-notice');
+  const covered = async () => {
+    const n = await notice.boundingBox();
+    if (!n) return [];
+    const hits: string[] = [];
+    for (const g of await this.page.getByTestId('settings-group').all()) {
+      const r = await g.boundingBox();
+      if (r && r.x < n.x + n.width && n.x < r.x + r.width && r.y < n.y + n.height && n.y < r.y + r.height) hits.push((await g.getAttribute('data-group-id')) ?? 'row');
+    }
+    return hits;
+  };
+  await expect.poll(covered).toEqual([]);
+});

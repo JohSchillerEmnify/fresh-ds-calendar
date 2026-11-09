@@ -1,10 +1,30 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue';
+import { useMutationObserver, useResizeObserver } from '@vueuse/core';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { t } from '@/i18n';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { useUiStore } from '@/stores/ui';
 
 const ui = useUiStore();
+const host = ref<HTMLElement | null>(null);
+/** While a snackbar stays, the shell keeps the strip it overlaps free: `--snack-room` is the overlap beyond the room the layout already keeps at the bottom, `--snack-reach` its distance from the screen bottom. */
+function measure() {
+  const el = host.value;
+  let reach = 0;
+  let room = 0;
+  if (el && ui.snackbars.some((s) => s.duration === 0)) {
+    reach = el.offsetHeight + (parseFloat(getComputedStyle(el).bottom) || 0);
+    const edge = document.querySelector('[data-content-edge]');
+    const kept = edge ? window.innerHeight - edge.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(edge).paddingBottom) || 0) : 0;
+    room = Math.max(0, reach - kept);
+  }
+  document.documentElement.style.setProperty('--snack-room', `${room}px`);
+  document.documentElement.style.setProperty('--snack-reach', `${reach}px`);
+}
+useResizeObserver(host, measure);
+// the bar sliding away or the layout switching moves the snackbar without resizing it
+useMutationObserver(document.documentElement, measure, { attributes: true, attributeFilter: ['data-bar-hidden', 'data-bar-size', 'data-nav-pos'] });
+watch(() => ui.snackbars, () => void nextTick(measure), { deep: true });
 const timers = new Map<number, Disposer>();
 function arm() {
   for (const s of ui.snackbars) {
@@ -15,12 +35,12 @@ function arm() {
   for (const [id, stop] of timers) if (!ui.snackbars.some((s) => s.id === id)) { stop(); timers.delete(id); }
 }
 const stopWatch = ui.$subscribe(arm);
-onMounted(arm);
-onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear(); });
+onMounted(() => { arm(); measure(); });
+onBeforeUnmount(() => { ['--snack-room', '--snack-reach'].forEach((v) => document.documentElement.style.removeProperty(v)); stopWatch(); timers.forEach((s) => s()); timers.clear(); });
 </script>
 
 <template>
-  <div class="host" aria-live="polite">
+  <div ref="host" class="host" aria-live="polite">
     <div v-for="s in ui.snackbars" :key="s.id" class="snack snack-skin" role="status" :aria-live="s.countdown ? 'off' : undefined" :data-testid="s.testid ?? 'snackbar'">
       <span class="msg" data-testid="snackbar-text">{{ s.text }}</span>
       <button v-if="s.action" class="act" type="button" :data-testid="s.action.testid" @click="s.action.run(); if (!s.action.keep) ui.dismiss(s.id)">{{ s.action.label }}</button>

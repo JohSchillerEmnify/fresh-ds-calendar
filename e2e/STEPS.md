@@ -861,6 +861,8 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
+I scroll the settings to the end
+the notice covers no row of the settings
 the settings page has no theme mode or seed colour controls
 the server reports the build version {string}
 the settings show the version {string}
@@ -886,6 +888,8 @@ I switch to another device
 the settings are changed elsewhere to the theme mode {string}
 ```
 
+- "I scroll the settings to the end" scrolls `settings-view` to its bottom. "the notice covers no row of the settings": the
+  bounding box of the `outbox-notice` intersects none of the `settings-group` boxes (waits).
 - `I open the settings` clicks `settings-button` in the top app bar; `I leave the settings` clicks `settings-back`
   (returns to the previous calendar URL, or `/` if none).
 - Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing,
