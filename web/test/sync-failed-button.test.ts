@@ -14,6 +14,7 @@ const T0 = Date.parse('2026-10-12T06:12:00Z'); // 08:12 in Berlin
 function mountButton() {
   const pinia = freshPinia();
   useClockStore().config.timeZone = 'Europe/Berlin';
+  useClockStore().startTicker();
   const sync = useSyncStore();
   sync.lastOk = { wall: Date.now(), app: T0 };
   sync.state = 'error';
