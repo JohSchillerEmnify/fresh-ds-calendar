@@ -2,7 +2,7 @@
 /**
  * A gallery card of the theme menu: a real mini week under the theme's own attributes and colours (a preset, an
  * imported theme, or the preview of one about to be imported). Choosing is the card button; `actions` adds a row
- * (export, delete) of imported themes.
+ * (export, delete) of imported themes; `nameAction` puts one lone action on the name's line.
  */
 import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onMounted, shallowRef } from 'vue';
@@ -60,8 +60,9 @@ const style = computed<Record<string, string>>(() => {
           <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" :title="t('theme.sample.todo')" class="m2" />
         </span>
       </span>
-      <span class="nm">{{ label ?? name }}<small v-if="sub"> · {{ sub }}</small></span>
+      <span class="nm" :class="{ withact: $slots.nameAction }">{{ label ?? name }}<small v-if="sub"> · {{ sub }}</small></span>
     </Pressable>
+    <div v-if="$slots.nameAction" class="name-act"><slot name="nameAction" /></div>
     <div v-if="$slots.actions" class="acts"><slot name="actions" /></div>
   </div>
 </template>
@@ -82,5 +83,9 @@ const style = computed<Record<string, string>>(() => {
 .mini .m2 :deep(.it:nth-of-type(n + 3)) { display: none; }
 .nm { font: var(--md-sys-typescale-label-large); padding: 0 4px 2px; }
 .nm small { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
+/* one lone action sits on the name's line: no row of its own */
+.item { position: relative; }
+.nm.withact { display: flex; align-items: center; min-height: 44px; padding-right: 48px; }
+.name-act { position: absolute; right: 8px; bottom: 8px; }
 .acts { display: flex; justify-content: flex-end; }
 </style>

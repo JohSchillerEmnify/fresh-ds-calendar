@@ -429,9 +429,19 @@ describe('own themes in the theme menu', () => {
     URL.createObjectURL = (b: Blob | MediaSource) => { blobs.push(b as Blob); return 'blob:x'; };
     URL.revokeObjectURL = () => undefined;
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
-    await w.get(tid('theme-export')).trigger('click');
+    await w.get('[data-testid="theme-item"][data-name="Ocean"] [data-testid="theme-export"]').trigger('click');
     expect(click).toHaveBeenCalled();
     expect(JSON.parse(await blobs[0]!.text())).toEqual(ocean());
+  });
+
+  it('exports a built-in theme as a document too', async () => {
+    const { w } = await menu();
+    const blobs: Blob[] = [];
+    URL.createObjectURL = (b: Blob | MediaSource) => { blobs.push(b as Blob); return 'blob:x'; };
+    URL.revokeObjectURL = () => undefined;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    await w.get('[data-testid="theme-item"][data-name="Spring"] [data-testid="theme-export"]').trigger('click');
+    expect(JSON.parse(await blobs[0]!.text())).toMatchObject({ schema: 'calendar-theme/2', name: 'Spring' });
   });
 
   it('saves the fine-tuned look as an own theme under a name, and chooses it', async () => {

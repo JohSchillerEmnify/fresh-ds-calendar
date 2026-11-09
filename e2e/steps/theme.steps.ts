@@ -550,6 +550,27 @@ When('I delete the theme {string}', async function (this: World, name: string) {
   await expect(card(this, name)).toHaveCount(0);
 });
 
+const downloads = new WeakMap<World, { name: string; text: string }>();
+
+When('I export the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  const download = this.page.waitForEvent('download');
+  await this.page.locator(`[data-testid="theme-item"][data-name="${name}"]`).getByTestId('theme-export').click();
+  const file = await download;
+  downloads.set(this, { name: file.suggestedFilename(), text: fs.readFileSync((await file.path())!, 'utf8') });
+});
+
+Then('the theme file {string} is downloaded', async function (this: World, name: string) {
+  expect(downloads.get(this)?.name).toBe(name);
+});
+
+Then('the downloaded theme file has no header layout', async function (this: World) {
+  const keys: string[] = [];
+  const walk = (v: unknown) => { if (v && typeof v === 'object') for (const [k, c] of Object.entries(v)) { keys.push(k); walk(c); } };
+  walk(JSON.parse(downloads.get(this)!.text));
+  expect(keys.filter((k) => /header/i.test(k))).toEqual([]);
+});
+
 // ---- Labs switch for the AI part, drawn scene, own picture, Save as my theme ----
 
 Given('the AI theme prompt is turned on in Labs', async function (this: World) {

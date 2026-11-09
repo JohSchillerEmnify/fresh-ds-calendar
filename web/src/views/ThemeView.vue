@@ -12,7 +12,7 @@ import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport, loadIconSet } from '@/components/icons';
-import type { StoredTheme } from '@/api/client';
+import type { ThemeDoc } from '@calendar/shared';
 import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
 import type { SunflowersMode, ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
@@ -40,7 +40,7 @@ import {
   CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES,
 } from '@/theme/fine';
 import { presetLabel, seedLabel } from '@/theme/labels';
-import { automaticPreset, docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
+import { automaticPreset, docToResolved, PRESET_NAMES, PRESETS, presetDoc, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
@@ -57,10 +57,10 @@ const sunflowerModes = computed(() => (['grow', 'full'] as const).map((v) => ({ 
 /** Every preset as the gallery shows it: its own look, whatever the seasons & holidays setting is. */
 const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
-/** Downloads a theme's document as a `.json` file. */
-function exportTheme(th: StoredTheme) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(th.doc, null, 2)], { type: 'application/json' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `${th.doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
+/** Downloads a theme's document (an own theme's, or a built-in one written as a document) as a `.json` file. */
+function exportTheme(doc: ThemeDoc) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `${doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -217,10 +217,14 @@ function back() {
           <ThemeCard
             v-for="n in PRESET_NAMES" :key="n" :name="n" :label="presetLabel(n)" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
             @choose="theme.choose(n)"
-          />
+          >
+            <template #nameAction>
+              <IconButton :label="t('theme.export')" data-testid="theme-export" @click="exportTheme(presetDoc(PRESETS[n]))"><IconExport /></IconButton>
+            </template>
+          </ThemeCard>
           <ThemeCard v-for="th in theme.themes" :key="th.id" :name="th.doc.name" :theme="docToResolved(th.doc, th.picture)" :pressed="theme.pref.preset === `theme:${th.id}`" @choose="theme.choose(`theme:${th.id}`)">
             <template #actions>
-              <IconButton :label="t('theme.export')" data-testid="theme-export" @click="exportTheme(th)"><IconExport /></IconButton>
+              <IconButton :label="t('theme.export')" data-testid="theme-export" @click="exportTheme(th.doc)"><IconExport /></IconButton>
               <IconButton :label="t('theme.delete')" data-testid="theme-delete" @click="pending.deleteTheme(th.id, th.doc.name)"><IconDelete /></IconButton>
             </template>
           </ThemeCard>
