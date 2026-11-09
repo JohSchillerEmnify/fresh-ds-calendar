@@ -42,7 +42,6 @@ export default {
     back: 'Zurück {day}',
     mark: 'Schaltet sich selbst',
     window: 'Aus {from} – {to}',
-    settings: 'Kalender',
   },
   filter: {
     noCategory: 'Ohne Kategorie, yo',

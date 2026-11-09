@@ -11,7 +11,7 @@ export type Change =
   | { op: 'list.create'; id: string; input: CreateTaskListInput }
   | { op: 'list.update'; id: string; patch: UpdateTaskListInput; scope?: ChangeScope }
   | { op: 'list.delete'; id: string }
-  | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope; strokes?: InkStroke[] }
+  | { op: 'item.add'; id: string; itemId: string; title: string; done?: boolean; scope?: ChangeScope; strokes?: InkStroke[] }
   /** `base`: keys of the strokes the change started from, `at`: when it was made; the server merges with other devices' changes (decision G5). */
   | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[]; base: string[]; at: number }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
@@ -66,7 +66,7 @@ export function localTaskList(id: string, input: CreateTaskListInput): TaskList 
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],
-    color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: '', updated: '',
+    color: '#039be5', calendarColor: '#039be5', completedOn: null, ...(input.createdOn ? { createdOn: input.createdOn } : {}), canvas: null, etag: '', updated: '',
   }, items);
 }
 
@@ -91,7 +91,7 @@ export function applyEntry(cur: CalendarItem | null | undefined, e: OutboxEntry)
 /** One unsent item change on top of a task list. */
 function applyItemOp(cur: TaskList, c: Change): TaskList {
   switch (c.op) {
-    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: false, ...(c.strokes ? { ink: true as const } : {}) }]);
+    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: !!c.done, ...(c.strokes ? { ink: true as const } : {}) }]);
     case 'item.patch': return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : i)));
     case 'item.delete': return recount(cur, cur.items.filter((i) => i.id !== c.itemId));
     case 'item.order': {

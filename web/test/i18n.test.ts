@@ -46,7 +46,7 @@ describe('language choice', () => {
 describe('t()', () => {
   it('speaks English by default and interpolates', () => {
     expect(t('views.year')).toBe('Year');
-    expect(t('settings.tasklists.moveUp', { name: 'Work' })).toBe('Move Work up');
+    expect(t('settingsNav.labels.moveCategory', { name: 'Work' })).toBe('Move Work');
   });
   it('switches without a reload and sets <html lang>', async () => {
     await applyLanguage('de');
@@ -62,17 +62,17 @@ describe('t()', () => {
     expect(t('views.week')).toBe('Woche');
   });
   it('pluralises', async () => {
-    expect(t('settings.calendar.approachWindow.hours', { count: 1 }, 1)).toBe('1 hour');
-    expect(t('settings.calendar.approachWindow.hours', { count: 3 }, 3)).toBe('3 hours');
+    expect(t('bedtime.settings.sleep.hours', { count: 1 }, 1)).toBe('1 hour');
+    expect(t('bedtime.settings.sleep.hours', { count: 3 }, 3)).toBe('3 hours');
     await applyLanguage('de');
-    expect(t('settings.calendar.approachWindow.hours', { count: 1 }, 1)).toBe('1 Stunde');
-    expect(t('settings.calendar.approachWindow.hours', { count: 6 }, 6)).toBe('6 Stunden');
+    expect(t('bedtime.settings.sleep.hours', { count: 1 }, 1)).toBe('1 Stunde');
+    expect(t('bedtime.settings.sleep.hours', { count: 6 }, 6)).toBe('6 Stunden');
   });
   it('the fun languages fall back to German, then English', async () => {
     await applyLanguage('de-x-mainfr');
     expect(t('views.month')).toBe('Monad');
     // not in the dialect: German
-    expect(t('settings.sections.labs')).toBe('Labor');
+    expect(t('settingsNav.sub.month')).toBe('Monat');
     // the bar-size settings are not in the dialect either: German, not the key
     expect(t('settings.calendar.barSize.compact')).toBe('Kompakt');
     expect(t('settings.calendar.bottomBarSize.label')).toBe('Größe der unteren Leiste');

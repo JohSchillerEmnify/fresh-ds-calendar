@@ -1,7 +1,9 @@
 @events-readonly @id:events-readonly
 Feature: Only my own events can be edited
-  Events I organise in my own calendars are editable. Invitations from other people and everything in calendars that
-  belong to other people are look-only, even when Google would allow editing (owner, 2026-10-16).
+  Events I organise in my own calendars are editable. So is everything in a shared group calendar I may write, such as
+  the family calendar, whoever created the event (owner, 2026-11-09). Invitations from other people and everything in
+  calendars that belong to other people (their own address) are look-only, even when Google would allow editing (owner,
+  2026-10-16).
 
   Background:
     Given the calendar is empty
@@ -28,6 +30,24 @@ Feature: Only my own events can be edited
     And I open the event "Yoga"
     Then the event dialog is read-only
     And the read-only reason says "Calendar of anna@example.org"
+
+  Scenario: An event someone else made in a shared family calendar I may edit is editable
+    Given a family calendar "Family" shared with me with edit rights by "anna@example.org"
+    And the calendar "Family" contains an event "Barbecue" on 2026-10-14 from 18:00 to 20:00
+    When I open the week view for 2026-10-12
+    And I open the event "Barbecue"
+    Then the event dialog is editable
+
+  Scenario: The family calendar is offered for new events
+    Given a family calendar "Family" shared with me with edit rights by "anna@example.org"
+    When I start a new event
+    Then the calendar picker offers "Family"
+
+  Scenario: The server accepts a change to an event in the family calendar
+    Given a family calendar "Family" shared with me with edit rights by "anna@example.org"
+    And the calendar "Family" contains an event "Barbecue" on 2026-10-14 from 18:00 to 20:00
+    When I try to rename the event "Barbecue" through the API
+    Then the API answers 200
 
   Scenario: Someone else's calendar is not offered for new events
     Given a calendar "Anna" shared with me with edit rights by "anna@example.org"

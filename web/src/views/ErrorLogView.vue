@@ -31,7 +31,7 @@ async function copy() {
 
 function back() {
   if (window.history.state?.back) router.back();
-  else router.push('/settings');
+  else router.push('/settings/account');
 }
 </script>
 

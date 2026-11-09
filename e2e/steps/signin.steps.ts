@@ -7,6 +7,7 @@ import { expect, type APIRequestContext } from '@playwright/test';
 import { Given, Step, Then, When } from './fixtures.js';
 import { addDays, berlinIso } from './support/dates.js';
 import { tid, type World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 /** Open the week, get sent to the sign-in page, and press "Sign in with Google" as this person. */
 export async function signIn(world: World, email: string, date = '2026-10-12', driveScope = true) {
@@ -81,11 +82,8 @@ When('someone opens the week view for {date} without signing in', async function
 });
 
 When('they sign out in the settings', async function (this: World) {
-  // a settings sub-page (the reminders) goes back inside the app, so the page keeps its push subscription
-  const button = this.page.getByTestId('settings-button');
-  if (await button.isVisible()) await button.click();
-  else if (!(await this.page.getByTestId('settings-signout').isVisible())) await this.page.getByRole('button', { name: 'Back' }).click();
-  await this.page.getByTestId('settings-signout').click();
+  // the settings pages are reached inside the app (no reload), so the page keeps its push subscription
+  await (await settingControl(this, 'settings-signout')).click();
 });
 
 When('they sign in with Google again', async function (this: World) {
@@ -111,7 +109,7 @@ Given('{string} is also signed in on another device', async function (this: Worl
 
 When('they sign out everywhere in the settings', async function (this: World) {
   await this.page.getByTestId('settings-button').click();
-  await this.page.getByTestId('settings-signout-all').click();
+  await (await settingControl(this, 'settings-signout-all')).click();
 });
 
 Then('the other device is signed out too', async function (this: World) {
@@ -183,7 +181,7 @@ Then('they are told Google Calendar access is missing', async function (this: Wo
 
 Then('the settings offer to grant calendar access', async function (this: World) {
   await this.page.getByTestId('settings-button').click();
-  await expect(this.page.getByTestId('settings-calendar-access')).toBeVisible();
+  await expect((await settingControl(this, 'settings-calendar-access'))).toBeVisible();
   await this.page.goBack();
 });
 

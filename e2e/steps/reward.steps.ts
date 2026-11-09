@@ -5,6 +5,7 @@ import { expandTaskList, itemById } from './support/tasklist.js';
 import { splitList } from './support/tables.js';
 import type { ProbeWindow, RewardLogEntry } from './support/world.js';
 import { attr, type World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 const LONG_RUNNING_KINDS = ['tick', 'list-complete', 'drop'];
 /** Quiet period used by the negative effect assertions (STEPS.md: 1 500 ms). */
@@ -140,8 +141,8 @@ Given('the support cat comes by on the next finished list', async function (this
 
 /** STEPS.md: picks the option with that label in `settings-support-cat` and waits for the save (`PATCH /api/prefs`). */
 Given('the support cat is set to {string} in the settings', async function (this: World, label: string) {
-  await this.page.goto('/settings');
-  const option = this.page.getByTestId('settings-support-cat').getByRole('button', { name: label, exact: true });
+  await this.page.goto('/settings/focus');
+  const option = (await settingControl(this, 'settings-support-cat')).getByRole('button', { name: label, exact: true });
   await expect(option).toBeVisible();
   if ((await option.getAttribute('aria-pressed')) === 'true') return;
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');

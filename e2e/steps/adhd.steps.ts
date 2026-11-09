@@ -1,12 +1,12 @@
 /** ADHD and animation settings steps (STEPS.md "ADHD support, settings additions"). */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { chooseSelect, setSwitch } from './support/settings.js';
+import { chooseSelect, setSwitch, settingControl } from './support/settings.js';
 import { selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
 When('I turn on calm mode', async function (this: World) {
-  await setSwitch(this, this.page.getByTestId('settings-calm-mode'), true);
+  await setSwitch(this, (await settingControl(this, 'settings-calm-mode')), true);
 });
 
 Then('calm mode is active', async function (this: World) {
@@ -23,11 +23,11 @@ Then('the task list {string} shows the estimate {string}', async function (this:
 });
 
 When('I choose the animation level {string}', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-animation-level'), label);
+  await chooseSelect(this, (await settingControl(this, 'settings-animation-level')), label);
 });
 
 Then('the animation level {string} is selected', async function (this: World, label: string) {
-  await expect.poll(() => selectedLabel(this.page.getByTestId('settings-animation-level'))).toBe(label);
+  await expect.poll(async () => selectedLabel((await settingControl(this, 'settings-animation-level')))).toBe(label);
 });
 
 Given('the animation level is {string}', async function (this: World, label: string) {
@@ -35,7 +35,7 @@ Given('the animation level is {string}', async function (this: World, label: str
 });
 
 Then('the sounds setting is off', async function (this: World) {
-  const control = this.page.getByTestId('settings-sounds');
+  const control = (await settingControl(this, 'settings-sounds'));
   await expect(control).toBeVisible();
   const on = await control.evaluate((e) =>
     e instanceof HTMLInputElement ? e.checked : e.getAttribute('aria-checked') === 'true' || e.getAttribute('aria-pressed') === 'true',
@@ -48,9 +48,9 @@ Given('the device prefers reduced motion', async function (this: World) {
 });
 
 Then('the settings say the device asks for less motion', async function (this: World) {
-  await expect(this.page.getByTestId('settings-system-reduced-motion')).toBeVisible();
+  await expect((await settingControl(this, 'settings-system-reduced-motion'))).toBeVisible();
 });
 
 When('I allow full animations despite the device setting', async function (this: World) {
-  await setSwitch(this, this.page.getByTestId('settings-ignore-system-motion'), true);
+  await setSwitch(this, (await settingControl(this, 'settings-ignore-system-motion')), true);
 });

@@ -16,7 +16,7 @@ import { INK_STROKES_MAX } from '@calendar/shared/limits';
 import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
-  addItemSchema, canvasDocSchema, inkSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
+  addItemSchema, canvasDocSchema, inkSchema, defaultRemindersSchema, calendarColorPickSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
@@ -173,17 +173,17 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.patch('/calendars/:id', async (c) => {
     const id = c.req.param('id');
-    const b = (await body(c)) as { hidden?: unknown; defaultReminders?: unknown } | undefined;
-    // `hidden` (this person's choice) and/or `defaultReminders` (Google's popup defaults of the calendar)
-    if (b?.hidden === undefined && b?.defaultReminders === undefined) throw validation('hidden must be a boolean', 'hidden');
+    const b = (await body(c)) as { hidden?: unknown; defaultReminders?: unknown; color?: unknown; colorId?: unknown } | undefined;
+    // `hidden` (this person's choice), `defaultReminders` (Google's popup defaults) and/or `color` (the person's list colour)
+    if (b?.hidden === undefined && b?.defaultReminders === undefined && b?.color === undefined && b?.colorId === undefined) throw validation('hidden must be a boolean', 'hidden');
     if (b.hidden !== undefined && typeof b.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
     const minutes = b.defaultReminders === undefined ? undefined : parse(defaultRemindersSchema, b.defaultReminders);
     if (!(await cal(c).calendars()).some((x) => x.id === id)) throw notFound('Calendar not found');
     if (minutes) await cal(c).setDefaultReminders(id, minutes);
+    if (b.color !== undefined || b.colorId !== undefined) await cal(c).setColor(id, parse(calendarColorPickSchema, { color: b.color, colorId: b.colorId }));
     if (typeof b.hidden === 'boolean') ctx.prefs.setHidden(person(c), id, b.hidden);
-    const hidden = ctx.prefs.hiddenCalendars(person(c));
     const k = (await cal(c).calendars()).find((x) => x.id === id)!;
-    return c.json({ ...k, hidden: hidden.includes(id) });
+    return c.json({ ...k, hidden: ctx.prefs.hiddenCalendars(person(c)).includes(id) });
   });
   // The tasks calendar is not in the calendar list; its reminder default is edited here (feature reminders).
   r.get('/reminders/tasks-calendar', async (c) => c.json({ defaultReminders: await cal(c).tasksDefaultReminders() }));

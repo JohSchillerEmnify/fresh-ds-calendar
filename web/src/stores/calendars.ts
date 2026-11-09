@@ -3,6 +3,7 @@ import { computed, ref, shallowRef } from 'vue';
 import { api } from '@/api/client';
 import type { Calendar } from '@/api/types';
 import type { CalendarPlan } from '@calendar/shared/prefs';
+import { saveCalendarColor } from '@/lib/calendarColor';
 import { awayActive, hasPlan, planEffectiveHidden, wallNow } from '@/lib/calendarPlan';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
@@ -102,5 +103,15 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders };
+  /** Sets the person's colour of a calendar (feature calendar-colours); a poll must not undo it while it is being saved. */
+  async function setColor(id: string, color: string, colorId?: string): Promise<void> {
+    saving++;
+    try {
+      await saveCalendarColor(list, id, color, colorId, useDeviceStore().putCalendars);
+    } finally {
+      saving--;
+    }
+  }
+
+  return { list, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
 });

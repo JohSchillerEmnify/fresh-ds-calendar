@@ -17,7 +17,7 @@ Feature: A smaller header: two rows or one row
   The Today button is the today mark (it replaces the today circle of the old "Mon 12" day header): filled while today
   is in the shown period, outlined on a solid background (the scene never shows through) when it is not; the same in
   both layouts and on desktop. The day view has no day header at any width, so on desktop its grid starts 36 px higher.
-  The sync icon shows only while syncing fails, unless the person turns on "Sync indicator" in Settings › Calendar
+  The sync icon shows only while syncing fails, unless the person turns on "Sync indicator always on" in Settings › Appearance & layout
   (off by default); then it shows all the time as before.
   Every scene is re-arranged for each layout, light and dark: every part keeps its as-built size (the 96 px scene box
   sits on the bar's bottom edge, sky parts move down, taller props are cut only at the bar's bottom edge), and no
@@ -91,7 +91,7 @@ Feature: A smaller header: two rows or one row
     Scenario: The choice is made in the settings and follows the person
       When I open the day view for 2026-10-12
       And I open the settings
-      Then the top bar size "Compact" is selected
+      Then the top bar size "Automatic" is selected
       When I choose "Expressive" as the top bar size
       And I leave the settings
       Then the top bar is in two rows
@@ -301,8 +301,8 @@ Feature: A smaller header: two rows or one row
 
     Scenario: With the sync indicator on the sync icon shows all the time
       When I open the settings
-      Then the "Sync indicator" switch in the settings is off
-      When I turn on "Sync indicator" in the settings
+      Then the "Sync indicator always on" switch in the settings is off
+      When I turn on "Sync indicator always on" in the settings
       And I open the week view for 2026-10-12
       Then I see the sync icon
 

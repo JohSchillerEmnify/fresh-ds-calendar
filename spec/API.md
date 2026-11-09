@@ -74,7 +74,7 @@ interface Calendar {
   color: string;           // '#rrggbb'
   primary: boolean;
   writable: boolean;       // Google role owner or writer
-  own: boolean;            // one of the person's own calendars: events are created and moved only into these (see CalendarEvent.readOnly)
+  own: boolean;            // editable calendar: the person's own, or a shared group calendar (family) they may write; events are created and moved only into these (see CalendarEvent.readOnly)
 }
 
 interface CalendarEvent {
@@ -91,7 +91,7 @@ interface CalendarEvent {
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
   color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for an event of the contacts Birthdays calendar)
   special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
-  readOnly?: true;         // not in an own calendar, or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
+  readOnly?: true;         // not in an editable calendar (another person's own calendar, even with write rights), or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
   readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };  // with readOnly: "Invitation from <by>" / "Calendar of <by>"; absent for the contacts Birthdays calendar
   dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
@@ -123,6 +123,7 @@ interface TaskList {
   color: string;               // category color, else calendar color
   completedOn: LocalDate | null; // read-only: app-clock date of the write that ticked the last open item; null while
                                  // an item is open (also for lists completed in the Google app); ignored on input
+  createdOn?: LocalDate;       // app-clock day the list was made (create input may send it: an offline create keeps its day); absent on older lists
   canvas: { x: number; y: number } | null;  // place on the Canvas in canvas units (integers 0-10000); null = Unsorted
   etag: string;
   updated: DateTime;
@@ -298,9 +299,24 @@ short hash of date and text. A missing or unparsable file gives an empty list.
 `{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
 `hidden: boolean` (the person's choice) and `defaultReminders: number[]` (the popup lead times of the calendar's Google default, minutes, Google's order). Errors: 503.
 
+### `GET /api/calendar-colors` → 200
+
+`{ colors: Array<{ id: string; background: string; foreground: string }> }`: Google's calendar colour palette (`colors.get`, the
+`calendar` map: ids `1`..`24`), the same for everybody. The server asks Google once per process and keeps the answer; when Google
+cannot answer it sends the built-in copy of the 24 (`shared/colors.js`, not kept). The change feed carries the same answer as the
+per-person file `calendarColors`, so the app has the palette on the device (it shows the built-in copy before the first sync).
+
 ### `PATCH /api/calendars/:id` → 200
 
-Body `{ hidden?: boolean; defaultReminders?: number[] }` (at least one). `hidden` stores the person's choice. `defaultReminders`
+Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string; colorId?: string }` (at least one). `hidden` stores the
+person's choice. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
+person's calendar list colour (`calendarList.patch` with `colorId`; Google then answers its background colour). `color`
+(`#rrggbb`, answered lower-case; anything else `400`) is a custom colour: `calendarList.patch` with `colorRgbFormat=true`,
+`backgroundColor` = `color`, `foregroundColor` = black or white, whichever reads better (Google then clears or re-derives the
+palette id). `color` together with `colorId` is `400`. Both work for every calendar in `GET /api/calendars`, also one the person
+cannot edit (Google keeps the list colour per person), and recolour the `color` of the calendar's events that follow it
+(`colorId` null, see `CalendarEvent`); no server-wide copy exists. The Color row of the calendar's settings page offers the
+palette, the current colour, a colour picker and a hex field (feature calendar-colours). `defaultReminders`
 (at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
 stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 404 for an unknown id.
 
@@ -396,6 +412,11 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   1 minute, doubling per refusal in a row up to 30 minutes, shared by every device and the live poll; the first read
   after the wait is in full (`replace`). A working token clears the back-off. Each back-off writes one
   `google_calendar_backoff` log line (hashed calendar id, cause, wait).
+- A calendar whose fresh sync token Google refused (some of Google's own calendars, e.g. public holidays, never accept
+  one) is no longer asked with a token: after its back-off every call lists its window and compares it with what the
+  device got last (a content version in the cursor). It is answered as `replace` only when that changed, otherwise
+  unchanged; it costs one list call per call and no further 410s. The server forgets this on a restart and learns it
+  again from the next refusal; a version left in a cursor is never sent to Google as a token.
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
@@ -408,7 +429,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
   (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
-  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`).
+  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
   repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
@@ -495,8 +516,8 @@ answers `400` (`calendar.birthday.leapDay`: the yearly rule would have to change
 answer is the opened instance (same `id`) with the change applied. `DELETE` removes the whole series (Google does not touch
 Contacts). `If-Match` is checked against the instance.
 
-Only own events are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
-(`calendar.event.notOwn`), as do `POST` into a calendar that is not own and a `PATCH` moving an event into one (`calendarId`).
+Only events in editable calendars (own calendars and shared group calendars the person may write, e.g. the family calendar; an event whose organiser is its calendar is not an invitation) are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
+(`calendar.event.notOwn`), as do `POST` into a calendar that is not editable and a `PATCH` moving an event into one (`calendarId`).
 The checks come before `If-Match`.
 
 Birthdays with `readOnly` (the contacts Birthdays calendar, calendars that are not the person's own) answer `PATCH` and `DELETE`
@@ -711,7 +732,7 @@ Only days with at least one item are listed. Multi-day items count on every cove
 task lists with at least one unticked item dated in `[today − days, today]` (inclusive). `finishedToday`: task lists
 in the same date window with `completedOn = today` (finished today, shown struck through in the tray). Order of both:
 date ascending, then untimed before timed, then time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
-date); lists with no open items are never carried. `days` max 90, default 30.
+date); lists with no open items are never carried, and neither is a list made after its own day had ended (`createdOn` later than `date`; absent `createdOn` = carried). `days` max 90, default 30.
 
 ### All open task lists (Tasks view)
 
@@ -1139,6 +1160,7 @@ these events, so this encoding is a contract like the REST API above.
 | `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
+| `createdOn` | `extendedProperties.private.createdOn` = `YYYY-MM-DD`, written on create (the input's, else the app clock's today). Absent on older lists. |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
 | `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (the Canvas of the Tasks view); both absent = no place yet |
 | undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |

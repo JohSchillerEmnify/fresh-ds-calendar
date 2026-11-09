@@ -2,7 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { expectRoleHue } from './support/color.js';
-import { chooseSelect, saveSetting, saveThemePref } from './support/settings.js';
+import { chooseSelect, leaveSettings, openSettingsPage, saveSetting, saveThemePref, settingControl } from './support/settings.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
@@ -18,7 +18,7 @@ const seedPreset = (w: World, name: string) => w.byTestId('settings-seed-preset'
  */
 async function inThemeMenu(w: World): Promise<boolean> {
   if (await w.page.getByTestId('theme-view').isVisible()) return false;
-  await w.page.getByTestId('settings-theme').click();
+  await (await settingControl(w, 'settings-theme')).click();
   await expect(w.page.getByTestId('theme-view')).toBeVisible();
   return true;
 }
@@ -50,17 +50,7 @@ Then('the settings screen is shown', async function (this: World) {
 });
 
 When('I leave the settings', async function (this: World) {
-  await this.page.getByTestId('settings-back').click();
-  await expect(this.page.getByTestId('settings-view')).toBeHidden();
-});
-
-Then('the settings sections are {string}', async function (this: World, list: string) {
-  await expect(this.page.getByTestId('settings-view')).toBeVisible();
-  const headings = this.page.getByTestId('settings-section').locator('h2');
-  await expect(headings).toHaveText(list.split(', '));
-  await expect
-    .poll(() => this.page.getByTestId('settings-section').evaluateAll((els) => els.map((e) => e.getAttribute('data-section'))))
-    .toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'notifications', 'labs', 'account']);
+  await leaveSettings(this);
 });
 
 Then('the settings page has no theme mode or seed colour controls', async function (this: World) {
@@ -134,11 +124,11 @@ Then(
 );
 
 When('I choose {string} as the default view', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-default-view'), label);
+  await chooseSelect(this, (await settingControl(this, 'settings-default-view')), label);
 });
 
 Then('the default view {string} is selected', async function (this: World, label: string) {
-  await expect.poll(() => selectedLabel(this.page.getByTestId('settings-default-view'))).toBe(label);
+  await expect.poll(async () => selectedLabel((await settingControl(this, 'settings-default-view')))).toBe(label);
 });
 
 When('I switch to another device', async function (this: World) {
@@ -164,7 +154,7 @@ async function saveCategory(world: World) {
 }
 
 async function addCategory(world: World, name: string, color: string, icon?: string) {
-  await world.page.getByTestId('settings-category-add').click();
+  await (await settingControl(world, 'settings-category-add')).click();
   const dlg = categoryDialog(world);
   await expect(dlg).toBeVisible();
   await dlg.getByTestId('category-name').fill(name);
@@ -174,6 +164,7 @@ async function addCategory(world: World, name: string, color: string, icon?: str
 }
 
 async function openCategory(world: World, name: string) {
+  if (!(await categoryRow(world, name).isVisible())) await openSettingsPage(world, 'tasklists');
   await categoryRow(world, name).click();
   await expect(categoryDialog(world)).toBeVisible();
 }
@@ -207,12 +198,12 @@ When('I delete the category {string}', async function (this: World, name: string
 });
 
 Then('the categories are {string}', async function (this: World, list: string) {
-  await expectJoined(this.page.getByTestId('settings-category'), list, 'data-name');
+  await expectJoined((await settingControl(this, 'settings-category')), list, 'data-name');
 });
 
 Then('the category {string} has the color {string}', async function (this: World, name: string, color: string) {
   // the categories are a part of the settings: from a calendar view the person opens them first
-  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
+  await openSettingsPage(this, 'tasklists');
   await expect(categoryRow(this, name)).toHaveAttribute('data-color', new RegExp(`^${color}$`, 'i'));
 });
 
@@ -289,7 +280,7 @@ Given('the server reports the build version {string}', async function (this: Wor
 });
 
 Then('the settings show the version {string}', async function (this: World, version: string) {
-  await expect(this.page.getByTestId('settings-version')).toHaveText(new RegExp(`^Version ${version.replaceAll('.', '\\.')}`));
+  await expect((await settingControl(this, 'settings-version'))).toHaveText(new RegExp(`^Version ${version.replaceAll('.', '\\.')}`));
 });
 
 Given('the server offers an app signed with the certificate {string}', async function (this: World, cert: string) {
@@ -297,7 +288,7 @@ Given('the server offers an app signed with the certificate {string}', async fun
 });
 
 Then('the settings show the app certificate {string}', async function (this: World, cert: string) {
-  await expect(this.page.getByTestId('settings-app-cert')).toContainText(cert);
+  await expect((await settingControl(this, 'settings-app-cert'))).toContainText(cert);
 });
 
 Then('the corner shows the version {string}', async function (this: World, version: string) {

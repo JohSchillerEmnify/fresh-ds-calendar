@@ -81,9 +81,9 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `transition-warning` | snackbar |
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
-| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
+| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-title-item` (`data-title`; a list without items shows its title as a tick row, checkbox `tasklist-title-item-checkbox`), `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (swatches `event-color-option` with `data-color`; order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
-| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create: the list's items; edit: items to add), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
 | `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak`, `settings-sunflowers` | settings additions |
@@ -125,6 +125,7 @@ the calendar contains an event {string} from {date} {time} to {date} {time}
 the calendar contains an all-day event {string} on {date}
 the calendar contains an all-day event {string} from {date} to {date}
 the calendar contains a task list {string} on {date} with items:
+the calendar contains a task list {string} on {date} made on {date} with items:
 the calendar contains a task list {string} on {date} at {time} with items:
 the calendar contains a task list {string} on {date} at {time} for {int} minutes with items:
 the calendar contains an empty task list {string} on {date}
@@ -136,6 +137,7 @@ Google contains a raw task list event {string} on {date} with the description:
 All-day ranges in steps are inclusive (`from 2026-10-17 to 2026-10-20` = 4 days); the API uses an exclusive end.
 Generated items are titled exactly `Generated item 1` … `Generated item N`, all not done. Generated long items are the same titles padded with `x` to 150 characters. 40 such items serialize to
 more than 1024 characters of JSON, which forces chunking (see API.md "Storage in Google").
+A task list set up through the API without "made on" counts as made on its own day (`createdOn` = its date); "made on D" sends `createdOn: D`.
 The raw task list event has `extendedProperties.private.kind = "tasklist"` but no `items` property (doc string = description).
 
 ## Navigation
@@ -316,6 +318,9 @@ no task list is expanded
 the expanded task list items are {string}
 the expanded task list fits within the viewport
 I tick the item {string}
+I tick the title of the expanded task list
+the expanded task list offers a tick box for its title {string}
+the expanded task list offers no tick box for its title
 I untick the item {string}
 the item {string} is ticked
 the item {string} is not ticked
@@ -856,7 +861,6 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
-the settings sections are {string}
 the settings page has no theme mode or seed colour controls
 the server reports the build version {string}
 the settings show the version {string}
@@ -896,6 +900,62 @@ the settings are changed elsewhere to the theme mode {string}
   a new page; all following steps act on it.
 - `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
 
+### Settings groups and search (`@settings-groups`, `@settings-search`)
+
+```
+the settings groups are {string}
+the settings home shows the search bar
+the settings home is shown
+I open the settings group {string}
+the settings group page {string} is shown
+I go back in the settings
+the settings page shows the setting {string}
+the settings page does not show the setting {string}
+I turn off {string} in the settings
+I open the calendar {string} in the settings
+the settings show the plan {string} for the calendar {string}
+I choose {string} for {string} in the settings
+{string} is chosen for {string} in the settings
+every settings row shows its name first and its control at the end
+I open the setting {string}
+the time picker is shown
+I search the settings for {string}
+the settings search shows {string} in {string}
+the settings search shows {string}
+the settings search shows {int} result(s)
+the settings search says nothing matches {string}
+I clear the settings search
+I choose the search result {string}
+the setting {string} is highlighted
+```
+
+- Hooks: the home is `settings-home` with one `settings-group` per group (`data-group` = its visible name, in order;
+  `data-group-id` = its route name); the search bar is `settings-search` (an input) with `settings-search-clear`; a
+  group page is `settings-group-page` with `data-group` (its title) and `data-group-id` (`views`, `focus/bedtime`, …);
+  each setting is a `settings-row` with `data-setting` = its visible name and `data-setting-id`; Back is
+  `settings-back`. Every settings page keeps `settings-view` as its root.
+- Steps of other features that use a settings control by its test id open the page that holds it first
+  (`settingControl` in `support/settings.ts`, a test id → page table), and leave the settings with Back until no
+  settings page is shown. `I turn on S in the settings` and `the S switch in the settings is off` reach row S through
+  the settings search.
+- `the settings groups are L` reads the `data-group` of the home's groups in order; from a group page it goes Back to
+  the home first (inside the app, no reload).
+- `the settings page shows the setting S` = a visible `settings-row` with `data-setting` S on the open group page.
+- `I turn on|off S in the settings` toggles the switch inside the `settings-row` S and waits for the save response.
+- A search result is `settings-search-result` with `data-setting` (name) and `data-path` (group, or
+  `group › subgroup`); "shows N result(s)" counts them; "nothing matches Q" = no result and `settings-search-empty`
+  contains Q.
+- "is highlighted": the `settings-row` S carries `data-flash` and is inside the viewport.
+- `I choose X for S in the settings` picks option X in the segmented button or menu of row S; `X is chosen for S`
+  reads the selected option.
+- "name first, control at the end": in every `settings-row` the label's left edge is left of the control's left edge
+  (mirrored in left-handed mode is out of scope of this step).
+- The calendar page: `I open the calendar C in the settings` taps the `settings-row` C on the Calendars page. Its
+  `Plan` row (`data-setting-id="plan"`) opens the calendar plan sheet of feature calendar-off-plan (its own steps);
+  "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
+- `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
+- `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
+
 ## Language (`@i18n`)
 
 ```
@@ -919,7 +979,7 @@ the page was not reloaded
   `the page was not reloaded` looks for (a reload would lose it); the options are `Automatisch`/`Automatic` (follows
   the device, translated), `English`, `Deutsch`, `Fränggisch`, `Coldmirror` (each in its own name, never translated).
 - `the language "L" is selected` = the selected option label of `settings-language`.
-- The existing `the settings sections are`, `the period title is` and `the weekday headers are` steps are reused.
+- The existing `the settings groups are`, `the period title is` and `the weekday headers are` steps are reused.
 
 ## Categories, tags and filters (`@categories`)
 
@@ -1430,6 +1490,38 @@ they hide the calendar {string} in the filter bar
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
 
+## A colour for every calendar (`@id:calendar-colours`)
+
+```
+the calendar {string} has an event {string} on {date} from {time} to {time} in the colour {string}
+the calendar's settings page offers {int} palette colours
+the palette colour {int} is drawn as {string}
+the palette colour {int} is chosen on the calendar's settings page
+the current colour {string} is chosen as an extra colour on the calendar's settings page
+the calendar's settings page has no extra current colour
+I choose the palette colour {int} on the calendar's settings page
+I pick the custom colour {string} on the calendar's settings page
+I type the colour {string} on the calendar's settings page
+the colour field shows the error {string}
+I recolour the calendar {string} to the palette colour {int}
+the event {string} is drawn in the colour {string}
+the event {string} is drawn in its own calendar colour
+Google lists the calendar {string} in the colour {string}
+Google lists the calendar {string} with the palette colour {int}
+```
+
+- Event colour names are the 11 Google colours of the event dialog (Lavender ... Tomato, hexes in `event-colors.feature`); a colour
+  argument may also be `#rrggbb`. The calendar's own colour is chosen in the Color row of Settings > Calendars > the calendar:
+  swatches `calendar-color-option` (`data-name` "Calendar color N" for Google palette entry N, "Current color" for the extra swatch of
+  a colour outside the palette; `data-color`, `aria-checked`; exactly one is checked), the colour picker `calendar-color-custom`
+  (a native colour input) and the hex field `calendar-color-hex` with its error `calendar-color-error`. "I choose the palette colour"
+  clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I pick the custom colour" sets the colour input's value (input
+  and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
+  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it. "is drawn in the
+  colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
+  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `colorId`
+  is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
+
 ## Calendar off by a plan (`@id:calendar-off-plan`)
 
 ```
@@ -1522,6 +1614,7 @@ Google has no birthday {string}
 the calendar contains an event {string} on {date} from {time} to {time} organised by {string}
 the calendar contains an event {string} on {date} from {time} to {time} organised by {string} with guests allowed to edit
 a calendar {string} shared with me with edit rights by {string}
+a family calendar {string} shared with me with edit rights by {string}
 a calendar {string} shared with me read-only by {string}
 the calendar {string} contains an event {string} on {date} from {time} to {time}
 I start a new event
@@ -1530,6 +1623,7 @@ the API answers {int}
 the event dialog is editable
 the read-only reason says {string}
 the calendar picker does not offer {string}
+the calendar picker offers {string}
 ```
 
 - "organised by E": inserts the event into Google (primary calendar) with `organizer: { email: E }` (not `self`);
@@ -1537,6 +1631,9 @@ the calendar picker does not offer {string}
 - "a calendar C shared with me with edit rights by E": adds a calendar to the mock account's list with id E (another
   person's primary calendar), `accessRole` writer and owner address E (`POST /api/__test/remote/calendars` with
   `accessRole`, `ownerEmail`).
+- "a family calendar C shared with me with edit rights by E": adds a Google group calendar (generated id
+  `…@group.calendar.google.com`) with `accessRole` writer and owner address E. Events inserted into it without an
+  organiser get the calendar itself as organiser (as Google does).
 - "a calendar C shared with me read-only by E": the same with `accessRole` reader.
 - "the calendar C contains an event ...": inserts into the calendar named C as another Google client would.
 - "I start a new event": opens the week view and the "new event" dialog (`create-button`, `new-kind-event`).
@@ -1544,7 +1641,7 @@ the calendar picker does not offer {string}
   answers N" compares the status of that call.
 - "the event dialog is editable": `event-save` is visible and `event-readonly` does not exist. "the read-only reason
   says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the own
-  calendars are loaded (the picker `event-calendar` lists "Work"), no option is named C.
+  calendars are loaded (the picker `event-calendar` lists "Work"), no option is named C. "the calendar picker offers C": the same wait, then an option named C exists.
 
 ## Reduced motion override
 

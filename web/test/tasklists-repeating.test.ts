@@ -307,6 +307,24 @@ describe('the task list form on a repeating list', () => {
     expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=following']);
   });
 
+  it('only items typed: they are added with scope=following, and no change of the list itself is sent', async () => {
+    const m = await form(week(), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
+    await setField('tasklist-items', 'Mirror');
+    q(tid('tasklist-save'))!.click();
+    await flushPromises();
+    await choose('following');
+    await vi.waitFor(() => expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items?scope=following']));
+  });
+
+  it('ticking the title of a repeating title-only list adds a ticked item for this list without asking', async () => {
+    const m = await open(week({ items: [], totalCount: 0 }), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
+    (q(`${tid('tasklist-title-item-checkbox')} input`) as HTMLInputElement).click();
+    await flushPromises();
+    expect(asked()).toBeNull();
+    expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items']);
+    expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ id: expect.any(String), title: 'Clean', done: true });
+  });
+
   it('a title request that cannot be sent is kept: the form closes, the other changes were sent', async () => {
     const m = await form(week(), {
       'PATCH /api/tasklists/W_20261019': ({ url, body }) => (url.search

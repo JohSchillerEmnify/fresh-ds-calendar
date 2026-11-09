@@ -12,7 +12,7 @@ const work = { id: 'work', name: 'Work', color: '#039be5', hidden: false };
 async function setup(now: string, plan: object | undefined, frozen = true) {
   const m = mockFetch({
     'GET /api/config': () => config({ now, clockFrozen: frozen }),
-    'PATCH /api/calendars/work': (r: { body: { hidden: boolean } }) => ({ ...work, hidden: r.body.hidden }),
+    'PATCH /api/calendars/work': (r: { body: { hidden?: boolean; color?: string; colorId?: string } }) => ({ ...work, hidden: r.body.hidden ?? false, ...(r.body.color ? { color: r.body.color } : {}) }),
     'PATCH /api/prefs': (r: { body: object }) => ({ ...usePrefsStore().current(), ...r.body }),
   });
   await useClockStore().load();
@@ -84,5 +84,32 @@ describe('plan source wired late (feature calendar-off-plan)', () => {
     expect(cals.isHidden('work')).toBe(false);
     setPlanSource({ plans: () => ({ work: weekend }), save: async () => {} });
     expect(cals.isHidden('work')).toBe(true);
+  });
+});
+
+describe('calendars store colour (feature calendar-colours)', () => {
+  beforeEach(() => freshPinia());
+
+  it('shows the colour at once and sends it to the server', async () => {
+    const { cals, m } = await setup('2026-11-07T09:00:00.000Z', undefined);
+    const done = cals.setColor('work', '#0b8043');
+    expect(cals.list[0].color).toBe('#0b8043');
+    await done;
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/calendars/work')?.body).toEqual({ color: '#0b8043' });
+    expect(cals.list[0].color).toBe('#0b8043');
+  });
+
+  it('sends the palette colorId instead of the colour when there is one', async () => {
+    const { cals, m } = await setup('2026-11-07T09:00:00.000Z', undefined);
+    await cals.setColor('work', '#4986e7', '16');
+    expect(cals.list[0].color).toBe('#4986e7');
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/calendars/work')?.body).toEqual({ colorId: '16' });
+  });
+
+  it('puts the old colour back when the server refuses', async () => {
+    const { cals } = await setup('2026-11-07T09:00:00.000Z', undefined);
+    mockFetch({ 'PATCH /api/calendars/work': () => ({ status: 400, body: { error: { code: 'VALIDATION_ERROR', message: 'no' } } }) });
+    await expect(cals.setColor('work', '#0b8043')).rejects.toBeTruthy();
+    expect(cals.list[0].color).toBe('#039be5');
   });
 });

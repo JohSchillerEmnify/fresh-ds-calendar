@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-09
+- When you edit a task list you can add new items (one per line).
+- A task list with only a title can be ticked off: the title becomes its first item, ticked.
+- Every calendar can now get its own colour: Settings › Calendars › the calendar › Colour. Pick one of Google's calendar colours or any colour with the colour picker; the current colour is always shown. It is saved in Google for you only.
+- Shared calendars like your family calendar can now be edited by everyone who may edit them in Google: open, change, move and delete their events, and add new ones to them.
+
 ## 2026-11-01
 - New look (Material 3 Expressive): floating bottom bar that slides away while you scroll (or a side menu instead), Compact or Expressive bar sizes, task lists in a row inside the bar, theme scenes always fully visible.
 - Month view can scroll up and down: Settings › month scrolling: Sideways, Up and down, or Up and down one month at a time.

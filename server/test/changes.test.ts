@@ -29,7 +29,7 @@ describe('first call (no cursor)', () => {
     expect(titles(r.events.upserts)).toEqual(['Dentist']);
     expect(r.taskLists.replace).toBe(true);
     expect(titles(r.taskLists.upserts)).toEqual(['Chores', 'Someday']);
-    expect(Object.keys(r.files).sort()).toEqual(['canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
+    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
   });
 
   it('answers each file in the shape of its own GET', async () => {
@@ -38,6 +38,7 @@ describe('first call (no cursor)', () => {
     expect(f.people).toEqual((await t.json('GET', '/api/people')).body);
     expect(f.categoryShares).toEqual((await t.json('GET', '/api/categories/shares')).body);
     expect(f.tasksCalendarReminders).toEqual((await t.json('GET', '/api/reminders/tasks-calendar')).body);
+    expect(f.calendarColors).toEqual((await t.json('GET', '/api/calendar-colors')).body);
     expect(f.canvas).toEqual((await t.json('GET', '/api/canvas')).body);
     expect(f.themes).toEqual((await t.json('GET', '/api/themes')).body);
   });
@@ -310,12 +311,63 @@ describe('robustness', () => {
       const back = await changes(r2.cursor);
       expect(back.events.replace).toEqual(['work']);
       expect(titles(back.events.upserts)).toEqual(['Holiday']);
-      // refused once more: left alone at once, for twice as long
-      await changes(back.cursor);
-      expect(lookups(spy, 'work')).toBe(3);
+    });
+
+    it('a calendar whose fresh tokens Google never accepts is compared by content after the back-off: no more 410s, changes still arrive', async () => {
+      await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new SyncTokenExpiredError('Sync token expired');
+        return real(id, tok);
+      });
+      const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken');
+      const r2 = await changes((await changes((await changes()).cursor)).cursor);
+      expect(lookups(spy, 'work')).toBe(2);
       now += 61_000;
-      await changes(back.cursor);
-      expect(lookups(spy, 'work')).toBe(3);
+      const walks = lookups(walk, 'work');
+      const back = await changes(r2.cursor);
+      expect(back.events.replace).toEqual(['work']);
+      expect(titles(back.events.upserts)).toEqual(['Holiday']);
+      // unchanged: answered unchanged, without a token call, a walk or a back-off, however often and long
+      let c = back.cursor;
+      for (let i = 0; i < 3; i++) {
+        now += 31 * 60_000;
+        const r = await changes(c);
+        expect(r.events.replace).toEqual([]);
+        expect(r.events.failed).toEqual([]);
+        c = r.cursor;
+      }
+      expect(lookups(spy, 'work')).toBe(2);
+      expect(lookups(walk, 'work')).toBe(walks);
+      // a change in Google arrives on the next call, the calendar answered in full
+      await t.json('POST', '/api/__test/remote/events', { summary: 'Bridge day', calendarId: 'work', start: { date: '2026-10-23' }, end: { date: '2026-10-24' } });
+      const changed = await changes(c);
+      expect(changed.events.replace).toEqual(['work']);
+      expect(titles(changed.events.upserts)).toEqual(['Bridge day', 'Holiday']);
+      expect((await changes(changed.cursor)).events.replace).toEqual([]);
+      expect(lookups(spy, 'work')).toBe(2);
+    });
+
+    it('a content version left in a cursor (the server restarted) is not sent to Google as a sync token', async () => {
+      const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+      const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+        if (id === 'work') throw new SyncTokenExpiredError('Sync token expired');
+        return real(id, tok);
+      });
+      const r2 = await changes((await changes((await changes()).cursor)).cursor);
+      now += 61_000;
+      const back = await changes(r2.cursor);
+      spy.mockRestore();
+      // the server forgets the calendar's state on a restart; the device still holds the content version in its cursor
+      (t.app.ctx.calendar as unknown as { calendarHealth: Map<string, unknown> }).calendarHealth.clear();
+      const asked = vi.spyOn(t.app.ctx.mock!, 'listChanges');
+      const after = await changes(back.cursor);
+      expect(asked.mock.calls.filter((c) => c[0] === 'work')).toEqual([]);
+      expect(after.events.replace).toEqual(['work']);
+      expect(after.events.failed).toEqual([]);
+      // and the token of that full read works again
+      expect((await changes(after.cursor)).events.replace).toEqual([]);
+      expect(asked.mock.calls.filter((c) => c[0] === 'work')).toHaveLength(1);
     });
 
     it('a calendar that is gone (404) is tried again only after the back-off, which grows', async () => {

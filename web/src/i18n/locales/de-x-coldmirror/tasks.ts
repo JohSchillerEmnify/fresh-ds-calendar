@@ -134,6 +134,7 @@ export default {
     estimate: 'Schätzung in Minuten (kann, muss nicht)',
     category: 'Kategorie, fresh',
     items: 'Einträge (einer pro Zeile), Digga',
+    addItems: 'Einträge dazupacken (einer pro Zeile), Digga',
     repeat: 'Wiederholung, yo',
     repeatNone: 'Einmal und gut, yo',
     daily: 'Täglich, yo',

@@ -4,6 +4,7 @@ import { Given, Then, When } from './fixtures.js';
 import { expectPositioned } from './support/grid.js';
 import { box } from './support/ui.js';
 import type { World } from './support/world.js';
+import { settingControl } from './support/settings.js';
 
 /** The view the scenario looked at, per scenario world. */
 const looked = new WeakMap<World, string>();
@@ -13,13 +14,13 @@ Given('the minimum event length is {int} minutes', async function (this: World, 
 });
 
 Given('I am on the settings screen', async function (this: World) {
-  await this.page.goto('/settings');
+  await this.page.goto('/settings/views');
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
 });
 
 When('I choose a minimum event length of {int} minutes', async function (this: World, minutes: number) {
   const saved = this.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/prefs'));
-  await this.page.getByTestId(`settings-min-event-length-${minutes}`).click();
+  await (await settingControl(this, `settings-min-event-length-${minutes}`)).click();
   await saved;
 });
 

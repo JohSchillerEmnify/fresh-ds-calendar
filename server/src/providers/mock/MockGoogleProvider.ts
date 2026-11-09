@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { GOOGLE_CALENDAR_COLORS, type CalendarColor } from '@calendar/shared/colors';
 import { googleEventId } from '../../lib/ids.js';
 import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
@@ -310,6 +311,25 @@ export class MockGoogleProvider implements CalendarProvider {
     return this.collect({ calendarId, timeMin, timeMax }).items.filter((e) => e.id === seriesId || e.recurringEventId === seriesId);
   }
 
+  async setCalendarColor(calendarId: string, color: { colorId: string } | { backgroundColor: string; foregroundColor: string }): Promise<void> {
+    this.check();
+    this.requireCalendar(calendarId);
+    const entry = this.calendars.find((c) => c.id === calendarId)!;
+    if ('colorId' in color) {
+      const known = GOOGLE_CALENDAR_COLORS.find((c) => c.id === color.colorId);
+      if (!known) throw new ProviderError(`Unknown colorId ${color.colorId}`);
+      Object.assign(entry, { colorId: known.id, backgroundColor: known.background, foregroundColor: known.foreground });
+    } else {
+      Object.assign(entry, color, { colorId: undefined });
+    }
+    this.scheduleFlush();
+  }
+
+  async calendarColors(): Promise<CalendarColor[]> {
+    this.check();
+    return [...GOOGLE_CALENDAR_COLORS];
+  }
+
   // ---- internals ----
   private requireCalendar(id: string): void {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
@@ -457,8 +477,12 @@ export class MockGoogleProvider implements CalendarProvider {
     const id = ev.id ?? googleEventId();
     if (this.events.has(key(calendarId, id))) throw new ProviderError('Conflict: identifier already exists');
     const now = new Date(this.clock.real()).toISOString();
+    // Google gives events in a group calendar the calendar itself as organiser.
+    const cal = this.calendars.find((c) => c.id === calendarId);
+    const organizer = !ev.organizer && cal && !cal.primary && calendarId.endsWith('@group.calendar.google.com')
+      ? { email: calendarId, displayName: cal.summary, self: true } : undefined;
     const e: GoogleEvent = {
-      ...clone(ev), id, calendarId, status: ev.status ?? 'confirmed', etag: '', created: now, updated: now,
+      ...clone(ev), ...(organizer ? { organizer } : {}), id, calendarId, status: ev.status ?? 'confirmed', etag: '', created: now, updated: now,
       iCalUID: `${id}@mock.google.com`, sequence: -1,
     };
     this.touch(e);

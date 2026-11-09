@@ -163,13 +163,15 @@ export function writes(s: OutboxState) {
       else updateList(item.id, patch as UpdateTaskListInput, undefined, etag);
     },
     deleteEvent: (ev: CalendarEvent): void => add(s, { op: 'event.delete', id: ev.id }, { title: ev.title, etag: ev.etag }),
-    createList(input: CreateTaskListInput): TaskList {
+    createList(made: CreateTaskListInput): TaskList {
       const id = newDeviceId();
+      // the day it was made travels with it: sent next day, a list for a past day still is "made on its day"
+      const input = { createdOn: useClockStore().today, ...made };
       add(s, { op: 'list.create', id, input }, { title: input.title });
       return localTaskList(id, input);
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
-    addItem: (listId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...scoped(scope) }, { title: text }),
+    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...scoped(scope) }, { title: text }),
     /** A handwritten item at the end of the list; returns its id. */
     addInkItem(listId: string, strokes: InkStroke[]): string {
       const itemId = newItemId();

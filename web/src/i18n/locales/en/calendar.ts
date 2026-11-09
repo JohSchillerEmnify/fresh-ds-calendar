@@ -40,7 +40,6 @@ export default {
     back: 'Back {day}',
     mark: 'Switches by itself',
     window: 'Off {from} – {to}',
-    settings: 'Calendars',
   },
   filter: {
     noCategory: 'No category',

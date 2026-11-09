@@ -5,8 +5,8 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
-import { turnOnLabsSwitch } from './support/ui.js';
 import { exactText, tid, type World } from './support/world.js';
+import { openSettingsPage, settingControl, turnOnLabsSwitch } from './support/settings.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
   world.colorScheme = scheme;
@@ -128,9 +128,7 @@ const option = (world: World, setting: string, label: string) =>
 const isSaved = (r: { request(): { method(): string }; url(): string }) => r.request().method() === 'PATCH' && r.url().includes('/api/prefs/theme');
 
 async function openMenu(world: World) {
-  await world.page.getByTestId('settings-button').click();
-  await world.page.getByTestId('settings-theme').click();
-  await expect(world.page.getByTestId('theme-view')).toBeVisible();
+  await openSettingsPage(world, 'theme');
 }
 
 /** The theme menu is a page over the calendar: leave it through the browser history to see the calendar again. */
@@ -138,8 +136,8 @@ async function backToCalendar(world: World) {
   const menu = world.page.getByTestId('theme-view').or(world.page.getByTestId('settings-view'));
   // right after a reload the page may not be rendered yet: wait for it, or the menu is mistaken for already left
   await expect(menu.or(world.page.locator(['month-view', 'week-view', 'day-view', 'year-view'].map(tid).join(', '))).first()).toBeVisible();
-  // menu -> settings -> calendar
-  for (let i = 0; i < 2 && (await menu.isVisible()); i++) {
+  // menu -> Appearance & layout -> settings -> calendar
+  for (let i = 0; i < 3 && (await menu.isVisible()); i++) {
     await world.page.goBack();
   }
   await world.calendarShown();
@@ -157,8 +155,7 @@ export async function chooseTheme(world: World, name: string) {
 async function ensureMenu(world: World) {
   if (await world.page.getByTestId('theme-view').isVisible()) return;
   if (await world.page.getByTestId('settings-view').isVisible()) {
-    await world.page.getByTestId('settings-theme').click();
-    await expect(world.page.getByTestId('theme-view')).toBeVisible();
+    await openSettingsPage(world, 'theme');
     return;
   }
   if (!(await world.page.getByTestId('settings-button').isVisible())) {
@@ -193,7 +190,7 @@ Given('{string} chose the theme {string}', async function (this: World, email: s
 
 Then('the theme {string} is marked as chosen', async function (this: World, name: string) {
   // an earlier step may have looked at the calendar behind the menu: come back to the menu through the history
-  for (let i = 0; i < 2 && !(await this.page.getByTestId('theme-view').isVisible()); i++) await this.page.goForward();
+  for (let i = 0; i < 3 && !(await this.page.getByTestId('theme-view').isVisible()); i++) await this.page.goForward();
   await expect(card(this, name)).toHaveAttribute('aria-pressed', 'true');
   await expect(this.page.locator('[data-testid="theme-card"][aria-pressed="true"]')).toHaveCount(1);
 });
@@ -399,7 +396,7 @@ Then('the top bar shows no scene', async function (this: World) {
 });
 
 Then('the settings show the theme {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
+  await expect(await settingControl(this, 'settings-theme-name')).toHaveText(text);
 });
 
 When('I set the seasons and holidays to {string}', async function (this: World, label: string) {
@@ -561,8 +558,8 @@ Given('the AI theme prompt is turned on in Labs', async function (this: World) {
 
 When('I turn on the AI theme prompt in the settings', async function (this: World) {
   // the AI switch sits under the experimental master switch
-  await turnOnLabsSwitch(this.page, 'settings-labs');
-  await turnOnLabsSwitch(this.page, 'settings-labs-own-themes');
+  await turnOnLabsSwitch(this, 'settings-labs');
+  await turnOnLabsSwitch(this, 'settings-labs-own-themes');
 });
 
 Then('the theme menu has no AI prompt', async function (this: World) {

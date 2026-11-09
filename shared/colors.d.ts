@@ -8,3 +8,11 @@ export declare const GOOGLE_COLOR_IDS: string[];
 export declare function deltaE76(a: string, b: string): number;
 /** Nearest Google colorId of a `#rrggbb` colour; ties → lower id. */
 export declare function nearestGoogleColorId(hex: string): string;
+/** WCAG contrast ratio of two `#rrggbb` colours. */
+export declare function contrastRatio(a: string, b: string): number;
+/** Black or white text, whichever contrasts more with `bg`. */
+export declare function onColor(bg: string): '#000000' | '#ffffff';
+/** One entry of Google's calendar colour palette (`colors.get`, `calendar` map). */
+export interface CalendarColor { id: string; background: string; foreground: string }
+/** Google's 24 calendar colours, the built-in copy of what `colors.get` answers. */
+export declare const GOOGLE_CALENDAR_COLORS: readonly CalendarColor[];

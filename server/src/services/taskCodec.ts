@@ -25,6 +25,8 @@ export interface TaskListData {
   recurrence: Recurrence | null;
   /** App-clock date of the write that ticked the last open item; null while an item is open or when unknown. */
   completedOn: string | null;
+  /** App-clock date the list was created on; absent on lists made before it was stored (they carry over as before). */
+  createdOn?: string | null;
   /** The note's place on the Canvas (`cx`, `cy`); null = none yet. */
   canvas: CanvasPlace | null;
 }
@@ -100,6 +102,7 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     estimate: d.estimateMinutes === null ? null : String(d.estimateMinutes),
     recurrence: d.recurrence,
     completedOn: d.completedOn,
+    createdOn: d.createdOn ?? null,
     // the marker the Archive reads with `privateExtendedProperty=done=1`; derived from the items so it cannot disagree
     done: isFinished(d.items) ? '1' : null,
     cx: d.canvas ? String(d.canvas.x) : null,
@@ -209,6 +212,11 @@ export function readItems(ev: GoogleEvent): TaskItem[] {
   }
 }
 
+/** A stored `YYYY-MM-DD` day, else null (a missing or malformed value reads as unknown). */
+function isoDay(v: string | undefined): string | null {
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+
 export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
   const p = ev.extendedProperties?.private ?? {};
   let date: string | null;
@@ -240,7 +248,8 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
     tags,
     estimateMinutes: Number.isFinite(est) ? est : null,
     recurrence,
-    completedOn: p.completedOn && /^\d{4}-\d{2}-\d{2}$/.test(p.completedOn) ? p.completedOn : null,
+    completedOn: isoDay(p.completedOn),
+    createdOn: isoDay(p.createdOn),
     canvas: readCanvas(p),
   };
 }

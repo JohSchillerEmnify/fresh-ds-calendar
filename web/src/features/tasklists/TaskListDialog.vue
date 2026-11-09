@@ -162,7 +162,9 @@ function changedFields<T extends Record<string, unknown>>(body: T, current: unkn
 
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
-  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form, parseItems(form.items).length + inkForm.written.value.length)) ?? templateProblem();
+  // editing: the typed lines are added to the items the list already has
+  const typed = parseItems(form.items);
+  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length + typed.length) : validateForm(form, typed.length + inkForm.written.value.length)) ?? templateProblem();
   if (error.value || saving.value) return;
   saving.value = true;
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
@@ -175,19 +177,22 @@ async function save() {
     ...(form.reminders && !(current?.kind === 'tasklist' && current.shared) && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
   };
   // a renamed repeating list: the title may go to the following lists too, the rest of the form stays with this one
-  const s = editing.value && current?.kind === 'tasklist' && body.title !== originalTitle.trim() ? await scope.ask(current) : 'this';
+  const s = editing.value && current?.kind === 'tasklist' && (body.title !== originalTitle.trim() || typed.length) ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
   try {
     if (editing.value && s === 'following') {
       const { title, ...rest } = body;
-      const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' });
+      // typed items are added separately, they are no change of the list's own fields
+      const othersChanged = JSON.stringify({ ...form, title: '', items: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '', items: '' });
       if (othersChanged) {
         outbox.updateList(props.id!, rest, undefined, etag);
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
       }
-      outbox.updateList(props.id!, { title }, 'following');
-    } else if (editing.value) outbox.updateList(props.id!, changedFields(body, current), undefined, etag);
-    else {
+      if (title !== originalTitle.trim()) outbox.updateList(props.id!, { title }, 'following');
+    } else if (editing.value) {
+      const changed = changedFields(body, current);
+      if (!typed.length || Object.keys(changed).length) outbox.updateList(props.id!, changed, undefined, etag);
+    } else {
       outbox.createList({
         ...body, items: [...parseItems(form.items).map((title) => ({ title })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
       });
@@ -196,6 +201,8 @@ async function save() {
         await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
       }
     }
+    // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
+    if (editing.value) typed.forEach((title) => outbox.addItem(props.id!, title.slice(0, TITLE_MAX), s === 'following' ? s : undefined));
     void lists.refresh().catch(() => undefined);
     emit('close');
   } catch (e) {
@@ -260,8 +267,8 @@ function remove() {
       <div v-if="inking" class="inklines" :class="{ ruled: inkMode.ruled.value }" data-testid="tasklist-ink-lines">
         <InkLine v-for="(line, i) in inkForm.shown.value" :key="i" class="inkrow" :strokes="line" editable :label="t('ink.area')" @change="inkForm.change(i, $event)" />
       </div>
-      <div v-else-if="!editing" class="textlines" :class="{ ruled: inkMode.ruled.value || (toolsShown && inkStore.mode === 'text') }" data-testid="tasklist-text-lines">
-        <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
+      <div v-else class="textlines" :class="{ ruled: !editing && (inkMode.ruled.value || (toolsShown && inkStore.mode === 'text')) }" data-testid="tasklist-text-lines">
+        <TextField v-model="form.items" :label="editing ? t('tasks.dialog.addItems') : t('tasks.dialog.items')" multiline :rows="editing ? 2 : 4" data-testid="tasklist-items" />
       </div>
       <Select v-if="!editing && form.date" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div v-if="!editing" class="tplrow">

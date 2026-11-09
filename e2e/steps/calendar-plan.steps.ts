@@ -3,6 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { isTouchScreen, touchDrag } from './support/ui.js';
 import { attr, type World } from './support/world.js';
+import { openSettingsPage } from './support/settings.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -47,7 +48,10 @@ When('I long-press the calendar {string} in the side menu', async function (this
 });
 
 When('I open the plan of the calendar {string} in the settings', async function (this: World, name: string) {
-  await this.byTestId('settings-calendar-plan', attr('data-name', name)).click();
+  // the plan is a row of the calendar's own page in Settings › Calendars (feature settings-groups)
+  await openSettingsPage(this, 'calendars');
+  await this.page.locator(`[data-testid="settings-row"][data-setting="${name}"]`).click();
+  await this.page.locator('[data-setting-id="plan"]').click();
   await expect(sheet(this)).toBeVisible();
 });
 

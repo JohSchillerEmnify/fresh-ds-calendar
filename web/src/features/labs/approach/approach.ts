@@ -9,12 +9,13 @@ const MAX_ROWS = 2;
 export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 
 /**
- * All timed entries of today (events and task lists with a time, carried-over ones included) starting within `windowMin` after now, by start
+ * All timed entries of today (events and task lists with a time, not carried-over ones) starting within `windowMin` after now, by start
  * (not only the next three). Entries already running stay (they slide out to the left). When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
  * of the track).
  */
 export function approachEntries(daySegments: Segment[], nowMin: number, windowMin: number): ApproachEntries {
-  const timed = daySegments.flatMap(timedToday).sort((a, b) => a.startMin - b.startMin);
+  // a carried-over list is untimed today, so it never sits on the track
+  const timed = daySegments.filter((s) => !s.carriedFrom).flatMap(timedToday).sort((a, b) => a.startMin - b.startMin);
   const ahead = timed.filter((s) => s.startMin > nowMin);
   const within = timed.filter((s) => s.endMin > nowMin && s.startMin <= nowMin + windowMin);
   if (within.length || !ahead.length) return { entries: within, atEnd: false };

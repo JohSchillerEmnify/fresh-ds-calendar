@@ -6,6 +6,7 @@ import { berlinIso } from './support/dates.js';
 import { cssColorToRgba } from './support/color.js';
 import { chooseListAction, expectJoined } from './support/ui.js';
 import { attr, exactText, type World } from './support/world.js';
+import { leaveSettings, settingControl } from './support/settings.js';
 
 const trayItems = (w: World) => w.page.getByTestId('task-tray-item');
 
@@ -203,13 +204,13 @@ Then('the task list {string} is highlighted in the open tasks tray', async funct
 
 When('I hide where carried-over task lists come from in the settings', async function (this: World) {
   await this.page.goto('/');
-  await this.page.getByTestId('settings-button').click();
-  const control = this.page.getByTestId('settings-carried-from');
+  await this.calendarShown();
+  const control = await settingControl(this, 'settings-carried-from');
   await expect(control).toHaveAttribute('aria-checked', 'true');
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
   await control.click();
   expect((await saved).status(), 'prefs saved').toBe(200);
-  await this.page.getByTestId('settings-back').click();
+  await leaveSettings(this);
 });
 
 // --- the open tasks row of the phone's bottom bar (tray option C) ------------------------------------------------------

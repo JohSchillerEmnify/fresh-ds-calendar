@@ -175,6 +175,11 @@ describe('collapsed card', () => {
     expect(seg(tl('c', { date: '2026-09-11', done: [false] })).date).toBe('2026-09-11');
     expect(seg(tl('d', { date: '2026-10-14', done: [false] })).date).toBe('2026-10-14');
   });
+  it('an open list made after its own day ended stays on that day; one made before it is carried', () => {
+    expect(seg({ ...tl('e', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-11' }).date).toBe('2026-10-10');
+    expect(seg({ ...tl('f', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-10' }).date).toBe('2026-10-12');
+    expect(seg({ ...tl('g', { date: '2026-10-10', done: [false] }), createdOn: '2026-10-09' }).date).toBe('2026-10-12');
+  });
   it('a timed list is a block sized by its estimate', () => {
     const s = seg(tl('Tidy', { time: '18:00', estimateMinutes: 45 }));
     expect([s.startMin, s.endMin]).toEqual([1080, 1125]);
@@ -213,6 +218,25 @@ describe('expanded list', () => {
   const checkbox = (w: VueWrapper, i: number) => w.findAll(tid('tasklist-item'))[i].get('input[type=checkbox]');
   const done = (w: VueWrapper) => w.findAll(tid('tasklist-item')).map((r) => r.attributes('data-done'));
 
+  it('a list with only a title offers a tick box for the title; ticking adds the title as a done first item', async () => {
+    const list = tl('Ideas', { done: [] });
+    const added: Record<string, unknown>[] = [];
+    const { w, m } = await open(list, { 'POST /api/tasklists/Ideas/items': ({ body }: { body: Record<string, unknown> }) => { added.push(body); return tl('Ideas', { done: [true] }); } });
+    expect(w.get(tid('tasklist-title-item')).attributes('data-title')).toBe('Ideas');
+    await w.get(`${tid('tasklist-title-item-checkbox')} input`).setValue(true);
+    await flushPromises();
+    expect(added).toEqual([{ id: expect.any(String), title: 'Ideas', done: true }]);
+    expect(m.calls.some((c) => c.method === 'PATCH')).toBe(false);
+    expect(w.find(tid('tasklist-title-item')).exists()).toBe(false);
+    expect((useItemsStore().get('Ideas') as TaskList)).toMatchObject({ doneCount: 1, totalCount: 1 });
+  });
+  it('offers no title tick box to a list with items or without a title', async () => {
+    const { w } = await open(tl('G'), {});
+    expect(w.find(tid('tasklist-title-item')).exists()).toBe(false);
+    w.unmount();
+    const { w: u } = await open(tl('U', { title: '', done: [] }), {});
+    expect(u.find(tid('tasklist-title-item')).exists()).toBe(false);
+  });
   it('renders items and ticks optimistically with one PATCH', async () => {
     const list = tl('G', { done: [true, false, false] });
     const s = server(list);
@@ -575,7 +599,7 @@ describe('dialog', () => {
     await flushPromises();
     expect(created[0]).toEqual({
       title: 'Groceries', date: '2026-10-14', time: '18:00', estimateMinutes: 45, categoryId: 'shopping',
-      items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly',
+      items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly', createdOn: '2026-10-12',
     });
     expect(w.emitted('close')).toHaveLength(1);
   });
@@ -609,6 +633,35 @@ describe('dialog', () => {
     expect(patches).toHaveLength(1);
     expect(patches[0]).not.toHaveProperty('tags');
     expect(w.emitted('close')).toHaveLength(1);
+  });
+  it('editing adds the typed items to the list, one per line, and sends no title change', async () => {
+    const added: { title: string }[] = [];
+    const list = tl('G', { done: [true] });
+    const { pinia, m } = await setup({
+      'POST /api/tasklists/G/items': ({ body }) => { added.push(body); return tl('G', { done: [true, false, false] }); },
+      'PATCH /api/tasklists/G': () => list,
+    });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('Eggs\n\n  Bread \n');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(added.map((a) => a.title)).toEqual(['Eggs', 'Bread']);
+    expect(m.calls.some((c) => c.method === 'PATCH')).toBe(false);
+    expect(w.emitted('close')).toHaveLength(1);
+    expect((useItemsStore().get('G') as TaskList).items.map((i) => i.title)).toEqual(['Milk', 'Eggs', 'Bread']);
+  });
+  it('editing refuses more items than a list may hold', async () => {
+    const { pinia } = await setup();
+    useItemsStore().upsert(tl('G', { done: new Array(199).fill(false) }));
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('A\nB');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(w.get(tid('tasklist-error')).text()).toBe('A task list can have 200 items at most');
+    expect(w.emitted('close')).toBeUndefined();
   });
   it('answers a 412 by sending the same change again on the newest version', async () => {
     const list = tl('G');
