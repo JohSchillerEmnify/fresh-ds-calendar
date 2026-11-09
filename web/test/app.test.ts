@@ -551,7 +551,7 @@ describe('settings', () => {
   });
   it('opens a calendar\'s page from Settings › Calendars, edits its default at once; Reminders switches task list reminders', async () => {
     let defaults = [30];
-    const cals = () => [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, own: false, hidden: false, defaultReminders: [10] }];
+    const cals = () => [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, hidden: false, defaultReminders: [10] }];
     const { w, router, m } = await mountAt('/settings/calendars', {
       'GET /api/calendars': () => ({ calendars: cals() }),
       'GET /api/changes': () => changesFixture({ ...farWindow, calendars: cals() }),

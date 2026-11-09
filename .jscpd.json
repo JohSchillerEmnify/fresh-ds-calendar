@@ -1,6 +1,6 @@
 {
   "minTokens": 50,
-  "threshold": 0.072,
+  "threshold": 0.071,
   "reporters": ["console", "html"],
   "output": ".jscpd-report",
   "gitignore": true,

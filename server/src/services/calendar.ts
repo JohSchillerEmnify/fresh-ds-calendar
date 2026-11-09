@@ -25,7 +25,7 @@ import {
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { placeLeads, placeOf, placeProps } from './place.js';
-import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
+import { hasWriteRole, readOnlyReason } from './ownership.js';
 import { CalendarChanges, type CalendarHealth, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
@@ -106,9 +106,8 @@ export class CalendarService {
 
   async calendars(): Promise<Calendar[]> {
     this.calCache = null; // the endpoint always hits the provider (outages must surface)
-    const all = await this.providerCalendars();
     return (await this.eventCalendars()).map((c) => ({
-      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c), own: isOwnCalendar(c, all),
+      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
       defaultReminders: popups(c.defaultReminders),
     }));
   }
@@ -201,13 +200,12 @@ export class CalendarService {
     if (!(await this.eventCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
   }
 
-  /** Events go only into the person's own calendars (403 `calendar.event.notOwn` otherwise). */
+  /** Events go only into calendars the person may write in Google (403 `calendar.event.notOwn` otherwise). */
   private async requireOwnCalendar(id: string): Promise<void> {
-    const all = await this.providerCalendars();
-    if (!isOwnCalendar(all.find((c) => c.id === id), all)) throw notOwn();
+    if (!hasWriteRole((await this.providerCalendars()).find((c) => c.id === id))) throw notOwn();
   }
 
-  /** An ordinary event can be changed only when it is in an own calendar and organised by the person (403 `calendar.event.notOwn`). */
+  /** An ordinary event can be changed only when its calendar is writable and organised by the person (403 `calendar.event.notOwn`). */
   private async requireOwnEvent(ev: GoogleEvent): Promise<void> {
     if (readOnlyReason(ev, await this.providerCalendars())) throw notOwn();
   }
@@ -472,7 +470,7 @@ export class CalendarService {
   /** Birthdays of the contacts calendar and of calendars the person cannot write stay read-only. */
   private async requireEditableBirthday(cur: GoogleEvent): Promise<void> {
     const cal = (await this.providerCalendars()).find((c) => c.id === cur.calendarId);
-    if (inContactsCalendar(cur) || !isOwnCalendar(cal, await this.providerCalendars())) throw readOnlyBirthday();
+    if (inContactsCalendar(cur) || !hasWriteRole(cal)) throw readOnlyBirthday();
   }
 
   /** Start and end of the opened instance after the series moved to the month and day of `masterDate`. */

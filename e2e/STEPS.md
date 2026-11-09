@@ -1640,7 +1640,7 @@ the calendar picker offers {string}
 - "I try to rename the event T through the API": `PATCH /api/events/:id` with a new title, without the UI; "the API
   answers N" compares the status of that call.
 - "the event dialog is editable": `event-save` is visible and `event-readonly` does not exist. "the read-only reason
-  says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the own
+  says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the writable
   calendars are loaded (the picker `event-calendar` lists "Work"), no option is named C. "the calendar picker offers C": the same wait, then an option named C exists.
 
 ## Reduced motion override

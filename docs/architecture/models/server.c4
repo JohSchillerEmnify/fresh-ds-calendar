@@ -118,7 +118,7 @@ model {
       description 'Yearly birthday rule (29 Feb included), validation and whether the date is locked'
     }
     ownership = library 'Ownership rules' {
-      description 'Why an event or calendar is look-only: an invitation or another person\'s own calendar (own and shared group calendars are editable)'
+      description 'Why an event or calendar is look-only: an invitation, or a calendar the person may only read in Google (editing follows Google\'s write roles)'
     }
     calendarsApi = component 'Calendars API' {
       description 'Lists the person\'s calendars and sets one hidden or shown'

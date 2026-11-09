@@ -11,7 +11,7 @@ import { ev, t } from './helpers';
 
 const tid = (id: string) => `[data-testid="${id}"]`;
 const $ = (id: string) => document.body.querySelector<HTMLElement>(tid(id));
-const cals = { calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true }] };
+const cals = { calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true }] };
 const weber = { name: 'Zahnarztpraxis Dr. Weber', lat: 52.4867, lon: 13.3536 };
 const address = 'Hauptstraße 12, 10827 Berlin';
 const at = `${weber.name}, ${address}`;
