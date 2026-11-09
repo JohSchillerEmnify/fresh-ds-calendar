@@ -78,6 +78,33 @@ export function recolourEvents(events: CalendarEvent[], before: DeviceData['cale
   return events.map((e) => (now.has(e.calendarId) && e.colorId === null && e.color.toLowerCase() === was.get(e.calendarId) ? { ...e, color: now.get(e.calendarId)! } : e));
 }
 
+export type CalendarSetting = 'colour' | 'hidden' | 'default reminders';
+
+/** Which settings (colour, hidden, default reminders) differ per calendar between two lists. */
+export function calendarSettingChanges(a: DeviceData['calendars'], b: DeviceData['calendars']): Array<{ id: string; setting: CalendarSetting }> {
+  const was = new Map(a.map((c) => [c.id, c]));
+  return b.flatMap((c) => {
+    const o = was.get(c.id);
+    if (!o) return [];
+    const out: Array<{ id: string; setting: CalendarSetting }> = [];
+    if ((o.color ?? '').toLowerCase() !== (c.color ?? '').toLowerCase()) out.push({ id: c.id, setting: 'colour' });
+    if (!!o.hidden !== !!c.hidden) out.push({ id: c.id, setting: 'hidden' });
+    if (JSON.stringify(o.defaultReminders ?? null) !== JSON.stringify(c.defaultReminders ?? null)) out.push({ id: c.id, setting: 'default reminders' });
+    return out;
+  });
+}
+
+/** How long a local change of a calendar setting counts as "just made" when a sync answer replaces it. */
+const RECENT_LOCAL_MS = 120_000;
+
+/** The settings a sync answer replaces although this device set them within {@link RECENT_LOCAL_MS}; `touched` maps `id:setting` to the time of the local change. */
+export function replacedSettings(held: DeviceData['calendars'], incoming: DeviceData['calendars'], touched: Map<string, number>, now: number): Array<{ setting: CalendarSetting; agoS: number }> {
+  return calendarSettingChanges(held, incoming).flatMap(({ id, setting }) => {
+    const at = touched.get(`${id}:${setting}`);
+    return at !== undefined && now - at < RECENT_LOCAL_MS ? [{ setting, agoS: Math.round((now - at) / 1000) }] : [];
+  });
+}
+
 /**
  * Applies one answer: calendars first, then per kind the replace / series / removed drops, then the upserts, then the
  * files (the order API.md prescribes). A calendar listed in `failed` keeps its stored events. Returns a new value.

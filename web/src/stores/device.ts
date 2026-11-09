@@ -7,13 +7,14 @@ import { useCanvasStore } from '@/features/tasklists/canvasStore';
 import { useInkStore } from '@/stores/ink';
 import { useMotivationStore } from '@/features/motivation/store';
 import {
-  applyChanges, dropItem, recolourEvents, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
+  applyChanges, calendarSettingChanges, replacedSettings, dropItem, recolourEvents, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
 } from '@/lib/deviceData';
 import { deviceDb, devicePerson, onDeviceWipe, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { withPending } from '@/lib/outbox';
 import { ports } from '@/lib/outboxPorts';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useAuthStore } from './auth';
+import { logReplaced } from '@/lib/decisionLog';
 import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
 import { useItemsStore } from './items';
@@ -196,6 +197,11 @@ export const useDeviceStore = defineStore('device', () => {
       : { ...emptyData(person ?? ''), window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
     const quiet = !!data.value && isQuiet(data.value, res);
+    // a sync answer that undoes a calendar setting changed here a moment ago is worth a log line
+    const replaced = data.value ? replacedSettings(data.value.calendars, res.calendars, touched, clock.nowMs()) : [];
+    for (const r of replaced) logReplaced(r.setting, r.agoS);
+    // reported once: the recovery that follows is not another replacement
+    if (replaced.length) touched.clear();
     const before = data.value?.files.settings as { categories?: unknown } | undefined;
     const after = res.files.settings as { categories?: unknown } | undefined;
     const wantFull = !res.full && (data.value?.needFull === true || (!!after && JSON.stringify(before?.categories) !== JSON.stringify(after.categories)));
@@ -259,10 +265,14 @@ export const useDeviceStore = defineStore('device', () => {
     data.value = { ...data.value, files: { ...data.value.files, [name]: value } };
     scheduleSave();
   }
+  /** When this device last changed a calendar setting (`id:setting` to app-clock ms), to tell a sync answer that undoes it. */
+  const touched = new Map<string, number>();
   /** A changed list of calendars (hidden, reminder defaults, colour); the events that follow a recoloured calendar change with it. */
   function putCalendars(list: DeviceData['calendars']): void {
     if (!data.value) return;
     const held = data.value.events;
+    const at = useClockStore().nowMs();
+    for (const c of calendarSettingChanges(data.value.calendars, list)) touched.set(`${c.id}:${c.setting}`, at);
     const events = recolourEvents(held, data.value.calendars, list);
     data.value = { ...data.value, calendars: list, events };
     if (events !== held) useItemsStore().refreshFromDevice();

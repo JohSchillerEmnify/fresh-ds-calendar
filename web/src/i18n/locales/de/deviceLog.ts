@@ -11,5 +11,5 @@ export default {
   copied: 'Fehlerprotokoll kopiert',
   copyFailed: 'Fehlerprotokoll konnte nicht kopiert werden',
   standalone: 'installiert',
-  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt' },
+  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung' },
 };

@@ -2,6 +2,7 @@
 import type { Ref } from 'vue';
 import { api } from '@/api/client';
 import type { Calendar } from '@/api/types';
+import { logUndone } from './decisionLog';
 
 /** Recolours `id` in `list` to `color` and (through `putDevice`) the device copy, then tells the server (the palette `colorId` when there is one); a refused save puts the old colour back (nothing else) and rethrows. */
 export async function saveCalendarColor(list: Ref<Calendar[]>, id: string, color: string, colorId: string | undefined, putDevice: (list: Calendar[]) => void): Promise<void> {
@@ -14,6 +15,7 @@ export async function saveCalendarColor(list: Ref<Calendar[]>, id: string, color
     putDevice(list.value);
   } catch (e) {
     if (old) paint(old);
+    logUndone('calendar colour', e);
     throw e;
   }
 }

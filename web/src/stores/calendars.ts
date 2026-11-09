@@ -4,6 +4,7 @@ import { api } from '@/api/client';
 import type { Calendar } from '@/api/types';
 import type { CalendarPlan } from '@calendar/shared/prefs';
 import { saveCalendarColor } from '@/lib/calendarColor';
+import { logUndone } from '@/lib/decisionLog';
 import { awayActive, hasPlan, planEffectiveHidden, wallNow } from '@/lib/calendarPlan';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
@@ -78,7 +79,8 @@ export const useCalendarsStore = defineStore('calendars', () => {
     try {
       await api.setCalendarHidden(id, next);
       useDeviceStore().putCalendars(list.value);
-    } catch {
+    } catch (e) {
+      logUndone('calendar hidden', e);
       list.value = list.value.map((c) => (c.id === id ? { ...c, hidden: !next } : c));
     } finally {
       saving--;
@@ -95,6 +97,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
       list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
       useDeviceStore().putCalendars(list.value);
     } catch (e) {
+      logUndone('calendar default reminders', e);
       // an empty list is deliberate when the calendar is missing from the snapshot
       list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders ?? [] } : c));
       throw e;

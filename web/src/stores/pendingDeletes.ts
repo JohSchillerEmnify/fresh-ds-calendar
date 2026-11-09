@@ -4,6 +4,7 @@ import { t } from '@/i18n';
 import type { CalendarEvent, ChangeScope, TaskItem, TaskList } from '@/api/types';
 import { removeItem } from '@/features/tasklists/ops';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
+import { logUndone } from '@/lib/decisionLog';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
 import { useOutboxStore } from './outbox';
@@ -87,7 +88,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     try {
       await p.send(keepalive);
     } catch (e) {
-      if (!gone(e)) p.restore();
+      if (!gone(e)) { logUndone('delete', e); p.restore(); }
     } finally {
       inFlight--;
       mark();

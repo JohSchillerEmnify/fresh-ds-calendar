@@ -13,10 +13,10 @@ interface Running { signature: string; answer: Promise<Answer | null> }
 
 /** True for an event or task list write. */
 function isOutboxWrite(c: Context): boolean {
-  return !READ_ONLY.has(c.req.method) && /^\/api\/(events|tasklists)(\/|$)/.test(c.req.path);
+  return !READ_ONLY.has(c.req.method) && /^\/api\/(events|tasklists|calendars)(\/|$)/.test(c.req.path);
 }
 
-/** Test hook: the next event or task list write is refused. */
+/** Test hook: the next event, task list or calendar write is refused. */
 export function refuseNextWrite(ctx: Ctx): MiddlewareHandler {
   return async (c, next) => {
     const status = ctx.overrides.refuseNextWrite;
