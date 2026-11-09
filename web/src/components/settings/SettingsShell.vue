@@ -2,9 +2,7 @@
 /** The frame of every settings page: Back, title and rows; a `focus` query (a chosen search result) scrolls to that row and highlights it. */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IconArrowBack as IconBack } from '@/components/icons';
-import IconButton from '@/components/m3/IconButton.vue';
-import { t } from '@/i18n';
+import SettingsBar from '@/components/settings/SettingsBar.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 
 const props = defineProps<{ title: string; up: string }>();
@@ -37,19 +35,13 @@ onBeforeUnmount(() => stop?.());
 
 <template>
   <section class="page" data-testid="settings-view">
-    <header class="bar">
-      <IconButton :label="t('settings.back')" data-testid="settings-back" @click="back"><IconBack /></IconButton>
-      <h1>{{ title }}</h1>
-    </header>
+    <SettingsBar :title="title" @back="back" />
     <div ref="body" class="content"><slot /></div>
   </section>
 </template>
 
 <style scoped>
 .page { height: 100%; overflow-y: auto; overflow-x: clip; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
-.bar { display: flex; align-items: center; gap: 4px; padding: calc(var(--safe-top) + 8px) 8px 8px; position: sticky; top: 0; background: var(--md-sys-color-surface); z-index: 2; }
-h1 { margin: 0; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.content { display: flex; flex-direction: column; gap: 4px; padding: 4px 8px 0; max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
-.content :deep(h2) { margin: 0; padding: 20px 16px 4px; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-primary); }
+.content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 .content :deep(.note) { margin: 0; padding: 4px 16px; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>

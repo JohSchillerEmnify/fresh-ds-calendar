@@ -71,8 +71,8 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
 
     <div class="acts">
       <Button variant="tonal" :disabled="full" :data-testid="`${prefix}-reminder-add`" @click="picking = !picking"><template #icon><IconAdd /></template>{{ t('calendar.reminders.add') }}</Button>
-      <Button v-if="allowDefault && !modelValue.useDefault" variant="text" :data-testid="`${prefix}-reminders-default`" @click="useDefault">{{ t('calendar.reminders.useDefault') }}</Button>
-      <Button v-if="allowDefault && (modelValue.useDefault || list.length)" variant="text" :data-testid="`${prefix}-reminders-none`" @click="none">{{ t('calendar.reminders.noReminders') }}</Button>
+      <Button v-if="allowDefault && !modelValue.useDefault" variant="tonal" :data-testid="`${prefix}-reminders-default`" @click="useDefault">{{ t('calendar.reminders.useDefault') }}</Button>
+      <Button v-if="allowDefault && (modelValue.useDefault || list.length)" variant="tonal" :data-testid="`${prefix}-reminders-none`" @click="none">{{ t('calendar.reminders.noReminders') }}</Button>
     </div>
     <p v-if="full" class="muted note" :data-testid="`${prefix}-reminders-max`">{{ t('calendar.reminders.max') }}</p>
 

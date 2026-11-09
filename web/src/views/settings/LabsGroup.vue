@@ -3,6 +3,7 @@
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { LABS_VIEWS, isLabsViewOn } from '@/features/labs';
 import { t } from '@/i18n';
@@ -17,20 +18,23 @@ const weekSplitOptions = [
 </script>
 
 <template>
-  <SettingRow id="labs" :label="t('settingsNav.labels.showLabs')" :hint="t('settingsNav.labels.showLabsHint')">
-    <Switch :model-value="prefs.labs" :label="t('settingsNav.labels.showLabs')" data-testid="settings-labs" @update:model-value="savePrefs({ labs: $event })" />
-  </SettingRow>
+  <SettingSection>
+    <SettingRow id="labs" :label="t('settingsNav.labels.showLabs')" :hint="t('settingsNav.labels.showLabsHint')">
+      <Switch :model-value="prefs.labs" :label="t('settingsNav.labels.showLabs')" data-testid="settings-labs" @update:model-value="savePrefs({ labs: $event })" />
+    </SettingRow>
+  </SettingSection>
   <template v-if="prefs.labs">
-    <h2>{{ t('settingsNav.sub.views') }}</h2>
+    <SettingSection :title="t('settingsNav.sub.views')">
     <SettingRow v-for="v in LABS_VIEWS.filter((l) => !l.stable)" :id="`labsView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
       <Switch :model-value="isLabsViewOn(v.id, prefs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" />
     </SettingRow>
-    <h2>{{ t('settingsNav.sub.more') }}</h2>
+    </SettingSection>
+    <SettingSection :title="t('settingsNav.sub.more')">
     <SettingRow id="weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" :hint="t('settings.labs.weekTwoRow.hint')">
       <Switch :model-value="prefs.weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" data-testid="settings-week-two-row" @update:model-value="savePrefs({ weekTwoRow: $event })" />
     </SettingRow>
     <SettingRow v-if="prefs.weekTwoRow" id="weekTwoRowSplit" wide :label="t('settings.labs.weekTwoRow.split')">
-      <SegmentedButton :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
+      <SegmentedButton connected :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
     </SettingRow>
     <SettingRow id="handwriting" :label="t('ink.settings.label')" :hint="t('ink.settings.hint')">
       <Switch :model-value="prefs.labsHandwriting" :label="t('ink.settings.label')" data-testid="settings-labs-handwriting" @update:model-value="savePrefs({ labsHandwriting: $event })" />
@@ -38,5 +42,6 @@ const weekSplitOptions = [
     <SettingRow id="ownThemes" :label="t('settings.ownThemes.label')" :hint="t('settings.ownThemes.hint')">
       <Switch :model-value="prefs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" />
     </SettingRow>
+    </SettingSection>
   </template>
 </template>

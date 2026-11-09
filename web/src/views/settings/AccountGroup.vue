@@ -3,9 +3,11 @@
 import { computed, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import Button from '@/components/m3/Button.vue';
+import ButtonGroup from '@/components/m3/ButtonGroup.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import { useSignOut } from '@/composables/useSignOut';
 import { t } from '@/i18n';
 import { androidAppLabelKey, downloadApk, isNativeApp } from '@/native/app';
@@ -68,33 +70,33 @@ async function resetDemo() {
 </script>
 
 <template>
-  <template v-if="auth.status === 'in' || auth.calendarMissing">
-    <h2>{{ t('settingsNav.sub.account') }}</h2>
+  <SettingSection v-if="auth.status === 'in' || auth.calendarMissing" :title="t('settingsNav.sub.account')">
     <SettingRow v-if="auth.status === 'in'" id="signOut" :label="t('settings.account.signedIn')" :hint="auth.email ?? ''">
-      <Button variant="text" data-testid="settings-signout" @click="leave('one')">{{ t('settings.account.signOut') }}</Button>
+      <Button variant="tonal" data-testid="settings-signout" @click="leave('one')">{{ t('settings.account.signOut') }}</Button>
     </SettingRow>
     <SettingRow v-if="auth.status === 'in'" id="signOutAll" :label="t('settings.account.signOutAll.label')" :hint="t('settings.account.signOutAll.hint')">
-      <Button variant="text" data-testid="settings-signout-all" @click="leave('all')">{{ t('settings.account.signOutAll.button') }}</Button>
+      <Button variant="tonal" data-testid="settings-signout-all" @click="leave('all')">{{ t('settings.account.signOutAll.button') }}</Button>
     </SettingRow>
     <SettingRow v-if="auth.calendarMissing" id="calendarAccess" :label="t('settings.account.calendarAccess.label')" :hint="t('settings.account.calendarAccess.hint')">
       <Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button>
     </SettingRow>
-  </template>
+  </SettingSection>
 
-  <template v-if="backup.status?.available">
-    <h2>{{ t('backup.label') }}</h2>
+  <SettingSection v-if="backup.status?.available" :title="t('backup.label')">
     <SettingRow v-if="backup.status.permission === 'missing'" id="backup" :label="t('backup.allow.label')">
       <template #sub><span class="sub" data-testid="settings-backup-status" data-state="off">{{ t('backup.allow.hint') }}</span></template>
-      <Button variant="text" data-testid="settings-backup-allow" @click="backup.allow()">{{ t('backup.allow.button') }}</Button>
+      <Button variant="tonal" data-testid="settings-backup-allow" @click="backup.allow()">{{ t('backup.allow.button') }}</Button>
     </SettingRow>
     <SettingRow v-else id="backup" wide :label="t('backup.label')">
       <template #sub><span class="sub" data-testid="settings-backup-status" :data-state="backup.status.state" :data-last-backup="backup.status.lastBackupAt ?? ''">{{ backupText }}</span></template>
-      <Button variant="text" :disabled="backup.busy !== null" data-testid="settings-backup-now" @click="runBackup">{{ t('backup.now') }}</Button>
-      <Button variant="text" :disabled="backup.busy !== null" data-testid="settings-backup-restore" @click="confirmRestore = true">{{ t('backup.restore') }}</Button>
+      <ButtonGroup :label="t('backup.label')" data-testid="settings-backup-actions">
+        <Button variant="tonal" :disabled="backup.busy !== null" data-testid="settings-backup-now" @click="runBackup">{{ t('backup.now') }}</Button>
+        <Button variant="tonal" :disabled="backup.busy !== null" data-testid="settings-backup-restore" @click="confirmRestore = true">{{ t('backup.restore') }}</Button>
+      </ButtonGroup>
     </SettingRow>
-  </template>
+  </SettingSection>
 
-  <h2>{{ t('settingsNav.sub.app') }}</h2>
+  <SettingSection :title="t('settingsNav.sub.app')">
   <SettingRow v-if="showIosInstall" id="installApp" :label="t('settings.account.installApp.label')" :hint="t('settings.account.installApp.hint')">
     <Button variant="tonal" data-testid="settings-install-app" @click="installing = true">{{ t('settings.account.installApp.button') }}</Button>
   </SettingRow>
@@ -108,8 +110,9 @@ async function resetDemo() {
     <template #sub><span class="cert" data-testid="settings-app-cert">{{ clock.config.apk.certSha256 }}</span></template>
   </SettingRow>
   <SettingRow v-if="isMock" id="resetDemo" :label="t('settings.account.resetDemo.label')" :hint="t('settings.account.resetDemo.hint')">
-    <Button variant="text" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button>
+    <Button variant="tonal" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button>
   </SettingRow>
+  </SettingSection>
 
   <IosInstallSheet v-if="installing" @close="installing = false" />
   <ConfirmDialog :open="askLeave !== null" :title="t('outbox.signOutAsk', { count: outbox.count }, outbox.count)" :ok-label="t('outbox.signOutAnyway')" :cancel-label="t('outbox.stay')" @ok="leave(askLeave!, true)" @cancel="askLeave = null" />

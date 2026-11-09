@@ -4,8 +4,9 @@ import { computed } from 'vue';
 import type { BedtimeMode, BedtimePrefs } from '@/api/types';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
-import RowSelect from '@/components/settings/RowSelect.vue';
+import MenuField from '@/components/m3/MenuField.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
+import SettingSection from '@/components/settings/SettingSection.vue';
 import TimeField from '@/components/settings/TimeField.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { t } from '@/i18n';
@@ -33,41 +34,43 @@ function saveReminder(minutes: number) {
 </script>
 
 <template>
-  <SettingRow id="bedtimeOn" :label="t('bedtime.settings.on.label')" :hint="t('bedtime.settings.on.hint')">
-    <Switch :model-value="bt.enabled" :label="t('bedtime.settings.on.label')" data-testid="settings-bedtime-on" @update:model-value="saveBedtime({ enabled: $event })" />
-  </SettingRow>
-  <template v-if="bt.enabled">
-    <SettingRow id="bedtimeMode" wide :label="t('bedtime.settings.mode.label')">
-      <SegmentedButton :model-value="bt.mode" :options="bedtimeModes" :label="t('bedtime.settings.mode.label')" data-testid="settings-bedtime-mode" @update:model-value="saveBedtime({ mode: $event as BedtimeMode })" />
+  <SettingSection>
+    <SettingRow id="bedtimeOn" :label="t('bedtime.settings.on.label')" :hint="t('bedtime.settings.on.hint')">
+      <Switch :model-value="bt.enabled" :label="t('bedtime.settings.on.label')" data-testid="settings-bedtime-on" @update:model-value="saveBedtime({ enabled: $event })" />
     </SettingRow>
-    <SettingRow id="bedtimeTime" :label="t('bedtime.settings.bedtime')">
-      <TimeField :model-value="bt.bedtime" :label="t('bedtime.settings.bedtime')" data-testid="settings-bedtime-time" @update:model-value="saveBedtime({ bedtime: $event })" />
-    </SettingRow>
-    <SettingRow id="wakeTime" :label="t('bedtime.settings.wake')">
-      <TimeField :model-value="bt.wake" :label="t('bedtime.settings.wake')" data-testid="settings-bedtime-wake" @update:model-value="saveBedtime({ wake: $event })" />
-    </SettingRow>
-    <SettingRow id="weekend" :label="t('bedtime.settings.weekend.label')" :hint="t('bedtime.settings.weekend.hint')">
-      <Switch :model-value="bt.weekendDifferent" :label="t('bedtime.settings.weekend.label')" data-testid="settings-bedtime-weekend" @update:model-value="saveBedtime({ weekendDifferent: $event })" />
-    </SettingRow>
-    <template v-if="bt.weekendDifferent">
-      <SettingRow id="weekendBedtime" :label="t('bedtime.settings.weekendBedtime')">
-        <TimeField :model-value="bt.weekendBedtime" :label="t('bedtime.settings.weekendBedtime')" data-testid="settings-bedtime-weekend-time" @update:model-value="saveBedtime({ weekendBedtime: $event })" />
+    <template v-if="bt.enabled">
+      <SettingRow id="bedtimeMode" wide :label="t('bedtime.settings.mode.label')">
+        <SegmentedButton connected :model-value="bt.mode" :options="bedtimeModes" :label="t('bedtime.settings.mode.label')" data-testid="settings-bedtime-mode" @update:model-value="saveBedtime({ mode: $event as BedtimeMode })" />
       </SettingRow>
-      <SettingRow id="weekendWake" :label="t('bedtime.settings.weekendWake')">
-        <TimeField :model-value="bt.weekendWake" :label="t('bedtime.settings.weekendWake')" data-testid="settings-bedtime-weekend-wake" @update:model-value="saveBedtime({ weekendWake: $event })" />
+      <SettingRow id="bedtimeTime" :label="t('bedtime.settings.bedtime')">
+        <TimeField :model-value="bt.bedtime" :label="t('bedtime.settings.bedtime')" data-testid="settings-bedtime-time" @update:model-value="saveBedtime({ bedtime: $event })" />
+      </SettingRow>
+      <SettingRow id="wakeTime" :label="t('bedtime.settings.wake')">
+        <TimeField :model-value="bt.wake" :label="t('bedtime.settings.wake')" data-testid="settings-bedtime-wake" @update:model-value="saveBedtime({ wake: $event })" />
+      </SettingRow>
+      <SettingRow id="weekend" :label="t('bedtime.settings.weekend.label')" :hint="t('bedtime.settings.weekend.hint')">
+        <Switch :model-value="bt.weekendDifferent" :label="t('bedtime.settings.weekend.label')" data-testid="settings-bedtime-weekend" @update:model-value="saveBedtime({ weekendDifferent: $event })" />
+      </SettingRow>
+      <template v-if="bt.weekendDifferent">
+        <SettingRow id="weekendBedtime" :label="t('bedtime.settings.weekendBedtime')">
+          <TimeField :model-value="bt.weekendBedtime" :label="t('bedtime.settings.weekendBedtime')" data-testid="settings-bedtime-weekend-time" @update:model-value="saveBedtime({ weekendBedtime: $event })" />
+        </SettingRow>
+        <SettingRow id="weekendWake" :label="t('bedtime.settings.weekendWake')">
+          <TimeField :model-value="bt.weekendWake" :label="t('bedtime.settings.weekendWake')" data-testid="settings-bedtime-weekend-wake" @update:model-value="saveBedtime({ weekendWake: $event })" />
+        </SettingRow>
+      </template>
+      <template v-if="bt.mode === 'dynamic'">
+        <p class="note" data-testid="settings-bedtime-dynamic-hint">{{ t('bedtime.settings.dynamicHint') }}</p>
+        <SettingRow id="sleep" field :label="t('bedtime.settings.sleep.label')">
+          <MenuField :model-value="String(bt.sleepMinutes)" :options="sleepOptions" :label="t('bedtime.settings.sleep.label')" data-testid="settings-bedtime-sleep" @update:model-value="saveBedtime({ sleepMinutes: Number($event) })" />
+        </SettingRow>
+        <SettingRow id="lead" field :label="t('bedtime.settings.lead.label')">
+          <MenuField :model-value="String(bt.leadMinutes)" :options="leadOptions" :label="t('bedtime.settings.lead.label')" data-testid="settings-bedtime-lead" @update:model-value="saveBedtime({ leadMinutes: Number($event) })" />
+        </SettingRow>
+      </template>
+      <SettingRow id="bedtimeReminder" field :label="t('settingsNav.labels.bedtimeReminder')">
+        <MenuField :model-value="String(reminder)" :options="reminderOptions" :label="t('settingsNav.labels.bedtimeReminder')" data-testid="settings-bedtime-reminder" @update:model-value="saveReminder(Number($event))" />
       </SettingRow>
     </template>
-    <template v-if="bt.mode === 'dynamic'">
-      <p class="note" data-testid="settings-bedtime-dynamic-hint">{{ t('bedtime.settings.dynamicHint') }}</p>
-      <SettingRow id="sleep" :label="t('bedtime.settings.sleep.label')">
-        <RowSelect :model-value="String(bt.sleepMinutes)" :options="sleepOptions" :label="t('bedtime.settings.sleep.label')" data-testid="settings-bedtime-sleep" @update:model-value="saveBedtime({ sleepMinutes: Number($event) })" />
-      </SettingRow>
-      <SettingRow id="lead" :label="t('bedtime.settings.lead.label')">
-        <RowSelect :model-value="String(bt.leadMinutes)" :options="leadOptions" :label="t('bedtime.settings.lead.label')" data-testid="settings-bedtime-lead" @update:model-value="saveBedtime({ leadMinutes: Number($event) })" />
-      </SettingRow>
-    </template>
-    <SettingRow id="bedtimeReminder" :label="t('settingsNav.labels.bedtimeReminder')">
-      <RowSelect :model-value="String(reminder)" :options="reminderOptions" :label="t('settingsNav.labels.bedtimeReminder')" data-testid="settings-bedtime-reminder" @update:model-value="saveReminder(Number($event))" />
-    </SettingRow>
-  </template>
+  </SettingSection>
 </template>

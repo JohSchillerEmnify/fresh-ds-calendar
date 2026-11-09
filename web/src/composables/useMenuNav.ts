@@ -13,6 +13,8 @@ export interface MenuNavOptions {
   close: (refocus: boolean) => void;
   /** Dismiss on any scroll and on resize (for a menu placed once, in fixed coordinates). */
   closeOnMove?: boolean;
+  /** CSS selector of the items inside the panel (default menu items; a listbox passes its options). */
+  itemSelector?: string;
 }
 
 /** The index to focus after `key` from item `at` of `count` (-1: none focused); null when the key moves nothing. */
@@ -27,7 +29,7 @@ function nextIndex(key: string, at: number, count: number): number | null {
 
 /** Wires a menu: returns the `keydown` handler to put on the panel (and the trigger); the outside listeners live while it is open. */
 export function useMenuNav(o: MenuNavOptions): { onKey: (e: KeyboardEvent) => void } {
-  const items = (): HTMLElement[] => [...(o.panel.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+  const items = (): HTMLElement[] => [...(o.panel.value?.querySelectorAll<HTMLElement>(o.itemSelector ?? '[role="menuitem"]') ?? [])];
   const inside = (n: Node | null): boolean => !!n && (!!o.panel.value?.contains(n) || !!o.trigger?.value?.contains(n));
 
   function onKey(e: KeyboardEvent): void {

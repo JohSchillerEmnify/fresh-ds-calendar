@@ -26,7 +26,7 @@ function ok() {
 </script>
 
 <template>
-  <Button v-bind="$attrs" variant="text" :aria-label="`${label}: ${modelValue}`" @click="show">{{ modelValue }}</Button>
+  <Button v-bind="$attrs" variant="tonal" :aria-label="`${label}: ${modelValue}`" @click="show">{{ modelValue }}</Button>
   <AdaptiveSheet :open="open" :label="t('settingsNav.time.title')" testid="time-picker" @close="open = false">
     <form class="f" @submit.prevent="ok">
       <h2 class="t">{{ label }}</h2>
