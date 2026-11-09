@@ -61,6 +61,7 @@ const checks = {
   'quality types': quality('types'),
   'quality lint': quality('lint', 'comments'),
   'quality knip': quality('knip'),
+  'quality colors': quality('colors'),
 };
 
 const t0 = Date.now();
