@@ -1494,22 +1494,33 @@ they hide the calendar {string} in the filter bar
 
 ```
 the calendar {string} has an event {string} on {date} from {time} to {time} in the colour {string}
-the calendar sheet offers 11 colours
-the colour {string} is chosen in the calendar sheet
-I choose the colour {string} in the calendar sheet
-I recolour the calendar {string} to {string}
+the calendar's settings page offers {int} palette colours
+the palette colour {int} is drawn as {string}
+the palette colour {int} is chosen on the calendar's settings page
+the current colour {string} is chosen as an extra colour on the calendar's settings page
+the calendar's settings page has no extra current colour
+I choose the palette colour {int} on the calendar's settings page
+I pick the custom colour {string} on the calendar's settings page
+I type the colour {string} on the calendar's settings page
+the colour field shows the error {string}
+I recolour the calendar {string} to the palette colour {int}
 the event {string} is drawn in the colour {string}
 the event {string} is drawn in its own calendar colour
 Google lists the calendar {string} in the colour {string}
+Google lists the calendar {string} with the palette colour {int}
 ```
 
-- Colour names are the 11 Google colours of the event dialog (Lavender ... Tomato, hexes in `event-colors.feature`). The swatches
-  are `calendar-color-option` (`data-name`, `aria-checked`) inside `calendar-plan-sheet`; exactly one is pressed when the calendar's
-  colour is in the palette. "has an event ... in the colour C" inserts it in Google with that `colorId`. "I choose the colour"
-  clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I recolour the calendar C to N" long-presses its chip
-  (filter bar shown first) and does the same. "is drawn in the colour N": the event chip's `data-color` equals N's hex;
-  "its own calendar colour": the colour the calendar was set up with. "Google lists": the mock Google calendar list's
-  `backgroundColor` of that calendar of the signed-in person.
+- Event colour names are the 11 Google colours of the event dialog (Lavender ... Tomato, hexes in `event-colors.feature`); a colour
+  argument may also be `#rrggbb`. The calendar's own colour is chosen in the Color row of Settings > Calendars > the calendar:
+  swatches `calendar-color-option` (`data-name` "Calendar color N" for Google palette entry N, "Current color" for the extra swatch of
+  a colour outside the palette; `data-color`, `aria-checked`; exactly one is checked), the colour picker `calendar-color-custom`
+  (a native colour input) and the hex field `calendar-color-hex` with its error `calendar-color-error`. "I choose the palette colour"
+  clicks the swatch and waits for `PATCH /api/calendars/:id` (200); "I pick the custom colour" sets the colour input's value (input
+  and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
+  the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it. "is drawn in the
+  colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
+  "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `colorId`
+  is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
 
 ## Calendar off by a plan (`@id:calendar-off-plan`)
 

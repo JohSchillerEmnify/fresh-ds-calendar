@@ -48,3 +48,34 @@ describe('PATCH /api/calendars/:id color', () => {
     expect((await t.json('PATCH', '/api/calendars/nope', { color: '#d50000' })).status).toBe(404);
   });
 });
+
+describe('Google calendar palette', () => {
+  it('GET /api/calendar-colors answers the 24 calendar colours', async () => {
+    const r = await t.json('GET', '/api/calendar-colors');
+    expect(r.status).toBe(200);
+    expect(r.body.colors).toHaveLength(24);
+    expect(r.body.colors[0]).toEqual({ id: '1', background: '#ac725e', foreground: '#1d1d1d' });
+  });
+
+  it('colorId sets the palette colour in Google and the calendar follows it', async () => {
+    const r = await t.json('PATCH', '/api/calendars/primary', { colorId: '16' });
+    expect(r.status).toBe(200);
+    expect(r.body.color).toBe('#4986e7');
+    const g = await remote('primary');
+    expect(g).toMatchObject({ colorId: '16', backgroundColor: '#4986e7' });
+  });
+
+  it('a custom colour clears the palette id', async () => {
+    await t.json('PATCH', '/api/calendars/primary', { colorId: '16' });
+    await t.json('PATCH', '/api/calendars/primary', { color: '#123456' });
+    expect((await remote('primary')).colorId).toBeUndefined();
+  });
+
+  it.each(['0', '25', 'x', 7, null])('refuses colorId %j', async (colorId) => {
+    expect((await t.json('PATCH', '/api/calendars/primary', { colorId })).status).toBe(400);
+  });
+
+  it('refuses color and colorId together', async () => {
+    expect((await t.json('PATCH', '/api/calendars/primary', { color: '#123456', colorId: '3' })).status).toBe(400);
+  });
+});

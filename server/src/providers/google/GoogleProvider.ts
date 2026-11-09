@@ -1,5 +1,6 @@
 import { calendar as makeCalendar, type calendar_v3 } from '@googleapis/calendar';
 import type { OAuth2Client } from 'google-auth-library';
+import type { CalendarColor } from '@calendar/shared/colors';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError,
@@ -149,8 +150,15 @@ export class GoogleProvider implements CalendarProvider {
     await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true, calendarId);
   }
 
-  async setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void> {
-    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, colorRgbFormat: true, requestBody: { backgroundColor, foregroundColor } }), true, calendarId);
+  async setCalendarColor(calendarId: string, color: { colorId: string } | { backgroundColor: string; foregroundColor: string }): Promise<void> {
+    // a palette id is written as such; RGB needs colorRgbFormat (Google then picks the nearest colorId itself)
+    const rgb = 'backgroundColor' in color;
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, ...(rgb ? { colorRgbFormat: true } : {}), requestBody: color }), true, calendarId);
+  }
+
+  async calendarColors(): Promise<CalendarColor[]> {
+    const res = await this.call('colors.get', () => this.o.api.colors.get());
+    return Object.entries(res.data.calendar ?? {}).map(([id, c]) => ({ id, background: c.background!, foreground: c.foreground! }));
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {

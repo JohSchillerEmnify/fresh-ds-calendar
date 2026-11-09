@@ -35,6 +35,8 @@ export default {
     push: 'Erinnerunga in dem Browser',
     bedtimeReminder: 'Erinnerung',
     showCalendar: 'Den Kalender zeing',
+    calendarColorN: 'Kalenderfarb {n}',
+    calendarColorCurrent: 'Aktuelle Farb',
     barAuto: 'Audomadisch',
   },
   calendar: { hidden: 'Versteggd' },

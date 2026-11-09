@@ -6,7 +6,7 @@ import type {
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
 import type { Clock } from '../lib/clock.js';
-import { GOOGLE_COLORS, onColor } from '@calendar/shared/colors';
+import { GOOGLE_CALENDAR_COLORS, GOOGLE_COLORS, onColor, type CalendarColor } from '@calendar/shared/colors';
 import { ApiException, forbidden, notFound, preconditionFailed, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
@@ -31,6 +31,10 @@ import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type Sh
 
 const DAY = 86_400_000;
 const CAL_TTL_MS = 30_000;
+/** Google's calendar palette is the same for everyone; kept for the process once Google has answered. */
+let palette: CalendarColor[] | null = null;
+/** When Google last failed to give the palette: the built-in copy serves for a while instead of asking on every poll. */
+let paletteFailedAt = 0;
 /** Calendar id prefix of Google's contacts "Birthdays" calendar (`addressbook#contacts@group.v.calendar.google.com`). */
 const BIRTHDAY_CALENDAR_PREFIX = 'addressbook#contacts@';
 
@@ -124,13 +128,30 @@ export class CalendarService {
     return minutes;
   }
 
-  /** Sets the person's list colour of a calendar (per person, also one they only read) with a readable text colour. */
-  async setColor(id: string, color: string): Promise<string> {
+  /** Google's calendar colour palette; static per Google, so fetched once per process, the built-in copy when Google cannot answer. */
+  async colorPalette(): Promise<CalendarColor[]> {
+    if (palette) return palette;
+    if (Date.now() - paletteFailedAt < CAL_TTL_MS) return [...GOOGLE_CALENDAR_COLORS];
+    try {
+      palette = await this.provider.calendarColors();
+      return palette;
+    } catch {
+      paletteFailedAt = Date.now();
+      return [...GOOGLE_CALENDAR_COLORS];
+    }
+  }
+
+  /** Sets the person's list colour of a calendar (per person, also one they only read): a palette `colorId`, or a custom `#rrggbb` with a readable text colour. */
+  async setColor(id: string, pick: { color: string } | { colorId: string }): Promise<void> {
     const cal = (await this.eventCalendars()).find((c) => c.id === id);
     if (!cal) throw notFound('Calendar not found');
-    await this.provider.setCalendarColor(id, color, onColor(color));
+    if ('colorId' in pick) {
+      if (!(await this.colorPalette()).some((c) => c.id === pick.colorId)) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
+      await this.provider.setCalendarColor(id, { colorId: pick.colorId });
+    } else {
+      await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
+    }
     this.calCache = null;
-    return color;
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */

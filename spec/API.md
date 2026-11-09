@@ -299,14 +299,24 @@ short hash of date and text. A missing or unparsable file gives an empty list.
 `{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
 `hidden: boolean` (the person's choice) and `defaultReminders: number[]` (the popup lead times of the calendar's Google default, minutes, Google's order). Errors: 503.
 
+### `GET /api/calendar-colors` → 200
+
+`{ colors: Array<{ id: string; background: string; foreground: string }> }`: Google's calendar colour palette (`colors.get`, the
+`calendar` map: ids `1`..`24`), the same for everybody. The server asks Google once per process and keeps the answer; when Google
+cannot answer it sends the built-in copy of the 24 (`shared/colors.js`, not kept). The change feed carries the same answer as the
+per-person file `calendarColors`, so the app has the palette on the device (it shows the built-in copy before the first sync).
+
 ### `PATCH /api/calendars/:id` → 200
 
-Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string }` (at least one). `hidden` stores the person's choice. `color`
-(`#rrggbb`, answered lower-case; anything else `400`) is the person's colour of the calendar: it goes to Google as the person's
-calendar list colour (`calendarList.patch` with `colorRgbFormat=true`: `backgroundColor` = `color`, `foregroundColor` = black or
-white, whichever reads better). It works for every calendar in `GET /api/calendars`, also one the person cannot edit (Google keeps
-the list colour per person), and recolours the `color` of the calendar's events that follow it (`colorId` null, see `CalendarEvent`);
-no server-wide copy exists. The app's calendar sheet offers the 11 Google event colours (feature calendar-colours). `defaultReminders`
+Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string; colorId?: string }` (at least one). `hidden` stores the
+person's choice. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
+person's calendar list colour (`calendarList.patch` with `colorId`; Google then answers its background colour). `color`
+(`#rrggbb`, answered lower-case; anything else `400`) is a custom colour: `calendarList.patch` with `colorRgbFormat=true`,
+`backgroundColor` = `color`, `foregroundColor` = black or white, whichever reads better (Google then clears or re-derives the
+palette id). `color` together with `colorId` is `400`. Both work for every calendar in `GET /api/calendars`, also one the person
+cannot edit (Google keeps the list colour per person), and recolour the `color` of the calendar's events that follow it
+(`colorId` null, see `CalendarEvent`); no server-wide copy exists. The Color row of the calendar's settings page offers the
+palette, the current colour, a colour picker and a hex field (feature calendar-colours). `defaultReminders`
 (at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
 stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 404 for an unknown id.
 
@@ -419,7 +429,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
   (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
-  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`).
+  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
   repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token

@@ -44,6 +44,8 @@ export interface ChangesViews {
 }
 
 export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
+  // Google's calendar colour palette (feature calendar-colours); also the per-person file `calendarColors` below
+  r.get('/calendar-colors', async (c) => c.json({ colors: await v.cal(c).colorPalette() }));
   r.get('/changes', async (c) => {
     const asked = c.req.query('today');
     if (asked !== undefined && !isLocalDate(asked)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
@@ -74,6 +76,10 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const tasksReminders = { defaultReminders: await cal.tasksDefaultReminders() };
     versions.tasksCalendarReminders = versionOf(tasksReminders);
     if (versions.tasksCalendarReminders !== prev?.files.tasksCalendarReminders) files.tasksCalendarReminders = tasksReminders;
+
+    const palette = { colors: await cal.colorPalette() };
+    versions.calendarColors = versionOf(palette);
+    if (versions.calendarColors !== prev?.files.calendarColors) files.calendarColors = palette;
 
     // the person's own reminders on read-only events change those events without Google knowing: re-list their calendars
     const overrides = ctx.prefs.reminderOverrides.all(sub);

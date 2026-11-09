@@ -12,7 +12,7 @@ const work = { id: 'work', name: 'Work', color: '#039be5', hidden: false };
 async function setup(now: string, plan: object | undefined, frozen = true) {
   const m = mockFetch({
     'GET /api/config': () => config({ now, clockFrozen: frozen }),
-    'PATCH /api/calendars/work': (r: { body: { hidden?: boolean; color?: string } }) => ({ ...work, ...r.body }),
+    'PATCH /api/calendars/work': (r: { body: { hidden?: boolean; color?: string; colorId?: string } }) => ({ ...work, hidden: r.body.hidden ?? false, ...(r.body.color ? { color: r.body.color } : {}) }),
     'PATCH /api/prefs': (r: { body: object }) => ({ ...usePrefsStore().current(), ...r.body }),
   });
   await useClockStore().load();
@@ -97,6 +97,13 @@ describe('calendars store colour (feature calendar-colours)', () => {
     await done;
     expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/calendars/work')?.body).toEqual({ color: '#0b8043' });
     expect(cals.list[0].color).toBe('#0b8043');
+  });
+
+  it('sends the palette colorId instead of the colour when there is one', async () => {
+    const { cals, m } = await setup('2026-11-07T09:00:00.000Z', undefined);
+    await cals.setColor('work', '#4986e7', '16');
+    expect(cals.list[0].color).toBe('#4986e7');
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/calendars/work')?.body).toEqual({ colorId: '16' });
   });
 
   it('puts the old colour back when the server refuses', async () => {

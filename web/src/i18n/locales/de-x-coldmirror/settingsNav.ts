@@ -56,6 +56,8 @@ export default {
     bedtimeHint: 'Bettzeit-Modus, Uhrzeiten und Erinnerung',
     bedtimeReminder: 'Erinnerung, yo',
     showCalendar: 'Diesen Kalender zeigen, yo',
+    calendarColorN: 'Kalenderfarbe {n}, yo',
+    calendarColorCurrent: 'Aktuelle Farbe, yo',
     showCalendarHint: 'Geht auch über den Chip in der Filterleiste',
     defaultReminders: 'Standard-Erinnerungen',
     tasksCalendar: 'Kalender der Aufgabenlisten',

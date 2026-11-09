@@ -6,9 +6,7 @@ import Button from '@/components/m3/Button.vue';
 import Select from '@/components/m3/Select.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
-import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
-import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import { t, type MessageKey } from '@/i18n';
+import { t } from '@/i18n';
 import { weekdayLabels } from '@/lib/dates';
 import { awayActive } from '@/lib/calendarPlan';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -33,13 +31,6 @@ const toTime = ref(win?.to.time ?? '16:00');
 const away = ref(awayActive(plan, cals.nowWall));
 const until = ref(away.value && plan?.until ? plan.until : clock.today);
 const saving = ref(false);
-
-/** The 11 Google colours as in the event dialog; the calendar's own colour is chosen when it is one of them. */
-const swatches = EVENT_COLOR_OPTIONS.map((c) => ({ value: c.hex, name: t(`calendar.event.colors.${c.name.toLowerCase()}` as MessageKey), color: c.hex, testid: 'calendar-color-option' }));
-/** Recolours the calendar at once; a refused save puts the old colour back (the store rolls back). */
-function pick(hex: string) {
-  void cals.setColor(props.calendarId, hex).catch(() => undefined);
-}
 
 const sameEdge = computed(() => timed.value && fromDay.value === toDay.value && fromTime.value === toTime.value);
 const untilBad = computed(() => away.value && !(until.value > clock.today));
@@ -68,7 +59,6 @@ async function done() {
   <AdaptiveSheet :open="true" :label="cal?.name ?? ''" testid="calendar-plan-sheet" @close="emit('close')">
     <div class="sheet">
       <h2 class="t"><i class="dot" :style="{ background: cal?.color }" />{{ cal?.name }}</h2>
-      <ColorSwatchPicker :model-value="cal?.color?.toLowerCase() ?? null" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="calendar-color" @update:model-value="pick" />
       <Button variant="text" class="always" @click="alwaysOn">{{ t('calendar.plan.alwaysOn') }}</Button>
       <section class="sec">
         <div class="row"><span class="lbl">{{ t('calendar.plan.timed') }}</span><Switch v-model="timed" :label="t('calendar.plan.timed')" /></div>

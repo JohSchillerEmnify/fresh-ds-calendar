@@ -29,7 +29,7 @@ describe('first call (no cursor)', () => {
     expect(titles(r.events.upserts)).toEqual(['Dentist']);
     expect(r.taskLists.replace).toBe(true);
     expect(titles(r.taskLists.upserts)).toEqual(['Chores', 'Someday']);
-    expect(Object.keys(r.files).sort()).toEqual(['canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
+    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
   });
 
   it('answers each file in the shape of its own GET', async () => {
@@ -38,6 +38,7 @@ describe('first call (no cursor)', () => {
     expect(f.people).toEqual((await t.json('GET', '/api/people')).body);
     expect(f.categoryShares).toEqual((await t.json('GET', '/api/categories/shares')).body);
     expect(f.tasksCalendarReminders).toEqual((await t.json('GET', '/api/reminders/tasks-calendar')).body);
+    expect(f.calendarColors).toEqual((await t.json('GET', '/api/calendar-colors')).body);
     expect(f.canvas).toEqual((await t.json('GET', '/api/canvas')).body);
     expect(f.themes).toEqual((await t.json('GET', '/api/themes')).body);
   });
