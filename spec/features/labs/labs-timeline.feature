@@ -48,6 +48,7 @@ Feature: Labs: the timeline view
   # The timeline still has no date and no previous / next arrows.
   Rule: The Today button brings the timeline back to now
 
+    @mobile
     Scenario: The top bar of the timeline has Today but no arrows
       When I open the timeline view
       Then the top bar names the view "Timeline"
