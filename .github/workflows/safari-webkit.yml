@@ -5,6 +5,8 @@ name: Safari (WebKit)
 # Not a required check: it runs only nightly (the nightly workflow calls it through workflow_call, and only when main
 # changed that day) or by hand: gh workflow run safari-webkit.yml --ref <branch>
 on:
+  push:
+    branches: [ci/ios-simulator]
   workflow_dispatch:
   workflow_call:
 
