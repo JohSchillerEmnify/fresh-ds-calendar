@@ -12,9 +12,9 @@ export function patchItem(listId: string, itemId: string, patch: { title?: strin
   useOutboxStore().patchItem(listId, itemId, patch, scope === 'following' ? scope : undefined);
 }
 
-/** Add an item at the end; the add names the item's id, so a resend never adds it twice. */
-export function addItem(listId: string, title: string, scope?: ChangeScope): void {
-  useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined);
+/** Add an item at the end (`done`: already ticked); the add names the item's id, so a resend never adds it twice. */
+export function addItem(listId: string, title: string, scope?: ChangeScope, done?: boolean): void {
+  useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done);
 }
 
 /** Remove an item; `done` is called at once (the change is kept in the outbox). */

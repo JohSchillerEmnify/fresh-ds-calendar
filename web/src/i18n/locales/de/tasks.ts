@@ -131,6 +131,7 @@ export default {
     estimate: 'Schätzung in Minuten (optional)',
     category: 'Kategorie',
     items: 'Einträge (einer pro Zeile)',
+    addItems: 'Einträge hinzufügen (einer pro Zeile)',
     repeat: 'Wiederholung',
     repeatNone: 'Wiederholt sich nicht',
     daily: 'Täglich',
