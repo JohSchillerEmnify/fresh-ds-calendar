@@ -3207,10 +3207,10 @@ the event {string} has the normal block padding
 the event {string} stays inside its day column
 ```
 
-- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (2, 3 or 4; default 4) or
-  `weekSideBySide` (2 or 3; default 2) through the API.
+- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (1, 2, 3 or 4; default 4) or
+  `weekSideBySide` (1, 2 or 3; default 2); 1 is "Only 1" (the start-group cascade) through the API.
 - "I choose up to N ... in the day/week view": on the settings screen picks the option `settings-day-side-by-side-N` /
-  `settings-week-side-by-side-N` of that segmented button (labels "Up to N") and waits for the `PATCH /api/prefs`
+  `settings-week-side-by-side-N` of that segmented button (labels "Up to N", and "Only 1" for 1) and waits for the `PATCH /api/prefs`
   response (status 200). "the settings show up to N ...": that option is the selected one (`aria-pressed="true"`).
 - "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
   (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of

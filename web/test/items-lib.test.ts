@@ -32,6 +32,14 @@ describe('overlap packing', () => {
     expect([by.a.cols, by.b.cols, by.c.cols]).toEqual([2, 2, 1]);
     expect(by.a.col).not.toBe(by.b.col);
   });
+  it('limit 1 ("Only 1") is the start-group cascade: close starts share columns, a later start is stacked on top', () => {
+    const [a, b, c] = [seg('a', '09:00', '10:00'), seg('b', '09:10', '10:30'), seg('c', '09:30', '10:30')];
+    const by = Object.fromEntries(packColumns([a, b, c], 20, true, 20, 0, 1).map((x) => [x.seg.item.id, x]));
+    expect([by.a.cols, by.b.cols, by.c.cols]).toEqual([2, 2, 1]);
+    expect([by.a.level, by.b.level, by.c.level]).toEqual([0, 0, 1]);
+    const zero = Object.fromEntries(packColumns([a, b, c], 20, true, 20, 0, 0).map((x) => [x.seg.item.id, x]));
+    expect(['a', 'b', 'c'].map((k) => [by[k].col, by[k].cols, by[k].level])).toEqual(['a', 'b', 'c'].map((k) => [zero[k].col, zero[k].cols, zero[k].level]));
+  });
 });
 
 describe('filters', () => {

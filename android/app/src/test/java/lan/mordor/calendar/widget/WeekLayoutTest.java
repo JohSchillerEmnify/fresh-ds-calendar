@@ -32,6 +32,21 @@ public class WeekLayoutTest {
     }
 
     @Test
+    public void onlyOneKeepsTheStartGroupCascade() {
+        // "Only 1" is the previous behaviour: close starts share columns, a later start is stacked on top (same as limit 0)
+        List<WeekData.Item> day = List.of(ev("a", 540, 600), ev("b", 550, 630), ev("c", 570, 630));
+        List<WeekLayout.Placed> one = WeekLayout.packColumns(day, 25, 0, 1, 20);
+        List<WeekLayout.Placed> none = WeekLayout.packColumns(day, 25, 0, 0, 20);
+        for (String id : new String[] {"a", "b", "c"}) {
+            assertEquals(find(none, id).col, find(one, id).col);
+            assertEquals(find(none, id).cols, find(one, id).cols);
+            assertEquals(find(none, id).level, find(one, id).level);
+        }
+        assertEquals(2, find(one, "a").cols);
+        assertEquals(1, find(one, "c").level);
+    }
+
+    @Test
     public void theWeekSettingPlacesOverlapsSideBySideUpToItsLimit() {
         // owner, 2026-10-25: the widget's week follows "Week view: events side by side" like the app (web packSideBySide)
         List<WeekData.Item> day = List.of(ev("dentist", 540, 600), ev("standup", 540, 630), ev("call", 570, 660), ev("review", 600, 690));

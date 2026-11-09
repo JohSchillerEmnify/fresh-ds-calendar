@@ -327,8 +327,8 @@ Feature: Displaying events in the calendar views
   # owner, 2026-10-25 (design boards): overlapping events sit next to each other instead of cascading, up to a set number
   Rule: Overlapping entries sit side by side up to the number of columns set for the view
 
-    Settings › Calendar has "Day view: events side by side" (Up to 2, 3 or 4; default Up to 4) and "Week view: events
-    side by side" (Up to 2 or 3; default Up to 2), for the day and week time grids on every screen size (the two-row week
+    Settings › Calendar has "Day view: events side by side" (Only 1, Up to 2, 3 or 4; default Up to 4) and "Week view: events
+    side by side" (Only 1, Up to 2 or 3; default Up to 2), for the day and week time grids on every screen size (the two-row week
     overview counts as the week view; the Labs views keep their own layout). Entries that overlap in time are placed
     one by one, earliest start first (same start: the longer first; same start and end: in the day's usual order). Each
     takes the leftmost column that is free at its start; when none is free and fewer columns than the limit are in use, it
@@ -338,6 +338,10 @@ Feature: Displaying events in the calendar views
     stays busy until everything over it has ended. To keep titles readable, an entry that would be laid over a block
     starting less than 15 minutes (or one title row) before it gets one more column instead, beyond the limit, but only
     one: with the limit + 1 columns in use, further entries are laid over the last column even if a title is covered.
+
+    Only 1 is the lowest setting and brings back the earlier behaviour (owner, 2026-11-09): entries starting close to each
+    other (less than 15 minutes, or one title row, after the first of their group) sit side by side, while an overlapping
+    entry that starts later is stacked on top of the earlier one, shifted a little to the right per level.
 
     @day @overlap
     Scenario: Four overlapping events share the day view in four columns by default
@@ -473,3 +477,33 @@ Feature: Displaying events in the calendar views
       When I choose up to 3 events side by side in the week view
       And I open the week view for 2026-10-12
       Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+
+    @week @overlap
+    Scenario: With Only 1 in the week view events starting 10 minutes apart sit side by side
+      Given the week view shows up to 1 events side by side
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:10 to 10:30
+      When I open the week view for 2026-10-12
+      Then the events "Dentist" and "Standup" do not overlap
+      And the events "Dentist" and "Standup" are side by side
+
+    @week @overlap
+    Scenario: With Only 1 in the week view an overlapping event starting 30 minutes later is stacked on top
+      Given the week view shows up to 1 events side by side
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
+      When I open the week view for 2026-10-12
+      Then the event "Standup" is stacked on the event "Dentist"
+
+    Scenario: Choosing Only 1 for the week view in the settings changes it right away
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
+      And I am on the settings screen
+      When I choose up to 1 events side by side in the week view
+      Then the settings show up to 1 events side by side in the week view
+      When I open the week view for 2026-10-12
+      Then the event "Standup" is stacked on the event "Dentist"
+
+    Scenario: Choosing Only 1 for the day view in the settings changes it right away
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
+      And I am on the settings screen
+      When I choose up to 1 events side by side in the day view
+      And I open the day view for 2026-10-14
+      Then the event "Standup" is stacked on the event "Dentist"

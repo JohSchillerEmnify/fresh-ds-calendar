@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- Settings › Views: events side by side can be set to "Only 1" in the day and week view: events starting close together sit side by side, later overlapping ones are stacked on top, as before.
 - Fixed: the colour and the default reminders of your main calendar could not be saved; they can now.
 - The error log also notes when the app had to undo a change or a sync replaced one you had just made, and its Share button works in Chrome (and in the Android app after its next update).
 - Fixed: a calendar colour picked from Google's colours no longer jumps back to the old one.

@@ -242,9 +242,10 @@ on, unless `switchedAt` is later than the plan's last switch, then the person's 
 calendar: plans are the person's choice like the other prefs and must apply offline from the device copy (ADR 0023).
 Anything invalid answers 400 `VALIDATION_ERROR` (field `calendarPlans`).
 
-**Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
+**Events side by side** (`prefs.daySideBySide` `1 | 2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `1 | 2 | 3`, default `2`;
 per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
-columns next to each other before laying further ones over the last column. Any other value answers 400
+columns next to each other before laying further ones over the last column; `1` is "Only 1": the earlier start-group cascade (close starts side by side,
+later overlaps stacked on top). Any other value answers 400
 `VALIDATION_ERROR` (field `daySideBySide` / `weekSideBySide`).
 
 **Bedtime** (`prefs.bedtime`, per person, feature bedtime): an object

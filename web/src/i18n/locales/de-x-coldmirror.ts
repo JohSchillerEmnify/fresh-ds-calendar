@@ -124,7 +124,7 @@ export default {
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       approachTimeLeft: { label: 'Restzeit, yo', hint: 'Die Restzeit des laufenden Termins in der Karte; aus, steht sie am Termin selbst, Digga' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kurze Termine werden mindestens so lang gezeichnet. Lesbar bleiben, Digga.', off: 'Aus', minutes: '{n} Min.' },
-      sideBySide: { hint: 'So viele Termine passen nebeneinander. Der Rest stapelt sich, Digga.', upTo: 'Bis zu {n}' },
+      sideBySide: { hint: 'So viele Termine passen nebeneinander. Der Rest stapelt sich, Digga.', upTo: 'Bis zu {n}', only: 'Nur {n}' },
       approachBar: { label: 'Leiste „Gleich“, yo', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte, Digga' },
       approachWindow: {
         label: 'Die Leiste reicht voraus, yo',

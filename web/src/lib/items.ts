@@ -172,8 +172,8 @@ export interface PlacedSegment {
  * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
  * `minLength` is the person's minimum event length in minutes (0 = off): a shorter block is laid out as that long everywhere
  * here, drawn so and overlapping what starts within it (feature min-event-length); its real times stay untouched.
- * `limit` (> 0, with `stack`) is the owner's "events side by side" setting of the day or week grid: entries go side by
- * side up to that many columns before they cascade ({@link packSideBySide}); 0 keeps the start-group cascade above (Labs).
+ * `limit` (> 1, with `stack`) is the owner's "events side by side" setting of the day or week grid: entries go side by
+ * side up to that many columns before they cascade ({@link packSideBySide}); 0 (Labs) or 1 ("Only 1") keeps the start-group cascade above.
  */
 export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0, minLength = 0, limit = 0): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
@@ -181,7 +181,7 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
   // other) and at least the minimum event length.
   const layoutEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1, s.startMin + minLength);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
-  if (stack && limit > 0) return packSideBySide(timed, limit, layoutEnd, (s) => Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, layoutEnd(s) - s.startMin < minOf(s) ? minOf(s) : 0));
+  if (stack && limit > 1) return packSideBySide(timed, limit, layoutEnd, (s) => Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, layoutEnd(s) - s.startMin < minOf(s) ? minOf(s) : 0));
   const out: PlacedSegment[] = [];
   interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[]; stackGap: number }
   let groups: Group[] = [];

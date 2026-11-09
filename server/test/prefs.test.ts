@@ -218,11 +218,13 @@ describe('prefs (Labs switches)', () => {
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ approachTimeLeft: false });
   });
 
-  it('keeps how many events sit side by side per person: day 2, 3 or 4 (default 4), week 2 or 3 (default 2)', async () => {
+  it('keeps how many events sit side by side per person: day 1 to 4 (default 4), week 1 to 3 (default 2); 1 is "Only 1"', async () => {
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ daySideBySide: 4, weekSideBySide: 2 });
     expect((await t.json('PATCH', '/api/prefs', { daySideBySide: 2, weekSideBySide: 3 })).body).toMatchObject({ daySideBySide: 2, weekSideBySide: 3 });
-    for (const bad of [1, 5, '3', null, 0]) expect((await t.json('PATCH', '/api/prefs', { daySideBySide: bad })).status).toBe(400);
-    for (const bad of [1, 4, '2', null]) expect((await t.json('PATCH', '/api/prefs', { weekSideBySide: bad })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs', { daySideBySide: 1, weekSideBySide: 1 })).body).toMatchObject({ daySideBySide: 1, weekSideBySide: 1 });
+    await t.json('PATCH', '/api/prefs', { daySideBySide: 2, weekSideBySide: 3 });
+    for (const bad of [5, '3', null, 0]) expect((await t.json('PATCH', '/api/prefs', { daySideBySide: bad })).status).toBe(400);
+    for (const bad of [0, 4, '2', null]) expect((await t.json('PATCH', '/api/prefs', { weekSideBySide: bad })).status).toBe(400);
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ daySideBySide: 2, weekSideBySide: 3 });
   });
 
