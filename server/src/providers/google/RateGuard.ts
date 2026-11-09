@@ -46,7 +46,7 @@ export class RateGuard {
   private readonly cap: number;
   private readonly max: number;
   private readonly entries = new Map<string, Entry>();
-  private readonly inflight = new Map<string, Promise<unknown>>();
+  private readonly inflight = new Map<string, { p: Promise<unknown>; gen: number }>();
   /** Bumped by every write: a read that started before it must not be cached as fresh. */
   private gen = 0;
   private until = 0;
@@ -108,16 +108,21 @@ export class RateGuard {
   async cached<T>(key: string, load: () => Promise<T>, copy: (v: T) => T = structuredClone): Promise<T> {
     const e = this.entries.get(key);
     if (e && this.now() - e.at < this.ttl) return copy(e.value as T);
-    let p = this.inflight.get(key) as Promise<T> | undefined;
+    // a read that started before the last write is not shared: it may miss what was just written
+    const running = this.inflight.get(key);
+    let p = running && running.gen === this.gen ? (running.p as Promise<T>) : undefined;
     if (!p) {
       const gen = this.gen;
-      p = load().then((v) => {
-        this.entries.delete(key);
-        this.entries.set(key, { value: v, at: gen === this.gen ? this.now() : 0, stored: this.now() });
-        while (this.entries.size > this.max) this.entries.delete(this.entries.keys().next().value!);
+      const load$: Promise<T> = load().then((v) => {
+        if (gen === this.gen || !this.entries.has(key)) {
+          this.entries.delete(key);
+          this.entries.set(key, { value: v, at: gen === this.gen ? this.now() : 0, stored: this.now() });
+          while (this.entries.size > this.max) this.entries.delete(this.entries.keys().next().value!);
+        }
         return v;
-      }).finally(() => this.inflight.delete(key));
-      this.inflight.set(key, p);
+      }).finally(() => { if (this.inflight.get(key)?.p === load$) this.inflight.delete(key); });
+      p = load$;
+      this.inflight.set(key, { p, gen });
     }
     try {
       return copy(await p);
