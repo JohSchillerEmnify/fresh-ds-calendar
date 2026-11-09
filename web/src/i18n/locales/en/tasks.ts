@@ -133,6 +133,7 @@ export default {
     estimate: 'Estimate in minutes (optional)',
     category: 'Category',
     items: 'Items (one per line)',
+    addItems: 'Add items (one per line)',
     repeat: 'Repeat',
     repeatNone: 'Does not repeat',
     daily: 'Daily',

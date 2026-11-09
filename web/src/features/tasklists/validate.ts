@@ -40,7 +40,7 @@ export function validateForm(f: TaskListForm, itemCount = parseItems(f.items).le
     const n = Number(f.estimate);
     if (!Number.isInteger(n) || n < ESTIMATE_MIN || n > ESTIMATE_MAX) return t('tasks.validation.estimateRange');
   }
-  if (parseItems(f.items).length > LIST_ITEMS_MAX) return t('tasks.validation.tooManyItems');
+  if (itemCount > LIST_ITEMS_MAX) return t('tasks.validation.tooManyItems');
   if (parseItems(f.items).some((line) => line.length > TITLE_MAX)) return t('tasks.validation.itemTooLong');
   return null;
 }

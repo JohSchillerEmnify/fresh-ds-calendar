@@ -615,6 +615,35 @@ describe('dialog', () => {
     expect(patches[0]).not.toHaveProperty('tags');
     expect(w.emitted('close')).toHaveLength(1);
   });
+  it('editing adds the typed items to the list, one per line, and sends no title change', async () => {
+    const added: { title: string }[] = [];
+    const list = tl('G', { done: [true] });
+    const { pinia, m } = await setup({
+      'POST /api/tasklists/G/items': ({ body }) => { added.push(body); return tl('G', { done: [true, false, false] }); },
+      'PATCH /api/tasklists/G': () => list,
+    });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('Eggs\n\n  Bread \n');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(added.map((a) => a.title)).toEqual(['Eggs', 'Bread']);
+    expect(m.calls.some((c) => c.method === 'PATCH')).toBe(false);
+    expect(w.emitted('close')).toHaveLength(1);
+    expect((useItemsStore().get('G') as TaskList).items.map((i) => i.title)).toEqual(['Milk', 'Eggs', 'Bread']);
+  });
+  it('editing refuses more items than a list may hold', async () => {
+    const { pinia } = await setup();
+    useItemsStore().upsert(tl('G', { done: new Array(199).fill(false) }));
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('A\nB');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(w.get(tid('tasklist-error')).text()).toBe('A task list can have 200 items at most');
+    expect(w.emitted('close')).toBeUndefined();
+  });
   it('answers a 412 by sending the same change again on the newest version', async () => {
     const list = tl('G');
     const m412 = { status: 412, body: { error: { code: 'PRECONDITION_FAILED', message: 'changed' } } };

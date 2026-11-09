@@ -136,6 +136,35 @@ Feature: Creating, editing and deleting task lists
     When I reload the page
     Then I see the task list "Weekly shop" on 2026-10-14
 
+  Scenario: Items can be added to a task list while editing its details
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | yes  |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Eggs; Bread |
+    And I save the task list
+    Then the task list "Groceries" shows the done count "1/3"
+    When I expand the task list "Groceries"
+    Then the expanded task list items are "Milk, Eggs, Bread"
+    And the item "Milk" is ticked
+    And the item "Eggs" is not ticked
+    When I reload the page
+    Then the collapsed task list "Groceries" lists the items "Milk, Eggs, Bread"
+
+  Scenario: Items can be added while editing a list that has only a title
+    Given the calendar contains an empty task list "Ideas" on 2026-10-14
+    When I open the day view for 2026-10-14
+    And I expand the task list "Ideas"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Sketch |
+    And I save the task list
+    And I expand the task list "Ideas"
+    Then the expanded task list items are "Sketch"
+
   Scenario: Move a task list to another date and give it a time
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
