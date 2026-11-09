@@ -33,15 +33,15 @@ Feature: Resource efficiency and no memory leaks
     Given automatic sync runs every 2 seconds
     When I open the week view for 2026-10-12
     And I go to the next period 20 times
-    And I count requests to "/api/items" for 10 seconds
-    Then at most 6 requests to "/api/items" were counted
+    And I count requests to "/api/changes" for 10 seconds
+    Then at most 6 requests to "/api/changes" were counted
 
   Scenario: Polling stops while the app is hidden
     Given automatic sync runs every 2 seconds
     When I open the week view for 2026-10-12
     And the app is hidden
-    And I count requests to "/api/items" for 6 seconds
-    Then at most 0 requests to "/api/items" were counted
+    And I count requests to "/api/changes" for 6 seconds
+    Then at most 0 requests to "/api/changes" were counted
 
   Scenario: The first load stays within the JavaScript budget
     200 KB compressed (owner, 2026-10-23: raised from 150; well under the 1 MB that would matter).
@@ -71,9 +71,9 @@ Feature: Resource efficiency and no memory leaks
     When I open the week view for 2026-10-12
     And the app is hidden
     And the app regains focus
-    And I count requests to "/api/items" for 5 seconds
-    Then at most 4 requests to "/api/items" were counted
-    And at least 2 requests to "/api/items" were counted
+    And I count requests to "/api/changes" for 5 seconds
+    Then at most 4 requests to "/api/changes" were counted
+    And at least 2 requests to "/api/changes" were counted
 
   Scenario: The app scores well in a phone performance audit
     When I run a phone performance audit of the app 3 times
