@@ -15,6 +15,8 @@ export interface Calendar {
   hidden?: boolean;
   /** Popup reminder lead times of Google's calendar default, in minutes, in Google's order. */
   defaultReminders: number[];
+  /** True for the app's own Birthdays calendar (id `birthdays`): not a Google calendar, no default reminders. */
+  virtual?: true;
 }
 
 /** An item's reminders (feature reminders): `minutes` is the popup lead list in effect (the calendar's default while `useDefault`). */
@@ -46,6 +48,10 @@ export interface CalendarEvent {
   color: string;
   /** Set only on Google birthday entries: `anniversary` for a contact's anniversary, `birthday` for every other special date. */
   special?: 'birthday' | 'anniversary';
+  /** Birthdays only: the Google calendar the event is read from, which the change feed's calendar ids name (`calendarId` is `birthdays`). */
+  sourceCalendarId?: string;
+  /** Birthdays only: the same value on the same date means the same birthday seen twice (contact link, else title), shown once. */
+  dupKey?: string;
   /** True when the app cannot edit or delete it: not in an own calendar, an invitation, or a birthday of the contacts calendar. */
   readOnly?: true;
   /** Why `readOnly` is set (an invitation from `by`, or an event in the calendar of `by`); absent for the contacts Birthdays calendar. */

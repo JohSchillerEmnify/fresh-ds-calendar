@@ -4,6 +4,7 @@ import { api, ApiError } from '@/api/client';
 import type {
   CalendarItem, DaySummary, LocalDate, TaskItem, TaskList,
 } from '@/api/types';
+import { dedupeBirthdays } from '@calendar/shared/birthdays';
 import { covers, itemsIn, summaryOf } from '@/lib/deviceData';
 import { ports } from '@/lib/outboxPorts';
 import { logUndone } from '@/lib/decisionLog';
@@ -52,7 +53,8 @@ export const useItemsStore = defineStore('items', () => {
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
-  const all = computed<CalendarItem[]>(() => Object.values(byId.value));
+  // a birthday held by two calendars (the contact's and the person's own) shows once
+  const all = computed<CalendarItem[]>(() => dedupeBirthdays(Object.values(byId.value)));
   /** Segments per day over every cached item. Views read this (after filtering via `useDaySegments`). */
   const segmentsOf = (items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> => segmentsByDate(items, useClockStore().today);
   /** An unchanged item (same object, same today) keeps its segments, so the views' entries for it keep their props and do not re-render. */

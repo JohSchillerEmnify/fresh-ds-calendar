@@ -168,6 +168,15 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json(cal, 201);
   });
 
+  // Switches a calendar off or on in Google's list as another Google client would (e.g. the old contacts Birthdays calendar).
+  t.put('/remote/calendars/:id/hidden', async (c) => {
+    const b = (await body(c)) as { owner?: string; hidden?: unknown } | undefined;
+    if (typeof b?.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
+    store(b.owner).remote.setHidden(c.req.param('id'), b.hidden);
+    calendarOf(b.owner).invalidate();
+    return c.json({ ok: true });
+  });
+
   // Sets a calendar's Google `defaultReminders` as another Google client would (popup minutes, optional email ones).
   t.put('/remote/calendars/:id/default-reminders', async (c) => {
     const b = (await body(c)) as { owner?: string; defaultReminders?: Array<{ method?: unknown; minutes?: unknown }> } | undefined;

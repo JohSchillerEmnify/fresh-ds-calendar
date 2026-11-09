@@ -22,7 +22,7 @@ describe('reset', () => {
     const r = await t.json('POST', '/api/__test/reset');
     expect(r.status).toBe(200);
     expect(r.body.items).toEqual([]);
-    expect(r.body.calendars).toHaveLength(2);
+    expect(r.body.calendars).toHaveLength(3);
     expect(r.body.settings.sunflowers).toBe('grow');
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ streak: 'off', syncIndicator: false, headerLayout: 'auto' });
     const cfg = (await t.json('GET', '/api/config')).body;

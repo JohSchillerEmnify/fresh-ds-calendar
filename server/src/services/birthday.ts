@@ -25,6 +25,12 @@ export function birthdayCreateBody(title: string, date: string, colorId?: string
   };
 }
 
+/** What makes two birthday events the same birthday on `date`: the Google contact and kind when linked, else the title. */
+export function birthdayDateKey(ev: Pick<GoogleEvent, 'birthdayProperties' | 'summary'>, date: string): string {
+  const contact = ev.birthdayProperties?.contact;
+  return contact ? `c:${contact}|${ev.birthdayProperties?.type ?? ''}|${date}` : `t:${ev.summary ?? ''}|${date}`;
+}
+
 /** True when the date of the birthday cannot change: it comes from a contact, or it is the person's own (`type: self`). */
 export function birthdayDateLocked(ev: Pick<GoogleEvent, 'birthdayProperties'>): boolean {
   return !!ev.birthdayProperties?.contact || ev.birthdayProperties?.type === 'self';

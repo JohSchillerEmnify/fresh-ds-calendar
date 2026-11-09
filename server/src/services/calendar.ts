@@ -25,10 +25,11 @@ import {
 import { TasksCalendar } from './tasksCalendar.js';
 import { EventWrites } from './eventWrites.js';
 import { ItemQueries } from './itemQueries.js';
-import { etagEq, inContactsCalendar, specialOf } from './eventRules.js';
+import { BIRTHDAYS_COLOR, BIRTHDAYS_ID, etagEq, inContactsCalendar, isContactsCalendarId, specialOf } from './eventRules.js';
+import { logCalendarShape } from './calendarShape.js';
 import { TaskSeries } from './taskSeries.js';
 import { TaskSharing } from './taskSharing.js';
-import { birthdayDateLocked } from './birthday.js';
+import { birthdayDateKey, birthdayDateLocked } from './birthday.js';
 import { placeOf } from './place.js';
 import { calHash, logEvent } from '../lib/diag.js';
 import { hasWriteRole, readOnlyReason } from './ownership.js';
@@ -137,18 +138,31 @@ export class CalendarService {
     this.calGen++;
   }
 
-  /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
+  /** Calendars that hold events: not switched off in Google's list (the old contacts calendar is read even then) and not the tasks calendar. */
   private async eventCalendars(): Promise<ProviderCalendar[]> {
     const tasksId = this.tasks.knownId();
-    return (await this.providerCalendars()).filter((c) => !c.hidden && c.id !== tasksId);
+    return (await this.providerCalendars()).filter((c) => (!c.hidden || isContactsCalendarId(c.id)) && c.id !== tasksId);
   }
 
+  /** The person's colour of the virtual Birthdays calendar. */
+  private birthdaysColor(): string {
+    return this.prefs.birthdaysColor(this.sub) ?? BIRTHDAYS_COLOR;
+  }
+
+  /** The calendars the person sees: Google's (the old contacts calendar left out) and the app's own Birthdays calendar (ADR 0038). */
   async calendars(): Promise<Calendar[]> {
     this.dropCalendars(); // the endpoint always hits the provider (outages must surface)
-    return (await this.eventCalendars()).map((c) => ({
-      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
-      defaultReminders: popups(c.defaultReminders),
-    }));
+    const all = await this.eventCalendars();
+    // the diagnostic reads in the background and must never delay or fail the calendar list
+    const hidden = this.prefs.hiddenCalendars(this.sub);
+    void logCalendarShape(this.provider, this.sub, localDateOf(this.clock.real(), this.tz), all, (id) => !hidden.includes(id)).catch(() => undefined);
+    return [
+      ...all.filter((c) => !isContactsCalendarId(c.id)).map((c): Calendar => ({
+        id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
+        defaultReminders: popups(c.defaultReminders),
+      })),
+      { id: BIRTHDAYS_ID, name: 'Birthdays', color: this.birthdaysColor(), primary: false, writable: false, defaultReminders: [], virtual: true },
+    ];
   }
 
   /**
@@ -157,6 +171,7 @@ export class CalendarService {
    * to Google as well (the list entry is per person). Returns the list as stored.
    */
   async setDefaultReminders(id: string, minutes: number[], tasksCalendar = false): Promise<number[]> {
+    if (id === BIRTHDAYS_ID && !tasksCalendar) throw validation('The Birthdays calendar has no default reminders', 'defaultReminders');
     const calId = tasksCalendar ? await this.tasks.id() : id;
     const cal = (await this.providerCalendars()).find((c) => c.id === calId && (tasksCalendar || !c.hidden && c.id !== this.tasks.knownId()));
     if (!cal) throw notFound('Calendar not found');
@@ -181,6 +196,7 @@ export class CalendarService {
 
   /** Sets the person's list colour of a calendar (per person, also one they only read): a palette `colorId`, or a custom `#rrggbb` with a readable text colour. */
   async setColor(id: string, pick: { color: string } | { colorId: string }): Promise<void> {
+    if (id === BIRTHDAYS_ID) return this.setBirthdaysColor(pick);
     const cal = (await this.eventCalendars()).find((c) => c.id === id);
     if (!cal) throw notFound('Calendar not found');
     if ('colorId' in pick) {
@@ -195,6 +211,14 @@ export class CalendarService {
       await this.provider.setCalendarColor(id, { backgroundColor: pick.color, foregroundColor: onColor(pick.color) });
     }
     this.dropCalendars();
+  }
+
+  /** Stores the person's colour of the virtual Birthdays calendar in the app: Google has no list entry to hold it. */
+  private async setBirthdaysColor(pick: { color: string } | { colorId: string }): Promise<void> {
+    if ('color' in pick) return this.prefs.setBirthdaysColor(this.sub, pick.color);
+    const entry = (await this.colorPalette()).find((c) => c.id === pick.colorId);
+    if (!entry) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');
+    this.prefs.setBirthdaysColor(this.sub, entry.background.toLowerCase());
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
@@ -269,9 +293,9 @@ export class CalendarService {
     const readOnly = special ? inContactsCalendar(ev) || !!reason : !!reason;
     const place = placeOf(ev);
     return {
-      kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '', ...(place ? { place } : {}),
+      kind: 'event', id: ev.id, calendarId: special ? BIRTHDAYS_ID : ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '', ...(place ? { place } : {}),
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
-      color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
+      color: colorId ? GOOGLE_COLORS[colorId]!.hex : special ? this.birthdaysColor() : calColor, ...(special ? { special, sourceCalendarId: ev.calendarId, dupKey: birthdayDateKey(ev, this.norm(ev.start)) } : {}),
       ...(readOnly ? { readOnly: true as const } : {}), ...(reason && !inContactsCalendar(ev) ? { readOnlyReason: reason } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
       reminders: (readOnly && this.ownReminders(ev, calDefaults)) || this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
     };

@@ -174,6 +174,7 @@ describe('calendars, config, health, errors', () => {
     expect(r.body.calendars).toEqual([
       { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, defaultReminders: [], hidden: false },
       { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, defaultReminders: [], hidden: false },
+      { id: 'birthdays', name: 'Birthdays', color: '#9fc6e7', primary: false, writable: false, defaultReminders: [], hidden: false, virtual: true },
     ]);
   });
 
@@ -181,7 +182,7 @@ describe('calendars, config, health, errors', () => {
     const r = await t.json('PATCH', '/api/calendars/work', { hidden: true });
     expect(r.status).toBe(200);
     expect(r.body.hidden).toBe(true);
-    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: { hidden: boolean }) => c.hidden)).toEqual([false, true]);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: { hidden: boolean }) => c.hidden)).toEqual([false, true, false]);
     await t.json('PATCH', '/api/calendars/work', { hidden: false });
     expect((await t.json('GET', '/api/calendars')).body.calendars.every((c: { hidden: boolean }) => !c.hidden)).toBe(true);
     expect((await t.json('PATCH', '/api/calendars/nope', { hidden: true })).status).toBe(404);
@@ -249,7 +250,7 @@ describe('birthdays', () => {
     await t.json('POST', '/api/__test/remote/events', birthdayBody());
     await t.json('POST', '/api/events', { title: 'Holiday', allDay: true, start: '2026-10-14', end: '2026-10-15' });
     const items = await itemsOn14();
-    expect(items.find((i) => i.title === "Anna's birthday")).toMatchObject({ kind: 'event', special: 'birthday', allDay: true, color: '#9fc6e7', colorId: null, calendarId: BIRTHDAYS });
+    expect(items.find((i) => i.title === "Anna's birthday")).toMatchObject({ kind: 'event', special: 'birthday', allDay: true, color: '#9fc6e7', colorId: null, calendarId: 'birthdays' });
     expect(items.find((i) => i.title === 'Holiday')).not.toHaveProperty('special');
   });
 
@@ -263,7 +264,7 @@ describe('birthdays', () => {
 
   it('marks a birthday event (eventType) that lives in another calendar', async () => {
     await t.json('POST', '/api/__test/remote/events', birthdayBody({ calendarId: 'primary', summary: 'Self', birthdayProperties: { type: 'self' } }));
-    expect((await itemsOn14()).find((i) => i.title === 'Self')).toMatchObject({ special: 'birthday', color: '#039be5' });
+    expect((await itemsOn14()).find((i) => i.title === 'Self')).toMatchObject({ special: 'birthday', color: '#9fc6e7', calendarId: 'birthdays' });
   });
 
   it('ignores a colorId on a birthday: the calendar colour wins', async () => {

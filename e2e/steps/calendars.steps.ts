@@ -66,6 +66,10 @@ When('they hide the calendar {string} in the filter bar', async function (this: 
   await hideCalendar(this, name);
 });
 
+When('I hide the calendar {string} in the filter bar', async function (this: World, name: string) {
+  await hideCalendar(this, name);
+});
+
 Given('{string} hid the calendar {string}', async function (this: World, email: string, name: string) {
   await signIn(this, email);
   await hideCalendar(this, name);

@@ -92,7 +92,7 @@ describe('birthdays like Google Calendar (API)', () => {
   it('creates a yearly birthday in the primary calendar and shows it again next year', async () => {
     const c = await t.json('POST', '/api/events', { kind: 'birthday', title: 'Lena', date: '2026-10-15', colorId: '4' });
     expect(c.status).toBe(201);
-    expect(c.body).toMatchObject({ title: 'Lena', special: 'birthday', allDay: true, start: '2026-10-15', end: '2026-10-16', colorId: '4', calendarId: 'primary' });
+    expect(c.body).toMatchObject({ title: 'Lena', special: 'birthday', allDay: true, start: '2026-10-15', end: '2026-10-16', colorId: '4', calendarId: 'birthdays' });
     expect(c.body).not.toHaveProperty('readOnly');
     expect(await remote('Lena')).toMatchObject([{ eventType: 'birthday', recurrence: ['RRULE:FREQ=YEARLY'], visibility: 'private', transparency: 'transparent' }]);
     expect((await items('2027-10-01', '2027-11-01')).find((i) => i.title === 'Lena')).toMatchObject({ start: '2027-10-15', special: 'birthday' });

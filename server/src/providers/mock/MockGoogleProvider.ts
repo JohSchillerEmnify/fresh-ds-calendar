@@ -135,6 +135,12 @@ export class MockGoogleProvider implements CalendarProvider {
     /** The calendar list including hidden entries. */
     calendars: (): ProviderCalendar[] => this.calendars.map((c) => ({ ...c })),
     insertCalendar: (summary: string, hidden = false, extra?: CalendarExtra): ProviderCalendar => this.doInsertCalendar(summary, hidden, extra),
+    /** Switches a calendar off or on in Google's list as another Google client would. */
+    setHidden: (calendarId: string, hidden: boolean): void => {
+      this.requireCalendar(calendarId);
+      this.calendars.find((c) => c.id === calendarId)!.hidden = hidden;
+      this.scheduleFlush();
+    },
     /** Sets a calendar's `defaultReminders` as another Google client would. */
     setDefaultReminders: (calendarId: string, reminders: GoogleReminder[]): void => this.doSetDefaultReminders(calendarId, reminders),
   };
@@ -186,7 +192,7 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
-    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}`;
+    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}|${(p.eventTypes ?? []).join(',')}`;
     return this.guard.cached(key, async () => this.readEvents(p));
   }
 
@@ -209,6 +215,7 @@ export class MockGoogleProvider implements CalendarProvider {
     for (const e of this.events.values()) {
       if (e.calendarId !== p.calendarId) continue;
       if (e.status === 'cancelled' && !p.showDeleted) continue;
+      if (p.eventTypes && !p.eventTypes.includes(e.eventType ?? 'default')) continue;
       // recurring masters are expanded only inside a bounded range (and not at all without `singleEvents`: Google lists the master)
       const cands = p.singleEvents !== false && e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
       // an exception past its series' UNTIL is no longer an occurrence (Google only shows what the rule makes)

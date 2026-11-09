@@ -24,3 +24,7 @@ Feature: All of a person's Google calendars
     Given "jo@example.com" hid the calendar "Family"
     When "jo@example.com" opens the week view for 2026-10-12 on another device
     Then they do not see the event "Dinner"
+
+  Scenario: The Birthdays calendar is listed next to my own
+    When "jo@example.com" signs in with Google
+    Then the filter bar offers the calendar "Birthdays" once

@@ -171,7 +171,7 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
-    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}`;
+    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}|${(p.eventTypes ?? []).join(',')}`;
     return this.guard.cached(key, () => this.fetchEvents(p));
   }
 
@@ -183,7 +183,7 @@ export class GoogleProvider implements CalendarProvider {
       const res = await this.call('events.list', () =>
         this.o.api.events.list({
           calendarId: p.calendarId, timeMin: p.timeMin, timeMax: p.timeMax, singleEvents: p.singleEvents ?? true, showDeleted: p.showDeleted ?? false,
-          privateExtendedProperty: p.privateExtendedProperty, maxResults: 2500, pageToken,
+          privateExtendedProperty: p.privateExtendedProperty, eventTypes: p.eventTypes, maxResults: 2500, pageToken,
         }),
         false, p.calendarId,
       );

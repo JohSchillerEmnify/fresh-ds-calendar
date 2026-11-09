@@ -3,6 +3,7 @@
  * keeping events within the window, and reading items, day counts and open lists back out. No I/O and no store here,
  * so every rule is unit tested without a browser (`web/test/device-data.test.ts`).
  */
+import { dedupeBirthdays } from '@calendar/shared/birthdays';
 import type { AppConfig, Calendar, CalendarEvent, CalendarItem, DaySummary, LocalDate, TaskList } from '@/api/types';
 import { addDays, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { itemSegments } from '@/lib/items';
@@ -105,6 +106,9 @@ export function replacedSettings(held: DeviceData['calendars'], incoming: Device
   });
 }
 
+/** The Google calendar an event is read from: what the change feed's calendar ids name (a birthday shows under the Birthdays calendar). */
+const sourceOf = (e: CalendarEvent): string => e.sourceCalendarId ?? e.calendarId;
+
 /**
  * Applies one answer: calendars first, then per kind the replace / series / removed drops, then the upserts, then the
  * files (the order API.md prescribes). A calendar listed in `failed` keeps its stored events. Returns a new value.
@@ -113,14 +117,14 @@ export function applyChanges(data: DeviceData, res: ChangeSet): DeviceData {
   const ev = res.events, tl = res.taskLists;
   const cals = new Set(ev.calendars);
   const replaced = new Set(ev.replace);
-  let events = data.events.filter((e) => cals.has(e.calendarId) && !replaced.has(e.calendarId));
-  for (const s of ev.series) events = events.filter((e) => !(e.calendarId === s.calendarId && inSeries(e.id, s.seriesId)));
+  let events = data.events.filter((e) => cals.has(sourceOf(e)) && !replaced.has(sourceOf(e)));
+  for (const s of ev.series) events = events.filter((e) => !(sourceOf(e) === s.calendarId && inSeries(e.id, s.seriesId)));
   const gone = new Set(ev.removed.map((r) => `${r.calendarId}\n${r.id}`));
-  events = events.filter((e) => !gone.has(`${e.calendarId}\n${e.id}`));
+  events = events.filter((e) => !gone.has(`${sourceOf(e)}\n${e.id}`));
   // a calendar recoloured elsewhere: the events that follow it change colour, Google sends none of them again
   events = recolourEvents(events, data.calendars, res.calendars);
-  const byKey = new Map(events.map((e) => [`${e.calendarId}\n${e.id}`, e]));
-  for (const e of ev.upserts) byKey.set(`${e.calendarId}\n${e.id}`, e);
+  const byKey = new Map(events.map((e) => [`${sourceOf(e)}\n${e.id}`, e]));
+  for (const e of ev.upserts) byKey.set(`${sourceOf(e)}\n${e.id}`, e);
 
   let lists = tl.replace ? data.taskLists.filter((l) => l.id.startsWith('shared:')) : data.taskLists;
   for (const s of tl.series) lists = lists.filter((l) => !(l.seriesId === s || inSeries(l.id, s)));
@@ -148,7 +152,7 @@ export function isQuiet(data: DeviceData, res: ChangeSet): boolean {
 
 /** The items (events and dated task lists) that touch `[from, to)`. */
 export function itemsIn(data: DeviceData, from: LocalDate, to: LocalDate): CalendarItem[] {
-  return [...data.events, ...data.taskLists].filter((it) => touches(it, from, to));
+  return [...dedupeBirthdays(data.events), ...data.taskLists].filter((it) => touches(it, from, to));
 }
 
 /** Whether `[from, to)` lies inside the window, so the device holds all of it (outside, the server is asked). */
@@ -159,7 +163,7 @@ export function covers(data: DeviceData, from: LocalDate, to: LocalDate): boolea
 /** Day counts for `[from, to)` as `GET /api/summary` answers them, computed from the held items. */
 export function summaryOf(data: DeviceData, from: LocalDate, to: LocalDate): Record<LocalDate, DaySummary> {
   const days: Record<LocalDate, DaySummary> = {};
-  for (const it of [...data.events, ...data.taskLists]) {
+  for (const it of [...dedupeBirthdays(data.events), ...data.taskLists]) {
     for (const s of itemSegments(it)) {
       if (s.date < from || s.date >= to) continue;
       const row = (days[s.date] ??= { events: 0, tasklists: 0, openTasklists: 0, density: 0 });

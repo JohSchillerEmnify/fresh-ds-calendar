@@ -21,6 +21,8 @@ const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seasonal: '
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
 interface StoredPrefs extends Prefs {
   hiddenCalendars: string[];
+  /** The person's colour of the virtual Birthdays calendar (`#rrggbb`); Google offers none for it (ADR 0038). */
+  birthdaysColor?: string;
   /** The person's "Calendar app: tasks" calendar, once found or created (feature tasklists-own-calendar). */
   tasksCalendarId: string | null;
   /** Per calendar, the plan and the switch of it the scheduler last applied to `hiddenCalendars` (feature calendar-off-plan). */
@@ -63,7 +65,8 @@ export class PrefsStore {
   }
 
   hiddenCalendars(sub: string): string[] {
-    return this.read(sub).hiddenCalendars;
+    // a switch-off of the old contacts calendar (before ADR 0038) now means the Birthdays calendar
+    return this.read(sub).hiddenCalendars.map((id) => (id.startsWith('addressbook#contacts@') ? 'birthdays' : id));
   }
 
   /** The person's chosen theme (the Default preset until one is chosen). */
@@ -132,6 +135,15 @@ export class PrefsStore {
     const p = this.read(sub);
     const rest = p.hiddenCalendars.filter((i) => i !== calendarId);
     this.files.write(sub, { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest });
+  }
+
+  /** The person's colour of the virtual Birthdays calendar, or undefined while they have not picked one. */
+  birthdaysColor(sub: string): string | undefined {
+    return this.read(sub).birthdaysColor;
+  }
+
+  setBirthdaysColor(sub: string, color: string): void {
+    this.files.write(sub, { ...this.read(sub), birthdaysColor: color });
   }
 
   /** What the plan scheduler last applied per calendar (empty until it has). */

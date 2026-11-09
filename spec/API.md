@@ -303,7 +303,12 @@ short hash of date and text. A missing or unparsable file gives an empty list.
 
 ### `GET /api/calendars` → 200
 
-`{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
+`{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), plus one virtual calendar
+`{ id: 'birthdays', name: 'Birthdays', virtual: true, writable: false, primary: false, defaultReminders: [] }` (ADR 0038): every
+birthday event (`eventType` birthday, any `birthdayProperties.type`) of the person's calendars and the events of Google's old contacts
+calendar (`addressbook#contacts@...`, also when Google marks it hidden). That contacts calendar is never listed itself. The events
+of the virtual calendar carry `calendarId: 'birthdays'` (their real calendar stays server-side; edits go by event id). The virtual
+calendar's `color` is the person's own choice (default `#9fc6e7`), stored in the app, not in Google. Each calendar has
 `hidden: boolean` (the person's choice) and `defaultReminders: number[]` (the popup lead times of the calendar's Google default, minutes, Google's order). Errors: 503.
 
 ### `GET /api/calendar-colors` → 200
@@ -316,7 +321,8 @@ per-person file `calendarColors`, so the app has the palette on the device (it s
 ### `PATCH /api/calendars/:id` → 200
 
 Body `{ hidden?: boolean; defaultReminders?: number[]; color?: string; colorId?: string }` (at least one). `hidden` stores the
-person's choice. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
+person's choice (for `birthdays` too: the same per-person flag, so plans and `excludeHidden` apply). On `birthdays`, `color` and
+`colorId` store the person's colour in the app (nothing goes to Google) and `defaultReminders` is `400`. `colorId` (an id of `GET /api/calendar-colors`; anything else `400`) sets one of Google's calendar colours as the
 person's calendar list colour, written as that colour's RGB like a custom one (Google lets an RGB colour already on the list entry
 supersede a bare `colorId`, so a `colorId` alone would not change what is shown). `color`
 (`#rrggbb`, answered lower-case; anything else `400`) is a custom colour: `calendarList.patch` with `colorRgbFormat=true`,
