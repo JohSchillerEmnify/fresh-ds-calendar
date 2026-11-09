@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anchorVisible, fitWidth, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
+import { anchorVisible, clipAboveBar, fitWidth, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
 
 const view: Box = { left: 0, top: 0, right: 400, bottom: 800 };
 const box = (left: number, top: number, w: number, h: number): Box => ({ left, top, right: left + w, bottom: top + h });
@@ -26,6 +26,21 @@ describe('placeExpanded', () => {
     expect(placeExpanded(box(350, 100, 40, 20), view, 100)).toMatchObject({ left: 350, width: 40 });
     expect(placeExpanded(box(-30, 100, 300, 40), view, 100)).toMatchObject({ left: -30, width: 300 });
     expect(placeExpanded(box(390, 100, 40, 20), view, 100)).toMatchObject({ left: 390, width: 40 });
+  });
+});
+
+describe('clipAboveBar', () => {
+  const bar = box(8, 724, 384, 64);
+  it('counts the space a floating bar covers as taken, so a low list grows up', () => {
+    const b = clipAboveBar(view, bar);
+    expect(b.bottom).toBe(724);
+    expect(placeExpanded(box(20, 600, 300, 40), view, 150).dir).toBe('down');
+    expect(placeExpanded(box(20, 600, 300, 40), b, 150)).toMatchObject({ dir: 'up', top: 640 - 150 });
+  });
+  it('leaves the bounds alone without a bar, with a bar slid out of view, or beside the area', () => {
+    expect(clipAboveBar(view, null)).toEqual(view);
+    expect(clipAboveBar(view, box(8, 800, 384, 64))).toEqual(view);
+    expect(clipAboveBar(view, box(500, 724, 64, 64))).toEqual(view);
   });
 });
 

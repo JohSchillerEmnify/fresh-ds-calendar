@@ -20,7 +20,7 @@ import { blockGeometry, displayTitle, neutralName, TITLE_ROW_PX } from '@/lib/it
 import { useEffectiveHourHeight } from '@/composables/useHourHeight';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { anchorVisible, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
+import { anchorVisible, clipAboveBar, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
 import TaskListCard from './TaskListCard.vue';
 import { useTaskList } from './useTaskList';
 
@@ -68,12 +68,19 @@ function bounds(): Box {
   }
   return vp;
 }
+// The bottom bar floats over the calendar on a phone: the grid continues under it, so its rect is no room for the card.
+function barBox(): Box | null {
+  const bar = document.querySelector<HTMLElement>('[data-testid="bottom-bar"][data-position="bottom"]');
+  return bar ? bar.getBoundingClientRect() : null;
+}
 function place() {
   const el = panel.value;
   const card = el?.firstElementChild as HTMLElement | null;
   if (!el || !card || !props.anchor.isConnected) return;
   const a = props.anchor.getBoundingClientRect();
   const b = bounds();
+  // room for the card stops at the floating bar; visibility of the anchor still counts the area under it
+  const room = clipAboveBar(b, barBox());
   // gone only when neither the collapsed card nor the grown one is on screen: a zoom around a point below the card moves its time up while the card stays in view
   if (!anchorVisible(a, b) && !anchorVisible(el.getBoundingClientRect(), b)) { emit('close'); return; }
   // a time block sits in a narrow side-by-side slot; grown it is only as wide as its content needs, up to its whole day column, over the neighbours (inside the column's border, with the block's 1 px inset)
@@ -83,7 +90,7 @@ function place() {
   if (timed) {
     // only the screen dependent parts are measured: grow direction and room (the position itself is in time units, `timedStyle`)
     const fw = fitWidth({ left: a.left, width: a.width }, measureNatural(card, col!), { left: box.left, right: box.right });
-    const q = placeExpanded(box, b, Math.max(card.offsetHeight, a.height));
+    const q = placeExpanded(box, room, Math.max(card.offsetHeight, a.height));
     // style px are relative to the column's padding box
     const n: Pos = { left: Math.round(fw.left - cr!.left - col!.clientLeft), top: 0, width: fw.width, maxHeight: q.maxHeight, minHeight: a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: q.dir, upH: Math.min(Math.max(card.offsetHeight, a.height), q.maxHeight) };
     const o = pos.value;
@@ -91,7 +98,7 @@ function place() {
     return;
   }
   // natural height of the grown card (the panel scrolls when it is cut to maxHeight), never less than the collapsed card
-  const p = placeExpanded(box, b, props.variant === 'card' ? card.offsetHeight : Math.max(card.offsetHeight, a.height));
+  const p = placeExpanded(box, room, props.variant === 'card' ? card.offsetHeight : Math.max(card.offsetHeight, a.height));
   const hr = host?.getBoundingClientRect();
   const n: Pos = { left: p.left - (hr?.left ?? 0), top: p.top - (hr?.top ?? 0), width: p.width, maxHeight: p.maxHeight, minHeight: props.variant === 'card' ? 0 : a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir, upH: 0 };
   const o = pos.value;
