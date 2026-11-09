@@ -40,18 +40,6 @@ export function appTimeout(fn: () => void, ms: number): Disposer {
   };
 }
 
-export function appInterval(fn: () => void, ms: number): Disposer {
-  let live = true;
-  bump(1);
-  const id = setInterval(fn, ms);
-  return () => {
-    if (!live) return;
-    live = false;
-    bump(-1);
-    clearInterval(id);
-  };
-}
-
 export function listen<K extends keyof WindowEventMap>(
   target: Window, type: K, fn: (e: WindowEventMap[K]) => void, opts?: AddEventListenerOptions,
 ): Disposer;
