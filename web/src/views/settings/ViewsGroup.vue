@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Settings group Views (docs/settings-tree.md): default view, month, week and day, and the Approaching card. */
+/** Settings group Views (docs/settings-tree.md): which views the switcher offers, default view, month, week and day, and the Approaching card. */
 import { computed, ref, watch } from 'vue';
 import type { DaySideBySide, MinEventMinutes, MonthScroll, ViewName, WeekSideBySide } from '@/api/types';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
@@ -8,6 +8,7 @@ import Switch from '@/components/m3/Switch.vue';
 import RowSelect from '@/components/settings/RowSelect.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import { useSavePrefs, useSaveSettings } from '@/composables/useSaveSettings';
+import { isStableViewOn, STABLE_VIEWS } from '@/features/views';
 import { t } from '@/i18n';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
@@ -17,7 +18,10 @@ const prefs = usePrefsStore();
 const save = useSaveSettings();
 const savePrefs = useSavePrefs();
 
-const views = computed(() => (['month', 'week', 'day'] as const).map((v) => ({ value: v, label: t(`views.${v}`) })));
+/** The default view can only be one that is on. */
+const views = computed(() => (['month', 'week', 'day'] as const).filter((v) => isStableViewOn(v, prefs.stableViews)).map((v) => ({ value: v, label: t(`views.${v}`) })));
+/** Only one main view left on: its switch stays on (the switcher is never empty). */
+const lastOn = computed(() => STABLE_VIEWS.filter((v) => isStableViewOn(v.id, prefs.stableViews)).length === 1);
 const minEventOptions = computed(() => ([0, 15, 30] as const).map((n) => ({
   value: String(n), label: n ? t('settings.calendar.minEventLength.minutes', { n }) : t('settings.calendar.minEventLength.off'), testid: `settings-min-event-length-${n}`,
 })));
@@ -35,8 +39,15 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
 </script>
 
 <template>
+  <h2>{{ t('settingsNav.sub.switcher') }}</h2>
+  <p class="note" data-testid="settings-views-note">{{ t('settings.calendar.viewsKeepOne') }}</p>
+  <SettingRow v-for="v in STABLE_VIEWS" :id="`stableView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
+    <template #icon><component :is="v.icon" /></template>
+    <Switch :model-value="isStableViewOn(v.id, prefs.stableViews)" :label="t(v.labelKey)" :disabled="lastOn && isStableViewOn(v.id, prefs.stableViews)" :data-testid="`settings-view-switch-${v.id}`" @update:model-value="savePrefs({ stableViews: { [v.id]: $event } })" />
+  </SettingRow>
+
   <h2>{{ t('settingsNav.sub.general') }}</h2>
-  <SettingRow id="defaultView" :label="t('settings.calendar.defaultView')">
+  <SettingRow v-if="views.length" id="defaultView" :label="t('settings.calendar.defaultView')">
     <RowSelect :model-value="settings.settings.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" />
   </SettingRow>
   <SettingRow id="minEventLength" wide :label="t('settings.calendar.minEventLength.label')" :hint="t('settings.calendar.minEventLength.hint')">

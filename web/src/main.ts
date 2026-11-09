@@ -12,6 +12,7 @@ import { useClockStore } from './stores/clock';
 import { useItemsStore } from './stores/items';
 import { useOutboxStore } from './stores/outbox';
 import { useDeviceStore } from './stores/device';
+import { usePrefsStore } from './stores/prefs';
 import { useSettingsStore } from './stores/settings';
 import { pushWidget } from './stores/sync';
 import { useThemeStore } from './stores/theme';
@@ -30,7 +31,7 @@ async function bootstrap() {
 
   // a refused session (401) on any of the first calls below sends the person to the sign-in page at once
   useAuthStore().listen();
-  // "today" and the settings (theme, default view) are needed before the first route resolves.
+  // "today", the settings (theme, default view) and the preferences (which views are on) are needed before the first route resolves.
   const clock = useClockStore();
   const settings = useSettingsStore();
   warmView(location.pathname);
@@ -46,7 +47,7 @@ async function bootstrap() {
   const budget = shown ? undefined : AbortSignal.timeout(4000);
   // the router guard asks the same question (once) right after; asking now saves a round trip
   const session = location.pathname === '/signin' ? undefined : useAuthStore().check();
-  const loads = Promise.allSettled([clock.load(budget), settings.load(budget), useThemeStore().load(budget), session]);
+  const loads = Promise.allSettled([clock.load(budget), settings.load(budget), usePrefsStore().load(budget), useThemeStore().load(budget), session]);
   if (!shown) await loads;
   device.install();
   if (clock.config.testMode) enableTimerCounting();

@@ -78,6 +78,8 @@ export interface NotifyPrefs {
 export interface Prefs {
   /** Per Labs view id: shown in the view switcher or not; an id that is missing follows the client's registry default. */
   labsViews: Record<string, boolean>;
+  /** Per main view id (`year`, `month`, `week`, `day`, `tasks`, `clock-rings`): offered in the view switcher or not; a missing id is on. */
+  stableViews: Record<string, boolean>;
   labs: boolean;
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;

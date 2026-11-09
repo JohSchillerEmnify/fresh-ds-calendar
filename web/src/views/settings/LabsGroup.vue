@@ -22,7 +22,7 @@ const weekSplitOptions = [
   </SettingRow>
   <template v-if="prefs.labs">
     <h2>{{ t('settingsNav.sub.views') }}</h2>
-    <SettingRow v-for="v in LABS_VIEWS" :id="`labsView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
+    <SettingRow v-for="v in LABS_VIEWS.filter((l) => !l.stable)" :id="`labsView-${v.id}`" :key="v.id" :label="t(v.labelKey)">
       <Switch :model-value="isLabsViewOn(v.id, prefs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" />
     </SettingRow>
     <h2>{{ t('settingsNav.sub.more') }}</h2>

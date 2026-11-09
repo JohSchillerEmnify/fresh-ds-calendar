@@ -38,8 +38,8 @@ export default {
     week: 'Woche, fresh',
     day: 'Tag, Digga',
     tasks: 'Aufgaben, yo',
-    clock: 'Uhr, krass',
-    clockRings: 'Uhr: Ringe, krass',
+    clock: 'Einfache Uhr, krass',
+    clockRings: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
     zoom: 'Zoom-Monat, yo',
@@ -116,6 +116,7 @@ export default {
     },
     calendar: {
       defaultView: 'Standard-Ansicht, yo',
+      viewsKeepOne: 'Mindestens eine Ansicht bleibt an, yo.',
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Kopfzeilengröße, yo', hint: 'Aufm Handy, Digga; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
       bottomBarSize: { label: 'Untere Leiste Größe, Digga', hint: 'Aufm Handy, Digga' },

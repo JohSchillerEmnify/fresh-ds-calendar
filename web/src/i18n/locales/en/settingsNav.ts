@@ -19,6 +19,7 @@ export default {
   sub: {
     appointments: 'Appointments and your day',
     general: 'General',
+    switcher: 'Views in the switcher',
     month: 'Month',
     weekDay: 'Week and day',
     approaching: 'Approaching card',
