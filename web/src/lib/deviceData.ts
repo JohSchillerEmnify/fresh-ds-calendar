@@ -70,6 +70,14 @@ function pruneWindow(data: DeviceData, w: DeviceWindow): DeviceData {
   return { ...data, window: w, events: data.events.filter((e) => touches(e, w.from, w.to)) };
 }
 
+/** Recolours the events that follow a calendar whose colour changed (`colorId` null, old colour); the same list when none did. */
+export function recolourEvents(events: CalendarEvent[], before: DeviceData['calendars'], after: DeviceData['calendars']): CalendarEvent[] {
+  const was = new Map(before.filter((c) => c.color).map((c) => [c.id, c.color.toLowerCase()]));
+  const now = new Map(after.filter((c) => c.color && was.has(c.id) && was.get(c.id) !== c.color.toLowerCase()).map((c) => [c.id, c.color]));
+  if (now.size === 0) return events;
+  return events.map((e) => (now.has(e.calendarId) && e.colorId === null && e.color.toLowerCase() === was.get(e.calendarId) ? { ...e, color: now.get(e.calendarId)! } : e));
+}
+
 /**
  * Applies one answer: calendars first, then per kind the replace / series / removed drops, then the upserts, then the
  * files (the order API.md prescribes). A calendar listed in `failed` keeps its stored events. Returns a new value.
@@ -82,6 +90,8 @@ export function applyChanges(data: DeviceData, res: ChangeSet): DeviceData {
   for (const s of ev.series) events = events.filter((e) => !(e.calendarId === s.calendarId && inSeries(e.id, s.seriesId)));
   const gone = new Set(ev.removed.map((r) => `${r.calendarId}\n${r.id}`));
   events = events.filter((e) => !gone.has(`${e.calendarId}\n${e.id}`));
+  // a calendar recoloured elsewhere: the events that follow it change colour, Google sends none of them again
+  events = recolourEvents(events, data.calendars, res.calendars);
   const byKey = new Map(events.map((e) => [`${e.calendarId}\n${e.id}`, e]));
   for (const e of ev.upserts) byKey.set(`${e.calendarId}\n${e.id}`, e);
 

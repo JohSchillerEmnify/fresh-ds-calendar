@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-09
+- Every calendar can now get its own colour: open a calendar (long press its chip, side menu or Settings › Calendars) and pick a colour. It is saved in Google for you only.
 - Shared calendars like your family calendar can now be edited by everyone who may edit them in Google: open, change, move and delete their events, and add new ones to them.
 
 ## 2026-11-01

@@ -294,6 +294,11 @@ export class ApiClient {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { hidden }, o);
   }
 
+  /** Sets the person's colour of a calendar (`#rrggbb`); goes to Google as their calendar list colour. */
+  setCalendarColor(id: string, color: string, o?: RequestOptions) {
+    return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { color }, o);
+  }
+
   /** Replaces the popup reminder defaults of a calendar in Google (email defaults stay). */
   setCalendarDefaultReminders(id: string, defaultReminders: number[], o?: RequestOptions) {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { defaultReminders }, o);

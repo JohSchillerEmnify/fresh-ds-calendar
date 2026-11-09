@@ -1,5 +1,5 @@
 /** Google event palette, seed presets and color helpers (API.md "Colors"). */
-import { GOOGLE_COLORS as PALETTE, nearestGoogleColorId } from '@calendar/shared/colors';
+import { GOOGLE_COLORS as PALETTE, contrastRatio, nearestGoogleColorId, onColor } from '@calendar/shared/colors';
 
 export interface NamedColor {
   id: string;
@@ -32,32 +32,7 @@ export function isHexColor(s: string): boolean {
   return HEX.test(s.trim());
 }
 
-function channels(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function linear(c: number): number {
-  const s = c / 255;
-  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-}
-
-function relativeLuminance(hex: string): number {
-  const [r, g, b] = channels(hex).map(linear);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-export function contrastRatio(a: string, b: string): number {
-  const [x, y] = [relativeLuminance(a), relativeLuminance(b)].sort((p, q) => q - p);
-  return (x + 0.05) / (y + 0.05);
-}
-
-/** Black or white text, whichever contrasts more with `bg`. */
-export function onColor(bg: string): '#000000' | '#ffffff' {
-  return contrastRatio(bg, '#000000') >= contrastRatio(bg, '#ffffff') ? '#000000' : '#ffffff';
-}
-
-export { nearestGoogleColorId };
+export { contrastRatio, nearestGoogleColorId, onColor };
 
 export function googleColor(id: string | null | undefined): NamedColor | undefined {
   return GOOGLE_COLORS.find((c) => c.id === id);

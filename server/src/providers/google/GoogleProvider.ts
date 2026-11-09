@@ -149,6 +149,10 @@ export class GoogleProvider implements CalendarProvider {
     await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true, calendarId);
   }
 
+  async setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void> {
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, colorRgbFormat: true, requestBody: { backgroundColor, foregroundColor } }), true, calendarId);
+  }
+
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
     const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}`;
     return this.guard.cached(key, () => this.fetchEvents(p));

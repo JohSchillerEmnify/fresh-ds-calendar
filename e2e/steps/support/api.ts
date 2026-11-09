@@ -20,7 +20,7 @@ export interface Category { id: string; name: string; color: string; icon: strin
 export interface Settings { categories: Category[]; version: number; [key: string]: unknown }
 export interface Calendar { id: string; name: string }
 /** Raw Google calendar list entry of the mock account (/api/__test/remote/calendars). */
-export interface RemoteCalendar { id: string; summary: string; primary: boolean; accessRole: string; hidden?: boolean }
+export interface RemoteCalendar { id: string; summary: string; primary: boolean; accessRole: string; hidden?: boolean; backgroundColor: string }
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 

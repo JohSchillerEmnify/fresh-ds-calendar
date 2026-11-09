@@ -8,3 +8,7 @@ export declare const GOOGLE_COLOR_IDS: string[];
 export declare function deltaE76(a: string, b: string): number;
 /** Nearest Google colorId of a `#rrggbb` colour; ties → lower id. */
 export declare function nearestGoogleColorId(hex: string): string;
+/** WCAG contrast ratio of two `#rrggbb` colours. */
+export declare function contrastRatio(a: string, b: string): number;
+/** Black or white text, whichever contrasts more with `bg`. */
+export declare function onColor(bg: string): '#000000' | '#ffffff';

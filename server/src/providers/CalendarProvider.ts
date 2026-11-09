@@ -82,6 +82,8 @@ export interface CalendarProvider {
   setCalendarHidden(calendarId: string, hidden: boolean): Promise<void>;
   /** Replaces a calendar list entry's `defaultReminders` (`calendarList.patch`). */
   setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void>;
+  /** Sets the person's colour of a calendar list entry (`calendarList.patch` with `colorRgbFormat`). */
+  setCalendarColor(calendarId: string, backgroundColor: string, foregroundColor: string): Promise<void>;
   listEvents(p: ListEventsParams): Promise<ListEventsResult>;
   getEvent(calendarId: string, eventId: string): Promise<GoogleEvent>;
   insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent>;
