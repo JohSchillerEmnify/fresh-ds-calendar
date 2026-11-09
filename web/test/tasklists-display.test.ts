@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import type { TaskList } from '@/api/types';
 import { dragPreview, planMove } from '@/features/calendar/dnd';
@@ -133,9 +133,6 @@ describe('planMove for task lists', () => {
     expect(planMove(s, { date: '2026-10-13', minutes: 10 * 60 }, TZ)!.patch).toEqual({ date: '2026-10-13', time: '10:00' });
   });
 });
-
-// a drop arms a 400 ms timer that only an unmount clears; left mounted, it can fire after the test environment is gone
-enableAutoUnmount(afterEach);
 
 describe('TaskListCard in a grid', () => {
   beforeEach(() => { installWaapi(); document.body.innerHTML = ''; });
