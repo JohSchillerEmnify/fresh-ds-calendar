@@ -34,11 +34,11 @@ export default {
     sameEdge: 'From and to must differ.',
     away: 'Off for a while',
     backOn: 'Back on',
-    awayHint: 'At 00:00 of that day.',
+    awayHint: 'It comes back at 00:00 on that day.',
     untilPast: 'Pick a day after today.',
     done: 'Done',
     back: 'Back {day}',
-    mark: 'Switches by itself',
+    mark: 'Switches on and off by itself',
     window: 'Off {from} – {to}',
   },
   filter: {

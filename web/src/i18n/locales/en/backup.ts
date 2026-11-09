@@ -23,7 +23,7 @@ export default {
   restoreFailed: "Couldn't restore: {reason}",
   restoreDialog: {
     title: 'Restore from backup?',
-    message: 'This replaces your settings, themes and canvas on this server with the newest backup. A backup of the current state is made first.',
+    message: 'This replaces your settings, themes and canvas with the newest backup. Your current state is backed up first.',
     ok: 'Restore',
   },
 };

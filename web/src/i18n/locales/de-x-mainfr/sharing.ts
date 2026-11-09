@@ -27,6 +27,6 @@ export default {
   self: 'Mit dir selber deiln bassd ned.',
   unknownPerson: 'Die Person kann ned dazu.',
   repeating: 'A Lisdn, die sich widdaholt, kann ma ned deiln.',
-  ownerCannotLeave: 'Der Besitzer löscht die Lisdn oder hörd mit em Deiln auf.',
+  ownerCannotLeave: 'Als Besitzer kannsd die Lisdn löschn oder mitm Deiln aufhörn.',
   categoryOwnerOnly: 'Nur der Besitzer kann die Kategorie vo ner geteildn Lisdn ändern.',
 } satisfies NonNullable<PartialMessages['sharing']>;

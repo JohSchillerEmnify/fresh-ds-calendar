@@ -2,14 +2,14 @@
 export default {
   settings: {
     label: 'Handwritten lists',
-    hint: 'Write the items of a task list by hand with a pen; the mouse never draws',
+    hint: 'Write the items of a task list by hand with a pen. A mouse does not draw.',
   },
   mode: { ink: 'Writing by hand, switch to keyboard', text: 'Writing with the keyboard, switch to handwriting' },
   undo: 'Undo last stroke',
   eraser: 'Eraser',
   colour: {
-    label: 'Ink colour',
-    custom: 'Custom colour',
+    label: 'Ink color',
+    custom: 'Custom color',
     preset: { default: 'Text colour', red: 'Red', blue: 'Blue', green: 'Green', orange: 'Orange' },
   },
   done: 'Done',

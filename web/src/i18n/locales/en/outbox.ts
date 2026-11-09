@@ -15,7 +15,7 @@ export default {
     deleted: '{title} deleted',
   },
   gone: 'The change to “{title}” was not saved because it was deleted elsewhere.',
-  refused: 'The change to “{title}” was not saved because the server refused it.',
+  refused: 'The change to “{title}” was not saved because it was rejected.',
   editAgain: 'Edit again',
   signOutAsk: 'Sign out and lose {count} unsent change? | Sign out and lose {count} unsent changes?',
   signOutAnyway: 'Sign out anyway',

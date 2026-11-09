@@ -15,7 +15,7 @@ export default {
     deleted: '{title} gelöscht',
   },
   gone: 'Die Änderung an „{title}“ wurde nicht gespeichert, weil es anderswo gelöscht wurde.',
-  refused: 'Die Änderung an „{title}“ wurde nicht gespeichert, weil der Server sie abgelehnt hat.',
+  refused: 'Die Änderung an „{title}“ wurde nicht gespeichert, weil sie abgelehnt wurde.',
   editAgain: 'Nochmal bearbeiten',
   signOutAsk: 'Abmelden und {count} nicht gesendete Änderung verlieren? | Abmelden und {count} nicht gesendete Änderungen verlieren?',
   signOutAnyway: 'Trotzdem abmelden',

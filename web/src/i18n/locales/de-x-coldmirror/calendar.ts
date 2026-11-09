@@ -36,11 +36,11 @@ export default {
     sameEdge: 'Von und bis müssen sich unterscheiden.',
     away: 'Mal kurz aus',
     backOn: 'Wieder da am',
-    awayHint: 'Um 00:00 an dem Tag.',
+    awayHint: 'Ab 00:00 an dem Tag ist er wieder da.',
     untilPast: 'Nimm einen Tag nach heute.',
     done: 'Fertig',
     back: 'Zurück {day}',
-    mark: 'Schaltet sich selbst',
+    mark: 'Schaltet sich von selbst an und aus, yo',
     window: 'Aus {from} – {to}',
   },
   filter: {

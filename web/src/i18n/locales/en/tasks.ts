@@ -23,7 +23,7 @@ export default {
     saveFailed: "Couldn't save the template.",
     nameRequired: 'Give the template a name',
     nameTaken: 'A template with this name already exists',
-    tooMany: 'You have reached the most templates there can be. Delete one first.',
+    tooMany: 'You have reached the maximum number of templates. Delete one first.',
     nameTooLong: 'The template name can be at most 80 characters',
     notFound: 'This template no longer exists.',
     titleRequired: 'Give the list a title to save it as a template',

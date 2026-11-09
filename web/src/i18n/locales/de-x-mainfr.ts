@@ -88,13 +88,13 @@ export default {
     calendar: {
       defaultView: 'Normale Ansichd',
       approachingCard: { label: 'Gleich-Karden', hint: 'Was etz lafft un was als Nächsdes kummt' },
-      approachTimeLeft: { label: 'Restzeid', hint: 'Die Restzeid vom laufenden Termin in der Karden; aus, stehd sie am Termin selber' },
+      approachTimeLeft: { label: 'Restzeid', hint: 'Zeichd in der Gleich-Karden, wie lang der Termin noch gehd. Wenn aus, stehd des am Termin selber.' },
       minEventLength: { label: 'Mindesdlänge für Termine', hint: 'Kürzere Termine wern so lang hiigmold, dass mer ihrn Titel noch lesn ko', off: 'Aus', minutes: '{n} Min.' },
       sideBySide: { hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}', only: 'Nur {n}' },
       tasksCalendar: { label: 'Aufgabnkalender in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
     },
     tasklists: {
-      carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Des „Vom Sa., 10. Okt.“ an offne Listen, die auf heut grutscht sin. Aus: Die stehn halt bei heut.' },
+      carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Offne Listen, die auf heut grutscht sin, kriegn a „Vom Sa., 10. Okt.“ dran. Wenn aus, stehn die halt bei heut.' },
       taskCategories: { label: 'Kadegorien für Aufgabnlisdn', hint: 'Aufgabnlisdn nach Kadegorie grubbieren, sordiern, fildern un einfärbn. Ausschalddn blendes nur aus, nix wird gelöschd.' },
       addCategory: 'Kadegorie dazu',
     },

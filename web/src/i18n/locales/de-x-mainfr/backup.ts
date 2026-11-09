@@ -22,7 +22,7 @@ export default {
   restoreFailed: 'Widdaherstelln hat ned geklabbd: {reason}',
   restoreDialog: {
     title: 'Aus Sicherung widdaherstelln?',
-    message: 'Des ersetzt deine Einstellungen, Themes un die Tafel auf dem Server durch die neuesde Sicherung. Vorher wird der jetzige Stand gsichert.',
+    message: 'Des ersetzt deine Einstellungen, Designs un die Tafel durch die neuesde Sicherung. Vorher wird der jetzige Stand gsichert.',
     ok: 'Widdaherstelln',
   },
 } satisfies NonNullable<PartialMessages['backup']>;

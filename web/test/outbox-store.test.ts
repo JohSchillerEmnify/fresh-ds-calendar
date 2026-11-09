@@ -135,7 +135,7 @@ describe('outbox: sending', () => {
     expect(out.count).toBe(0);
     expect(m.calls.map((c) => c.method + c.path)).toContain('PATCH/api/tasklists/G/items/m');
     const notice = useUiStore().snackbars.find((s) => s.testid === 'outbox-notice')!;
-    expect(notice.text).toBe('The change to “X” was not saved because the server refused it.');
+    expect(notice.text).toBe('The change to “X” was not saved because it was rejected.');
     expect(notice.action?.testid).toBe('outbox-edit-again');
     notice.action!.run();
     expect(useUiStore().dialog).toMatchObject({ kind: 'event', props: { id: 'a', draftEvent: { title: 'X' } } });

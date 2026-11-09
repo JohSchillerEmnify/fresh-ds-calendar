@@ -93,7 +93,7 @@ Then('I am told that the change to {string} was not saved because it was deleted
 });
 
 Then('I am told that the change to {string} was not saved because the server refused it', async function (this: World, title: string) {
-  await expect(notice(this).first()).toContainText(`The change to “${title}” was not saved because the server refused it.`);
+  await expect(notice(this).first()).toContainText(`The change to “${title}” was not saved because it was rejected.`);
 });
 
 Then('I am not told that a change was not saved', async function (this: World) {

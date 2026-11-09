@@ -21,7 +21,7 @@ export default {
     saveFailed: 'Die Vorlage konnte nicht gespeichert werden.',
     nameRequired: 'Gib der Vorlage einen Namen',
     nameTaken: 'Eine Vorlage mit diesem Namen gibt es schon',
-    tooMany: 'Mehr Vorlagen gehen nicht. Lösche zuerst eine.',
+    tooMany: 'Du hast die Höchstzahl an Vorlagen erreicht. Lösche zuerst eine.',
     nameTooLong: 'Der Name der Vorlage darf höchstens 80 Zeichen lang sein',
     notFound: 'Diese Vorlage gibt es nicht mehr.',
     titleRequired: 'Gib der Liste einen Titel, um sie als Vorlage zu speichern',

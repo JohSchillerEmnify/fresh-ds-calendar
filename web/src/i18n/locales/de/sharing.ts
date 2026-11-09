@@ -11,7 +11,7 @@ export default {
   stop: 'Nicht mehr teilen',
   leave: 'Verlassen',
   sharedWith: 'Geteilt mit {names}',
-  noPeople: 'Es kann noch niemand hinzugefügt werden: die Person muss sich einmal anmelden.',
+  noPeople: 'Noch kann niemand hinzugefügt werden. Eine Person muss sich zuerst einmal in der App anmelden.',
   shareFailed: 'Die Liste konnte nicht geteilt werden.',
   stopFailed: 'Das Teilen konnte nicht beendet werden.',
   leaveFailed: 'Die Liste konnte nicht verlassen werden.',
@@ -27,6 +27,6 @@ export default {
   self: 'Du kannst nicht mit dir selbst teilen.',
   unknownPerson: 'Diese Person kann nicht hinzugefügt werden.',
   repeating: 'Eine wiederkehrende Aufgabenliste kann nicht geteilt werden.',
-  ownerCannotLeave: 'Die Besitzerin oder der Besitzer löscht die Liste oder beendet das Teilen.',
+  ownerCannotLeave: 'Als Besitzerin oder Besitzer kannst du die Liste löschen oder das Teilen beenden.',
   categoryOwnerOnly: 'Nur die Besitzerin oder der Besitzer kann die Kategorie einer geteilten Liste ändern.',
 } satisfies Messages['sharing'];

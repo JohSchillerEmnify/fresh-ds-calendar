@@ -25,7 +25,7 @@ export default {
   restoreFailed: 'Zurückzaubern verpatzt, Hermine schüttelt den Kopf: {reason}',
   restoreDialog: {
     title: 'Aus der Eulenpost zurückholen, Digga?',
-    message: 'Das ersetzt deine Settings, Themes und Tafel auf diesem Server mit dem neuesten Backup, krass. Vorher gibt es ein Backup vom jetzigen Stand, damit es nicht endet wie bei Dumbledores Hand.',
+    message: 'Das ersetzt deine Settings, Themes und Tafel mit dem neuesten Backup, krass. Vorher gibt es ein Backup vom jetzigen Stand, damit es nicht endet wie bei Dumbledores Hand.',
     ok: 'Zurückzaubern, yo',
   },
 } satisfies Messages['backup'];

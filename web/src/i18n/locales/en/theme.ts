@@ -89,7 +89,7 @@ export default {
       text: '{field} must be text',
       empty: '{field} must not be empty',
       maxLength: '{field} must be at most {max} characters',
-      hexColour: '{field} must be a 6-digit hex colour like #1a73e8',
+      hexColour: '{field} must be a 6-digit hex color like #1a73e8',
       pattern: '{field} must be in the form {pattern}',
       integer: '{field} must be a whole number',
       range: '{field} must be between {min} and {max}',

@@ -22,7 +22,7 @@ export default {
   restoreFailed: 'Wiederherstellen nicht möglich: {reason}',
   restoreDialog: {
     title: 'Aus Sicherung wiederherstellen?',
-    message: 'Das ersetzt deine Einstellungen, Themes und Tafel auf diesem Server durch die neueste Sicherung. Vorher wird der jetzige Stand gesichert.',
+    message: 'Das ersetzt deine Einstellungen, Designs und Tafel durch die neueste Sicherung. Vorher wird der jetzige Stand gesichert.',
     ok: 'Wiederherstellen',
   },
 } satisfies Messages['backup'];
