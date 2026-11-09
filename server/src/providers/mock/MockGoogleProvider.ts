@@ -457,8 +457,12 @@ export class MockGoogleProvider implements CalendarProvider {
     const id = ev.id ?? googleEventId();
     if (this.events.has(key(calendarId, id))) throw new ProviderError('Conflict: identifier already exists');
     const now = new Date(this.clock.real()).toISOString();
+    // Google gives events in a group calendar the calendar itself as organiser.
+    const cal = this.calendars.find((c) => c.id === calendarId);
+    const organizer = !ev.organizer && cal && !cal.primary && calendarId.endsWith('@group.calendar.google.com')
+      ? { email: calendarId, displayName: cal.summary, self: true } : undefined;
     const e: GoogleEvent = {
-      ...clone(ev), id, calendarId, status: ev.status ?? 'confirmed', etag: '', created: now, updated: now,
+      ...clone(ev), ...(organizer ? { organizer } : {}), id, calendarId, status: ev.status ?? 'confirmed', etag: '', created: now, updated: now,
       iCalUID: `${id}@mock.google.com`, sequence: -1,
     };
     this.touch(e);

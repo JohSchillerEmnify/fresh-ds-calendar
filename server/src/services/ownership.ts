@@ -1,6 +1,6 @@
 /**
- * The "only one's own events are editable" rule (feature events-readonly): which calendars count
- * as the person's own, and why an event is look-only. One place, used by the API mapping, the write checks and the picker.
+ * The "who may edit what" rule (feature events-readonly): which calendars are editable for the person (their own and shared
+ * group calendars such as the family calendar), and why an event is look-only. One place, used by the API mapping, the write checks and the picker.
  */
 import type { GoogleEvent, ProviderCalendar } from '../providers/CalendarProvider.js';
 
@@ -18,15 +18,18 @@ function isPersonAddress(id: string): boolean {
 /** True when the role lets the person write at all (Google `owner` or `writer`). */
 export const hasWriteRole = (c: ProviderCalendar | undefined): boolean => c?.accessRole === 'owner' || c?.accessRole === 'writer';
 
+/** True for Google's shared group calendars (id `…@group.calendar.google.com`, e.g. the family calendar). */
+const isGroupCalendar = (id: string): boolean => /@group\.calendar\.google\.com$/i.test(id);
+
 /**
- * True for the person's own calendars: the primary calendar, or a calendar they own (role `owner`) that is not another
- * person's. "Another person's" is decided by `owner` (Google `dataOwner`, or the primary calendar's address) when known,
+ * True for the calendars the person may edit like their own: the primary calendar, a shared group calendar they may write
+ * (role `owner` or `writer`, whoever owns its data), or a calendar they own (role `owner`) that is not another person's. "Another person's" is decided by `owner` (Google `dataOwner`, or the primary calendar's address) when known,
  * else by the calendar id being a person's address. A known owner that cannot be compared with the person (no primary
- * address) is not own: the rule fails closed. Calendars shared by others stay look-only even with write rights.
+ * address) is not own: the rule fails closed. Another person's own calendar shared with write rights stays look-only.
  */
 export function isOwnCalendar(c: ProviderCalendar | undefined, all: ProviderCalendar[]): boolean {
   if (!c || !hasWriteRole(c)) return false;
-  if (c.primary) return true;
+  if (c.primary || isGroupCalendar(c.id)) return true;
   if (c.accessRole !== 'owner') return false;
   const me = all.find((x) => x.primary)?.owner?.toLowerCase();
   if (c.owner) return !!me && c.owner.toLowerCase() === me;
@@ -47,6 +50,7 @@ export function readOnlyReason(ev: GoogleEvent, all: ProviderCalendar[]): ReadOn
   if (!cal) return null;
   if (!isOwnCalendar(cal, all)) return { kind: 'calendar', by: calendarOwnerLabel(cal, ev.calendarId) };
   const org = ev.organizer;
-  if (!org || org.self || ev.guestsCanModify) return null;
+  // An organiser equal to the calendar is the calendar's own event (group calendars), not an invitation.
+  if (!org || org.self || org.email?.toLowerCase() === ev.calendarId.toLowerCase() || ev.guestsCanModify) return null;
   return { kind: 'invitation', by: org.displayName || org.email || '' };
 }
