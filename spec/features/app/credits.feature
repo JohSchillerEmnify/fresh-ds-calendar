@@ -26,7 +26,7 @@ Feature: Credits
     Then every credit shows an author or a licence, and a link
 
   Scenario: The credits list opens without a connection
-    Given the device is offline
+    Given the network connection is lost
     When I open the settings group "Account & app"
     And I open the credits
     Then the credits list shows "Vue" with the licence "MIT"
