@@ -1,8 +1,8 @@
 # Library check
 
 Step 6 of the quality plan. It lists every in-house implementation of generic infrastructure, the maintained library
-that could replace it, and a recommendation. Nothing is replaced in this pass. Versions were checked on npm on
-2026-11-01.
+that could replace it, and a recommendation. Versions were checked on npm on 2026-11-01. The five top candidates were
+worked through on 2026-11-09 (see Outcome below).
 
 Libraries already in the repo: web: `@vueuse/core` 15, `date-fns` 4, `idb` 8, `vue-i18n`, `vue-router`, `pinia`,
 `perfect-freehand`, `@material/material-color-utilities`, `dompurify`, workbox 7 (`-precaching`, `-routing`,
@@ -19,6 +19,16 @@ purpose: it is plain ESM that both sides import without a build step.
 | 4 | Hand-written theme and picture validator in `shared/index.js` (184 lines) next to the existing JSON Schema `shared/theme.schema.json` | `valibot` 1.5 (already used by the server), or `ajv` against the existing schema | It would give one source of truth instead of a schema plus a parallel walker. Cost: `shared/` gains a dependency, and the web bundle gains the validator. Measure with `size-limit` first. |
 | 5 | Web time zone maths `web/src/features/calendar/zone.ts`, a mirror of `server/src/lib/time.ts` | Move it into `shared/` (no library), or use `date-fns` 4 with `@date-fns/tz` | The duplication is the problem. Sharing one Intl-based module needs no new dependency. A library only helps if the bundle budget allows it. |
 
+## Outcome of the top five (2026-11-09)
+
+| # | Result | Why |
+|---|--------|-----|
+| 1 | **Partly done.** `stores/ink.ts` (mode, colour, pen) and the desktop tray flag in `stores/ui.ts` use `useStorage` (VueUse docs: `serializer`, `writeDefaults`, `onError`, `flush`). | Same keys and stored strings (`text`, `#rrggbb`, `1`, `0`), defaults are not written, a blocked storage stays silent, writes stay synchronous (`flush: 'sync'`). `test/device-storage.test.ts` passes on the old and the new code. The other copies stay: they are one-shot reads at start-up or in plain functions outside Vue (`i18n/index.ts`, `pwa/*`, `lib/deviceDb.ts`, `lib/lastPeriod.ts`, `bedtimeReminder.ts`), or they validate and clamp on read with exported helpers that tests call (`useHourHeight`, `useMonthZoom`). Moving those to refs changes when they read and what they write; the gain is small. |
+| 2 | **Rejected.** | `hono/csrf` only checks form content types (`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`) and denies a request that has no `Origin` and no `Sec-Fetch-Site`. Ours must let native clients without an `Origin` through, must refuse a foreign `Origin` on JSON too, and answers in the app's JSON error format (`FORBIDDEN`), where hono answers a plain `Forbidden`. Swapping would loosen the check. |
+| 3 | **Rejected.** | `ExpirationPlugin` keeps its entry list in IndexedDB and judges age by the response's `Date` header, not by when we stored the picture. It would not remove `serveTile`: the `no-store` rule and the 7-day stale limit still need our code, and cross-origin tiles may be opaque (`res.ok` is false for them), which `NetworkFirst` only stores with an extra plugin. The part it would replace is the 5-line trim in `keep`. There is no unit seam to prove the same behaviour in `sw.ts`, only a real offline run. |
+| 4 | **Rejected.** | `shared/index.js` already walks the existing `theme.schema.json` (single source of truth). What it adds is the machine-readable `code` and `params` of each issue, which the UI translates; valibot or ajv issues have another shape, so the messages and the repair prompt would change. It would also put a dependency into `shared/`. |
+| 5 | **Partly done.** `offsetMinutes` (the Intl formatter and offset lookup) now lives once in `shared/zone.js` and is used by `server/src/lib/time.ts` and `web/.../zone.ts`. | The rest differs on purpose: for a wall time in a DST gap the web's `localToIso` keeps the offset before the jump, the server's `zonedToUtc` shifts the instant forward like Google. Merging them would change one of the two. `no-orphans` in `.dependency-cruiser.cjs` does not know `shared/zone.js` yet (the file is edited on another branch): one baselined arch entry until `zone` is added to its `pathNot` list. |
+
 ## Full inventory
 
 The **Rec.** column means:
@@ -33,9 +43,9 @@ The **Rec.** column means:
 |---|---|---|---|---|
 | `web/src/lib/deviceDb.ts` | key-value store per person over IndexedDB | `idb` 8 (already the base) | keep | It is already a thin wrapper over the library (ADR 0023/0025). |
 | `web/src/stores/device.ts` | device copy plus a 50 ms debounced save | `useDebounceFn` (`@vueuse/core`) | maybe | It is a small win. The save is tied into the restore timeout. |
-| localStorage try/catch copies (see top 1) | settings that are only on the device | `useStorage` (`@vueuse/core`) | **replace** | See top 1. |
+| localStorage try/catch copies (see top 1) | settings that are only on the device | `useStorage` (`@vueuse/core`) | **replace** | Done for the ink store and the tray flag; the rest see Outcome 1. |
 | `server/src/lib/atomicJson.ts`, `personJsonStore.ts` and the per-person stores | JSON files written atomically (temp file plus rename) | `write-file-atomic`, `lowdb` | keep | 18 + 62 lines. Files on disk are the design (ADR 0005/0025), and a library adds little. |
-| `web/src/pwa/tileCache.ts` | limited cache of map tiles | `workbox-expiration` 7.4 | **replace** | See top 3. |
+| `web/src/pwa/tileCache.ts` | limited cache of map tiles | `workbox-expiration` 7.4 | keep | Checked 2026-11-09: see Outcome 3. |
 | `web/src/stores/items.ts` (6-range LRU) | evicts loaded ranges | `lru-cache` 11 | keep | About 5 lines. The eviction also drops items no longer referenced, which `lru-cache` does not do. |
 | `server/src/providers/google/RateGuard.ts` | TTL cache, single-flight, rate-limit cooldown | `lru-cache` (TTL plus `fetchMethod`), `p-retry` 8 | keep | The per-person cooldown and the stale answers are domain rules (ADR 0007). A library covers only the cache part. |
 
@@ -78,9 +88,9 @@ The **Rec.** column means:
 |---|---|---|---|---|
 | `web/src/lib/dates.ts` (`format`, `parseIsoDate`) | date format and strict parse | `date-fns` 4 `format`/`parse` (already a dependency) | keep | The code says why: `format` plus locale costs ~9 kB and `parse` ~11 kB gzipped on the first load. |
 | `server/src/lib/time.ts` | time zone maths with Intl | `@date-fns/tz`, `Temporal` (when Node ships it unflagged) | keep | It is DST-safe and tested, with no dependency on the server. Revisit when `Temporal` is available. |
-| `web/src/features/calendar/zone.ts` | copy of the server zone maths | move it to `shared/` | **replace** | See top 5. |
+| `web/src/features/calendar/zone.ts` | copy of the server zone maths | move it to `shared/` | **replace** | Offset lookup shared; the gap rules stay per side (Outcome 5). |
 | `server/src/services/taskCodec.ts` | writes `RRULE:FREQ=…` strings | `rrule` 2.8 | keep | There is no RRULE parsing or expansion, because Google expands the rules. `rrule` has not had a release since 2023. |
-| `shared/index.js` validator | validates themes and pictures | `valibot` 1.5 or `ajv` | maybe | See top 4. Measure the bundle cost first. |
+| `shared/index.js` validator | validates themes and pictures | `valibot` 1.5 or `ajv` | keep | Checked 2026-11-09: see Outcome 4. |
 | `features/calendar/eventForm.ts`, `tasklists/validate.ts` | form checks | `valibot` | keep | These are small field rules with i18n messages, and a schema library adds no clarity here. |
 | `server/src/services/releaseNotes.ts`, `web/src/pwa/releaseNotes.ts` | reads CHANGELOG sections | `marked` | keep | It only splits our own fixed heading format. |
 | `web/src/theme/importText.ts` | cleans pasted AI text around JSON | none | keep | 27 lines of app-specific repairs. |
