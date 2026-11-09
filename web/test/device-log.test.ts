@@ -68,6 +68,15 @@ describe('device log', () => {
     expect(deviceLog.value.map((e) => e.summary)).toEqual(['TypeError: boom', 'unhandled RangeError: bad range']);
   });
 
+  it('leaves out the harmless ResizeObserver loop warning', () => {
+    const target = new EventTarget();
+    const stop = installDeviceLog(target);
+    target.dispatchEvent(Object.assign(new Event('error'), { message: 'ResizeObserver loop completed with undelivered notifications.' }));
+    target.dispatchEvent(Object.assign(new Event('error'), { message: 'ResizeObserver loop limit exceeded' }));
+    stop();
+    expect(deviceLog.value).toEqual([]);
+  });
+
   describe('share', () => {
     afterEach(() => vi.unstubAllGlobals());
     const stubDownload = () => {
