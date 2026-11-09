@@ -108,6 +108,10 @@ model {
       description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
     }
 
+    planScheduler = component 'Calendar plan scheduler' {
+      description 'Every 30 seconds and at start, sets a calendar\'s hidden flag at its plan\'s edges (weekly window, off for a while) and publishes the change; readers only ever read hidden (ADR 0037)'
+    }
+
     motivation = component 'Motivation' {
       description 'Points, streak and plant state per person; every change bumps the X-Motivation-Changed header'
     }
@@ -227,6 +231,7 @@ model {
 
   calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
   calendar.server.auth -> google 'signs the person in and receives their calendar access'
+  calendar.server.planScheduler -> calendar.server.publisher 'announces the calendars it switched'
   calendar.server.webPush -> webPushServices 'sends each reminder at its time, never twice'
   calendar.server.backup -> google 'keeps the last 7 versions in the person\'s hidden Drive app folder'
   calendar.web.signin -> calendar.server.auth 'starts the sign-in and checks the session'
