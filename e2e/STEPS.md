@@ -3353,7 +3353,7 @@ the event {string} stays inside its day column
 - "the entries are drawn S" (`solid`, `tinted` or `outline`): `PATCH /api/prefs/theme { overrides: { entries: S } }`.
 - "has a N px entry border": the computed left plus right border width of X's block is N px (the style was applied).
 - "has the narrow block padding": X's time grid block (`event-chip`) is at most 84 px wide (border box), its computed
-  padding is 3 px left, 2 px right, its title (`event-chip-title`) is 11 px and no duration (`.dur`) is visible. "has the normal block padding": wider than
+  padding is 3 px left, 2 px right, its title (`event-chip-title`) is 10 px (the phone scale of the narrow title, `--entry-meta`) and no duration (`.dur`) is visible. "has the normal block padding": wider than
   84 px, padding 6 px left, 5 px right, title 13 px. "stays inside its day column": X's chip box ends at or before its day column's right edge (0.5 px
   tolerance) and starts at or after its left edge.
 - "the event X is stacked on the event Y" (feature event-display) also checks that both blocks share a column: X's left

@@ -9,6 +9,7 @@ import { createAppRouter, warmView } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useAuthStore } from './stores/auth';
 import { useClockStore } from './stores/clock';
+import { useInkStore } from './stores/ink';
 import { useItemsStore } from './stores/items';
 import { useOutboxStore } from './stores/outbox';
 import { useDeviceStore } from './stores/device';
@@ -42,6 +43,8 @@ async function bootstrap() {
   if (location.pathname !== '/signin') {
     // the stores the outbox shows its changes through register with it when they are created
     useItemsStore();
+    // made here, not inside the first card's setup: its watchers would keep that card's DOM alive for good
+    useInkStore();
     await useOutboxStore().load();
   }
   const budget = shown ? undefined : AbortSignal.timeout(4000);

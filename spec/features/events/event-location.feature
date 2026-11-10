@@ -326,7 +326,7 @@ Feature: Places for an event's location
       And I pick the map picker result "Stadtbad Neukölln"
       And the map picker is centred on the place "Stadtbad Neukölln"
 
-    @visual
+    @visual @mobile
     Scenario Outline: The map picker and the event sheet look as drawn, light and dark
       Given the device prefers a <scheme> color scheme
       When I open the week view for 2026-10-12
@@ -345,7 +345,7 @@ Feature: Places for an event's location
         | light  |
         | dark   |
 
-    @visual @offline
+    @visual @mobile @offline
     Scenario Outline: The offline map picker looks as drawn, light and dark
       Given the device prefers a <scheme> color scheme
       When I open the week view for 2026-10-12

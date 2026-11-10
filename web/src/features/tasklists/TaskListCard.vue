@@ -1,3 +1,10 @@
+<script lang="ts">
+import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue';
+
+// module level, not in setup: a loader made per card is kept by the stylesheet preload and drags the first card's DOM along
+const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
+</script>
+
 <script setup lang="ts">
 /**
  * Collapsed task list card (registered for kind 'tasklist'), used in month cells, week/day all-day rows and as timed blocks.
@@ -18,7 +25,6 @@
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { badgeInitial } from './sharing';
-import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
@@ -44,8 +50,6 @@ import { cardLayout } from './layout';
 import { blockBudget } from '@/lib/lineBudget';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
-
-const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
 
 /** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
 const MINI_BELOW_PX = 92;

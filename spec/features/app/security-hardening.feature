@@ -12,7 +12,7 @@ Feature: The server protects itself and its people from the web
       When I request "GET <path>"
       Then the response header "X-Frame-Options" is "DENY"
       And the response header "Referrer-Policy" is "strict-origin-when-cross-origin"
-      And the response header "Permissions-Policy" is "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+      And the response header "Permissions-Policy" is "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
       And the response header "Content-Security-Policy" contains "default-src 'self'"
       And the response header "Content-Security-Policy" contains "frame-ancestors 'none'"
       And the response header "Content-Security-Policy" contains "object-src 'none'"

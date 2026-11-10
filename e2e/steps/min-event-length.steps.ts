@@ -73,14 +73,15 @@ async function look(w: World, view: string, date: string) {
         await w.page.waitForTimeout(30);
       }
       await expect(grid).toBeVisible();
-      // the zoom about the cell's middle can leave the day's first blocks above the viewport: pan (plain wheel) until they are in view
+      // the zoom about the cell's middle (a slow machine zooms to the maximum) can leave the blocks off screen, up or left behind the rail: pan (plain wheel) to the middle
       await layoutRests(grid);
       await grid.evaluate(async (el) => {
         const port = el.closest('.port')!;
         const blocks = [...el.querySelectorAll('.blk')].map((b) => b.getBoundingClientRect());
         const pr = port.getBoundingClientRect();
         const mid = (Math.min(...blocks.map((r) => r.top)) + Math.max(...blocks.map((r) => r.bottom))) / 2;
-        port.dispatchEvent(new WheelEvent('wheel', { deltaY: mid - (pr.top + pr.height / 2), bubbles: true, cancelable: true }));
+        const midX = (Math.min(...blocks.map((r) => r.left)) + Math.max(...blocks.map((r) => r.right))) / 2;
+        port.dispatchEvent(new WheelEvent('wheel', { deltaX: midX - (pr.left + pr.width / 2), deltaY: mid - (pr.top + pr.height / 2), bubbles: true, cancelable: true }));
       });
       return layoutRests(grid);
     }
