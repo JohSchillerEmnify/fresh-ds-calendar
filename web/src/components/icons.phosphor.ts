@@ -1,6 +1,6 @@
-/** Phosphor Duotone variant of every app icon (one chunk, see `icons.ts`); the plus is the regular one, as its duotone fill looks like a box. */
+/** Phosphor Duotone variant of every app icon (one chunk, see `icons.ts`); plus, check, x and dots are the regular ones, as their duotone fill looks like a box. */
 import type { Component } from 'vue';
-import MoreHorizP from '~icons/ph/dots-three-duotone';
+import MoreHorizP from '~icons/ph/dots-three';
 import ContentCopyOutlineP from '~icons/ph/copy-duotone';
 import ArchiveOutlineP from '~icons/ph/archive-duotone';
 import BookmarkAddP from '~icons/ph/bookmark-simple-duotone';
@@ -13,11 +13,11 @@ import CalendarMonthP from '~icons/ph/calendar-duotone';
 import CalendarViewDayP from '~icons/ph/calendar-dot-duotone';
 import CalendarViewMonthP from '~icons/ph/calendar-dots-duotone';
 import CalendarViewWeekP from '~icons/ph/columns-duotone';
-import CheckP from '~icons/ph/check-duotone';
+import CheckP from '~icons/ph/check';
 import ChevronLeftP from '~icons/ph/caret-left-duotone';
 import ChevronRightP from '~icons/ph/caret-right-duotone';
 import MenuP from '~icons/ph/list-duotone';
-import CloseP from '~icons/ph/x-duotone';
+import CloseP from '~icons/ph/x';
 import CloudOffP from '~icons/ph/cloud-slash-duotone';
 import DeleteOutlineP from '~icons/ph/trash-duotone';
 import DownloadP from '~icons/ph/download-duotone';

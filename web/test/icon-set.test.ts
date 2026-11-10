@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { IconAdd, IconCalendarMonth, IconCloudOff } from '@/components/icons';
+import { IconAdd, IconCalendarMonth, IconCheck, IconClose, IconCloudOff, IconMoreHoriz } from '@/components/icons';
 import { ICON_SETS, sanitizeFine } from '@/theme/fine';
 import { iconSet, type IconSet } from '@/theme/iconSet';
 
@@ -25,8 +25,8 @@ describe('app icons follow the icon set', () => {
     expect(shapes.every((s) => s.d.includes('<svg'))).toBe(true);
     expect(new Set(shapes.map((s) => s.d)).size).toBe(ICON_SETS.length);
   });
-  it('draw the Phosphor plus without the duotone fill that looks like a box', () => {
-    expect(drawn(IconAdd, 'phosphor').d).not.toContain('opacity');
+  it('draw the Phosphor plus, check, x and dots without the duotone fill that looks like a box', () => {
+    for (const icon of [IconAdd, IconCheck, IconClose, IconMoreHoriz]) expect(drawn(icon, 'phosphor').d).not.toContain('opacity');
     expect(drawn(IconCalendarMonth, 'phosphor').d).toContain('opacity');
   });
   it('an explicit set prop wins over the current set', () => {
