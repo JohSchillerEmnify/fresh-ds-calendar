@@ -366,6 +366,7 @@ I tick the checkbox of the task list {string}
 the titleless task list is struck through
 the titleless task list shows the text {string}
 in the titleless task list the checkbox leads the text on its first line
+the titleless task list shows {string} in its title slot with only its own checkbox
 the titleless task list and the event {string} wrap their text on the same number of lines
 the task list {string} shows no placeholder
 I tap the expanded task list {string}
@@ -4223,6 +4224,8 @@ in the {view} view of {date} the marker of {string} is {float} px
   size and weight and the same title box left and height as the other (only the text differs).
 - "I tick the checkbox of the (titleless) task list": clicks `tasklist-card-check` of the card.
 - "the titleless task list is struck through": its `tasklist-card-title` has `data-struck="true"` and a visible strike line.
+- "the titleless task list shows X in its title slot with only its own checkbox": `tasklist-card-lead` has `data-title` X, the card has one
+  `tasklist-card-check`, and the lead's `::before` item marker is not drawn.
 - "in the titleless task list the checkbox leads the text on its first line": `tasklist-card-check` is inside `tasklist-card-title`
   and its vertical centre lies within the title's first line box; the title shows one line only.
 - "the titleless task list and the event E wrap their text on the same number of lines": the visible lines of

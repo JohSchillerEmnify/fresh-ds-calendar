@@ -98,7 +98,8 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
       height: i.height || undefined,
       titleH: i.mini ? 15 : 17,
       rowH: i.inked ? INK_ROW_PX : i.mini ? 11 : 14,
-      pad: block ? 6 : 5,
+      // measured padding: narrow time-grid cards have 1 + 2 px, the others 3 + 3 px
+      pad: block ? (i.mini ? 3 : 6) : 5,
       footH: block && i.timed && !i.mini ? 14 : 0,
       minLines: block ? 0 : 1,
     });

@@ -414,6 +414,14 @@ Then('the task lists {string} and {string} show one checkbox, the same type, no 
   expect(x).toMatchObject({ checks: 1, count: 0, bar: 0, ring: 0, items: 0 });
 });
 
+Then('the titleless task list shows {string} in its title slot with only its own checkbox', async function (this: World, text: string) {
+  const lead = untitledCard(this).getByTestId('tasklist-card-lead');
+  await expect(lead).toHaveAttribute('data-title', text);
+  await expect(untitledCard(this).getByTestId('tasklist-card-check')).toHaveCount(1);
+  // the item marker is drawn as ::before: the first item in the title slot has none
+  expect(await lead.evaluate((e) => getComputedStyle(e, '::before').display)).toBe('none');
+});
+
 When('I tick the checkbox of the titleless task list', async function (this: World) {
   await untitledCard(this).getByTestId('tasklist-card-check').click();
 });

@@ -35,3 +35,13 @@ describe('cardLayout with one untitled item', () => {
     expect(cardLayout(base)).toMatchObject({ shown: 0, lead: true, inline: false });
   });
 });
+
+describe('cardLayout on a narrow time-grid card', () => {
+  const base = { variant: 'block', grown: false, titles: false, mini: true, timed: true, titled: false, open: 2, total: 2 };
+  it('shows both items when a 40 px card has room for both rows', () => {
+    expect(cardLayout({ ...base, height: 40 })).toMatchObject({ shown: 2, more: 0 });
+  });
+  it('shows the first item as a row (which fades out) on a 30 px card instead of hiding the rest without a cue', () => {
+    expect(cardLayout({ ...base, height: 30 })).toMatchObject({ shown: 1, more: 1, lead: false });
+  });
+});
