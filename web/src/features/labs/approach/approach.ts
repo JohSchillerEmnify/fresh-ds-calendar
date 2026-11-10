@@ -93,7 +93,7 @@ const chipEnd = (c: ApproachChip, gapPx: number) => c.x + c.width + (c.titleOuts
  * its width is its duration on the same scale (a running entry starts at now with the time it has left; at least `minBlockPx`, clipped at the track end). The title sits inside
  * when it fits, else right after the block (shortened to the room left on the track). The waiting entry (`atEnd`) is a
  * chip at the right end, at most a quarter of the track wide, title inside. Overlapping chips (block and outside title)
- * take a second row; with both rows taken a chip goes to the row that frees up first, the title of the chip before it
+ * take a second row; with both rows taken a chip goes to a row whose block it does not cover (else the row that frees up first), the title of the chip before it
  * is shortened to make room and, if it still overlaps, the new chip is `faded`; a block a later chip covers shows its title only in the part left (`visibleWidth`). Never more than {@link MAX_ROWS} rows.
  */
 export function approachLayout(
@@ -127,7 +127,10 @@ export function approachLayout(
     let row = last.findIndex((c) => chipEnd(c, gapPx) <= x);
     if (row < 0 && last.length < MAX_ROWS) row = last.length;
     if (row < 0) {
-      row = chipEnd(last[0], gapPx) <= chipEnd(last[1], gapPx) ? 0 : 1;
+      // prefer a row whose last block ends before this chip starts (only a title overlaps, and it can give way)
+      const freeBlock = [0, 1].filter((r) => last[r].x + last[r].width + (last[r].titleOutside ? gapPx : 0) <= x);
+      const pick = freeBlock.length ? freeBlock : [0, 1];
+      row = pick.reduce((a, b) => (chipEnd(last[a], gapPx) <= chipEnd(last[b], gapPx) ? a : b));
       const prev = last[row];
       // a block keeps its duration; only an outside title gives way
       if (prev.titleOutside) prev.titleWidth = Math.max(0, x - gapPx - (prev.x + prev.width));
