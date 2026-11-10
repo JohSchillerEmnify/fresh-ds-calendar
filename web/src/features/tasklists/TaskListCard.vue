@@ -159,7 +159,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
  <component
-    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
@@ -358,7 +358,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 @container (min-width: 70px) { .tl.grown[data-tight='true'] .count { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
 /* a tight pill (one line) keeps the title on that line with an ellipsis — the pill never grows past the real block */
 .tl.grown[data-tight='true'] .title, .tl.grown[data-tight='true'] .tx { white-space: nowrap; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); overflow-wrap: normal; hyphens: manual; }.tl.grown:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: auto; }
-.tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; justify-content: center; position: relative; min-width: 0; box-sizing: border-box; min-height: 44px; }
+.tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; position: relative; min-width: 0; }
+/* a one-item list gets a tap area of at least 44 px with the item centred; longer lists keep their natural height */
+.tl.grown.single:not(.flat) .extbox { justify-content: center; box-sizing: border-box; min-height: 44px; }
 .tl.grown:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); left: -1px; right: -1px; }
 .tl.grown:not(.flat) .pbar { display: none; }
 /* the list holds items only: the time foot is neither pill content nor an item (the pill sits on its time block anyway) */

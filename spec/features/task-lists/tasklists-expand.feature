@@ -230,6 +230,15 @@ Feature: A task list card grows in place over the calendar
     Then the items area of the expanded task list "Post" is at least 44 px tall
     And the item of the expanded task list "Post" is centred in its items area
 
+  Scenario: A list of two items keeps its natural items area
+    Given the calendar contains a task list "Post" on 2026-10-14 at 13:00 for 30 minutes with items:
+      | item   | done |
+      | Letter | no   |
+      | Parcel | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Post"
+    Then the items area of the expanded task list "Post" is under 44 px tall
+
   Scenario: The first item of the grown card is below its header
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"

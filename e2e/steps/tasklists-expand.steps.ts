@@ -381,3 +381,8 @@ Then('the item of the expanded task list {string} is centred in its items area',
   const item = await rectOf(grown(this, title).getByTestId('tasklist-card-item').first());
   expect(Math.abs((item.y + item.height / 2) - (area.y + area.height / 2)), 'item centre vs area centre').toBeLessThanOrEqual(3);
 });
+
+Then('the items area of the expanded task list {string} is under 44 px tall', async function (this: World, title: string) {
+  const r = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
+  expect(r.height).toBeLessThan(44);
+});

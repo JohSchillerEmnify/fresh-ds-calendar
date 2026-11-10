@@ -352,6 +352,7 @@ I tap the right end of the pill of the expanded task list
 I tap the checkbox in the pill of the expanded task list
 the titleless task list is collapsed
 the items area of the expanded task list {string} is at least 44 px tall
+the items area of the expanded task list {string} is under 44 px tall
 the item of the expanded task list {string} is centred in its items area
 the expanded task list {string} and the expanded task list {string} overlap
 the expanded task list {string} is drawn above the expanded task list {string}
