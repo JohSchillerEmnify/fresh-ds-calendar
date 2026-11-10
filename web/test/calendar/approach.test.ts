@@ -180,6 +180,17 @@ describe('approach bar layout', () => {
     expect(k.chips[0].width).toBe(60); // a block keeps its duration
     expect(k.chips[2].faded).toBe(true);
   });
+  it('does not cover another entry\'s block while an outside title in the other row can give way', () => {
+    // Alpha: block 20-30, title to 162 (row 0); Bravo block 40-100 (row 1); Charlie at 50 overlaps Alpha's title, not its block
+    const three = segsOf([
+      ev('a', t(D, '08:10'), t(D, '08:15'), { title: 'Alpha long title' }), ev('b', t(D, '08:20'), t(D, '08:50'), { title: 'B' }),
+      ev('c', t(D, '08:25'), t(D, '08:40'), { title: 'C' }),
+    ], D);
+    const l = at(8 * 60, 360, 180, three);
+    expect(l.chips.map((c) => c.row)).toEqual([0, 1, 0]);
+    expect(l.chips[0].titleWidth).toBe(16);
+    expect(l.chips[2].faded).toBe(false);
+  });
   it('clips the title of a block to the part a later chip on its row leaves uncovered', () => {
     const tight = segsOf([
       ev('a', t(D, '08:10'), t(D, '08:40'), { title: 'A' }), ev('b', t(D, '08:12'), t(D, '08:40'), { title: 'B' }),
