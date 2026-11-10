@@ -138,6 +138,7 @@ In practice:
 | Settings: `web/src/stores/prefs.ts` + `shared/prefs.js` (ADR 0035) | ESLint error on `localStorage`, `sessionStorage`, `indexedDB` in `components/`, `views/`, `features/`; dependency-cruiser `ui-not-to-device-db` for `idb` and `lib/deviceDb.ts` | the prefs store. Per-device UI state (collapse, last view) needs a line in the allow-list in `eslint.config.js` with a reason |
 | Device copy: stores + `stores/device.ts`, writes via the outbox (ADR 0023/0025) | ESLint warning on `import { api }` from `@/api/client` in `components/`, `views/`, `features/`; today's importers are held per file in `quality-baseline.json` (`lint`), so new ones fail | a store; `ApiError` and types may still be imported |
 | Colours: theme tokens in `web/src/theme` and the `m3` kit | `pnpm quality` gate `colors`: `#hex`, `rgb()`, `hsl()` per `.vue` file, ratcheted | `var(--...)` tokens |
+| Type sizes: the type tokens in `web/src/styles.css` and `--entry-*` in the theme | `pnpm quality` gate `fonts`: fixed `font-size: Npx` per `.vue` file, ratcheted | `calc(Npx * var(--dz, 1))`, `var(--entry-title)` |
 | Edit permission: `server/src/services/ownership.ts` | ESLint error on `accessRole` / `dataOwner` in `web/src` | `writable` (calendar) and `readOnly` (event) from the API |
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.

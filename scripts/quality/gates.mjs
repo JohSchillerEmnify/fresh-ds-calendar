@@ -149,4 +149,18 @@ async function colors() {
   return { counts, summary: `${total} colour literals in ${Object.keys(counts).length} .vue files (use theme tokens: var(--...) from web/src/theme)` };
 }
 
-export const GATES = { arch, dedup, types, lint, comments, knip, colors };
+/** Fixed px/pt `font-size:` values per .vue file; sizes come from the type tokens (calc/var expressions are fine) so they follow the density setting. */
+async function fonts() {
+  const literal = /font-size:\s*[0-9.]+(?:px|pt)\b/g;
+  const counts = {};
+  for (const f of vueFiles(join(root, 'web/src'))) {
+    const rel = relative(root, f);
+    if (rel.startsWith('web/src/components/m3/')) continue;
+    const n = (readFileSync(f, 'utf8').match(literal) ?? []).length;
+    if (n) counts[rel] = n;
+  }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, summary: `${total} fixed font sizes in ${Object.keys(counts).length} .vue files (use the type tokens: calc(Npx * var(--dz, 1)) or var(--entry-...))` };
+}
+
+export const GATES = { arch, dedup, types, lint, comments, knip, colors, fonts };
