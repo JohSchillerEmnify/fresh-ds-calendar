@@ -19,6 +19,7 @@ Feature: Credits
     And I open the credits
     Then the credits list shows "@vue/runtime-core" with the licence "MIT"
     And the credits list shows "Material Symbols" with the licence "Apache-2.0"
+    And the credits list shows "Solar Icon Set" with the licence "CC BY 4.0"
 
   Scenario: Every credit has an author and a link
     When I open the settings group "Account & app"

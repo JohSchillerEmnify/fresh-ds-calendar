@@ -33,6 +33,12 @@ describe('toCredits', () => {
   });
 });
 
+describe('icon set credits', () => {
+  it('Solar (CC BY 4.0) is credited with its author and a link', () => {
+    expect(EXTRA_CREDITS.find((c) => c.name === 'Solar Icon Set')).toEqual({ name: 'Solar Icon Set', author: '480 Design', license: 'CC BY 4.0', url: 'https://www.figma.com/community/file/1166831539721848736' });
+  });
+});
+
 describe('Android credits', () => {
   it('every Gradle dependency of the app shell is credited in extra.ts', () => {
     const gradle = readFileSync(join(__dirname, '../../android/app/build.gradle'), 'utf8');
