@@ -88,6 +88,19 @@ export interface CardLayout extends Fit {
  * Mini cards are too narrow for inline names (rows below the title instead); the lead only appears when no item renders
  * below, so nothing is shown twice.
  */
+/** A block with no room for rows, or a short one: rows below the title where they fit, else the names inline. */
+function shortFit(i: CardLayoutInput, f: Fit): Fit {
+  // mini cards are too narrow for inline names: rows below the title
+  if (i.mini) {
+    const shown = f.inline ? 0 : f.shown;
+    return { shown, more: i.open - shown, inline: false };
+  }
+  // a titled card under 400 px keeps its names in rows below the title when a row fits
+  if (!f.inline && i.titled && !!i.width && i.width < INLINE_MIN_WIDTH_PX) return f;
+  // inline names run on in one line and fade out at the right edge, so every open one is shown
+  return { shown: i.open, more: 0, inline: true };
+}
+
 export function cardLayout(i: CardLayoutInput): CardLayout {
   const block = i.variant === 'block';
   // a block too short for a second row drops the time line, also when no open item is left to go inline
@@ -109,16 +122,7 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
       footH: block && i.timed && !i.mini && !shortBlock ? 14 : 0,
       minLines: block ? 0 : 1,
     });
-    // mini cards are too narrow for inline names: rows below the title
-    if (i.mini && (f.inline || shortBlock)) {
-      const shown = f.inline ? 0 : f.shown;
-      return { shown, more: i.open - shown, inline: false };
-    }
-    // a titled card under 400 px keeps its names in rows below the title when a row fits
-    if (!f.inline && shortBlock && i.titled && !!i.width && i.width < INLINE_MIN_WIDTH_PX) return f;
-    // inline names run on in one line and fade out at the right edge, so every open one is shown
-    if (f.inline || shortBlock) return { shown: i.open, more: 0, inline: true };
-    return f;
+    return f.inline || shortBlock ? shortFit(i, f) : f;
   })();
   const lead = !i.grown && !i.titled && (single || i.variant === 'chip' || i.titles || fit.shown === 0);
   return { ...fit, shortBlock, foot: i.timed && !fit.inline && !shortBlock, lead };
