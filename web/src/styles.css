@@ -20,6 +20,22 @@
   --md-sys-typescale-label-medium: 600 calc(12px * var(--dz, 1))/16px var(--font);
   --md-sys-typescale-label-small: 600 calc(11px * var(--dz, 1))/16px var(--font);
 
+  /* Entry type scale: one set of sizes, weights and paddings for every entry in month, week and day; sizes follow the density factor
+     --dz and phones take one step smaller. Timed blocks keep the larger title (--entry-title-lg) only where they have room. */
+  --entry-title: calc(12px * var(--dz, 1));
+  --entry-title-lg: calc(13px * var(--dz, 1));
+  --entry-meta: calc(11px * var(--dz, 1));
+  --entry-micro: calc(10px * var(--dz, 1));
+  --entry-weight: 600;
+  --entry-font: var(--entry-weight) var(--entry-title)/16px var(--font);
+  --entry-mark: calc(var(--entry-title) * 0.9);
+  --entry-pad-chip: 1px 4px;
+  --entry-pad-bar: 1px 4px;
+  --entry-pad-allday: 1px 6px;
+  --entry-pad-block: 2px 5px 2px 6px;
+  --entry-pad-block-narrow: 1px 2px 1px 3px;
+  --entry-pad-card: 1px 4px 2px;
+
   --md-sys-motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --md-sys-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --md-sys-motion-duration-short: 150ms;
@@ -43,6 +59,19 @@
   --scroll-end: 96px; /* room at the end of a scrolling view so the + button never hides its last row */
   --rail-w: 80px;
   --hour-height: 44px;
+}
+
+@media (max-width: 767.98px) {
+  :root {
+    --entry-title: calc(10px * var(--dz, 1));
+    --entry-title-lg: calc(11px * var(--dz, 1));
+    --entry-meta: calc(10px * var(--dz, 1));
+    --entry-micro: calc(9px * var(--dz, 1));
+    --entry-font: var(--entry-weight) var(--entry-title)/14px var(--font);
+    --entry-pad-chip: 0 2px 0 3px;
+    --entry-pad-bar: 0 2px 0 3px;
+    --entry-pad-allday: 0 3px;
+  }
 }
 @media (min-width: 768px) {
   :root { --hour-height: 48px; }

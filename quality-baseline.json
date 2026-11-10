@@ -135,7 +135,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.07
+   "duplicated-percent": 0.068
   },
   "types": {
    "AppConfig": 1,
@@ -636,6 +636,28 @@
    "web/src/views/MonthView.vue": 2,
    "web/src/views/ThemeView.vue": 6,
    "web/src/views/settings/TaskListsGroup.vue": 1
+  },
+  "fonts": {
+   "web/src/components/calendar/BasicItem.vue": 2,
+   "web/src/components/calendar/TimeGrid.vue": 5,
+   "web/src/components/settings/ThemeCard.vue": 2,
+   "web/src/components/settings/ThemeSample.vue": 2,
+   "web/src/components/settings/TimeField.vue": 2,
+   "web/src/components/shell/AppTopBar.vue": 3,
+   "web/src/features/calendar/NowCard.vue": 2,
+   "web/src/features/labs/approach/ApproachBar.vue": 4,
+   "web/src/features/labs/htime/HorizontalTimeView.vue": 1,
+   "web/src/features/labs/strip/StripView.vue": 1,
+   "web/src/features/labs/zoom/ZoomMonthView.vue": 1,
+   "web/src/features/motivation/MotionLab.vue": 3,
+   "web/src/features/tasklists/TaskListDialog.vue": 1,
+   "web/src/features/tasklists/TaskListView.vue": 1,
+   "web/src/features/tasklists/TasksCanvas.vue": 1,
+   "web/src/views/ErrorLogView.vue": 2,
+   "web/src/views/MonthView.vue": 1,
+   "web/src/views/ThemeView.vue": 1,
+   "web/src/views/YearView.vue": 2,
+   "web/src/views/settings/AccountGroup.vue": 1
   }
  },
  "allowedIncreases": [
@@ -685,6 +707,14 @@
     "comments"
    ],
    "keys": 17
+  },
+  {
+   "date": "2026-11-10",
+   "reason": "new fonts gate: baseline of fixed px font sizes in .vue files",
+   "gates": [
+    "fonts"
+   ],
+   "keys": 23
   }
  ]
 }

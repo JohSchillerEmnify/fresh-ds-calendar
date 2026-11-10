@@ -4154,3 +4154,19 @@ the sheet says that adding a region needs a connection
   "knows only the public holidays of R" / "has no holiday calendar for R" make the plain / every variant answer 404 to the
   server's check (`POST /api/__test/holiday-missing`); "P has added the holiday region R as V" is a `calendarList.insert` of that
   id on P's mock account (as another Google client would). "no longer has ... in Google" reads P's raw calendar list.
+
+## Entry type scale (`@entry-scale`)
+
+```
+the density is {string}
+in the {view} view of {date} the title of {string} is {float} px at weight {int}
+in the {view} view of {date} the title of {string} fades out instead of ending in an ellipsis
+in the {view} view of {date} the marker of {string} is {float} px
+```
+
+- Each "in the V view of D" step opens that view (`/month/YYYY-MM`, `/week/D`, `/day/D`) and reads the first visible title
+  of the entry: the chip or block title, the multi-day bar title or the task list card title, whichever renders it.
+- "the density is S": `PATCH /api/prefs/theme { overrides: { density } }` (`Compact` 0.9, `Comfortable` 1, `Airy` 1.12).
+- "title is N px at weight W": computed `font-size` (1 decimal) and `font-weight` of that title.
+- "fades out instead of ending in an ellipsis": computed `text-overflow` is `clip` and `mask-image` is not `none`.
+- "the marker of X is N px": computed `font-size` of the first visible `event-marker` inside the entry titled X.

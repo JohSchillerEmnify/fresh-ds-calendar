@@ -202,11 +202,11 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 </template>
 
 <style scoped>
-.shbadge { flex: none; min-width: 14px; padding: 0 3px; border-radius: 7px; font-size: 9px; line-height: 14px; text-align: center; background: color-mix(in srgb, currentColor 18%, transparent); }
+.shbadge { flex: none; min-width: 14px; padding: 0 3px; border-radius: 7px; font-size: var(--entry-micro); line-height: 14px; text-align: center; background: color-mix(in srgb, currentColor 18%, transparent); }
 .tl {
   container-type: inline-size; position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; text-align: left;
   
-  padding: 1px 4px 2px; overflow: hidden; cursor: pointer; font: var(--md-sys-typescale-label-medium);
+  padding: var(--entry-pad-card); overflow: hidden; cursor: pointer; font: var(--entry-font);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: background var(--md-sys-motion-duration-medium), box-shadow var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
 }
@@ -223,9 +223,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 /* the grown card's title is a button of its own: it looks like the text it holds */
 .titlebtn { appearance: none; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .tl.grown:focus-visible, .titlebtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
-.emoji { flex: none; font-size: 11px; line-height: 1; }
+.emoji { flex: none; font-size: var(--entry-meta); line-height: 1; }
 .title {
-  flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: 500; line-height: 16px; text-overflow: ellipsis;
+  flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: var(--entry-weight); line-height: 16px; text-overflow: ellipsis;
 }
 /* the lead is the list's first item rendered in the title slot (an actual .it, so its marker and strike match the items
  * shown below); it just fills the row like a title would */
@@ -233,7 +233,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .meta { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 /* titleless: no title text, so the count badge keeps the right edge */
 .untitled .meta { margin-left: auto; }
-.count { font: var(--md-sys-typescale-label-small); font-size: 10px; padding: 0 5px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); line-height: 13px; }
+.count { font-size: var(--entry-micro); font-weight: var(--entry-weight); padding: 0 5px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); line-height: 13px; }
 html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion-spring) both; }
 
 /* task marker: tiny checkbox in the category colour, empty / partly filled / checked */
@@ -252,21 +252,21 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .it.lead:has(.inkitem) { flex: 1 1 0; padding-left: 0; }
 .it.lead:has(.inkitem)::before { display: none; }
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
-.items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
+.items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
 .items .sep { display: none; }
 .it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 12px; }
 .it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--on); border-radius: 2px; }
 .it.done::before { background: var(--on); }
 .it.over { display: none; }
-.tl { --fs: 11px; }
-.tl.mini { --fs: 9px; }
+.tl { --fs: var(--entry-meta); }
+.tl.mini { --fs: var(--entry-micro); }
 .it { font-size: var(--fs); }
 /* truncated list: the rows that do not fit are cut, the last visible row fades out at the bottom (no count) */
 .items[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
-.from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
-.row .est { flex: none; font-size: 10px; }
+.from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: var(--entry-micro); line-height: 14px; }
+.row .est { flex: none; font-size: var(--entry-micro); }
 .card .row .est, .card .row .from, .mini .row .est, .block[data-fit='inline'] .from { display: none; }
 .titles { padding-top: 1px; padding-bottom: 1px; }
 .titles .row { min-height: 20px; }
@@ -383,7 +383,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
 .mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
-.mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+.mini .title { font-size: var(--entry-title); line-height: 14px; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
 .mini .items, .mini .it { line-height: 11px; }
@@ -392,7 +392,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini.allday, .mini.block { padding: 1px 2px 2px 3px; }
 .mini .foot { display: none; }
 .mini.block .foot { display: none; }
-.mini .time, .mini .est, .mini .from { font-size: 9px; line-height: 11px; }
+.mini .time, .mini .est, .mini .from { font-size: var(--entry-micro); line-height: 11px; }
 .mini .from { flex: none; max-width: none; padding: 0 2px; }
 
 /* narrow cards: title keeps priority */

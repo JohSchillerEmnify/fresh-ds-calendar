@@ -50,9 +50,9 @@ const current = computed(() => isToday.value && !props.segment.allDay && props.s
 const h = computed(() => props.height ?? 0);
 // only a time grid block's look depends on its width: chips are not observed (a month holds hundreds, and each mount read forces a layout)
 // One border-box observer per block: the border box does not change with the padding or the entry
-// style's border, so the narrow look (tight padding and 11 px type together) cannot flip back and forth or disagree.
+// style's border, so the narrow look (tight padding and smaller type together) cannot flip back and forth or disagree.
 const { width: boxWidth } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)), undefined, { box: 'border-box' });
-/** Narrow blocks (border box <= 84 px) use the tight padding and 11 px / 13 px type. */
+/** Narrow blocks (border box <= 84 px) use the tight padding and the smaller type (--entry-meta, 13 px lines). */
 const narrow = computed(() => boxWidth.value > 0 && boxWidth.value <= 84);
 /** Left plus right border of the page's entry style (0 solid, 3 tinted, 4 outline), reactive so a live style change counts. */
 const border = computed(() => entryBorderPx(entryStyle.value));
@@ -109,45 +109,45 @@ const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value 
 <style scoped>
 .ev {
   display: flex; min-width: 0; width: 100%; text-align: left;
-  font: var(--md-sys-typescale-label-medium);
-  padding: 1px 4px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  font: var(--entry-font);
+  padding: var(--entry-pad-chip); overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .ev[data-dragging='true'] { cursor: grabbing; }
-.mark { margin-right: 3px; font-size: 0.9em; }
+.mark { margin-right: 3px; font-size: var(--entry-mark); }
 /* the handles stick out of the block: the title and meta lines clip themselves */
 .ev.resizing { position: relative; overflow: visible; }
 .ev.past { opacity: 0.62; }
 .ev.current { box-shadow: 0 0 0 1.5px var(--md-sys-color-surface), 0 0 0 3px var(--c), var(--glow-sh); }
 html[data-calm='true'] .ev { filter: saturate(0.55); }
 
-.chip { min-height: 18px; align-items: center; gap: 4px; line-height: 16px; }
+.chip { min-height: 18px; align-items: center; gap: 4px; }
 .chip .title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; flex: 1; }
 .chip .time { flex: none; font-weight: 500; opacity: 0.85; font-variant-numeric: tabular-nums; }
 .dot { width: 8px; min-height: 8px; height: 8px; padding: 0; border: 0; background: var(--c); border-radius: 50%; }
 
-.allday { min-height: 22px; align-items: center; padding: 1px 6px; }
+.allday { min-height: 22px; align-items: center; padding: var(--entry-pad-allday); }
 .allday .title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
+.block { height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: var(--entry-pad-block); border-radius: var(--r-block); box-shadow: var(--block-sh); }
 .block .title {
-  font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
+  font-size: var(--entry-title-lg); line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
 }
-.block .meta { font: var(--md-sys-typescale-label-small); font-size: 11px; line-height: 14px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; font-variant-numeric: tabular-nums; }
-.block .desc { font-size: 11px; line-height: 14px; opacity: 0.8; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--dlines); line-clamp: var(--dlines); overflow: hidden; overflow-wrap: break-word; flex: none; }
+.block .meta { font-size: var(--entry-meta); font-weight: var(--entry-weight); line-height: 14px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; font-variant-numeric: tabular-nums; }
+.block .desc { font-size: var(--entry-meta); line-height: 14px; opacity: 0.8; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--dlines); line-clamp: var(--dlines); overflow: hidden; overflow-wrap: break-word; flex: none; }
 .block.nofirst { border-top-left-radius: 0; border-top-right-radius: 0; }
 .block.nolast { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.block.narrow { padding: 1px 2px 1px 3px; }
-.block.narrow .title { font-size: 11px; line-height: 13px; letter-spacing: -0.2px; }
+.block.narrow { padding: var(--entry-pad-block-narrow); }
+.block.narrow .title { font-size: var(--entry-meta); line-height: 13px; letter-spacing: -0.2px; }
 .block.narrow .dur { display: none; }
 
-/* phones: smaller type, tight padding, no ellipsis in the month: clip with a fade instead */
+/* phones: tighter boxes (type and padding come from the --entry-* tokens); clip with a fade instead of an ellipsis */
 @media (max-width: 767.98px) {
-  .chip { font: var(--md-sys-typescale-label-small); font-size: 10px; line-height: 14px; min-height: 16px; padding: 0 2px 0 3px; }
+  .chip { min-height: 16px; }
   .chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
-  .allday { font-size: 10px; line-height: 14px; min-height: 18px; padding: 0 3px; }
+  .allday { min-height: 18px; }
   .allday .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 </style>

@@ -201,7 +201,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 /* bars overlay the cells just below the day number (cell padding 2/4px + number 28/20px + gap) */
 .bars { position: absolute; z-index: 2; left: 0; right: 0; top: 34px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; pointer-events: none; }
 .phone .bars { top: 22px; }
-@media (min-width: 768px) { .bars { top: 35px; } .bars :deep(.bar) { font-size: 12px; } }
+@media (min-width: 768px) { .bars { top: 35px; } }
 .num { align-self: center; width: 28px; height: 28px; flex: none; border-radius: 50%; font: var(--md-sys-typescale-label-large); display: flex; align-items: center; justify-content: center; }
 .outside .num { color: var(--md-sys-color-on-surface-variant); opacity: 0.55; }
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
@@ -216,5 +216,5 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
 .phone .cell { cursor: pointer; padding: 1px 1px 0; gap: 1px; }
 .phone .num { width: 20px; height: 20px; font-size: 12px; line-height: 20px; }
-@media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } .chips :deep(.ev) { font-size: 12px; } }
+@media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } }
 </style>
