@@ -307,7 +307,6 @@ the collapsed task list {string} lists the items {string}
 the collapsed titleless task list lists the items {string}
 the titleless task list on {date} is labelled {string}
 the titleless task list has no title row and shows no item as its title
-the collapsed task list {string} shows {string}
 the task list {string} is positioned at {time}
 the task list {string} is shown in the all-day area on {date}
 I expand the task list {string}
@@ -360,6 +359,15 @@ I tap the expanded task list {string} above the expanded task list {string}
 the task list {string} is grown but out of sight
 I tap the task list {string}
 I tap the titleless task list
+the list sheet of the titleless task list is open
+the task lists {string} and {string} show one checkbox, the same type, no count and no progress bar
+I tick the checkbox of the titleless task list
+I tick the checkbox of the task list {string}
+the titleless task list is struck through
+the titleless task list shows the text {string}
+in the titleless task list the checkbox leads the text on its first line
+the titleless task list and the event {string} wrap their text on the same number of lines
+the task list {string} shows no placeholder
 I tap the expanded task list {string}
 I tap the item {string} of the expanded task list
 I note where the event {string} is
@@ -4192,3 +4200,19 @@ in the {view} view of {date} the marker of {string} is {float} px
 - "fades out instead of ending in an ellipsis": computed `text-overflow` is `clip`, `-webkit-line-clamp` is `none` (a
   line clamp draws its own ellipsis) and `mask-image` is not `none`.
 - "the marker of X is N px": computed `font-size` of the first visible `event-marker` inside the entry titled X.
+
+## One-line task lists (`@one-line`)
+
+- "the list sheet of the titleless task list is open": a `tasklist-expanded` that is not the grown overlay is visible.
+- "the task lists A and B show one checkbox, the same type, no count and no progress bar": for the cards titled A and B ("" = the
+  titleless one), each has exactly one `tasklist-card-check`, no `tasklist-card-count`, `tasklist-card-bar` or
+  `tasklist-progress-ring`, no visible `tasklist-card-item`, and the same card height, the same `tasklist-card-title` font
+  size and weight and the same title box left and height as the other (only the text differs).
+- "I tick the checkbox of the (titleless) task list": clicks `tasklist-card-check` of the card.
+- "the titleless task list is struck through": its `tasklist-card-title` has `data-struck="true"` and a visible strike line.
+- "in the titleless task list the checkbox leads the text on its first line": `tasklist-card-check` is inside `tasklist-card-title`
+  and its vertical centre lies within the title's first line box; the title shows one line only.
+- "the titleless task list and the event E wrap their text on the same number of lines": the visible lines of
+  `tasklist-card-title` (its box height over its computed line height) equal those of `event-chip-title` of the event E.
+- "the titleless task list shows the text T": its `tasklist-card-title` has exactly the text T.
+- "the task list X shows no placeholder": the card has no `tasklist-card-items`.

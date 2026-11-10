@@ -29,9 +29,9 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel, isComplete } from './format';
+import { carriedLabel, isComplete, singleTask } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
-import { addItem, moveItemTo, patchItem } from './ops';
+import { addItem, moveItemTo, patchItem, toggleSingleTask } from './ops';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
@@ -127,10 +127,11 @@ function finish() {
 /** A list with a title and no items is one task: ticking its title makes the title the first item, already ticked. */
 const titleTick = computed(() => !!tl.value && tl.value.items.length === 0 && !!displayTitle(tl.value));
 function tickTitle() {
-  if (!tl.value || !titleTick.value) return;
+  const task = tl.value && titleTick.value ? singleTask(tl.value) : null;
+  if (!task) return;
   strikeDraw.value = null;
   // ticks stay with each list, so no "following lists" question: later occurrences remain title-only and tickable
-  addItem(props.id, displayTitle(tl.value).slice(0, TITLE_MAX), 'this', true);
+  toggleSingleTask(props.id, task);
   finish();
 }
 

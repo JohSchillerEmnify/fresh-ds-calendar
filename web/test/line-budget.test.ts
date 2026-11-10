@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockBudget, wrapLines } from '@/features/calendar/lineBudget';
+import { blockBudget, wrapLines } from '@/lib/lineBudget';
 
 const base = { title: 'Car service', width: 47, padV: 4, lineH: 13, timeH: 14, charW: 5.6, padH: 6 };
 describe('event block line budget', () => {

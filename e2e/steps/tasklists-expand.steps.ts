@@ -386,3 +386,76 @@ Then('the items area of the expanded task list {string} is under 44 px tall', as
   const r = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
   expect(r.height).toBeLessThan(44);
 });
+
+// --- one-line task lists (feature tasklists-one-line) ---------------------------------------------------------
+
+const untitledCard = (w: World) => w.page.locator(`${tid('tasklist-card')}${attr('data-untitled', 'true')}`).first();
+const cardTitled = (w: World, title: string) => (title ? w.taskCard(title) : untitledCard(w));
+
+Then('the list sheet of the titleless task list is open', async function (this: World) {
+  await expect(this.page.locator(`${tid('tasklist-expanded')}:not(${attr('data-presentation', 'overlay')})`).first()).toBeVisible();
+});
+
+const looks = (card: Locator) => card.evaluate((c) => {
+  const title = c.querySelector('[data-testid="tasklist-card-title"]')!;
+  const cs = getComputedStyle(title);
+  const tb = title.getBoundingClientRect();
+  return {
+    checks: c.querySelectorAll('[data-testid="tasklist-card-check"]').length, count: c.querySelectorAll('[data-testid="tasklist-card-count"]').length,
+    bar: c.querySelectorAll('[data-testid="tasklist-card-bar"]').length, ring: c.querySelectorAll('[data-testid="tasklist-progress-ring"]').length,
+    items: [...c.querySelectorAll('[data-testid="tasklist-card-item"]')].filter((i) => i.getBoundingClientRect().height > 1).length,
+    height: Math.round(c.getBoundingClientRect().height), size: cs.fontSize, weight: cs.fontWeight, titleLeft: Math.round(tb.left - c.getBoundingClientRect().left), titleHeight: Math.round(tb.height),
+  };
+});
+
+Then('the task lists {string} and {string} show one checkbox, the same type, no count and no progress bar', async function (this: World, a: string, b: string) {
+  const [x, y] = [await looks(cardTitled(this, a)), await looks(cardTitled(this, b))];
+  expect(x).toEqual(y);
+  expect(x).toMatchObject({ checks: 1, count: 0, bar: 0, ring: 0, items: 0 });
+});
+
+When('I tick the checkbox of the titleless task list', async function (this: World) {
+  await untitledCard(this).getByTestId('tasklist-card-check').click();
+});
+
+When('I tick the checkbox of the task list {string}', async function (this: World, title: string) {
+  await this.taskCard(title).getByTestId('tasklist-card-check').click();
+});
+
+Then('the titleless task list is struck through', async function (this: World) {
+  const el = untitledCard(this).getByTestId('tasklist-card-title');
+  await expect(el).toHaveAttribute('data-struck', 'true');
+  await expect(el.getByTestId('strike-line')).toBeVisible();
+});
+
+Then('the titleless task list shows the text {string}', async function (this: World, text: string) {
+  await expect(untitledCard(this).getByTestId('tasklist-card-title')).toHaveText(exactText(text));
+});
+
+const lineCount = (el: Locator) => el.evaluate((e) => {
+  const lh = parseFloat(getComputedStyle(e).lineHeight);
+  return { lines: Math.round(e.getBoundingClientRect().height / lh), lh };
+});
+
+Then('in the titleless task list the checkbox leads the text on its first line', async function (this: World) {
+  const title = untitledCard(this).getByTestId('tasklist-card-title');
+  const r = await title.evaluate((t) => {
+    const cb = t.querySelector('[data-testid="tasklist-card-check"]')!.getBoundingClientRect();
+    const tb = t.getBoundingClientRect();
+    return { mid: (cb.top + cb.bottom) / 2, top: tb.top, lh: parseFloat(getComputedStyle(t).lineHeight), height: tb.height };
+  });
+  expect(r.mid, 'checkbox centre on the first line').toBeGreaterThanOrEqual(r.top);
+  expect(r.mid, 'checkbox centre on the first line').toBeLessThanOrEqual(r.top + r.lh);
+  expect(r.height, 'one line only').toBeLessThanOrEqual(r.lh + 1);
+});
+
+Then('the titleless task list and the event {string} wrap their text on the same number of lines', async function (this: World, event: string) {
+  const list = await lineCount(untitledCard(this).getByTestId('tasklist-card-title'));
+  const ev = await lineCount(this.page.locator(`${tid('event-chip')}${attr('data-title', event)}`).getByTestId('event-chip-title'));
+  expect(list.lines, 'lines of the list text').toBe(ev.lines);
+  expect(list.lines, 'the text wraps').toBeGreaterThan(1);
+});
+
+Then('the task list {string} shows no placeholder', async function (this: World, title: string) {
+  await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveCount(0);
+});

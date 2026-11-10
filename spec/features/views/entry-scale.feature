@@ -6,7 +6,8 @@ Feature: The same kind of entry looks the same in every view
   the day may keep a slightly larger title, since it has room that a month chip has not. Smaller differences are gone
   too: on a phone a one-line entry title (chip, bar, all-day entry, task list card) fades out in every view, never an
   ellipsis in one and a fade in another. A multi-line timed block in the week and the day keeps the ellipsis on a cut
-  title, since a fade cannot show a cut where the last line ends at a word break. The
+  title, since a fade cannot show a cut where the last line ends at a word break; a block only one line tall is a
+  one-line entry and fades out. The
   birthday and anniversary marker has one size, and each kind of entry (chip, bar, all-day entry, block, card) has one
   padding. The sizes, weights and paddings are the shared `--entry-*` tokens in `web/src/styles.css`. The component
   golden `web/goldens/EntryScale.golden.ts` is the reference for how an entry looks at every size: minimum, small,
@@ -105,6 +106,16 @@ Feature: The same kind of entry looks the same in every view
       | month |
       | week  |
       | day   |
+
+  @mobile
+  Scenario Outline: On a phone a timed entry only one line tall fades out
+    Given the calendar contains an event "Quarterly planning with the whole extended team" on 2026-10-14 from 10:00 to 10:15
+    Then in the <view> view of 2026-10-14 the title of "Quarterly planning with the whole extended team" fades out instead of ending in an ellipsis
+
+    Examples:
+      | view |
+      | week |
+      | day  |
 
   @desktop
   Scenario Outline: The birthday marker has one size in every view

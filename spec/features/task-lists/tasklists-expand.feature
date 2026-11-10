@@ -120,6 +120,7 @@ Feature: A task list card grows in place over the calendar
     Given the calendar contains a task list "" on 2026-10-14 at 11:00 for 30 minutes with items:
       | item | done |
       | Milk | no   |
+      | Eggs | no   |
     When I open the day view for 2026-10-14
     And I tap the titleless task list
     Then the titleless task list is expanded over the calendar
@@ -208,6 +209,7 @@ Feature: A task list card grows in place over the calendar
     Given the calendar contains a task list "" on 2026-10-14 at 11:00 for 30 minutes with items:
       | item | done |
       | Milk | no   |
+      | Eggs | no   |
     When I open the day view for 2026-10-14
     And I tap the titleless task list
     And I tap the right end of the pill of the expanded task list

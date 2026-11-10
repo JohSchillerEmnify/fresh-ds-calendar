@@ -316,12 +316,13 @@ describe('the task list form on a repeating list', () => {
     await vi.waitFor(() => expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items?scope=following']));
   });
 
-  it('ticking the title of a repeating title-only list adds a ticked item for this list without asking', async () => {
-    const m = await open(week({ items: [], totalCount: 0 }), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
+  it('ticking the title of a repeating title-only list moves the title into a ticked item for this list without asking', async () => {
+    const m = await open(week({ items: [], totalCount: 0 }), { 'POST /api/tasklists/W_20261019/items': answer(week()), 'PATCH /api/tasklists/W_20261019': answer(week()) });
     (q(`${tid('tasklist-title-item-checkbox')} input`) as HTMLInputElement).click();
     await flushPromises();
     expect(asked()).toBeNull();
-    expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items']);
+    expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items', 'PATCH /api/tasklists/W_20261019']);
+    expect(m.calls.find((c) => c.method === 'PATCH')!.body).toEqual({ title: '' });
     expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ id: expect.any(String), title: 'Clean', done: true });
   });
 

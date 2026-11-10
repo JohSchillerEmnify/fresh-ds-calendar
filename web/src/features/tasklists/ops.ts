@@ -3,6 +3,8 @@
  * order whenever there is a connection; a refused one is undone and reported there.
  */
 import type { ChangeScope, TaskList } from '@/api/types';
+import { TITLE_MAX } from '@calendar/shared/limits';
+import type { SingleTask } from './format';
 import { moveTo } from './reorder';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
@@ -15,6 +17,13 @@ export function patchItem(listId: string, itemId: string, patch: { title?: strin
 /** Add an item at the end (`done`: already ticked); the add names the item's id, so a resend never adds it twice. */
 export function addItem(listId: string, title: string, scope?: ChangeScope, done?: boolean): void {
   useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done);
+}
+
+/** Tick (or untick) the one task of a one-line list; a title-only list moves its title into the one ticked item and has no title after (it is then the same as a list of one item). */
+export function toggleSingleTask(listId: string, task: SingleTask): void {
+  if (task.item) { patchItem(listId, task.item.id, { done: !task.done }); return; }
+  addItem(listId, task.text.slice(0, TITLE_MAX), 'this', true);
+  useOutboxStore().updateList(listId, { title: '' });
 }
 
 /** Remove an item; `done` is called at once (the change is kept in the outbox). */

@@ -1,7 +1,7 @@
 @tasklists @items @id:tasklist-title-only
 Feature: A task list with only a title can be ticked
   A task list that has a title but no items is a single task: its list view offers a tick box beside the title.
-  Ticking it turns the title into the list's first (and only) item, already ticked, so the list is done like any list
+  Ticking it moves the title into the list's first (and only) item, already ticked, and the list has no title any more, so it is done like any list
   whose items are all ticked. This holds only while the list has no items; a list with one or more items behaves as
   usual, and a list without a title offers nothing to tick.
 
@@ -24,7 +24,7 @@ Feature: A task list with only a title can be ticked
     And the item "Ideas" is ticked
     And the expanded task list offers no tick box for its title
     When I reload the page
-    And I expand the task list "Ideas"
+    And I tap the titleless task list
     Then the item "Ideas" is ticked
 
   Scenario: A task list with items offers no tick box for its title
