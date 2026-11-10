@@ -84,7 +84,7 @@ Then('the event {string} has the narrow block padding', async function (this: Wo
   await expect.poll(async () => {
     const b = await blockBox(this, title);
     return b.width <= 84 ? `${b.left} ${b.right} ${b.font}${b.durShown ? ' with duration' : ''}` : `wide: ${b.width}`;
-  }).toBe('3px 2px 11px');
+  }).toBe('3px 2px 10px');
 });
 
 Then('the event {string} has the normal block padding', async function (this: World, title: string) {
