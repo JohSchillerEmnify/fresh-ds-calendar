@@ -41,6 +41,13 @@ onMounted(() => { for (const e of ['pointerdown', 'touchstart']) window.addEvent
 onBeforeUnmount(() => { for (const e of ['pointerdown', 'touchstart']) window.removeEventListener(e, down, true); for (const e of ['pointerup', 'touchend', 'touchcancel']) window.removeEventListener(e, up, true); });
 /** The card's line carries the time left only when the person keeps that line on. */
 const currentLine = computed(() => (prefs.approachTimeLeft ? model.value.current?.line : model.value.current?.title));
+// with the time left off the track already shows the running entry: no title line and no progress bar on top of it
+// the time left never gives way to a long title: the title shrinks, " · 30 min left" stays whole
+const lineTail = computed(() => {
+  const c = model.value.current;
+  return c && prefs.approachTimeLeft && c.line.startsWith(c.title) ? c.line.slice(c.title.length) : '';
+});
+const lineShown = computed(() => !!model.value.current && (prefs.approachTimeLeft || !track.value));
 const entered = ref(0);
 </script>
 
@@ -51,11 +58,11 @@ const entered = ref(0);
     :style="{ '--c': model.current?.color }"
   >
     <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
-      <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ currentLine }}</p>
+      <p v-if="lineShown" class="line strong" :class="{ split: lineTail }" data-testid="now-card-line"><template v-if="lineTail"><span class="head">{{ model.current?.title }}</span><span class="tail">{{ lineTail }}</span></template><template v-else>{{ currentLine }}</template></p>
       <p v-if="!track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
     <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" :bands="bands" />
-    <div v-if="model.current" class="bar" data-testid="now-progress" role="progressbar" :aria-label="t('calendar.now.progress')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
+    <div v-if="model.current && prefs.approachTimeLeft" class="bar" data-testid="now-progress" role="progressbar" :aria-label="t('calendar.now.progress')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
       <span class="fill" :style="{ transform: `scaleX(${(100 - model.current.elapsedPercent) / 100})` }" />
     </div>
   </section>
@@ -71,6 +78,9 @@ const entered = ref(0);
 /* the approach track keeps its rows inside the slim card */
 .now-card.track { max-height: none; padding-top: 2px; padding-bottom: 3px; }
 .one { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.line.split { display: flex; }
+.line.split .head { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.line.split .tail { flex: none; white-space: pre; }
 .line { margin: 0; font: var(--md-sys-typescale-body-medium); font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .strong { flex: 0 1 auto; font: var(--md-sys-typescale-title-medium); font-size: 14px; line-height: 20px; }
 .next { flex: 1 1 0; min-width: 0; opacity: 0.85; }

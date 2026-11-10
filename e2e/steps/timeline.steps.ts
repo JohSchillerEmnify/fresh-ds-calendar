@@ -119,6 +119,12 @@ Then('the now card shows the line {string}', async function (this: World, line: 
     .toContain(line);
 });
 
+Then('the now card shows no line and no progress bar', async function (this: World) {
+  await expect(nowCard(this)).toBeVisible();
+  await expect(nowCard(this).getByTestId('now-card-line')).toHaveCount(0);
+  await expect(nowCard(this).getByTestId('now-progress')).toHaveCount(0);
+});
+
 Then('the now card does not show a current event', async function (this: World) {
   await expect(nowCard(this)).toBeVisible();
   await expect(nowCard(this).getByTestId('now-card-current')).toHaveCount(0);

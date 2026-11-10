@@ -1181,6 +1181,7 @@ the now marker is visible on screen
 the time grid is scrolled to show {time} at the top
 the now card shows the line {string}
 the now card does not show a current event
+the now card shows no line and no progress bar
 the current event progress is {int} percent
 the now card stayed in place
 I see the transition warning {string}
@@ -1831,6 +1832,8 @@ the clock shades no time
 the clock shades the time until {time}
 the clock shows the all-day event {string}
 the approach bar is on
+the approach bar is off
+the time left in the Approaching card is on
 the approaching track is off
 I set the approaching window to {int} hours in the settings
 I switch off the Approaching card in the settings

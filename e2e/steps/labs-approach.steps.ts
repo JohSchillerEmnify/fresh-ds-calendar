@@ -213,6 +213,14 @@ Then('on the approach bar {string} starts at now and shows {int} minutes', async
   await expect.poll(async () => Math.abs((await blockWidth(this, title)) / ((await pxPerMinute(this)) * minutes) - 1)).toBeLessThanOrEqual(0.1);
 });
 
+Given('the time left in the Approaching card is on', async function (this: World) {
+  await this.api.patch('/api/prefs', { approachTimeLeft: true });
+});
+
+Given('the approach bar is off', async function (this: World) {
+  await this.api.patch('/api/prefs', { approachBar: false });
+});
+
 Given('the Approaching card is off', async function (this: World) {
   await this.api.patch('/api/prefs', { approachingCard: false });
 });
