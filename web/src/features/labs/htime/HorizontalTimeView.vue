@@ -98,11 +98,12 @@ function applyTransform(x: number, y: number, kx: number, ky: number): void {
 const ctl = createZoomController({ z: zoom.value, x: 0, y: 0 }, {
   size: () => ({ w: vw.value, h: vh.value }),
   origin: () => { const r = port.value?.getBoundingClientRect(); return { x: r?.left ?? 0, y: r?.top ?? 0 }; },
-  // an expanded task list card is anchored to where the card was: a pan or zoom ends it
   live: (x, y, kx, ky) => { applyTransform(x, y, kx, ky); },
   commit: (nz, x, y) => {
     zoom.value = nz;
     applyTransform(x, y, 1, 1);
+    // a grown task list card follows its card to the new place (it listens to resize)
+    window.dispatchEvent(new Event('resize'));
     writeStoredHZoom(nz);
   },
 }, horizontalModel((z) => layoutAt(z).height));

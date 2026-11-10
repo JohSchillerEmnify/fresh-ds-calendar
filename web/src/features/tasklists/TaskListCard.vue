@@ -9,7 +9,7 @@
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap expands the card in place
- * (`ExpandedCard`, one at a time, remembered on this device in the `ui` store: a card that mounts for a remembered list grows again). The expansion renders this same card with the `grown` prop: full
+ * (`ExpandedCard`, several at once, remembered on this device in the `ui` store: a card that mounts for a remembered list grows again). The expansion renders this same card with the `grown` prop: full
  * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on it emits
  * `open-list` (the host opens the list sheet).
  */
@@ -66,8 +66,7 @@ const clock = useClockStore();
 /** The card's day is over: a remembered expansion ends then (an open list from a past day shows carried to today). */
 const past = computed(() => props.segment.date < clock.today);
 /**
- * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows — also a time block that already shows every item: the grown card is
- * the pill-and-list presentation shown on a tap, never a detour to the sheet.
+ * A tap on the collapsed card grows it (also a block that already shows every item); only the grown card's title collapses it.
  */
 function toggle() {
   // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
@@ -168,15 +167,15 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-      <component :is="grown ? 'button' : 'span'" v-if="title" class="title" :class="{ titlebtn: grown }" :type="grown ? 'button' : undefined" :aria-label="grown ? t('tasks.card.collapse', { title }) : undefined" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></component>
-      <button v-else-if="grown" type="button" class="titlebtn sr" data-testid="tasklist-card-title" :aria-label="t('tasks.card.collapseUntitled')" />
+       <component :is="grown ? Pressable : 'span'" v-if="title" class="title" :class="{ titlebtn: grown }" :aria-label="grown ? t('tasks.card.collapse', { title }) : undefined" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></component>
+      <Pressable v-else-if="grown" class="titlebtn sr" data-testid="tasklist-card-title" :aria-label="t('tasks.card.collapseUntitled')" />
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>

@@ -119,7 +119,6 @@ let stops: Disposer[] = [];
 let ro: ResizeObserver | null = null;
 onMounted(() => {
   ui.setPanel(panelName, true);
-  grownStarts.set(layerKey, props.segment.startMin);
   place();
   void nextTick(() => (panel.value?.querySelector('button') as HTMLElement | null)?.focus({ preventScroll: true }));
   stops.push(
@@ -142,6 +141,8 @@ onBeforeUnmount(() => {
 
 // The card moved on screen (the calendar re-laid out): follow it.
 watch(() => props.anchor, place);
+// editing the list's time behind its sheet re-orders the stack
+watch(() => props.segment.startMin, (m) => grownStarts.set(layerKey, m), { immediate: true });
 // A zoom commit lays the blocks out again: the position follows by itself (time units), the direction and room are measured again once the new layout is in.
 watch(hourHeight, () => { void nextTick(place); });
 
@@ -151,7 +152,7 @@ function covered(): boolean {
   if (!mine) return false;
   const z = (e: Element) => Number(getComputedStyle(e).zIndex) || 0;
   return [...document.querySelectorAll<HTMLElement>('[data-testid="tasklist-expanded"][data-presentation="overlay"]')].some((o) => {
-    if (o === panel.value) return false;
+    if (o === panel.value || getComputedStyle(o).visibility === 'hidden') return false;
     const r = o.getBoundingClientRect();
     return z(o) > z(panel.value!) && r.left < mine.right && r.right > mine.left && r.top < mine.bottom && r.bottom > mine.top;
   });
