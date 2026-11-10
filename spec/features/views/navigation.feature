@@ -289,6 +289,7 @@ Feature: Navigation and view switching
     And I go to the next period
     And I reload the page
     Then the URL path is "/week/2026-10-19"
+    And the week view is shown
     When I go back in the browser
     Then the URL path is "/month/2026-10"
 
