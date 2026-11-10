@@ -198,10 +198,9 @@ export class CalendarChanges {
       return await this.readOrThrow(calendarId, prev, forced, spec);
     } catch (e) {
       if (e instanceof FreshTokenRefusedError) {
-        // Google never accepts this calendar's tokens (public holidays): compare it by content after the back-off
+        // Google says "full sync required" again for a fresh token: read in full at once and compare by content from now on (no back-off)
         this.health(calendarId).tokenless = true;
-        this.strike(calendarId, 'tokenRefused');
-        return skipped;
+        return this.compared(calendarId, prev, forced, spec);
       }
       // the person-wide failures stop the whole answer; one calendar's failure leaves that calendar as the device has it
       // only the provider's own failures degrade; a rate limit, a sign-in problem or a bug (a TypeError) fails the request

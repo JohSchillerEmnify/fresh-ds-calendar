@@ -50,6 +50,7 @@ export default {
     syncing: 'Syncing',
     synced: 'Synced',
     unreachable: "Can't reach Google Calendar. Showing the last known data.",
+    serverUnreachable: "Can't reach the calendar server. Showing the last known data.",
     lastUpdated: 'Last updated {time}',
     lastUpdatedOn: 'Last updated {date}, {time}',
   },

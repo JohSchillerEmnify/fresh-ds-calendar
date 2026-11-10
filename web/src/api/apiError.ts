@@ -50,6 +50,10 @@ export class ApiError extends Error {
   get isUnavailable(): boolean {
     return this.code === 'NETWORK' || this.status === 502 || this.status === 503;
   }
+  /** Our own server did not answer (a failed request, or a proxy's body-less 502/503 during a restart): not a Google outage, which the server reports with its own error code. */
+  get isServerUnreachable(): boolean {
+    return this.code === 'NETWORK' || ((this.status === 502 || this.status === 503) && this.code === 'HTTP');
+  }
   get isConflict(): boolean {
     return this.status === 412;
   }

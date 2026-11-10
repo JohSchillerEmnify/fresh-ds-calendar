@@ -507,6 +507,7 @@ the app regains focus
 I wait for the automatic sync
 I retry the sync
 I see the sync error banner
+I see the sync error banner saying {string}
 I do not see the sync error banner
 once the slow-down is over I see the event {string} on {date}
 ```

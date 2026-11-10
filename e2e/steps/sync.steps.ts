@@ -80,6 +80,10 @@ Then('I see the sync error banner', async function (this: World) {
   await expect(this.page.getByTestId('sync-error-banner')).toBeVisible();
 });
 
+Then('I see the sync error banner saying {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('sync-error-banner')).toContainText(text);
+});
+
 Then('I do not see the sync error banner', async function (this: World) {
   await this.calendarShown();
   await expect(this.page.getByTestId('sync-error-banner')).toBeHidden();

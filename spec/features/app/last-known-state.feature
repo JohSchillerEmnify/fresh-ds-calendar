@@ -173,6 +173,8 @@ Feature: Everything I see is kept on this device and synced with the server
     And I am not told when the calendar was last updated
     When the network connection is lost
     And the app regains focus
+    And 2 minutes pass
+    And the app regains focus
     Then I see the sync error banner
     And I am told the calendar was last updated at "08:12"
     When the network connection is restored

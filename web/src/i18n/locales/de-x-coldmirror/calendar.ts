@@ -52,6 +52,7 @@ export default {
     syncing: 'Fresh D. synct gerade',
     synced: 'Alles gesynct, fresh',
     unreachable: 'Ey Mann, wo\'s mein Hörgerät? Google Kalender ist nicht erreichbar. Fresh D. zeigt die alten Daten, Digga.',
+    serverUnreachable: 'Ey Mann, der Kalender-Server ist nicht erreichbar. Fresh D. zeigt die alten Daten, Digga.',
     lastUpdated: 'Zuletzt frisch gemacht {time}, yo',
     lastUpdatedOn: 'Zuletzt frisch gemacht {date}, {time}, yo',
   },
