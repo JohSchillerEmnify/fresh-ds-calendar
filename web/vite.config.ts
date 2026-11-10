@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import Icons from 'unplugin-icons/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { appDefines } from './app-defines';
+import { creditsPlugin } from './credits-plugin';
 
 /** Build version (X.Y.Z+<sha>); must equal the server's APP_VERSION (default '0.1.0') for /api/config comparison. */
 const APP_VERSION = process.env.APP_VERSION ?? '0.1.0';
@@ -12,6 +13,8 @@ export default defineConfig({
   define: appDefines(APP_VERSION),
   plugins: [
     vue(),
+    // credits.json: attribution of what the bundle contains, shown in Settings > Account & app
+    creditsPlugin(),
     // <html data-app-version> carries the build version (e2e reads it after a reload).
     { name: 'app-version-attr', transformIndexHtml: (html: string) => html.replace('<html ', `<html data-app-version="${APP_VERSION}" `) },
     // Material Symbols as inline SVG components: `import IconAdd from '~icons/material-symbols/add'`.
@@ -40,6 +43,8 @@ export default defineConfig({
       },
       // The worker is `src/sw.ts` (precache, navigation fallback, /api NetworkOnly, update prompt, Web Push).
       strategies: 'injectManifest',
+      // credits.json is not matched by the default patterns; the credits list must open offline
+      injectManifest: { globPatterns: ['**/*.{js,css,html,json}'] },
       srcDir: 'src',
       filename: 'sw.ts',
     }),

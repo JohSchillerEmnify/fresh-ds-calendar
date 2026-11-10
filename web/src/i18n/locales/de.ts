@@ -166,6 +166,7 @@ export default {
       version: 'Version {version}',
       appCert: { label: 'Signaturzertifikat der App (SHA-256)', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was ist neu' },
+      credits: { label: 'Danksagungen', hint: 'Bibliotheken und Inhalte, die diese App verwendet', title: 'Danksagungen', intro: 'Diese App entsteht mit den folgenden Bibliotheken und Inhalten. Danke an alle, die sie bauen und teilen.', close: 'Schließen' },
       androidApp: { label: 'Android-App', updateLabel: 'App aktualisieren', hint: 'Den Kalender als Android-App mit Wochen-Widget für den Home-Bildschirm installieren', download: 'Herunterladen' },
       installApp: { label: 'App installieren', hint: 'Den Kalender zum Home-Bildschirm hinzufügen', button: 'Anleitung', title: 'Kalender installieren', step1: 'Tippe auf „Teilen“', step2: 'Wähle „Zum Home-Bildschirm“', step3: 'Tippe auf „Hinzufügen“', close: 'Verstanden' },
       versionCorner: { label: 'Version in der Ecke zeigen' },

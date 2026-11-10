@@ -870,6 +870,9 @@ the server offers an app signed with the certificate {string}
 the settings show the app certificate {string}
 the corner shows the version {string}
 the settings screen is shown
+I open the credits
+the credits list shows {string} with the licence {string}
+every credit shows an author or a licence, and a link
 the screen is {int} pixels wide
 I open the settings page {string}
 the page cannot be scrolled sideways

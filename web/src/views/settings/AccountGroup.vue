@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client';
 import Button from '@/components/m3/Button.vue';
 import ButtonGroup from '@/components/m3/ButtonGroup.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import CreditsSheet from '@/components/settings/CreditsSheet.vue';
 import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
@@ -30,6 +31,7 @@ const build = shownVersion();
 const isIos = detectIos();
 const showIosInstall = isIos && !isStandalone();
 const installing = ref(false);
+const showCredits = ref(false);
 
 const backup = useBackupStore();
 const confirmRestore = ref(false);
@@ -106,6 +108,7 @@ async function resetDemo() {
   <SettingRow id="whatsNew" link :label="t('settings.account.whatsNew.label')" testid="settings-whats-new" @open="ui.openDialog('whats-new')" />
   <SettingRow id="errorLog" to="/settings/error-log" :label="t('deviceLog.row.label')" :hint="t('deviceLog.row.hint')" testid="settings-error-log" />
   <SettingRow id="version" :label="t('settings.account.version', { version: build.version })" :hint="build.sha || undefined" testid="settings-version" />
+  <SettingRow id="credits" link :label="t('settings.account.credits.label')" :hint="t('settings.account.credits.hint')" testid="settings-credits" @open="showCredits = true" />
   <SettingRow v-if="clock.config.apk?.certSha256" id="appCert" :label="t('settings.account.appCert.label')" :hint="t('settings.account.appCert.hint')">
     <template #sub><span class="cert" data-testid="settings-app-cert">{{ clock.config.apk.certSha256 }}</span></template>
   </SettingRow>
@@ -114,6 +117,7 @@ async function resetDemo() {
   </SettingRow>
   </SettingSection>
 
+  <CreditsSheet v-if="showCredits" @close="showCredits = false" />
   <IosInstallSheet v-if="installing" @close="installing = false" />
   <ConfirmDialog :open="askLeave !== null" :title="t('outbox.signOutAsk', { count: outbox.count }, outbox.count)" :ok-label="t('outbox.signOutAnyway')" :cancel-label="t('outbox.stay')" @ok="leave(askLeave!, true)" @cancel="askLeave = null" />
   <ConfirmDialog :open="confirmRestore" :title="t('backup.restoreDialog.title')" :message="t('backup.restoreDialog.message')" :ok-label="t('backup.restoreDialog.ok')" @ok="runRestore" @cancel="confirmRestore = false" />
