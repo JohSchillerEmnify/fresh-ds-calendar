@@ -23,6 +23,8 @@ interface RangeEntry {
   to: LocalDate;
   ids: string[];
   syncedAt: string;
+  /** A calendar could not be read for this range: it is shown, but read again rather than kept as complete. */
+  partial?: true;
 }
 
 /**
@@ -94,7 +96,7 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   /** Replace one range with a server response. */
-  function applyResponse(from: LocalDate, to: LocalDate, items: CalendarItem[], syncedAt: string) {
+  function applyResponse(from: LocalDate, to: LocalDate, items: CalendarItem[], syncedAt: string, partial = false) {
     const next = { ...byId.value };
     const key = rangeKey(from, to);
     for (const it of items) {
@@ -105,7 +107,7 @@ export const useItemsStore = defineStore('items', () => {
       next[it.id] = cur && JSON.stringify(cur) === JSON.stringify(fresh) ? cur : fresh;
     }
     byId.value = next;
-    ranges.value = { ...ranges.value, [key]: { from, to, ids: items.filter((i) => !deleted.has(i.id)).map((i) => i.id), syncedAt } };
+    ranges.value = { ...ranges.value, [key]: { from, to, ids: items.filter((i) => !deleted.has(i.id)).map((i) => i.id), syncedAt, ...(partial ? { partial: true as const } : {}) } };
     touch(key);
     gc();
   }
@@ -129,7 +131,7 @@ export const useItemsStore = defineStore('items', () => {
     }
     try {
       const res = await api.items(from, to, undefined, { signal });
-      applyResponse(from, to, res.items, res.syncedAt);
+      applyResponse(from, to, res.items, res.syncedAt, !!res.failed?.length);
     } catch (e) {
       // without the server the part the device holds still shows
       if (useDeviceStore().ready) applyHeld(from, to);
@@ -150,8 +152,8 @@ export const useItemsStore = defineStore('items', () => {
     const inAlso = res.items.filter((it) => overlaps(it, extra));
     // an item not placed in `also` stays with the main range, so a boundary mismatch never loses it to gc
     const inMain = res.items.filter((it) => overlaps(it, { from, to, ids: [], syncedAt: '' }) || !inAlso.includes(it));
-    applyResponse(also.from, also.to, inAlso, res.syncedAt);
-    applyResponse(from, to, inMain, res.syncedAt);
+    applyResponse(also.from, also.to, inAlso, res.syncedAt, !!res.failed?.length);
+    applyResponse(from, to, inMain, res.syncedAt, !!res.failed?.length);
     return true;
   }
 
@@ -162,7 +164,7 @@ export const useItemsStore = defineStore('items', () => {
   /** Load `[from, to)` into the cache in the background unless it is cached, already loading or failed a moment ago (swipe neighbour). Errors are ignored: the route change reports its own. */
   function prefetch(from: LocalDate, to: LocalDate): void {
     const key = rangeKey(from, to);
-    if (ranges.value[key] || prefetching.has(key)) return;
+    if ((ranges.value[key] && !ranges.value[key].partial) || prefetching.has(key)) return;
     if (Date.now() - (prefetchFailed.get(key) ?? -Infinity) < PREFETCH_RETRY_MS) return;
     prefetching.add(key);
     fetchRange(from, to).then(() => prefetchFailed.delete(key), () => prefetchFailed.set(key, Date.now())).finally(() => prefetching.delete(key));
@@ -330,6 +332,8 @@ export const useItemsStore = defineStore('items', () => {
   const summary = shallowRef<Record<LocalDate, DaySummary>>({});
   const summaryKeys = ref<string[]>([]);
   const summaryByKey = new Map<string, Record<LocalDate, DaySummary>>();
+  /** Summary ranges answered while a calendar could not be read: asked again instead of kept. */
+  const summaryPartial = new Set<string>();
 
   function mergeSummary() {
     const out: Record<LocalDate, DaySummary> = {};
@@ -339,13 +343,15 @@ export const useItemsStore = defineStore('items', () => {
   /** Loads `[from, to)` day counts (cached; at most 14 ranges kept). */
   async function loadSummary(from: LocalDate, to: LocalDate, force = false): Promise<boolean> {
     const key = rangeKey(from, to);
-    if (!force && summaryByKey.has(key)) return false;
+    if (!force && summaryByKey.has(key) && !summaryPartial.has(key)) return false;
     // counted on the device when it holds the range, else the server counts (days outside the window)
     const server = !heldInFull(from, to);
-    const days = server ? (await api.summary(from, to)).days : summaryOf(useDeviceStore().data!, from, to);
+    const res = server ? await api.summary(from, to) : null;
+    const days = res ? res.days : summaryOf(useDeviceStore().data!, from, to);
+    if (res?.failed?.length) summaryPartial.add(key); else summaryPartial.delete(key);
     summaryByKey.set(key, days);
     summaryKeys.value = [key, ...summaryKeys.value.filter((k) => k !== key)];
-    while (summaryKeys.value.length > 14) summaryByKey.delete(summaryKeys.value.pop()!);
+    while (summaryKeys.value.length > 14) { const old = summaryKeys.value.pop()!; summaryByKey.delete(old); summaryPartial.delete(old); }
     mergeSummary();
     return server;
   }

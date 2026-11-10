@@ -218,6 +218,11 @@ Feature: Background sync with Google Calendar
       Then the density of 2028-01-13 in the year view is 1
       And I do not see the sync error banner
 
+    Scenario: When Google cannot read any calendar of the period, the error banner shows
+      Given Google cannot read any calendar
+      When I open the week view for 2028-01-10
+      Then I see the sync error banner saying "Can't reach Google Calendar"
+
     # unit: server/test/calendar-shape.test.ts:reads only the next year, not the whole history
     @unit
     Scenario: The daily calendar check reads a limited time window

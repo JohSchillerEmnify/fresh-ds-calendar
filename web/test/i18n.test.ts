@@ -127,6 +127,6 @@ describe('server message keys', () => {
     expect(known.userMessage).toBe('Das Ende muss nach dem Beginn liegen');
     expect(unknown.userMessage).toBe('Something new');
     expect(plain.userMessage).toBe('No key sent');
-    expect(new ApiError(0, 'NETWORK', 'x').userMessage).toBe(de.errors.saveUnavailable);
+    expect(new ApiError(0, 'NETWORK', 'x').userMessage).toBe(de.errors.saveServerUnreachable);
   });
 });

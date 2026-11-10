@@ -64,6 +64,7 @@ export default {
   },
   errors: {
     saveUnavailable: 'Speichern nicht möglich: Google Kalender ist nicht erreichbar',
+    saveServerUnreachable: 'Speichern nicht möglich: Der Kalender-Server ist nicht erreichbar',
     conflict: 'Dieser Termin wurde woanders geändert. Lade ihn neu und versuche es noch einmal.',
     validation: {
       endAfterStart: 'Das Ende muss nach dem Beginn liegen',

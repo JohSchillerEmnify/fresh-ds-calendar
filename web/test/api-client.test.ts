@@ -28,6 +28,14 @@ describe('ApiClient', () => {
     const u = await api.items('2026-10-01', '2026-10-02').catch((e) => e);
     expect(u.isUnavailable && u.userMessage).toBe('Could not save: Google Calendar is unavailable');
   });
+  it('says the calendar server cannot be reached when saving fails without an answer', async () => {
+    const down = new ApiClient({ fetch: (async () => { throw new TypeError('x'); }) as unknown as typeof fetch });
+    const e = await down.updateEvent('1', {}).catch((x) => x);
+    expect(e.userMessage).toBe("Could not save: the calendar server can't be reached");
+    expect(e.userMessage).not.toContain('Google');
+    const proxy = new ApiClient({ fetch: (async () => new Response('', { status: 502 })) as unknown as typeof fetch });
+    expect((await proxy.updateEvent('1', {}).catch((x) => x)).userMessage).toBe("Could not save: the calendar server can't be reached");
+  });
   it('turns network failures into NETWORK errors and handles 204', async () => {
     const c = new ApiClient({ fetch: (async () => { throw new TypeError('x'); }) as unknown as typeof fetch });
     const e = await c.health().catch((x) => x);

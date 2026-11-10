@@ -3,7 +3,7 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { CalendarColor } from '@calendar/shared/colors';
 import type { AppConfig } from '../../config.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError,
+  NotFoundError, PreconditionFailedError, ProviderError, RateLimitedError, ProviderForbiddenError, ProviderUnavailableError,
   ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
@@ -104,7 +104,7 @@ export class GoogleProvider implements CalendarProvider {
    * calendar id, duration) and mapped. During a rate-limit cooldown no call is made; a rate-limit answer starts the
    * cooldown. `write` calls invalidate cached reads.
    */
-  private async call<T>(op: string, fn: () => Promise<T>, write = false, calendarId?: string): Promise<T> {
+  private async call<T>(op: string, fn: () => Promise<T>, write = false, calendarId?: string, background = false): Promise<T> {
     try {
       this.o.ready?.();
     } catch (e) {
@@ -121,7 +121,11 @@ export class GoogleProvider implements CalendarProvider {
       // an error rewrapped inside `fn` (the 410 of a sync token) is described by Google's own answer it carries
       const { status, reason, code, retry, field, message } = describeGoogleError(e instanceof SyncTokenExpiredError && e.cause ? e.cause : e);
       logEvent('google_error', { subHash: subHash(this.o.sub), op, calHash: calHash(calendarId), status, reason, code, retry, field, message, durationMs: Date.now() - started });
-      if (isRateLimit(status, reason)) throw this.guard.noteRateLimited(op, retryAfterSec(e));
+      if (isRateLimit(status, reason)) {
+        // a background read's rate limit must not pause the person's syncing
+        if (background) throw new RateLimitedError(retryAfterSec(e) ?? 1);
+        throw this.guard.noteRateLimited(op, retryAfterSec(e));
+      }
       throw mapGoogleError(e);
     }
   }
@@ -212,7 +216,7 @@ export class GoogleProvider implements CalendarProvider {
           calendarId: p.calendarId, timeMin: p.timeMin, timeMax: p.timeMax, singleEvents: p.singleEvents ?? true, showDeleted: p.showDeleted ?? false,
           privateExtendedProperty: p.privateExtendedProperty, eventTypes: p.eventTypes, maxResults: 2500, pageToken,
         }),
-        false, p.calendarId,
+        false, p.calendarId, p.background,
       );
       for (const e of res.data.items ?? []) items.push(fromApi(e, p.calendarId));
       pageToken = res.data.nextPageToken ?? undefined;

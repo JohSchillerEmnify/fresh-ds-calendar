@@ -1,6 +1,7 @@
 /** Anonymised diagnostic of where a person's birthdays live (event `calendar_shape`, issue 59); no names, ids or titles. */
+import { addDays } from '../lib/time.js';
 import { calHash, logEvent, subHash } from '../lib/diag.js';
-import type { CalendarProvider, GoogleEvent, ProviderCalendar } from '../providers/CalendarProvider.js';
+import { RateLimitedError, type CalendarProvider, type GoogleEvent, type ProviderCalendar } from '../providers/CalendarProvider.js';
 import { isContactsCalendarId } from './eventRules.js';
 
 /** The day each person's shape was last logged: one line per person and day. */
@@ -31,14 +32,20 @@ export async function logCalendarShape(
 ): Promise<void> {
   if (loggedOn.get(sub) === day) return;
   loggedOn.set(sub, day);
+  // birthdays repeat yearly, so the coming year meets every series; no window would read each calendar's whole history
+  const timeMin = `${day}T00:00:00Z`, timeMax = `${addDays(day, 366)}T00:00:00Z`;
   const shapes = [];
+  let limited = false;
   for (const c of cals) {
     const contacts = isContactsCalendarId(c.id);
+    if (limited) break;
     const head = { calHash: calHash(c.id), primary: !!c.primary, hidden: !!c.hidden, selected: selected(c.id), accessRole: c.accessRole, isContactsCalendar: contacts };
     try {
-      const r = await provider.listEvents({ calendarId: c.id, singleEvents: false, ...(contacts ? {} : { eventTypes: ['birthday'] }) });
+      const r = await provider.listEvents({ calendarId: c.id, timeMin, timeMax, background: true, singleEvents: false, ...(contacts ? {} : { eventTypes: ['birthday'] }) });
       shapes.push({ ...head, ...summarise(r.items.filter((e) => e.status !== 'cancelled' && !e.recurringEventId)) });
-    } catch {
+    } catch (e) {
+      // Google asked to slow down: the check ends instead of reading on
+      limited = e instanceof RateLimitedError;
       shapes.push({ ...head, error: true });
     }
   }

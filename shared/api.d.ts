@@ -337,6 +337,8 @@ export interface ItemsResponse {
   syncedAt: DateTime;
   /** Set while Google's rate limit is in force: the items come from the server's cache and may be older than the last poll. */
   stale?: true;
+  /** Calendars Google could not read this time (never all of them); their items are missing. */
+  failed?: string[];
 }
 
 export interface SummaryDay {

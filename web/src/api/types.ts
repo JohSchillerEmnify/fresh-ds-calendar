@@ -50,4 +50,6 @@ export interface ReleaseNote {
 export type DaySummary = SummaryDay;
 export interface SummaryResponse {
   days: Record<LocalDate, DaySummary>;
+  /** Calendars Google could not read this time; their days are missing. */
+  failed?: string[];
 }

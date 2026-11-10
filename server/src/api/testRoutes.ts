@@ -11,7 +11,7 @@ import { HOLIDAY_REGIONS, HOLIDAY_VARIANTS, holidayCalendarId } from '../provide
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
-import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, refuseNextWriteSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, unreadableSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, refuseNextWriteSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -128,6 +128,13 @@ export function testRoutes(ctx: Ctx): Hono {
     mock.setOutage(b.down, (b.status as 500 | 503 | undefined) ?? 503);
     ctx.health = null;
     return c.json({ down: b.down });
+  });
+
+  // "Google cannot read the calendar X": its events reads fail, the other calendars answer.
+  t.post('/unreadable', async (c) => {
+    const b = parse(unreadableSchema, await body(c));
+    mock.setUnreadable(b.calendarId, b.on);
+    return c.json(b);
   });
 
   // "Google asks the app to slow down": the next provider call answers "rate limited" (ADR 0007).
