@@ -312,7 +312,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .it { font-size: var(--fs); }
 /* truncated list: the rows that do not fit are cut, the last visible row fades out at the bottom (no count) */
 /* the fade sits on the last row shown, not on the empty space below it, so it is visible */
-.items[data-fade='true'] .it.fadeout { -webkit-mask-image: linear-gradient(180deg, #000 15%, rgba(0, 0, 0, 0.1) 85%); mask-image: linear-gradient(180deg, #000 15%, rgba(0, 0, 0, 0.1) 85%); }
+.items[data-fade='true'] .it.fadeout { -webkit-mask-image: var(--fade-last-row); mask-image: var(--fade-last-row); }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
 .from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: var(--entry-micro); line-height: 14px; }
 .row .est { flex: none; font-size: var(--entry-micro); }
@@ -442,7 +442,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
   .title[data-cut], .it { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   /* inline names share one line: only the line's end fades (the .items rule), never each name */
   .block[data-fit='inline'] .it { -webkit-mask-image: none; mask-image: none; }
-  .items[data-fade='true'] .it.fadeout { -webkit-mask-image: linear-gradient(180deg, #000 15%, rgba(0, 0, 0, 0.1) 85%); mask-image: linear-gradient(180deg, #000 15%, rgba(0, 0, 0, 0.1) 85%); }
+  .items[data-fade='true'] .it.fadeout { -webkit-mask-image: var(--fade-last-row); mask-image: var(--fade-last-row); }
   /* a one-line list in a block one line tall fades out like an event of that size */
   .block.one[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; overflow: hidden; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
