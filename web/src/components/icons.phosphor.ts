@@ -7,6 +7,8 @@ import BookmarkAddP from '~icons/ph/bookmark-simple-duotone';
 import AddP from '~icons/ph/plus';
 import ArrowBackP from '~icons/ph/arrow-left-duotone';
 import BedtimeP from '~icons/ph/moon-duotone';
+import MapOutlineP from '~icons/ph/map-trifold-duotone';
+import MyLocationP from '~icons/ph/crosshair-duotone';
 import LocationOnP from '~icons/ph/map-pin-duotone';
 import SunnyP from '~icons/ph/sun-duotone';
 import CalendarMonthP from '~icons/ph/calendar-duotone';
@@ -60,6 +62,8 @@ export default {
   ArrowBack: ArrowBackP,
   Bedtime: BedtimeP,
   LocationOn: LocationOnP,
+  MapOutline: MapOutlineP,
+  MyLocation: MyLocationP,
   Sunny: SunnyP,
   CalendarMonth: CalendarMonthP,
   CalendarViewDay: CalendarViewDayP,

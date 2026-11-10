@@ -3,7 +3,7 @@
  *
  * In TEST_MODE `/api/config` points the device here instead of the real hosts, so a scenario never reaches them:
  * `POST /api/__test/places` sets the places the fake search knows, `GET /api/__test/photon` answers them in Photon's
- * GeoJSON shape and `GET /api/__test/tiles/:z/:x/:y.png` answers a generated plain map picture.
+ * GeoJSON shape, `GET /api/__test/reverse` answers the known place nearest to a position (Photon's `/reverse`) and `GET /api/__test/tiles/:z/:x/:y.png` answers a generated plain map picture.
  */
 import zlib from 'node:zlib';
 import type { Hono } from 'hono';
@@ -64,6 +64,13 @@ function photonAnswer(places: TestPlace[], q: string, limit: number) {
   };
 }
 
+/** The known place nearest to a position, in Photon's reverse answer shape (a stand-in for `/reverse`; none when no place is known). */
+function reverseAnswer(places: TestPlace[], lat: number, lon: number) {
+  const dist = (p: TestPlace) => (p.lat - lat) ** 2 + (p.lon - lon) ** 2;
+  const [nearest] = [...places].sort((a, b) => dist(a) - dist(b));
+  return photonAnswer(nearest ? [nearest] : [], nearest ? `${nearest.name}` : '', 1);
+}
+
 /** One PNG chunk: length, type, data and CRC. */
 function chunk(type: string, data: Buffer): Buffer {
   const head = Buffer.alloc(8);
@@ -113,6 +120,12 @@ export function placeTestRoutes(t: Hono, ctx: Ctx): void {
   t.get('/photon', (c) => {
     const limit = Number(c.req.query('limit') ?? MAX_RESULTS);
     return c.json(photonAnswer(ctx.overrides.places ?? [], c.req.query('q') ?? '', Number.isFinite(limit) ? limit : MAX_RESULTS));
+  });
+
+  t.get('/reverse', (c) => {
+    const [lat, lon] = [Number(c.req.query('lat')), Number(c.req.query('lon'))];
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw notFound('Not found');
+    return c.json(reverseAnswer(ctx.overrides.places ?? [], lat, lon));
   });
 
   t.get('/tiles/:z/:x/:file', (c) => {

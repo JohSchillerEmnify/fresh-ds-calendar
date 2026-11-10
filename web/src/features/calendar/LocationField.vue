@@ -10,10 +10,13 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import TextField from '@/components/m3/TextField.vue';
-import { IconLocationOn } from '@/components/icons';
+import Button from '@/components/m3/Button.vue';
+import { IconLocationOn, IconMapOutline } from '@/components/icons';
 import { language, t } from '@/i18n';
 import { useClockStore } from '@/stores/clock';
+import MapPicker from './MapPicker.vue';
 import { photonLang, searchPlaces, type PlacePick } from './place';
+
 
 const props = defineProps<{ modelValue: string; place: PlacePick | null; label: string }>();
 const emit = defineEmits<{ 'update:modelValue': [v: string]; 'update:place': [p: PlacePick | null] }>();
@@ -24,6 +27,8 @@ const MIN_CHARS = 3;
 const PAUSE_MS = 150;
 
 const clock = useClockStore();
+const root = ref<HTMLElement | null>(null);
+const picking = ref(false);
 const listId = useId();
 const hits = ref<PlacePick[]>([]);
 const active = ref(-1);
@@ -133,13 +138,26 @@ function onFocus(): void {
   clearTimeout(blurTimer);
 }
 
+/** The picker's "Use this place": the readable address fills the field, the pin's position is the place. */
+function usePicked(p: PlacePick): void {
+  picking.value = false;
+  emit('update:modelValue', p.name);
+  emit('update:place', p);
+}
+
+/** The picker's "Type an address instead" (offline): back to the plain field. */
+function typeInstead(): void {
+  picking.value = false;
+  void nextTick(() => root.value?.querySelector('input')?.focus());
+}
+
 const optionId = (i: number) => `${listId}-${i}`;
 
 onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
 </script>
 
 <template>
-  <div class="loc">
+  <div ref="root" class="loc">
     <TextField
       :model-value="modelValue" :label="label" data-testid="event-location" data-field="location" autocomplete="off" enterkeyhint="next"
       role="combobox" aria-autocomplete="list" :aria-expanded="open" :aria-controls="open ? listId : undefined" :aria-activedescendant="active >= 0 ? optionId(active) : undefined"
@@ -161,12 +179,22 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
       </div>
       <p class="credit" data-testid="place-suggestions-credit">{{ t('calendar.event.place.credit') }}</p>
     </div>
+    <div class="pick">
+      <Button variant="tonal" data-testid="event-location-pick-map" @click="picking = true"><template #icon><IconMapOutline /></template>{{ t('calendar.event.place.pickOnMap') }}</Button>
+      <span v-if="!place" class="pick-hint">{{ t('calendar.event.place.pickHint') }}</span>
+    </div>
+    <MapPicker
+      v-if="picking" :start="place" :tile-url="clock.config.mapTileUrl" :search-url="clock.config.placeSearchUrl"
+      @use="usePicked" @cancel="picking = false" @type="typeInstead"
+    />
   </div>
 </template>
 
 <style scoped>
 .loc { display: flex; flex-direction: column; gap: 0; }
 /* the address of a picked place: like the field's supporting text, wrapping instead of being cut off */
+.pick { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.pick-hint { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .addr { margin: 4px 16px 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 .list { scroll-margin-bottom: 88px; margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
 .opt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }

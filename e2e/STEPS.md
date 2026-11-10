@@ -3171,7 +3171,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `theme page` (`theme-view`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
@@ -3437,6 +3437,51 @@ the map is shown without scrolling the event dialog
   dialog": with the dialog's scroll position at the top, `event-map` lies fully inside the visible part of the dialog.
 - "I ask to find the location on the map": taps `event-location-find` next to the location field; the suggestions for
   the field's text show.
+
+## Map picker (`@location`; rule "Pick on map" of `@id:event-location`)
+
+The picker's map pictures and its address lookups also go to the test server only: TEST_MODE answers `GET /api/__test/reverse?lat=&lon=` (Photon's
+`/reverse`) with the known place nearest to the position, or none when no place is known. The device position is Playwright's
+mocked geolocation, never a real one.
+
+```
+I see the action {string} at the event location
+I open the map picker
+I search the map picker for {string}
+I pick the map picker result {string}
+the map picker is centred on the place {string}
+the map picker shows the address {string}
+the map picker credits OpenStreetMap
+I drag the map picker by {int} pixels
+the position of the pin has changed
+I use the place in the map picker
+I cancel the map picker
+the map picker is closed
+the device reports the position of the place {string}
+the device refuses to tell its position
+I tap {string} in the map picker
+the map picker says the location is not available
+the map picker says it needs a connection
+I choose {string} in the map picker
+the device was not asked for its position
+```
+
+- "I see the action A at the event location": `event-location-pick-map` has exactly the text A. "I open the map picker": taps it and
+  waits for `map-picker`. "the map picker is closed": `map-picker` is hidden.
+- "I search the map picker for T": types T key by key into `map-picker-search`. "I pick the map picker result N": taps the
+  `map-picker-result` whose `map-picker-result-name` is N (a known place of the Photon stand-in).
+- "the map picker is centred on the place N": `map-picker-map` has `data-lat`/`data-lon` (the position under the pin, 4
+  decimals) equal to N's. "shows the address A": `map-picker-address` has exactly A (it waits for the lookup after the map came
+  to rest). "credits OpenStreetMap": `map-picker-credit` contains `© OpenStreetMap`.
+- "I drag the map picker by P pixels": the mouse drags the map P px to the left; "the position of the pin has changed":
+  `data-lat`/`data-lon` differ from before the drag.
+- "I use the place in the map picker": waits until `map-picker-use` is enabled, taps it. "I cancel": taps `map-picker-cancel`.
+- "the device reports the position of the place N": grants the geolocation permission and sets the browser's position to N's.
+  "the device refuses to tell its position": clears the permission (the browser then refuses). "I tap "Use my location"":
+  taps `map-picker-locate`. "the map picker says the location is not available": `map-picker-locate-note` shows, no longer "locating".
+- "the map picker says it needs a connection": `map-picker-offline` shows "The map needs a connection". "I choose "Type an
+  address instead"": taps `map-picker-type`.
+- "the device was not asked for its position": `@unit` only (`web/test/calendar/map-picker.test.ts`); the step does nothing in the browser.
 
 ## Android app and widgets (native, `@android-app`, `@phone-widget`)
 

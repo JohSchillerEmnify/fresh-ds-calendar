@@ -6,6 +6,7 @@
   "ignoreDependencies": [
     "dependency-cruiser",
     "@capacitor/filesystem",
+    "@capacitor/geolocation",
     "@capacitor/share"
   ],
   "ignoreBinaries": [

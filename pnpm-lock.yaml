@@ -194,6 +194,9 @@ importers:
       '@capacitor/filesystem':
         specifier: 8.1.5
         version: 8.1.5(@capacitor/core@8.6.0)
+      '@capacitor/geolocation':
+        specifier: 8.2.4
+        version: 8.2.4(@capacitor/core@8.6.0)
       '@capacitor/share':
         specifier: 8.0.3
         version: 8.0.3(@capacitor/core@8.6.0)
@@ -317,6 +320,9 @@ importers:
       idb:
         specifier: 8.0.4
         version: 8.0.4
+      leaflet:
+        specifier: 1.9.4
+        version: 1.9.4
       perfect-freehand:
         specifier: 1.2.3
         version: 1.2.3
@@ -351,6 +357,9 @@ importers:
       '@size-limit/file':
         specifier: 14.3.0
         version: 14.3.0(size-limit@14.3.0)
+      '@types/leaflet':
+        specifier: ^1.9.22
+        version: 1.9.22
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -974,6 +983,11 @@ packages:
 
   '@capacitor/filesystem@8.1.5':
     resolution: {integrity: sha512-m1RkI8L83NJeppEKyRWioK3MDp2vjlA+QfUQcF8/xRlcXNC2HYxqoyYJ+K4M0EcVovy+g+4F24S05+bhK4Vgdg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/geolocation@8.2.4':
+    resolution: {integrity: sha512-FDcUiPQc2AXSTAV61QSDPXml11guKBx5HPEkdWvUqw7kMqrc2Ucp0bsWngeLyRs/01a5aWBI0hEuvetuF3PsrQ==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -2185,11 +2199,17 @@ packages:
   '@types/fs-extra@8.1.5':
     resolution: {integrity: sha512-0dzKcwO+S8s2kuF5Z9oUWatQJj5Uq/iqphEtE3GQJVRRYm/tD1LglU2UnXi2A8jLq5umkGouOXOR9y0n613ZwQ==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/jsdom@30.0.0':
     resolution: {integrity: sha512-uAHGxujGE0cDaKGdK28zgDotFtNA7MKq5DXl8LrfdxdCI8VHcg15oJz+amHTChPNI5JpgEPQWc2xFdrw3em/nQ==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/leaflet@1.9.22':
+    resolution: {integrity: sha512-h3lhECYEKDasG7LFHu+GiHqAvsgLuQvlJvVZzJDGONo3sEL+wUOqSFLnwkZlK0qVxnxbuGFW8iBlJNYs5wgndA==}
 
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
@@ -3645,6 +3665,9 @@ packages:
     resolution: {integrity: sha512-8l3cCOg/EXoILO0qcSoMra49yQM91+lEIR4fu5Ko8rrArGX8xKdKZiGI9psPiY6rhLmfLERcMfFEByF0wli5CA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -5845,6 +5868,11 @@ snapshots:
       '@capacitor/core': 8.6.0
       '@capacitor/synapse': 1.0.4
 
+  '@capacitor/geolocation@8.2.4(@capacitor/core@8.6.0)':
+    dependencies:
+      '@capacitor/core': 8.6.0
+      '@capacitor/synapse': 1.0.4
+
   '@capacitor/share@8.0.3(@capacitor/core@8.6.0)':
     dependencies:
       '@capacitor/core': 8.6.0
@@ -6725,6 +6753,8 @@ snapshots:
     dependencies:
       '@types/node': 24.19.2
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/jsdom@30.0.0':
     dependencies:
       '@types/node': 24.19.2
@@ -6733,6 +6763,10 @@ snapshots:
       undici-types: 8.11.2
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/leaflet@1.9.22':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/node@24.19.2':
     dependencies:
@@ -8395,6 +8429,8 @@ snapshots:
       unbash: 6.0.1
       yaml: 2.9.1
       zod: 4.6.5
+
+  leaflet@1.9.4: {}
 
   leven@3.1.0: {}
 

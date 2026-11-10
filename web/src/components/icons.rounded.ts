@@ -7,6 +7,8 @@ import BookmarkAddR from '~icons/material-symbols/bookmark-add-outline-rounded';
 import AddR from '~icons/material-symbols/add-rounded';
 import ArrowBackR from '~icons/material-symbols/arrow-back-rounded';
 import BedtimeR from '~icons/material-symbols/bedtime-rounded';
+import MapOutlineR from '~icons/material-symbols/map-rounded';
+import MyLocationR from '~icons/material-symbols/my-location-rounded';
 import LocationOnR from '~icons/material-symbols/location-on-rounded';
 import SunnyR from '~icons/material-symbols/sunny-rounded';
 import CalendarMonthR from '~icons/material-symbols/calendar-month-rounded';
@@ -62,6 +64,8 @@ export default {
   ArrowBack: ArrowBackR,
   Bedtime: BedtimeR,
   LocationOn: LocationOnR,
+  MapOutline: MapOutlineR,
+  MyLocation: MyLocationR,
   Sunny: SunnyR,
   CalendarMonth: CalendarMonthR,
   CalendarViewDay: CalendarViewDayR,
