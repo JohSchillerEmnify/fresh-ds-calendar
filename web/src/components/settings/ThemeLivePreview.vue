@@ -8,6 +8,7 @@
  * per device.
  */
 import Pressable from '@/components/m3/Pressable.vue';
+import { useBarSize } from '@/composables/useBarSize';
 import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
@@ -25,6 +26,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { GRID_HEIGHT_PX, SAMPLE_DAYS, SAMPLE_EVENTS, SAMPLE_TASKS, previewScale, readCollapsed, sampleBox, sampleSegment, writeCollapsed } from './themeLivePreviewSample';
 
 /** Width the mini calendar is laid out at before it is scaled to the available width. */
+const barSize = useBarSize().top;
 const DESIGN_WIDTH = 420;
 const LIST_COLOR = '#0b8043';
 
@@ -55,7 +57,7 @@ const ticked = computed(() => SAMPLE_TASKS.map((x) => x.done));
 </script>
 
 <template>
-  <section class="live" :class="{ collapsed, still }" data-testid="theme-live-preview" :data-collapsed="collapsed" :aria-label="t('themePreview.label')">
+  <section class="live" :class="{ collapsed, still }" :data-bar="barSize" data-testid="theme-live-preview" :data-collapsed="collapsed" :aria-label="t('themePreview.label')">
     <div ref="frame" class="frame" :style="frameStyle">
       <div ref="inner" class="scaled" :style="{ width: `${DESIGN_WIDTH}px`, transform: `scale(${scale})` }" inert aria-hidden="true">
         <TopAppBar>
@@ -99,8 +101,9 @@ const ticked = computed(() => SAMPLE_TASKS.map((x) => x.done));
 
 <style scoped>
 /* pinned under the menu header (safe area + 8 + 44 + 8 px); on the desktop the same offset in the right column */
-.live { position: sticky; top: calc(var(--safe-top) + 60px); z-index: 1; display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-large); overflow: hidden; background: var(--md-sys-color-surface); box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant), var(--md-sys-elevation-2); }
+.live { position: sticky; top: calc(var(--safe-top) + 64px); z-index: 1; display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-large); overflow: hidden; background: var(--md-sys-color-surface); box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant), var(--md-sys-elevation-2); }
 .frame { position: relative; overflow: hidden; max-height: 34vh; pointer-events: none; }
+.live[data-bar='compact'] { top: calc(var(--safe-top) + 56px); }
 .scaled { --safe-top: 0px; transform-origin: top left; }
 .bar { display: flex; align-items: center; gap: 2px; padding: 2px 4px 2px 12px; min-height: 52px; }
 .title { font: var(--md-sys-typescale-title-large); margin-right: 8px; white-space: nowrap; }
