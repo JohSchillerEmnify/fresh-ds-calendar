@@ -41,6 +41,7 @@ import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showPr
 import { toggleSingleTask } from './ops';
 import { useTaskListsStore } from './store';
 import { cardLayout } from './layout';
+import { blockBudget } from '@/lib/lineBudget';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
 
@@ -133,6 +134,14 @@ const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount
 const title = computed(() => displayTitle(tl.value));
 /** What fills the title slot: the one task's text (or ink), else the title. */
 const slot = computed(() => (one.value ? { text: one.value.text, item: one.value.item } : title.value ? { text: title.value, item: null } : null));
+/** A one-line list in a time grid block wraps like an event block's title: the same line budget, the checkbox leading the text (about two characters wide). */
+const oneLines = computed(() => {
+  if (!one.value || props.variant !== 'block' || !props.height) return 1;
+  return blockBudget({
+    title: `  ${one.value.text}`, height: props.height, width: Math.max(0, (width.value || 130) - (mini.value ? 5 : 10)), padV: 4,
+    lineH: mini.value ? 13 : 16, timeH: 14, charW: mini.value ? 5.6 : 6.9, padH: mini.value ? 6 : 12,
+  }).lines;
+});
 const lists = useTaskListsStore();
 /** A tap on the list's checkbox ticks the one task; the card's own tap (open the list) does not run. */
 function tickOne(e: MouseEvent) {
@@ -184,14 +193,14 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <component :is="grown ? Pressable : 'span'" class="row" :class="{ pillbtn: grown }" :aria-label="grown ? t(title ? 'tasks.card.collapse' : 'tasks.card.collapseUntitled', { title }) : undefined" data-testid="tasklist-card-pill">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
-      <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" :role="one ? 'checkbox' : undefined" :aria-checked="one ? one.done : undefined" :aria-label="one ? t('tasks.list.itemDone', { title: one.text }) : undefined" :aria-hidden="one ? undefined : 'true'" @click="tickOne" />
+      <span v-if="!one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx"><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
+       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
@@ -266,10 +275,13 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .inked.mini .it::before { top: 9.5px; }
 /* the ink of a one-line list stands in the title slot */
 .title .inkitem { width: 100%; }
-/* a one-line list's checkbox is the only one: a hit area around it, and in a narrow column it sits on its own line above the text */
-.one .cb::before { content: ''; position: absolute; inset: -6px; }
-.one.mini .row { flex-wrap: wrap; }
-.one.mini .title { flex: 1 0 100%; }
+/* a one-line list's checkbox is the only one and leads its text like an event's marker; in a time grid block the text wraps as an event title does */
+.one .meta { display: none; }
+.one .cb { display: inline-block; vertical-align: -1px; margin-right: 3px; }
+.one.mini .cb { margin-right: 2px; vertical-align: -0.5px; }
+.block.one .title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines); line-clamp: var(--lines); white-space: normal; overflow-wrap: break-word; line-height: 16px; font-size: var(--entry-title-lg); -webkit-mask-image: none; mask-image: none; }
+.block.one .tx { display: inline; overflow: visible; }
+.block.one.mini .title { font-size: var(--entry-meta); line-height: 13px; letter-spacing: -0.2px; }
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
 .items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }

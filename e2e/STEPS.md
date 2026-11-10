@@ -364,8 +364,9 @@ the task lists {string} and {string} show one checkbox, the same type, no count 
 I tick the checkbox of the titleless task list
 I tick the checkbox of the task list {string}
 the titleless task list is struck through
-in the task list {string} the checkbox sits above the text
-in the titleless task list the checkbox sits above the text
+the titleless task list shows the text {string}
+in the titleless task list the checkbox leads the text on its first line
+the titleless task list and the event {string} wrap their text on the same number of lines
 the task list {string} shows no placeholder
 I tap the expanded task list {string}
 I tap the item {string} of the expanded task list
@@ -4209,6 +4210,9 @@ in the {view} view of {date} the marker of {string} is {float} px
   size and weight and the same title box left and height as the other (only the text differs).
 - "I tick the checkbox of the (titleless) task list": clicks `tasklist-card-check` of the card.
 - "the titleless task list is struck through": its `tasklist-card-title` has `data-struck="true"` and a visible strike line.
-- "in the task list X the checkbox sits above the text": `tasklist-card-check` ends at or above where the
-  `tasklist-card-title` text starts and the title box is at least 60 % of the card width.
+- "in the titleless task list the checkbox leads the text on its first line": `tasklist-card-check` is inside `tasklist-card-title`
+  and its vertical centre lies within the title's first line box; the title shows one line only.
+- "the titleless task list and the event E wrap their text on the same number of lines": the visible lines of
+  `tasklist-card-title` (its box height over its computed line height) equal those of `event-chip-title` of the event E.
+- "the titleless task list shows the text T": its `tasklist-card-title` has exactly the text T.
 - "the task list X shows no placeholder": the card has no `tasklist-card-items`.

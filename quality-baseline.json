@@ -242,7 +242,7 @@
    "no-restricted-imports|web/src/views/settings/FocusGroup.vue": 1,
    "no-restricted-imports|web/src/views/settings/RemindersGroup.vue": 1,
    "no-useless-assignment|scripts/e2e-affected.mjs": 1,
-   "no-useless-assignment|web/src/features/calendar/lineBudget.ts": 1,
+   "no-useless-assignment|web/src/lib/lineBudget.ts": 1,
    "sonarjs/cognitive-complexity|e2e/steps/visual.steps.ts": 1,
    "sonarjs/cognitive-complexity|scripts/e2e-affected.mjs": 1,
    "sonarjs/cognitive-complexity|server/src/providers/google/GoogleProvider.ts": 1,
@@ -373,7 +373,6 @@
    "long|web/src/features/calendar/draw.ts": 4,
    "long|web/src/features/calendar/edgeTurn.ts": 3,
    "long|web/src/features/calendar/index.ts": 1,
-   "long|web/src/features/calendar/lineBudget.ts": 1,
    "long|web/src/features/calendar/place.ts": 9,
    "long|web/src/features/calendar/reminderPlan.ts": 7,
    "long|web/src/features/calendar/resize.ts": 2,
@@ -501,6 +500,7 @@
    "long|web/src/lib/deviceDb.ts": 1,
    "long|web/src/lib/fade.ts": 2,
    "long|web/src/lib/items.ts": 5,
+   "long|web/src/lib/lineBudget.ts": 1,
    "long|web/src/lib/monthSlots.ts": 3,
    "long|web/src/lib/navPosition.ts": 2,
    "long|web/src/lib/overlayHistory.ts": 2,
@@ -715,6 +715,15 @@
     "fonts"
    ],
    "keys": 23
+  },
+  {
+   "date": "2026-11-10",
+   "reason": "lineBudget.ts moved from features/calendar to lib; its two findings were baselined under the old path",
+   "gates": [
+    "lint",
+    "comments"
+   ],
+   "keys": 2
   }
  ]
 }

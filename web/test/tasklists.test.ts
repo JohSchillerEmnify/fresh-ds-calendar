@@ -19,8 +19,8 @@ import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
 import TaskTray from '@/features/tasklists/TaskTray.vue';
 import { barHostsRow } from '@/lib/barHost';
 import { setAnimationSetting } from '@/motion/level';
-import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
-import { moveItemTo } from '@/features/tasklists/ops';
+import { carriedLabel, formatEstimate, singleTask } from '@/features/tasklists/format';
+import { moveItemTo, toggleSingleTask } from '@/features/tasklists/ops';
 import { useTaskListsStore } from '@/features/tasklists/store';
 import { catSwipe } from '@/features/motivation/supportCat';
 import { validateForm } from '@/features/tasklists/validate';
@@ -167,6 +167,15 @@ describe('collapsed card', () => {
     titleOnly.unmount();
     itemOnly.unmount();
   });
+  it('ticking a title-only list moves the title into one ticked item and clears the title', async () => {
+    await setup();
+    const list = tl('Ideas', { done: [] });
+    useItemsStore().upsert(list);
+    toggleSingleTask('Ideas', singleTask(list)!);
+    const changes = useOutboxStore().entries.map((e) => e.change);
+    expect(changes[0]).toMatchObject({ op: 'item.add', id: 'Ideas', title: 'Ideas', done: true });
+    expect(changes[1]).toMatchObject({ op: 'list.update', id: 'Ideas', patch: { title: '' } });
+  });
   it('a list with a title and one item, or two items, is not a one-line list', async () => {
     const { pinia } = await setup();
     for (const done of [[false], [false, false]]) {
@@ -250,17 +259,17 @@ describe('expanded list', () => {
   const checkbox = (w: VueWrapper, i: number) => w.findAll(tid('tasklist-item'))[i].get('input[type=checkbox]');
   const done = (w: VueWrapper) => w.findAll(tid('tasklist-item')).map((r) => r.attributes('data-done'));
 
-  it('a list with only a title offers a tick box for the title; ticking adds the title as a done first item', async () => {
+  it('a list with only a title offers a tick box for the title; ticking moves the title into a done first item and clears the title', async () => {
     const list = tl('Ideas', { done: [] });
     const added: Record<string, unknown>[] = [];
-    const { w, m } = await open(list, { 'POST /api/tasklists/Ideas/items': ({ body }: { body: Record<string, unknown> }) => { added.push(body); return tl('Ideas', { done: [true] }); } });
+    const { w, m } = await open(list, { 'POST /api/tasklists/Ideas/items': ({ body }: { body: Record<string, unknown> }) => { added.push(body); return tl('Ideas', { done: [true] }); }, 'PATCH /api/tasklists/Ideas': () => tl('Ideas', { title: '', done: [true] }) });
     expect(w.get(tid('tasklist-title-item')).attributes('data-title')).toBe('Ideas');
     await w.get(`${tid('tasklist-title-item-checkbox')} input`).setValue(true);
     await flushPromises();
     expect(added).toEqual([{ id: expect.any(String), title: 'Ideas', done: true }]);
-    expect(m.calls.some((c) => c.method === 'PATCH')).toBe(false);
+    expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: '' }]);
     expect(w.find(tid('tasklist-title-item')).exists()).toBe(false);
-    expect((useItemsStore().get('Ideas') as TaskList)).toMatchObject({ doneCount: 1, totalCount: 1 });
+    expect((useItemsStore().get('Ideas') as TaskList)).toMatchObject({ title: '', doneCount: 1, totalCount: 1 });
   });
   it('offers no title tick box to a list with items or without a title', async () => {
     const { w } = await open(tl('G'), {});

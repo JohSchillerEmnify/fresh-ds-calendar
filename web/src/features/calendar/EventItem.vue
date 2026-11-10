@@ -23,7 +23,7 @@ import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
 import { showsHandles } from './resize';
-import { blockBudget } from './lineBudget';
+import { blockBudget } from '@/lib/lineBudget';
 import { formatDuration } from './timeline';
 import { t } from '@/i18n';
 

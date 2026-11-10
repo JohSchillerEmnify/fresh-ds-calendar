@@ -428,23 +428,32 @@ Then('the titleless task list is struck through', async function (this: World) {
   await expect(el.getByTestId('strike-line')).toBeVisible();
 });
 
-async function checkAboveText(w: World, card: Locator) {
-  const r = await card.evaluate((c) => {
-    const cb = c.querySelector('[data-testid="tasklist-card-check"]')!.getBoundingClientRect();
-    const tx = c.querySelector('[data-testid="tasklist-card-title"]')!.getBoundingClientRect();
-    const cr = c.getBoundingClientRect();
-    return { cbBottom: cb.bottom, txTop: tx.top, txWidth: tx.width, room: cr.width };
-  });
-  expect(r.cbBottom, 'checkbox bottom vs text top').toBeLessThanOrEqual(r.txTop + 1);
-  expect(r.txWidth, 'text uses the width').toBeGreaterThan(r.room * 0.6);
-}
-
-Then('in the task list {string} the checkbox sits above the text', async function (this: World, title: string) {
-  await checkAboveText(this, this.taskCard(title));
+Then('the titleless task list shows the text {string}', async function (this: World, text: string) {
+  await expect(untitledCard(this).getByTestId('tasklist-card-title')).toHaveText(exactText(text));
 });
 
-Then('in the titleless task list the checkbox sits above the text', async function (this: World) {
-  await checkAboveText(this, untitledCard(this));
+const lineCount = (el: Locator) => el.evaluate((e) => {
+  const lh = parseFloat(getComputedStyle(e).lineHeight);
+  return { lines: Math.round(e.getBoundingClientRect().height / lh), lh };
+});
+
+Then('in the titleless task list the checkbox leads the text on its first line', async function (this: World) {
+  const title = untitledCard(this).getByTestId('tasklist-card-title');
+  const r = await title.evaluate((t) => {
+    const cb = t.querySelector('[data-testid="tasklist-card-check"]')!.getBoundingClientRect();
+    const tb = t.getBoundingClientRect();
+    return { mid: (cb.top + cb.bottom) / 2, top: tb.top, lh: parseFloat(getComputedStyle(t).lineHeight), height: tb.height };
+  });
+  expect(r.mid, 'checkbox centre on the first line').toBeGreaterThanOrEqual(r.top);
+  expect(r.mid, 'checkbox centre on the first line').toBeLessThanOrEqual(r.top + r.lh);
+  expect(r.height, 'one line only').toBeLessThanOrEqual(r.lh + 1);
+});
+
+Then('the titleless task list and the event {string} wrap their text on the same number of lines', async function (this: World, event: string) {
+  const list = await lineCount(untitledCard(this).getByTestId('tasklist-card-title'));
+  const ev = await lineCount(this.page.locator(`${tid('event-chip')}${attr('data-title', event)}`).getByTestId('event-chip-title'));
+  expect(list.lines, 'lines of the list text').toBe(ev.lines);
+  expect(list.lines, 'the text wraps').toBeGreaterThan(1);
 });
 
 Then('the task list {string} shows no placeholder', async function (this: World, title: string) {

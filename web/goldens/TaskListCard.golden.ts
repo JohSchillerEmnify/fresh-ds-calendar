@@ -94,6 +94,7 @@ test('TaskListCard: resize handles after a release without moving', () => golden
 // one-line lists (#79): A one item without a title, B a title without items; C a title and one item, D two or more items
 const oneLine = {
   A: (): Parameters<typeof list>[0] => ({ title: '', items: [['Tickets', false]] }),
+  Along: (): Parameters<typeof list>[0] => ({ title: '', items: [['Book the train tickets for the trip', false]] }),
   Adone: (): Parameters<typeof list>[0] => ({ title: '', items: [['Tickets', true]] }),
   B: (): Parameters<typeof list>[0] => ({ title: 'Ideas', items: [] }),
   C: (): Parameters<typeof list>[0] => ({ title: 'Post', items: [['Stamps', false]] }),
@@ -112,8 +113,8 @@ test('TaskListCard: one-line lists, all-day band', () => golden('one-line-allday
 ])));
 
 const oneBlock = (names: string[]) => cases.filter(([k]) => names.includes(k)).flatMap(([k, mk]) =>
-  [22, 30, 45].flatMap((h) => [block(`${k}-${h}`, timed(mk()), 160, h), block(`${k}-${h}-narrow`, timed(mk()), 47, h)]));
-test('TaskListCard: one-line lists, time grid A and B', () => golden('one-line-block-ab', oneBlock(['A', 'Adone', 'B'])));
+  [22, 30, 45, 60].flatMap((h) => [block(`${k}-${h}`, timed(mk()), 160, h), block(`${k}-${h}-narrow`, timed(mk()), 47, h)]));
+test('TaskListCard: one-line lists, time grid A and B', () => golden('one-line-block-ab', oneBlock(['A', 'Along', 'Adone', 'B'])));
 test('TaskListCard: one-line lists, time grid C and D', () => golden('one-line-block-cd', oneBlock(['C', 'D'])));
 
 test('TaskListCard: one-line lists, grown C and D', () => golden('one-line-grown', [

@@ -19,10 +19,11 @@ export function addItem(listId: string, title: string, scope?: ChangeScope, done
   useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done);
 }
 
-/** Tick (or untick) the one task of a one-line list: its item, or the title made the first item, already ticked. */
+/** Tick (or untick) the one task of a one-line list; a title-only list moves its title into the one ticked item and has no title after (it is then the same as a list of one item). */
 export function toggleSingleTask(listId: string, task: SingleTask): void {
-  if (task.item) patchItem(listId, task.item.id, { done: !task.done });
-  else addItem(listId, task.text.slice(0, TITLE_MAX), 'this', true);
+  if (task.item) { patchItem(listId, task.item.id, { done: !task.done }); return; }
+  addItem(listId, task.text.slice(0, TITLE_MAX), 'this', true);
+  useOutboxStore().updateList(listId, { title: '' });
 }
 
 /** Remove an item; `done` is called at once (the change is kept in the outbox). */
