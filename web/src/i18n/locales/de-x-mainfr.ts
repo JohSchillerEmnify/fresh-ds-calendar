@@ -111,6 +111,7 @@ export default {
       signOut: 'Abmelden',
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehld. Erlaub ihn un setz auf Googles Bildschirm des Häkla beim Kalender.', grant: 'Kalenderzugriff erlaubn' },
       resetDemo: { done: 'Demodaden sin widda da' },
+      update: { check: 'Nach Updates gugn', checking: 'Gugg grad…', current: 'Des is die neuesde Version.', ready: 'Ä neue Version is da.', load: 'Jetzd lodn', apk: 'Ä neue App-Version is da.', failed: 'Hod ned gglabbd. Probier’s später nomal.' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
     navPosition: { hint: 'Wo Jahr, Monad, Woche un Dag liegn', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn', drawer: 'Seidnmenü' },

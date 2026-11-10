@@ -129,6 +129,22 @@ Feature: Settings
     And I open the week view for 2026-10-12
     Then the corner shows the version "0.4.2"
 
+  @visual
+  Scenario: The version row checks for updates
+    Given the server reports the build version "0.4.2+abc1234"
+    When I open the settings
+    Then the version row offers "Check for updates"
+    When I check for updates
+    Then the version row says "This is the newest version."
+    And the "settings page" still looks like "settings-update-current"
+    When a new version of the app is deployed
+    And I check for updates
+    Then the version row says "A new version is ready."
+    And the version row offers "Load it now"
+    And the "settings page" still looks like "settings-update-ready"
+    When I load the update
+    Then the app runs the new version
+
   Scenario: The settings show the signing certificate of the app the server offers
     Given the server offers an app signed with the certificate "ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34"
     When I open the settings

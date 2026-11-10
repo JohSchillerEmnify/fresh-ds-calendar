@@ -311,6 +311,23 @@ Then('every credit shows an author or a licence, and a link', async function (th
   }
 });
 
+Then('the version row offers {string}', async function (this: World, label: string) {
+  await settingControl(this, 'settings-version');
+  await expect(this.page.getByTestId('settings-version').locator('xpath=ancestor::*[@data-testid="settings-row"][1]').getByRole('button', { name: label })).toBeVisible();
+});
+
+Then('the version row says {string}', async function (this: World, text: string) {
+  await expect(await settingControl(this, 'settings-version')).toContainText(text);
+});
+
+When('I check for updates', async function (this: World) {
+  await (await settingControl(this, 'settings-update-check')).click();
+});
+
+When('I load the update', async function (this: World) {
+  await Promise.all([this.page.waitForEvent('load'), this.page.getByTestId('settings-update-load').click()]);
+});
+
 Then('the corner shows the version {string}', async function (this: World, version: string) {
   await expect(this.page.getByTestId('app-version')).toHaveText(version);
 });

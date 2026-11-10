@@ -26,11 +26,13 @@ export function apkHintVisible(): boolean {
   return shown !== null && useUiStore().snackbars.some((s) => s.id === shown);
 }
 
-/** Show the hint once per new APK inside the Android app; never in a browser, never without an offered APK. */
-export async function checkApk(apk: { versionCode: number; versionName: string } | null | undefined): Promise<void> {
-  if (!apk || apkHintVisible()) return;
+/** Show the hint once per new APK inside the Android app; never in a browser, never without an offered APK. `force` ignores "Later" (manual check); true when a newer APK is on offer. */
+export async function checkApk(apk: { versionCode: number; versionName: string } | null | undefined, force = false): Promise<boolean> {
+  if (!apk) return false;
+  if (apkHintVisible()) return true;
   const installed = await installedVersionCode();
-  if (installed === null || !shouldOfferApk(installed, apk.versionCode, dismissedApk()) || apkHintVisible()) return;
+  if (installed === null || !shouldOfferApk(installed, apk.versionCode, force ? 0 : dismissedApk())) return false;
+  if (apkHintVisible()) return true;
   const ui = useUiStore();
   shown = ui.notify(t('calendar.apk.available'), {
     duration: 0, testid: 'apk-available',
@@ -38,4 +40,5 @@ export async function checkApk(apk: { versionCode: number; versionName: string }
     action: { label: t('calendar.apk.download'), testid: 'apk-download', run: () => { rememberApkDismissed(apk.versionCode); downloadApk(); } },
     onClose: () => rememberApkDismissed(apk.versionCode),
   });
+  return true;
 }
