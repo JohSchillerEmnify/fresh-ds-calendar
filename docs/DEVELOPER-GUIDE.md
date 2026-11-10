@@ -179,6 +179,11 @@ your own, git-ignored `CLAUDE.md`). It spells out the spec-driven and test-drive
 - only targeted e2e;
 - no secrets or real host names in the repo.
 
+The rules agents follow, each with its reason, are in [`AGENTS.md`](../AGENTS.md) under "Working rules", and the same
+section settles which rule wins when an agent also loads general assistant rules. `.claude/agents/track-builder.md` is a
+ready-made Claude Code build agent (one issue, one branch, one worktree) that carries them; start it with the issue
+number, the worktree path and the request.
+
 What works well:
 - **Let the agent write the scenarios first, and read them before it builds.** Changing a scenario is cheap; changing
   built code is not.

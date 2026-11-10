@@ -73,6 +73,117 @@ The spec is the single source of truth. Code follows the spec, never the other w
   - No deploy unless a human asks.
 - **Parallel agents:** each one works in its own worktree (`../calendar-wt/<name>`), one feature per branch.
 
+## Working rules
+Each rule has its reason after the dash. The rules above (spec first, red test first, root cause by evidence,
+targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, reuse libraries) apply as well.
+`.claude/agents/track-builder.md` is the fixed build agent that carries all of them.
+
+### Process
+- **Size the process to the change.** A fix with a known cause takes the short path: one test that is red before and
+  green after, only the scenarios and `@visual` pictures it can change, one review pass, report. Features take the full
+  routine with `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md`. — A four-line fix must not cost an hour.
+- **One review pass.** A second only for a blocking finding. Never re-run a green set "to be sure". — Reviews and
+  e2e runs cost shared time and tokens.
+- **Keep output short.** Read files by section, show test results as counts and failing names. — Long logs burn context.
+- **Throttle tests.** Run them with `nice -n 10` and at most 4 Vitest workers, one full `pnpm verify` at the end, no
+  repeat or stress loops. — Parallel agents share one machine.
+- **Never hide a gate's exit code.** No `gate | tail && next`; run the gate bare or use `set -o pipefail`. — A pipe
+  made a failed leak check look green.
+- **Budgets are ceilings, not targets.** Don't lazy-load or delay things only to shrink first-load size; a justified
+  increase goes in with `--allow-increase "<reason>"`. — Chasing the number added complexity and one-time growth.
+- **Expensive tests may wait for the nightly CI.** `@perf`, memory and other long runs may be left to
+  `nightly-e2e.yml`; running one locally is fine when it is the faster way to an answer. — It is permission, not a ban.
+- **Ask only real decisions.** Settle obvious ones yourself and say so in one line; check the spec, the issue and
+  `spec/ASSUMPTIONS.md` first and never re-ask an answered question. — Obvious questions waste the owner's time.
+- **Never remove a feature silently.** If something is wrong or misleading, fix it; removing anything users or the
+  owner rely on needs an explicit OK. — Removal changes what people depend on.
+- **Precise terms.** *Host name*, *URL* and *domain* are not "addresses" (that is an IP address); a *virtual calendar*
+  exists only in the app, a *Google calendar* exists in Google; say whether a setting is stored in the app or sent to
+  Google. — Loose words made readers think data had been written somewhere it had not.
+
+### Spec & tests
+- **Never route around the spec** (see above), and never present spec wording as the owner's decision unless the
+  words are on record in a requirements file, ADR or issue; otherwise say "the spec says". — Wording written by an
+  agent is not a decision.
+- **A removal is specified and pinned.** When something is dropped or forbidden, write it into the spec and pin it with
+  a test in the same change. — A request that lives only in chat or one grid comes back.
+- **Read the docs before using an API.** Check the current documentation for every new external call (Google, a
+  library, a platform) before writing code. — "From memory" produced wrong semantics.
+- **A mock must behave like the real service.** For each new Google call, make the mock follow the documented
+  semantics, including what the call does *not* change. — Green tests against a too-friendly mock proved nothing.
+- **Gates stay in step with the spec.** Spec text, `e2e/STEPS.md`, step code and `@unit` comments change together;
+  `check-steps.py` must report 0 problems.
+
+### UI
+- **Look at it.** A UI change is done only after the `@visual` scenarios ran and every affected picture was opened at
+  phone size (375×812), in every affected state (collapsed, grown, tight, all-day band, week, dark). Re-record
+  baselines only for intended changes, after looking; never a bare `--update-snapshots`. — Green DOM checks moved the
+  breakage to states nobody looked at.
+- **Build to the stated look.** Read the spec section and the owner's rules first; no self-invented designs. If a rule
+  would make one state look wrong, ask before building it. — Changes are welcome, invented ones are not.
+- **Check what a screen is for** before placing a feature in it: read the component's doc comment and feature id, and
+  prefer the place that already holds that object's settings. — A setting landed in an unrelated sheet.
+- **One action vocabulary.** Buttons and icon buttons come from the `m3` kit; no new pill or icon variants per
+  feature, mockups included. — Mixed styles clutter the UI.
+- **Scene art fills the whole bar.** Ground cover runs the full width; only characters and large props stay clear of
+  controls, at the size the bar allows, spread over all free areas. — Props squeezed into one gap looked tiny.
+- **User-facing texts are for users.** Plain language, one short sentence on what changes for the user, no
+  implementation, version or history words, no hint that repeats its label; German reads like a native wrote it.
+  — Code-speak leaked into settings hints.
+
+### Data
+- **Everything is per person.** Every setting and piece of user data is keyed by the person; only explicitly shared
+  things (shared task lists) cross people. Review new server stores for this. — One person's change must never alter
+  another person's app.
+- **One rule, one place.** Prefer driving an existing state (e.g. the `hidden` flag) over teaching every reader a new
+  rule. If a rule decides what a person sees (visibility, plans, filters), put the pure function in `shared/` and
+  name every consumer: web stores, server routes, widget. — A web-only rule left the widget ignoring it.
+- **New data is device-first from the start** (see Rules): cached on the device and shown offline; reading data that
+  "needs a connection" is a blocker in review. — Retro-fitting the cache cost a rewrite.
+
+### Git & GitHub
+- **Issue first.** Every piece of work has a GitHub issue before the first commit; the branch is `<type>/<N>-<slug>`
+  (`feat`, `fix`, `docs`, `chore`, `test`, `refactor`) and a commit or the merge says `Fixes #N`. — Board and issue
+  closing are derived from this.
+- **Anonymised wording in everything that reaches GitHub** (commit messages, issue and PR titles and bodies,
+  comments): "a user", "another user". No names, no relationships, no gendered pronouns, no private host names. The
+  commit-msg hook and the `gh` guard refuse personal words. — The repo is public.
+- **Work in your own worktree and branch** (`../calendar-wt/<name>`), never in the main checkout or another
+  worktree. Commits on your own branch are allowed and expected, small and conventional; stage named files only.
+  Pushing, merging and deploying happen only when asked. — Strays in a shared checkout got swept into commits.
+- **Clean up behind you.** After a merge remove the worktree folder and the branch; leave no debug folders, copies or
+  logs next to the repository. — Leftovers pile up and stale refs can carry unscrubbed history.
+- **ADR numbers.** Take the highest existing number plus one, checked against `main` right before committing, and add
+  the row to `docs/adrs/README.md`. — Parallel branches clashed on the same number.
+- **After a push to `main`, read the CI result** (`gh run list --branch main --workflow CI --limit 1`); a red main is
+  fixed before the next feature ships, and changed native dependencies need an Android build or the Android CI result
+  before merge. — `pnpm verify` runs no Gradle tests.
+
+### Production & secrets
+- **Agents never deploy and never hold secrets.** No `.env`, signing key, tokens or secret-store writes; report what
+  is needed instead. Production changes are run by a human or by GitHub CD. — A deploy race rolled production back.
+- **One deploy path: GitHub CD deploys `main` after a green CI run.** Use `scripts/vps.sh deploy` by hand only when
+  CD is off or a human asks. A deploy that contains native changes (`android/`, widget, Capacitor plugins) ships the
+  APK with it. — Two deployers raced; web-only deploys left the app without the feature.
+- **Debugging from logs: read the unfiltered recent log first,** narrow only afterwards, and check that a probe sends
+  what you think (`curl -v`) before calling anything confirmed. — A narrow filter hid the answer for an hour.
+- **Give humans short commands.** Anything long goes into a script; one line they can copy. — Wrapped lines break.
+
+## Repo rules vs. general assistant rules
+An agent may also load general rules (a global rule file or skills). For work in this repo, this file wins; general
+rules fill gaps only. Where they differ:
+
+| Topic | General rule | Here |
+|---|---|---|
+| Requirements | A `REQUIREMENTS.md` before every task | Behaviour lives in `spec/features/**/*.feature`; `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md` holds assumptions and plan for **features** only; a small fix skips it |
+| System design | `.system_design/SYSTEM_DESIGN.md` and a `steps/` folder | The LikeC4 model (`docs/architecture/`), ADRs (`docs/adrs/`) and `spec/API.md`; no `.system_design/` folder unless one is added on purpose |
+| Commits | Never commit on your own initiative | Commit on your own branch, small and conventional; push, merge and deploy only when asked |
+| Tracker | Jira or Confluence | GitHub issues; branch `<type>/<N>-<slug>`, `Fixes #N` |
+| Confirm requirements first | Ask before implementing | Same: the spec gate stops after the scenarios while a human is available; with none (unattended run) build through and record assumptions for review |
+| Reviews | Repeat until no findings | One pass, a second only for a blocking finding |
+| Docstrings | A docstring on every function, comment blocks per logical block | TypeScript here: a one-line *why* comment where needed; the comment gate fails blocks over 3 lines, dates and quotes |
+| Debugging | Falsify hypotheses | Same, and the reproducing test comes first |
+
 ## Report back with
 - the files changed;
 - what you verified, with commands and results;
