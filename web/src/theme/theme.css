@@ -10,6 +10,8 @@
   --r-chip: 6px; --r-block: 8px;
   /* a one-line entry title clipped without an ellipsis fades out over its last 7 px (phone chips, mini cards) */
   --fade-end: linear-gradient(90deg, #000 calc(100% - 7px), transparent);
+  /* the last item row shown while more are hidden fades out downwards */
+  --fade-last-row: linear-gradient(180deg, #000 15%, rgba(0, 0, 0, 0.1) 85%);
 }
 [data-glow='off'] { --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial; }
 [data-glow='soft'] { --glow-r: 9px; --glow-s: 0px; --glow-a: 55%; --glow-anim: initial; }

@@ -70,6 +70,15 @@ Feature: A task list with just one line is one task
     Then in the titleless task list the checkbox leads the text on its first line
 
   @mobile
+  Scenario: A titleless list with several items in a block one line tall shows only its own checkbox
+    Given the calendar contains a task list "" on 2026-10-14 at 09:00 for 15 minutes with items:
+      | item | done |
+      | Foo  | no   |
+      | Bar  | no   |
+    When I open the week view for 2026-10-12
+    Then the titleless task list shows "Foo" in its title slot with only its own checkbox
+
+  @mobile
   Scenario: A one-line task list and an event of the same size wrap their text the same way
     Given the calendar contains a task list "" on 2026-10-14 at 09:00 for 60 minutes with items:
       | item                                | done |

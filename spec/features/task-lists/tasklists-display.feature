@@ -5,8 +5,9 @@ Feature: Task lists in the calendar views
   done count like "1/3" with a progress ring (a list with just one item shows neither, nor the thin progress bar, open or ticked; its opened list keeps count and ring). A timed task list's place in the time
   grid tells its time; a short block does not repeat it as text.
   On phones, the month view shows only compact chips; tapping the day opens the day view.
-  A timed task list in the grid shows its items next to the title only where the column is wide enough;
-  in narrow columns the items go below the title; a timed task list with open items is always tall enough for one.
+  A timed task list in the grid shows its items next to the title only in a card about 400 px wide or more (owner,
+  2026-11-10); a narrower card puts them in rows below the title whenever at least one row fits, and only a block one
+  line tall runs them next to the title; a timed task list with open items is always tall enough for one.
 
   Background:
     Given the calendar is empty
@@ -170,6 +171,15 @@ Feature: Task lists in the calendar views
       | Chore | yes  |
     When I open the day view for 2026-10-14
     Then the task list "Liste" shows its title without overlap
+
+  @mobile @day
+  Scenario: A short timed task list in the phone day view shows its items below the title
+    Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
+      | item | done |
+      | Milk | no   |
+      | Eggs | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Einkaufen" shows the item "Milk" below its title
 
   @desktop @day
   Scenario: A short timed task list in a wide column shows its items next to the title

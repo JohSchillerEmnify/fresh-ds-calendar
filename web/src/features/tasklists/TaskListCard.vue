@@ -26,6 +26,7 @@ import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { badgeInitial } from './sharing';
 import { useElementSize } from '@vueuse/core';
+import { vFade } from '@/lib/fade';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
@@ -175,13 +176,15 @@ const titles = computed(() => !props.grown && section() === 'titles' && props.va
 const collapsed = computed(() => titles.value);
 /** Item fit, time foot and lead, decided in one place (`cardLayout`). */
 const fit = computed(() => cardLayout({
-  variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, height: props.height,
+  variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, width: width.value, height: props.height,
   timed: !!tl.value.time, titled: !!title.value, open: openItems.value.length, total: tl.value.items.length, inked: inked.value,
 }));
 /** Untitled list whose card would otherwise show no item text (chip, titles mode, or a card/block too short to fit any
  * item): surface the FIRST item where the title would be, so the overview is never blank, in every view. It renders as an
  * item, never stored as the event title; the grown/opened card shows the whole list below with no title. */
 const lead = computed(() => (fit.value.lead ? (tl.value.items[0] ?? null) : null));
+/** In the title slot the open names run on in one line (fading at the edge), so a hidden second item is still seen. */
+const leadText = computed(() => (lead.value && !fit.value.shown && openItems.value.length > 1 ? openItems.value.map((i) => i.title).join(', ') : lead.value?.title ?? ''));
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
   const m = new Map<string, number>();
@@ -189,13 +192,15 @@ const rank = computed(() => {
   return m;
 });
 const hideItem = (id: string) => !props.grown && ((rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id));
+/** The last item shown while more are hidden: it fades out, so the card says that more follows. */
+const fadesOut = (id: string) => !props.grown && fit.value.more > 0 && !fit.value.inline && rank.value.get(id) === fit.value.shown - 1;
 const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infinity) < fit.value.shown - 1;
 </script>
 
 <template>
  <component
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
-    :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
+    :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-short="fit.shortBlock || undefined" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" :data-one-line="(variant === 'block' && !!one && oneLines === 1) || undefined" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
@@ -204,8 +209,8 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span v-if="!one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
-      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
+       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span v-fade:x class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
+      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ leadText }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
@@ -218,7 +223,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm && !one">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fadeout: fadesOut(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -243,6 +248,8 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 /* the handles stick out of the block */
 .tl.resizing { overflow: visible; }
 .tl.complete { opacity: 0.55; }
+/* the grown copy (teleported) covers this card; hidden, it cannot show through a see-through (ticked or past) copy */
+.tl[aria-expanded='true'] { opacity: 0; }
 .it.done { text-decoration: line-through; }
 /* done state: a hand-drawn line over the title text (StrikeLine), not text-decoration */
 .tx { position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); vertical-align: top; --strike-w: 1.400px; }
@@ -259,6 +266,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 /* the lead is the list's first item rendered in the title slot (an actual .it, so its marker and strike match the items
  * shown below); it just fills the row like a title would */
 .it.lead { flex: 1 1 auto; min-width: 0; }
+/* the list's own checkbox leads the row: the first item in the title slot draws no marker of its own */
+.it.lead, .mini .it.lead { padding-left: 0; }
+.it.lead::before { display: none; }
 .meta { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 /* titleless: no title text, so the count badge keeps the right edge */
 .untitled .meta { margin-left: auto; }
@@ -298,7 +308,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .tl.mini { --fs: var(--entry-micro); }
 .it { font-size: var(--fs); }
 /* truncated list: the rows that do not fit are cut, the last visible row fades out at the bottom (no count) */
-.items[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); }
+/* the fade sits on the last row shown, not on the empty space below it, so it is visible */
+.items[data-fade='true'] .it.fadeout { -webkit-mask-image: var(--fade-last-row); mask-image: var(--fade-last-row); }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
 .from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: var(--entry-micro); line-height: 14px; }
 .row .est { flex: none; font-size: var(--entry-micro); }
@@ -341,6 +352,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
+/* a short block's height already tells its length: the estimate gives its room to the title */
+.block[data-short] .row .est { display: none; }
 
 /* grown (the expanded card, ExpandedCard): the same card at its full height; the host scrolls when it is cut to the screen */
 .tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); overflow: visible; cursor: pointer; }
@@ -390,6 +403,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* a tight pill is one flex line: the title shrinks and ellipsises instead of dropping below the icon where the pill would hide it;
    a tall pill keeps wrapping, so a narrow column (the 7-day week) stacks the row's parts instead of cutting them */
 .tl.grown[data-tight='true'] .row { flex-wrap: nowrap; }
+/* a taller pill packs its line at the top with the card's own padding, so growing leaves the title exactly where it was */
+.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; padding-top: 3px; }
+.tl.grown.mini:not(.flat):not([data-tight='true']) .row { padding-top: 1px; }
 .tl.grown[data-tight='true'] .title { flex: 1 1 0; min-width: 0; }
 /* a tight pill's count is compact (no capsule padding), so the title keeps as many letters as the column allows */
 .tl.grown[data-tight='true'] .count { padding: 0 2px; }
@@ -419,7 +435,11 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 
 /* phones: a card's title and item names fade out like every other one-line entry; short labels (time, estimate) keep the ellipsis */
 @media (max-width: 767.98px) {
-  .title, .it { --tl-cut: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  .title, .it { --tl-cut: clip; }
+  /* a title fades only where it is really cut (v-fade:x): a fade on a title that fits eats its last letter */
+  .tx[data-cut='true'], .it { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  /* inline names share one line: only the line's end fades (the .items rule), never each name */
+  .block[data-fit='inline'] .it { -webkit-mask-image: none; mask-image: none; }
   /* a one-line list in a block one line tall fades out like an event of that size */
   .block.one[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; overflow: hidden; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }

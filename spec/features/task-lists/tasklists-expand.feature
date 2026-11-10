@@ -54,6 +54,18 @@ Feature: A task list card grows in place over the calendar
     And the task list cards have not moved
     And the task list card "Groceries" is still the one-row inline card of its time block
 
+  Scenario: A ticked task list grows with its title where it was and nothing showing through
+    Given the calendar contains a task list "Chores" on 2026-10-14 at 17:00 for 90 minutes with items:
+      | item    | done |
+      | Vacuum  | yes  |
+      | Laundry | yes  |
+    When I open the day view for 2026-10-14
+    And I note where the title of the task list "Chores" is
+    And I tap the task list "Chores"
+    Then the task list "Chores" is expanded over the calendar
+    And the expanded task list "Chores" shows its title where the card showed it
+    And the collapsed card of the task list "Chores" is hidden while it is expanded
+
   Scenario: A long title wraps and stays fully readable in the grown card
     Given the calendar contains a task list "Weekly shopping for the big family barbecue" on 2026-10-15 at 11:00 for 30 minutes with items:
       | item | done |
