@@ -90,6 +90,8 @@ export const IconBedtime = appIcon('IconBedtime', 'Bedtime');
 export const IconSunny = appIcon('IconSunny', 'Sunny');
 /** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */
 export const IconLocationOn = appIcon('IconLocationOn', 'LocationOn');
+export const IconMapOutline = appIcon('IconMapOutline', 'MapOutline');
+export const IconMyLocation = appIcon('IconMyLocation', 'MyLocation');
 export const IconSearch = appIcon('IconSearch', 'Search');
 export const IconPaletteOutline = appIcon('IconPaletteOutline', 'PaletteOutline');
 export const IconNotificationsOutline = appIcon('IconNotificationsOutline', 'NotificationsOutline');

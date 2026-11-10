@@ -7,6 +7,8 @@ import BookmarkAddP from '~icons/pixelarticons/bookmark';
 import AddP from '~icons/pixelarticons/plus';
 import ArrowBackP from '~icons/pixelarticons/arrow-left';
 import BedtimeP from '~icons/pixelarticons/moon';
+import MapOutlineP from '~icons/pixelarticons/map';
+import MyLocationP from '~icons/pixelarticons/gps';
 import LocationOnP from '~icons/pixelarticons/map-pin';
 import SunnyP from '~icons/pixelarticons/sun';
 import CalendarMonthP from '~icons/pixelarticons/calendar';
@@ -59,6 +61,8 @@ export default {
   ArrowBack: ArrowBackP,
   Bedtime: BedtimeP,
   LocationOn: LocationOnP,
+  MapOutline: MapOutlineP,
+  MyLocation: MyLocationP,
   Sunny: SunnyP,
   CalendarMonth: CalendarMonthP,
   CalendarViewDay: CalendarViewDayP,

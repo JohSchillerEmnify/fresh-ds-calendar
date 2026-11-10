@@ -7,6 +7,8 @@ import BookmarkAddS from '~icons/solar/bookmark-plus-bold-duotone';
 import AddS from '~icons/solar/add-bold-duotone';
 import ArrowBackS from '~icons/solar/arrow-left-bold-duotone';
 import BedtimeS from '~icons/solar/moon-bold-duotone';
+import MapOutlineS from '~icons/solar/map-bold-duotone';
+import MyLocationS from '~icons/solar/gps-bold-duotone';
 import LocationOnS from '~icons/solar/map-point-bold-duotone';
 import SunnyS from '~icons/solar/sun-bold-duotone';
 import CalendarMonthS from '~icons/solar/calendar-bold-duotone';
@@ -59,6 +61,8 @@ export default {
   ArrowBack: ArrowBackS,
   Bedtime: BedtimeS,
   LocationOn: LocationOnS,
+  MapOutline: MapOutlineS,
+  MyLocation: MyLocationS,
   Sunny: SunnyS,
   CalendarMonth: CalendarMonthS,
   CalendarViewDay: CalendarViewDayS,

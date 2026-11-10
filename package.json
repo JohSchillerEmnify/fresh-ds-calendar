@@ -33,6 +33,7 @@
     "@capacitor/cli": "8.6.0",
     "@capacitor/core": "8.6.0",
     "@capacitor/filesystem": "8.1.5",
+    "@capacitor/geolocation": "8.2.4",
     "@capacitor/share": "8.0.3",
     "@eslint/js": "^10.0.1",
     "dependency-cruiser": "^18.7.0",

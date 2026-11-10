@@ -9,8 +9,13 @@ export const EXTRA_CREDITS: Credit[] = [
   { name: 'Phosphor Icons', author: 'Phosphor Icons', license: 'MIT', url: 'https://github.com/phosphor-icons/core' },
   { name: 'Pixelarticons', author: 'Gerrit Halfmann', license: 'MIT', url: 'https://github.com/halfmage/pixelarticons' },
 
+  // the map tiles and the place search the app asks directly (event location, map picker)
+  { name: 'OpenStreetMap map data and tiles', author: 'OpenStreetMap contributors', license: 'ODbL 1.0', url: 'https://www.openstreetmap.org/copyright' },
+  { name: 'Photon place search', author: 'Komoot and contributors', license: 'Apache-2.0', url: 'https://github.com/komoot/photon' },
+
   // Android shell (android/app/build.gradle); web/test/credits.test.ts fails when a Gradle dependency is missing here
   { name: 'Capacitor', author: 'Ionic', license: 'MIT', url: 'https://github.com/ionic-team/capacitor' },
+  { name: 'Capacitor Geolocation plugin', author: 'Ionic', license: 'MIT', url: 'https://github.com/ionic-team/capacitor-plugins/tree/main/geolocation' },
   { name: 'AndroidX AppCompat', author: 'The Android Open Source Project', license: 'Apache-2.0', url: 'https://developer.android.com/jetpack/androidx/releases/appcompat' },
   { name: 'AndroidX CoordinatorLayout', author: 'The Android Open Source Project', license: 'Apache-2.0', url: 'https://developer.android.com/jetpack/androidx/releases/coordinatorlayout' },
   { name: 'AndroidX Core SplashScreen', author: 'The Android Open Source Project', license: 'Apache-2.0', url: 'https://developer.android.com/jetpack/androidx/releases/core' },

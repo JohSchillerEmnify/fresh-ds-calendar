@@ -9,7 +9,7 @@
 		# server/test/security-headers.test.ts fails when this line is stale.
 		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-GrXD3QGPyKXRw5Boectly9RdwDLFDNEmyhoEGbeV11o='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://photon.komoot.io https://tile.openstreetmap.org; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		X-Frame-Options DENY
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
 		-Server
 	}
 	request_body {

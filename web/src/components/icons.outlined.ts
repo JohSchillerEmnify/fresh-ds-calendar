@@ -7,6 +7,8 @@ import BookmarkAddO from '~icons/material-symbols/bookmark-add-outline';
 import AddO from '~icons/material-symbols/add';
 import ArrowBackO from '~icons/material-symbols/arrow-back';
 import BedtimeO from '~icons/material-symbols/bedtime';
+import MapOutlineO from '~icons/material-symbols/map';
+import MyLocationO from '~icons/material-symbols/my-location';
 import LocationOnO from '~icons/material-symbols/location-on';
 import SunnyO from '~icons/material-symbols/sunny';
 import CalendarMonthO from '~icons/material-symbols/calendar-month';
@@ -62,6 +64,8 @@ export default {
   ArrowBack: ArrowBackO,
   Bedtime: BedtimeO,
   LocationOn: LocationOnO,
+  MapOutline: MapOutlineO,
+  MyLocation: MyLocationO,
   Sunny: SunnyO,
   CalendarMonth: CalendarMonthO,
   CalendarViewDay: CalendarViewDayO,

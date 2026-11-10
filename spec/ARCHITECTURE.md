@@ -59,3 +59,5 @@ Feature `events/event-location`, requirements `.requirements/20261025T225937Z_ev
   `sw.js` too). Built from the configured addresses in `server/src/lib/securityHeaders.ts`; the Caddyfile copy holds the
   defaults and `server/test/security-headers.test.ts` keeps both equal. `Referrer-Policy: strict-origin-when-cross-origin`
   (never stricter: the OSM tile policy wants the page origin as Referer).
+- **Map picker** (issue #58, ADR 0040). "Pick on map" shows a Leaflet map (lazy) on the same tiles and asks Photon's `/reverse` (derived
+  from `placeSearchUrl`, so no new host) for the pin's address; `Permissions-Policy` allows `geolocation=(self)` for "Use my location".

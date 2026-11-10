@@ -84,6 +84,21 @@ export async function searchPlaces(base: string, q: string, lang: string, signal
   return parsePhoton(await res.json());
 }
 
+/** The reverse-lookup request for a position: Photon's `/reverse` next to the search endpoint, sending only the position and the language. */
+export function reverseUrl(base: string, lat: number, lon: number, lang: string): string {
+  const u = new URL('reverse', new URL(base, location.origin));
+  u.search = new URLSearchParams({ lat: String(lat), lon: String(lon), lang, limit: '1' }).toString();
+  return u.toString();
+}
+
+/** The readable address `"<name>, <address>"` of the place nearest to a position (what the field holds after a pick on the map), or null when none is known; throws when the service fails. */
+export async function reverseAddress(base: string, lat: number, lon: number, lang: string, signal?: AbortSignal, fetchFn: typeof fetch = fetch): Promise<string | null> {
+  const res = await fetchFn(reverseUrl(base, lat, lon, lang), { signal, credentials: 'omit' });
+  if (!res.ok) throw new Error(`reverse lookup answered ${res.status}`);
+  const [hit] = parsePhoton(await res.json());
+  return hit ? placeLocation(hit) : null;
+}
+
 /**
  * The location text Google gets for a picked place.
  *

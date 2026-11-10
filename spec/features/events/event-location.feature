@@ -248,6 +248,136 @@ Feature: Places for an event's location
       And the event dialog shows a map with a pin on "Stadtbad Neukölln"
       And I see the map buttons "Google Maps, OpenStreetMap" under the map
 
+  Rule: Pick on map: when the search finds nothing, a place is picked by moving a map under a fixed pin
+    Under the location field a tonal "Pick on map" action opens a full-screen page (owner, mockup 2026-11-10): the map
+    moves under a pin that stays in the middle, a search pill finds a street or place, "Use my location" moves the map
+    to the device (asked for only on its first tap), and the bottom panel shows the readable address and the position
+    of the pin, with "Cancel" and "Use this place". The map is Leaflet on the same OpenStreetMap pictures as the small
+    map; the address comes from the same place search (Photon), asked only after the map has come to rest. Using the
+    place puts the readable address in the location field and shows the small map and the two map buttons as for a
+    suggested place. Online only: without a connection the page says so and offers to type an address instead.
+
+    Scenario: Pick on map is offered next to the location field
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      Then I see the action "Pick on map" at the event location
+
+    Scenario: Searching in the picker moves the map and shows the address of the pin
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      Then the map picker is centred on the place "Stadtbad Neukölln"
+      And the map picker shows the address "Stadtbad Neukölln, Ganghoferstraße 3, 12043 Berlin"
+      And the map picker credits OpenStreetMap
+
+    Scenario: Dragging the map moves the position under the pin
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      And I drag the map picker by 120 pixels
+      Then the position of the pin has changed
+
+    Scenario: Using the place fills the location field and shows the small map
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      And I use the place in the map picker
+      Then the map picker is closed
+      And the event form shows:
+        | location | Stadtbad Neukölln, Ganghoferstraße 3, 12043 Berlin |
+      And the event dialog shows a map with a pin on "Stadtbad Neukölln"
+      And I see the map buttons "Google Maps, OpenStreetMap" under the map
+
+    Scenario: Cancel keeps the place the event had
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      And I open the map picker
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      And I cancel the map picker
+      Then the map picker is closed
+      And the event form shows:
+        | location | Zahnarztpraxis Dr. Weber |
+      And the event dialog shows a map with a pin on "Zahnarztpraxis Dr. Weber"
+
+    Scenario: Use my location moves the map to the device
+      Given the device reports the position of the place "Stadtbad Neukölln"
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      And I tap "Use my location" in the map picker
+      Then the map picker is centred on the place "Stadtbad Neukölln"
+
+    Scenario: A refused location is explained and the picker keeps working
+      Given the device refuses to tell its position
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      And I tap "Use my location" in the map picker
+      Then the map picker says the location is not available
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      And the map picker is centred on the place "Stadtbad Neukölln"
+
+    @visual
+    Scenario Outline: The map picker and the event sheet look as drawn, light and dark
+      Given the device prefers a <scheme> color scheme
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I see the action "Pick on map" at the event location
+      When I open the map picker
+      And I search the map picker for "Stadtbad"
+      And I pick the map picker result "Stadtbad Neukölln"
+      Then the map picker shows the address "Stadtbad Neukölln, Ganghoferstraße 3, 12043 Berlin"
+      And the "map picker" still looks like "map-picker-<scheme>"
+      When I use the place in the map picker
+      Then the "event dialog" still looks like "location-picked-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |
+
+    @visual @offline
+    Scenario Outline: The offline map picker looks as drawn, light and dark
+      Given the device prefers a <scheme> color scheme
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And the network connection is lost
+      And I open the map picker
+      Then the "map picker" still looks like "map-picker-offline-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |
+
+    @unit
+    # unit: web/test/calendar/map-picker.test.ts:asks for the device position only on the first tap
+    Scenario: The device position is asked for only when "Use my location" is tapped
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      Then the device was not asked for its position
+
+    @offline
+    Scenario: Without a connection the picker says it needs one and offers to type an address
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And the network connection is lost
+      And I open the map picker
+      Then the map picker says it needs a connection
+      When I choose "Type an address instead" in the map picker
+      Then the map picker is closed
+      And the event field "location" has focus
+
   Rule: Later slice — a location typed elsewhere can be looked up as a place, only on request
     The location text is sent to the place search only when the person asks (owner, 2026-10-26).
 

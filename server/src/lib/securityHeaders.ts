@@ -62,7 +62,7 @@ export function contentSecurityPolicy(scriptHashes: string[], hosts: PlaceHosts 
 }
 
 /** The Permissions-Policy value (the app uses none of these features). */
-export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()';
+export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()';
 
 /**
  * The Referrer-Policy value: the browsers' own default, sent explicitly so sauron matches the public instance. Never

@@ -15,7 +15,7 @@ const known = new WeakMap<World, KnownPlace[]>();
 /** The suggestions' pause in the app (LocationField.vue). */
 const PAUSE_MS = 300;
 
-function place(w: World, name: string): KnownPlace {
+export function place(w: World, name: string): KnownPlace {
   const p = known.get(w)?.find((k) => k.name === name);
   if (!p) throw new Error(`The place search does not know "${name}"`);
   return p;

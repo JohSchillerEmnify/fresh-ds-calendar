@@ -24,6 +24,8 @@ function region(w: World, name: string): Locator {
     case 'templates page': return w.byTestId('templates-page');
     case 'settings page': return w.byTestId('settings-view');
     case 'theme page': return w.byTestId('theme-view');
+    case 'map picker': return w.byTestId('map-picker');
+    case 'event dialog': return w.byTestId('event-dialog');
     case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }
