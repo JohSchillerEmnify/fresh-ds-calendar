@@ -4,6 +4,7 @@
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
 #   scripts/vps.sh apk      ship only the Android APK (CD deploys the server; the signing key stays on this machine)
+#   scripts/vps.sh config   ship compose.yml, Caddyfile and deploy-from-ghcr.sh, recreate what changed, reload Caddy (no image build)
 #   scripts/vps.sh logs     follow the app and Caddy logs
 #   scripts/vps.sh rollback [version]   run the previous image (or calendar:<version>) again; deploy does this itself when health fails
 # The VPS (1 CPU, 1 GB) never builds. ufw, Docker, swap and unattended-upgrades are already set up.
@@ -174,7 +175,21 @@ REMOTE
   logs)
     on_vps 'cd /opt/calendar && docker compose logs -f --tail=100'
     ;;
+  config)
+    # the owner-run step for config changes (ADR 0042): files only, the running image is not touched; no secrets are printed
+    for f in deploy/vps/compose.yml deploy/vps/Caddyfile deploy/deploy-from-ghcr.sh; do [[ -f "$here/$f" ]] || { echo "no $f in $here" >&2; exit 1; }; done
+    if [[ -z "${DRY_RUN:-}" ]]; then
+      scp "${OPTS[@]}" -q "$here/deploy/vps/compose.yml" "$here/deploy/vps/Caddyfile" "$HOST:/opt/calendar/"
+      scp "${OPTS[@]}" -q "$here/deploy/deploy-from-ghcr.sh" "$HOST:/opt/calendar/deploy-from-ghcr.sh"
+    fi
+    on_vps 'cd /opt/calendar && chmod 755 deploy-from-ghcr.sh && chown root:root deploy-from-ghcr.sh \
+      && docker compose config -q \
+      && docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile >/dev/null \
+      && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile \
+      && docker compose up -d --remove-orphans && docker compose ps'
+    echo "config shipped: compose.yml, Caddyfile, deploy-from-ghcr.sh; Caddy reloaded"
+    ;;
   *)
-    sed -n '2,9p' "$0" >&2; exit 2
+    sed -n '2,10p' "$0" >&2; exit 2
     ;;
 esac

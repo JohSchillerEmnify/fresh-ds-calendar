@@ -4,6 +4,7 @@ import { buildApp } from './app.js';
 import { assertSafeToStart, loadConfig } from './config.js';
 import { VERSION } from './context.js';
 import { logEvent } from './lib/diag.js';
+import { drain } from './lib/shutdown.js';
 
 const config = loadConfig();
 assertSafeToStart(config);
@@ -36,10 +37,10 @@ const server = serve({ fetch: app.fetch, port: config.port, hostname: config.hos
   logEvent('startup', { version: VERSION, provider: config.provider, node: process.version, pid: process.pid });
 });
 
+// compose gives the container stop_grace_period 15 s: the drain must end before Docker sends SIGKILL
+const DRAIN_MS = 10_000;
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, () => {
-    app.close();
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(0), 3000).unref();
+    drain(server, () => app.close(), DRAIN_MS);
   });
 }

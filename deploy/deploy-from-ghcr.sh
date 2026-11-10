@@ -28,10 +28,11 @@ IMAGE_REPO=$(sed -n 's/^IMAGE_REPO=//p' deploy.env | head -n 1)
 # one deploy at a time: a second run waits instead of racing on the tags
 exec 9>"$DIR/.deploy.lock"; flock -w 600 9
 
-# Starts the app from calendar:latest and waits until /api/health says ok; non-zero when it does not in HEALTH_TIMEOUT s
+# Recreates only the app container from calendar:latest (Caddy keeps running and holds requests meanwhile, ADR 0042) and waits
+# until /api/health says ok; non-zero when it does not in HEALTH_TIMEOUT s
 up_and_wait() {
   local waited=0 out
-  docker compose up -d --remove-orphans || return 1
+  docker compose up -d --no-deps --remove-orphans app || return 1
   while (( waited < HEALTH_TIMEOUT )); do
     out=$(docker compose exec -T app sh -c 'wget -qO- "http://127.0.0.1:${PORT:-3000}/api/health"' 2>/dev/null) || true
     [[ "$out" == *'"status":"ok"'* ]] && return 0
