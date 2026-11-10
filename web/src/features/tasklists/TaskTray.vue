@@ -19,6 +19,7 @@ import { vRipple } from '@/lib/ripple';
 import { displayTitle, neutralName } from '@/lib/items';
 import { showProgress } from './format';
 import { useUiStore } from '@/stores/ui';
+import { usePrefsStore } from '@/stores/prefs';
 import { compareOpen, useTaskListsStore } from './store';
 import { useTaskCategories } from './categories';
 // the list views are not part of the first load: fetched shortly after the tray mounts (or at the first open)
@@ -29,6 +30,7 @@ const route = useRoute();
 const { position: navPosition } = useNavPosition();
 const lists = useTaskListsStore();
 const ui = useUiStore();
+const prefs = usePrefsStore();
 const cats = useTaskCategories();
 const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
@@ -38,6 +40,40 @@ const listShown = computed(() => (isPhone.value ? expanded.value : !ui.trayColla
 const opened = ref(false);
 watch(listShown, (v) => { if (v) opened.value = true; }, { immediate: true });
 const root = ref<HTMLElement | null>(null);
+const MIN_W = 260;
+const MAX_W = 560;
+const STEP_W = 20;
+/** Width while the edge is being dragged; the pref is saved when the drag ends. */
+const dragW = ref<number | null>(null);
+const width = computed(() => dragW.value ?? prefs.trayWidth);
+const clampW = (w: number) => Math.min(MAX_W, Math.max(MIN_W, Math.round(w)));
+/** The left-handed tablet panel sits at the left, so its draggable edge is the right one. */
+const mirrored = () => document.documentElement.dataset.hand === 'left' && 'touch' in document.documentElement.dataset;
+function saveWidth(w: number) {
+  if (w !== prefs.trayWidth) void prefs.set({ trayWidth: w }).catch(() => undefined);
+}
+function dragMove(e: PointerEvent) {
+  if (dragW.value === null || !root.value) return;
+  const r = root.value.getBoundingClientRect();
+  dragW.value = clampW(mirrored() ? e.clientX - r.left : r.right - e.clientX);
+}
+function dragEnd() {
+  if (dragW.value !== null) saveWidth(dragW.value);
+  dragW.value = null;
+}
+function dragStart(e: PointerEvent) {
+  if (e.button !== 0) return;
+  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  dragW.value = width.value;
+}
+function resizeKey(e: KeyboardEvent) {
+  const wider = e.key === (mirrored() ? 'ArrowRight' : 'ArrowLeft');
+  const narrower = e.key === (mirrored() ? 'ArrowLeft' : 'ArrowRight');
+  const next = e.key === 'Home' ? MIN_W : e.key === 'End' ? MAX_W : wider ? width.value + STEP_W : narrower ? width.value - STEP_W : null;
+  if (next === null) return;
+  e.preventDefault();
+  saveWidth(clampW(next));
+}
 function toggle() {
   if (isPhone.value) expanded.value = !expanded.value;
   else ui.trayCollapsedDesktop = !ui.trayCollapsedDesktop;
@@ -75,7 +111,7 @@ function setHeight() {
   document.documentElement.style.setProperty('--tray-h', `${box && isPhone.value ? Math.round(box.height) : 0}px`);
   document.documentElement.style.setProperty('--tray-w', `${box && !isPhone.value ? Math.round(box.width) : 0}px`);
 }
-watch([shown, isPhone, expanded, () => ui.trayCollapsedDesktop, () => lists.count], () => nextTick(setHeight));
+watch([shown, isPhone, expanded, () => ui.trayCollapsedDesktop, () => lists.count, width], () => nextTick(setHeight));
 // the row leaves the bar while its toggle has focus: hand focus on to the + button (else the bar) so it is not lost to the page
 watch(rowShown, (now) => {
   const toggleEl = document.querySelector('[data-testid="task-tray-toggle"]');
@@ -125,7 +161,12 @@ function toggleFold(id: string) {
 </script>
 
 <template>
-  <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: listShown, collapsed: !listShown && !isPhone, 'in-bar': inBar }" data-testid="task-tray" :data-expanded="listShown">
+  <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: listShown, collapsed: !listShown && !isPhone, 'in-bar': inBar }" data-testid="task-tray" :data-expanded="listShown" :style="{ '--tray-px': `${width}px` }">
+    <div
+      v-if="!isPhone && listShown" class="resize" :class="{ on: dragW !== null }" role="separator" aria-orientation="vertical" tabindex="0" data-testid="task-tray-resize"
+      :aria-label="t('tasks.tray.resize')" :aria-valuenow="width" :aria-valuemin="MIN_W" :aria-valuemax="MAX_W"
+      @pointerdown="dragStart" @pointermove="dragMove" @pointerup="dragEnd" @pointercancel="dragEnd" @keydown="resizeKey"
+    ><span class="grip" aria-hidden="true" /></div>
     <!-- keyed: a Teleport mounted while the bar was absent keeps its missing target when the bar appears later -->
     <Teleport :key="String(inBar)" to="#bar-extra" defer :disabled="!inBar">
       <Pressable
@@ -204,8 +245,15 @@ html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
   html[data-nav-pos='bottom'][data-bar-hidden='true'] .tray.phone { margin-bottom: 0; padding-bottom: var(--safe-bottom); }
 }
 @media (min-width: 768px) {
-  .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }
+  .tray { position: relative; width: var(--tray-px, 380px); border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }
   .bar { padding-right: 12px; }
+  .tray:has(.resize.on) { transition: none; }
+  /* a 12 px wide strip on the edge, the visible grip in its middle */
+  .resize { position: absolute; top: 0; bottom: 0; left: 0; width: 12px; z-index: 1; cursor: col-resize; touch-action: none; display: flex; align-items: center; justify-content: center; }
+  .grip { width: 4px; height: 40px; border-radius: 2px; background: var(--md-sys-color-outline); opacity: 0.6; }
+  .resize.on .grip, .resize:focus-visible .grip { opacity: 1; background: var(--md-sys-color-primary); }
+  @media (hover: hover) { .resize:hover .grip { opacity: 1; background: var(--md-sys-color-primary); } }
+  .resize:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; }
   .open .chev { transform: rotate(90deg); }
   .tray.collapsed .chev { transform: rotate(-90deg); }
   /* Collapsed: a slim edge strip (56 px) with only the toggle; the count chip reads sideways. */
@@ -226,6 +274,7 @@ html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
 /* Left-handed mode (touch tablet): the side panel moves next to the navigation rail at the left; its edge and fold chevron mirror. */
 @media (min-width: 768px) {
   html[data-hand='left'][data-touch] .tray { order: -1; border-left: 0; border-right: 1px solid var(--md-sys-color-outline-variant); }
+  html[data-hand='left'][data-touch] .resize { left: auto; right: 0; }
   html[data-hand='left'][data-touch] .open .chev { transform: rotate(-90deg); }
   html[data-hand='left'][data-touch] .tray.collapsed .chev { transform: rotate(90deg); }
 }

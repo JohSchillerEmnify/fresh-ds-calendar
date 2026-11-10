@@ -142,6 +142,8 @@ export interface Prefs {
   /** The bottom bar's size: Expressive 64 px or Compact 52 px (`auto`: Compact on phones, Expressive elsewhere; feature nav-expressive). */
   bottomBarSize: BarSize;
   monthScroll: MonthScroll;
+  /** Width in px of the desktop open-tasks side panel, 260 to 560, default 380 (feature open-tasks-in-sight). */
+  trayWidth: number;
   /** When each calendar switches off by itself (feature calendar-off-plan), by calendar id. */
   calendarPlans: Record<string, CalendarPlan>;
 }

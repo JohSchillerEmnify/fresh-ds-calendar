@@ -72,6 +72,7 @@ export default {
     empty: 'Nichts offen. Schön.',
     fold: '{title} einklappen',
     showItems: 'Einträge von {title} anzeigen',
+    resize: 'Breite des Bereichs',
     collapse: 'Leiste mit offenen Aufgaben einklappen',
     expand: 'Leiste mit offenen Aufgaben ausklappen',
   },

@@ -74,6 +74,7 @@ export default {
     empty: 'Nothing waiting. Nice.',
     fold: 'Fold {title}',
     showItems: 'Show items of {title}',
+    resize: 'Panel width',
     collapse: 'Collapse the open tasks panel',
     expand: 'Expand the open tasks panel',
   },

@@ -75,6 +75,7 @@ export default {
     empty: 'Nix am Start. Fresh D. ist stolz.',
     fold: '{title} einklappen, yo',
     showItems: 'Einträge von {title} zeigen, fresh',
+    resize: 'Breite vom Bereich, fresh',
     collapse: 'Aufgaben-Leiste einklappen, fresh',
     expand: 'Aufgaben-Leiste ausklappen, fresh',
   },

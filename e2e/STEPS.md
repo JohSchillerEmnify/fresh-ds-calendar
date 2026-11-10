@@ -1204,6 +1204,9 @@ the open tasks tray is collapsed
 the open tasks tray is expanded
 I collapse the open tasks tray
 the open tasks tray is at most {int} px wide
+the open tasks tray is {int} px wide
+I drag the open tasks tray's edge to make it {int} px wide
+I press {string} {int} times on the open tasks tray's edge
 the task list {string} is highlighted in the open tasks tray
 the open tasks tray lists {string}
 the open tasks tray does not list {string}
@@ -1234,6 +1237,10 @@ the overdue label of {string} does not use the error color
 - "I collapse the open tasks tray": clicks `task-tray-toggle` when the tray is expanded (desktop side panel or phone bar).
   "is expanded"/"is collapsed" = `data-expanded` of `task-tray` is `true`/`false` (on the desktop the persisted collapsed state).
 - "is at most N px wide": polls the tray's box width and the `--tray-w` on :root (the FAB's clearance) until both are <= N.
+- "is N px wide": polls the tray's box width until it is N (±1). "I drag ... edge to make it N px wide": mouse down on
+  `task-tray-resize` (role `separator`, `aria-valuenow/min/max` = width/260/560), moves so the edge is at
+  `innerWidth - N`, releases, and waits for the prefs `PATCH` (`trayWidth`). "I press K N times": focuses the edge and
+  presses the key (ArrowLeft widens by 20 px, ArrowRight narrows, Home/End = min/max), waiting for the last `PATCH`.
 - "the task list L is highlighted in the open tasks tray": the `task-tray-item` of L gets `data-flash` (within the
   default timeout; it clears after about a second) and no `tasklist-expanded` list sheet is open.
 - "the open tasks tray shows the message M for L": within 1 500 ms of the previous step, the tray row of L shows M
