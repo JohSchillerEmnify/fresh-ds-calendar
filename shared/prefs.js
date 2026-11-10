@@ -106,6 +106,7 @@ export const PREFS = {
   tasksSortDir: oneOf(['default', 'reversed'], 'default'),
   undatedDone: oneOf(['calendar', 'archive'], 'calendar'),
   taskOpen: oneOf(['inline', 'drawer'], 'inline'),
+  growSeveral: bool(true),
   tasksFilter: { default: { categories: [], when: 'all' }, parse: (v) => { const r = toTasksFilter(v); return r ? ok(r) : { error: 'Invalid tasksFilter' }; } },
   language: oneOf(['auto', ...LANGUAGE_VALUES], 'auto', 'Invalid language'),
   bedtime: { default: DEFAULT_BEDTIME, merge: true, parse: parseBedtime },

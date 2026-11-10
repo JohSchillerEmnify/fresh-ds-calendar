@@ -55,7 +55,7 @@ Then('there are no reward effect elements left', async function (this: World) {
 Then(
   'the progress ring of the task list {string} shows {int} percent',
   async function (this: World, title: string, percent: number) {
-    const ring = this.byTestId('tasklist-expanded', attr('data-title', title)).getByTestId('tasklist-progress-ring');
+    const ring = this.byTestId('tasklist-expanded', attr('data-title', title) + ':not([data-presentation="overlay"])').getByTestId('tasklist-progress-ring');
     await expect(ring).toBeVisible();
     await expect
       .poll(async () => Math.round(Number(await ring.getAttribute('aria-valuenow'))))
@@ -167,7 +167,7 @@ Then('the support cat does not appear', async function (this: World) {
  * has `data-struck="true"` and a visible strike line (a `strike-line` element over it or `line-through` decoration).
  */
 Then('the title of the task list {string} is struck through', async function (this: World, title: string) {
-  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title) + ':not([data-presentation="overlay"])');
   const el = (await expanded.isVisible())
     ? expanded.getByTestId('tasklist-expanded-title')
     : this.taskCard(title).getByTestId('tasklist-card-title');
@@ -183,7 +183,7 @@ Then('the title of the task list {string} is struck through', async function (th
 
 /** The title element is not marked struck, has no strike line and no `line-through` decoration. */
 Then('the title of the task list {string} is not struck through', async function (this: World, title: string) {
-  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title) + ':not([data-presentation="overlay"])');
   const el = (await expanded.isVisible())
     ? expanded.getByTestId('tasklist-expanded-title')
     : this.taskCard(title).getByTestId('tasklist-card-title');

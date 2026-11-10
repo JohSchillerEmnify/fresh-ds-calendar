@@ -136,6 +136,7 @@ export default {
       editCategory: '{name} bearbeiten',
       undatedDone: { label: 'Erledigte Liste ohne Datum', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv' },
       taskOpen: { label: 'Tippen auf eine Aufgabenliste', inline: 'Wächst an Ort und Stelle', drawer: 'Öffnet die Liste' },
+      growSeveral: { label: 'Mehrere Listen offen lassen', hint: 'Angetippte Listen bleiben offen, bis du auf ihren Titel tippst. Aus: Eine neue Liste schließt die vorherige.' },
     },
     motivation: {
       calmMode: { label: 'Ruhemodus', hint: 'Weniger Details, ruhigere Farben, weniger Bewegung' },

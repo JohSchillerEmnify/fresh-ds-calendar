@@ -343,6 +343,15 @@ the item {string} has the drag handle {string}
 I edit the task list details
 I delete the task list
 the task list tap setting is {string}
+keeping several task lists open is {string}
+I press Enter on the title of the expanded task list {string}
+I press Space on the title of the expanded task list {string}
+I press Enter on the expanded task list {string}
+the title of the expanded task list {string} is called {string}
+the expanded task list {string} and the expanded task list {string} overlap
+the expanded task list {string} is drawn above the expanded task list {string}
+I tap the expanded task list {string} above the expanded task list {string}
+the task list {string} is grown but out of sight
 I tap the task list {string}
 I tap the titleless task list
 I tap the expanded task list {string}
@@ -377,9 +386,7 @@ the titleless task list is expanded over the calendar
 the expanded task list shows the item {string} as done and the item {string} as open
 the expanded task list has no checkboxes
 the focus is inside the expanded task list
-the card of the task list {string} has the focus
 the card of the task list {string} says it is expanded
-the card of the task list {string} says it is collapsed
 I zoom the time grid in
 I zoom the time grid out
 I zoom the time grid in on the lower edge of the grown card
@@ -425,8 +432,8 @@ top element there. "shows the full title": `tasklist-card-title` of the grown ca
 (`scrollWidth <= clientWidth`) and lies inside the card. "shows the real time block ... and a slimmer extension": the grown card's `tasklist-grown-real` layer has the height of the collapsed card (2 px), `tasklist-grown-ext` starts at its end (2 px, below it) and is narrower; "is still the one-row inline card of its time block": the
 collapsed card has `data-fit="inline"` and the height of its time block (parent box, 2 px). "shows the item I as done and J as
 open": `tasklist-card-item` `data-done` true / false in the overlay; "has no checkboxes": no input, checkbox, edit or close
-button inside it. "the focus is inside" / "the card has the focus": `document.activeElement` is within the overlay / is the
-collapsed card button.
+button inside it. "the focus is inside": `document.activeElement` is within the overlay.
+"keeping several task lists open is S" (`on` | `off`): `PATCH /api/prefs { growSeveral }`. "I press Enter / Space on the title of the expanded task list X": focuses `tasklist-card-title` of that grown card and presses the key; "... Enter on the expanded task list X" does the same on the card (`tasklist-card-grown`). "is called": the title's `aria-label`. "overlap" / "is drawn above": the boxes intersect / the grown card is the top element at the middle of the intersection. "I tap ... above the expanded task list Y": clicks 3 px above Y's top, inside the first card, left of its title. "is grown but out of sight": the grown card is in the page (remembered) but not visible.
 
 ## Repeating task lists (`@repeating`)
 

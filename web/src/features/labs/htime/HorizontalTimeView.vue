@@ -20,7 +20,6 @@ import type { Segment } from '@/lib/items';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
-import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import { createZoomController } from '../zoom/zoomGestures';
 import {
@@ -33,7 +32,6 @@ const router = useRouter();
 const cal = useCalendarStore();
 const clock = useClockStore();
 const prefs = usePrefsStore();
-const ui = useUiStore();
 
 const anchorDate = computed(() => parseIsoDate(route.params.param as string) ?? clock.todayDate);
 const days = computed(() => weekDays(anchorDate.value));
@@ -101,7 +99,7 @@ const ctl = createZoomController({ z: zoom.value, x: 0, y: 0 }, {
   size: () => ({ w: vw.value, h: vh.value }),
   origin: () => { const r = port.value?.getBoundingClientRect(); return { x: r?.left ?? 0, y: r?.top ?? 0 }; },
   // an expanded task list card is anchored to where the card was: a pan or zoom ends it
-  live: (x, y, kx, ky) => { applyTransform(x, y, kx, ky); ui.collapseCard(); },
+  live: (x, y, kx, ky) => { applyTransform(x, y, kx, ky); },
   commit: (nz, x, y) => {
     zoom.value = nz;
     applyTransform(x, y, 1, 1);

@@ -50,7 +50,7 @@ const settings = useSettingsStore();
 const ui = useUiStore();
 const elRef = ref<unknown>(null);
 /** The `Pressable`'s element (a template ref points at the component). */
-const el = computed(() => elOf(elRef.value));
+const el = computed(() => (elRef.value instanceof HTMLElement ? elRef.value : elOf(elRef.value)));
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
 // a preview copy (swipe neighbour) is inert: no drag handlers
@@ -60,8 +60,7 @@ const { width } = useElementSize(el, undefined, { box: 'border-box' });
 /** Expanded in place over the calendar (a swipe preview copy never is); a tap expands, items change only in the day view. */
 /** This card instance shows the expansion: a view may hold the same list twice (the zoom month's chip layer and its timeline), only one grows. */
 const owner = nextCardOwner();
-const sameCard = (c: { id: string; date: string } | null) => !!c && c.id === props.segment.item.id && c.date === props.segment.date;
-const expanded = computed(() => !props.grown && !inPreview() && ui.expandedOwner === owner && sameCard(ui.expandedCard));
+const expanded = computed(() => !props.grown && !inPreview() && ui.ownerOf(cardKey()) === owner);
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
 const clock = useClockStore();
 /** The card's day is over: a remembered expansion ends then (an open list from a past day shows carried to today). */
@@ -77,10 +76,18 @@ function toggle() {
     ui.revealTask(tl.value.id);
     return;
   }
-  ui.expandCard(cardKey(), owner);
+  ui.expandCard(cardKey(), owner, prefs.growSeveral);
 }
-/** A tap on the grown card's title row folds it back up; anywhere else on it opens the list. */
-function onGrownTap(e: MouseEvent) { if ((e.target as Element).closest('.row')) emit('collapse'); else emit('openList'); }
+/**
+ * A tap on the grown card's title (a button of its own, so Enter and Space fold it too) folds it back up; anywhere else on it opens
+ * the list.
+ */
+function onGrownTap(e: MouseEvent) {
+  const target = e.target as Element;
+  // a list without a title has no title button: its header row folds it
+  if (target.closest('.titlebtn') || (!title.value && target.closest('.row'))) { emit('collapse'); return; }
+  emit('openList');
+}
 /** The month (and zoom month) cell card has no time axis: grown it is a plain card as tall as its content, no real block and extension. */
 const flat = computed(() => !!props.grown && props.variant === 'card');
 // going away (another view or period, a reload) keeps the expansion remembered for the next card of this list
@@ -106,10 +113,12 @@ const progress = computed(() => showProgress(tl.value));
 const complete = computed(() => isComplete(tl.value));
 // A remembered expansion nobody shows: the first card of that list takes it, unless the list is complete or its day is over (then it is forgotten).
 watchEffect(() => {
-  const c = ui.expandedCard;
-  if (props.grown || inPreview() || ui.expandedOwner !== null || c?.id !== props.segment.item.id || !el.value || monthTapOpensDay(el.value)) return;
-  if (complete.value || c.date < clock.today) ui.collapseCard(c);
-  else if (sameCard(c)) ui.expandedOwner = owner;
+  if (props.grown || inPreview() || !el.value || monthTapOpensDay(el.value)) return;
+  for (const c of ui.expandedCards) {
+    if (c.id !== props.segment.item.id || ui.ownerOf(c) !== undefined) continue;
+    if (complete.value || c.date < clock.today) ui.collapseCard(c);
+    else if (c.date === props.segment.date) ui.claimCard(c, owner);
+  }
 });
 // Completed or its day over while shown: it closes by itself (a tap on an already complete list still grows it).
 watch([complete, past], ([c, p]) => { if ((c || p) && expanded.value) ui.collapseCard(cardKey()); });
@@ -155,18 +164,19 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 </script>
 
 <template>
-  <Pressable
-    ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+ <component
+    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-      <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
+      <component :is="grown ? 'button' : 'span'" v-if="title" class="title" :class="{ titlebtn: grown }" :type="grown ? 'button' : undefined" :aria-label="grown ? t('tasks.card.collapse', { title }) : undefined" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></component>
+      <button v-else-if="grown" type="button" class="titlebtn sr" data-testid="tasklist-card-title" :aria-label="t('tasks.card.collapseUntitled')" />
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
@@ -189,7 +199,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     </span>
     <ResizeHandles v-if="resizing" :segment="segment" />
     <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :segment="segment" :variant="variant" @close="ui.collapseCard(cardKey())" />
-  </Pressable>
+  </component>
 </template>
 
 <style scoped>
@@ -211,6 +221,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .mini .tx { text-overflow: clip; }
 .it.done { opacity: 0.7; }
 .row { display: flex; align-items: center; gap: 3px; min-width: 0; min-height: 16px; }
+/* the grown card's title is a button of its own: it looks like the text it holds */
+.titlebtn { appearance: none; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tl.grown:focus-visible, .titlebtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .emoji { flex: none; font-size: 11px; line-height: 1; }
 .title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: 500; line-height: 16px; text-overflow: ellipsis;

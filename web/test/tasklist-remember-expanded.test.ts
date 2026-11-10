@@ -22,7 +22,7 @@ function list(id: string, date: string, done: boolean[] = [false, false]): TaskL
     totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: `"e-${id}"`, updated: 'x',
   };
 }
-const stored = () => JSON.parse(localStorage.getItem(EXPANDED_CARD_KEY) ?? 'null') as unknown;
+const stored = () => JSON.parse(localStorage.getItem(EXPANDED_CARD_KEY) ?? '[]') as unknown;
 
 let pinia: ReturnType<typeof freshPinia>;
 const wrappers: VueWrapper[] = [];
@@ -34,7 +34,7 @@ function card(tl: TaskList) {
 }
 /** A fresh app on this device: new stores, the test clock loaded again (it reads what the device remembered). */
 async function restart(remembered?: { id: string; date: string }) {
-  if (remembered) localStorage.setItem(EXPANDED_CARD_KEY, JSON.stringify(remembered));
+  if (remembered) localStorage.setItem(EXPANDED_CARD_KEY, JSON.stringify([remembered]));
   pinia = freshPinia();
   // the frozen test clock (today 2026-10-12), set directly so no earlier test's network state decides it
   useClockStore(pinia).restore(config() as never);
@@ -55,9 +55,9 @@ describe('remembered task list expansion', () => {
   it('stores the expanded card on the device and reads it back in a fresh app', async () => {
     useUiStore(pinia).expandCard({ id: 'G', date: '2026-10-14' });
     await nextTick();
-    expect(stored()).toEqual({ id: 'G', date: '2026-10-14' });
+    expect(stored()).toEqual([{ id: 'G', date: '2026-10-14' }]);
     await restart();
-    expect(useUiStore(pinia).expandedCard).toEqual({ id: 'G', date: '2026-10-14' });
+    expect(useUiStore(pinia).expandedCards).toEqual([{ id: 'G', date: '2026-10-14' }]);
   });
 
   it('a card that mounts with its list remembered grows again', async () => {
@@ -75,7 +75,7 @@ describe('remembered task list expansion', () => {
     w.unmount();
     wrappers.splice(0);
     await nextTick();
-    expect(stored()).toEqual({ id: 'G', date: '2026-10-12' });
+    expect(stored()).toEqual([{ id: 'G', date: '2026-10-12' }]);
     const again = card(list('G', '2026-10-12'));
     await flushPromises();
     expect(expanded(again)).toBe('true');
@@ -94,7 +94,7 @@ describe('remembered task list expansion', () => {
     const w = card(list('G', '2026-10-11'));
     await flushPromises();
     expect(expanded(w)).toBe('false');
-    expect(stored()).toBeNull();
+    expect(stored()).toEqual([]);
   });
 
   it('a completed list starts collapsed and is forgotten', async () => {
@@ -102,7 +102,7 @@ describe('remembered task list expansion', () => {
     const w = card(list('G', '2026-10-12', [true, true]));
     await flushPromises();
     expect(expanded(w)).toBe('false');
-    expect(stored()).toBeNull();
+    expect(stored()).toEqual([]);
   });
 
   it('a tapped list that becomes complete collapses and is forgotten', async () => {
@@ -113,7 +113,7 @@ describe('remembered task list expansion', () => {
     await w.setProps({ segment: itemSegments(list('G', '2026-10-12', [true, true]), '2026-10-12')[0] });
     await flushPromises();
     expect(expanded(w)).toBe('false');
-    expect(stored()).toBeNull();
+    expect(stored()).toEqual([]);
   });
 
   it('a tapped list that is already complete still grows', async () => {
@@ -129,6 +129,53 @@ describe('remembered task list expansion', () => {
     await flushPromises();
     useUiStore(pinia).collapseCard({ id: 'G', date: '2026-10-12' });
     await nextTick();
-    expect(stored()).toBeNull();
+    expect(stored()).toEqual([]);
+  });
+
+  it('several lists stay grown and are remembered together', async () => {
+    const ui = useUiStore(pinia);
+    ui.expandCard({ id: 'G', date: '2026-10-12' }, null, true);
+    ui.expandCard({ id: 'L', date: '2026-10-12' }, null, true);
+    await nextTick();
+    expect(stored()).toEqual([{ id: 'G', date: '2026-10-12' }, { id: 'L', date: '2026-10-12' }]);
+  });
+
+  it('with several off, growing another card collapses the one before', async () => {
+    const ui = useUiStore(pinia);
+    ui.expandCard({ id: 'G', date: '2026-10-12' }, null, false);
+    ui.expandCard({ id: 'L', date: '2026-10-12' }, null, false);
+    await nextTick();
+    expect(stored()).toEqual([{ id: 'L', date: '2026-10-12' }]);
+  });
+
+  it('a tap on a card grows it next to the one already grown', async () => {
+    const a = card(list('G', '2026-10-12'));
+    const b = card(list('L', '2026-10-12'));
+    await a.get('[data-testid="tasklist-card"]').trigger('click');
+    await b.get('[data-testid="tasklist-card"]').trigger('click');
+    await flushPromises();
+    expect([expanded(a), expanded(b)]).toEqual(['true', 'true']);
+  });
+
+  it('a card grown by an earlier version (the single-card key) stays grown, once', async () => {
+    localStorage.setItem('cal.expandedCard', JSON.stringify({ id: 'G', date: '2026-10-12' }));
+    pinia = freshPinia();
+    useClockStore(pinia).restore(config() as never);
+    await useSettingsStore(pinia).load();
+    usePrefsStore(pinia).taskOpen = 'inline';
+    expect(useUiStore(pinia).expandedCards).toEqual([{ id: 'G', date: '2026-10-12' }]);
+    expect(localStorage.getItem('cal.expandedCard')).toBeNull();
+  });
+
+  it('completing one of several grown lists collapses and forgets only that one', async () => {
+    const g = card(list('G', '2026-10-12', [true, false]));
+    const l = card(list('L', '2026-10-12'));
+    await g.get('[data-testid="tasklist-card"]').trigger('click');
+    await l.get('[data-testid="tasklist-card"]').trigger('click');
+    await flushPromises();
+    await g.setProps({ segment: itemSegments(list('G', '2026-10-12', [true, true]), '2026-10-12')[0] });
+    await flushPromises();
+    expect([expanded(g), expanded(l)]).toEqual(['false', 'true']);
+    expect(stored()).toEqual([{ id: 'L', date: '2026-10-12' }]);
   });
 });

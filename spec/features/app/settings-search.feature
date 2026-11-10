@@ -30,6 +30,11 @@ Feature: Search the settings
       And I search the settings for "readable"
       Then the settings search shows "Minimum event length" in "Views"
 
+    Scenario: A task list setting is found by its name
+      When I open the settings
+      And I search the settings for "several lists"
+      Then the settings search shows "Keep several lists open" in "Task lists"
+
     Scenario: A setting is found by a synonym
       When I open the settings
       And I search the settings for "dark mode"

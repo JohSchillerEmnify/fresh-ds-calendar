@@ -18,6 +18,10 @@ Given('the task list tap setting is {string}', async function (this: World, valu
   await this.api.patch('/api/prefs', { taskOpen: value === 'drawer' ? 'drawer' : 'inline' });
 });
 
+Given('keeping several task lists open is {string}', async function (this: World, value: string) {
+  await this.api.patch('/api/prefs', { growSeveral: value === 'on' });
+});
+
 When('I tap the task list {string}', async function (this: World, title: string) {
   await this.taskCard(title).click();
 });
@@ -107,22 +111,21 @@ Then('the task list card {string} is still the one-row inline card of its time b
 
 Then('the task list {string} opens as the list sheet', async function (this: World, title: string) {
   await expect(this.page.locator(`${tid('tasklist-expanded')}${attr('data-title', title)}:not(${attr('data-presentation', 'overlay')})`)).toBeVisible();
-  await expect(grown(this)).toHaveCount(0);
 });
 
 When('I tap outside the expanded task list', async function (this: World) {
   const exp = await grown(this).boundingBox();
-  // a point in the calendar's `main` (bars and side panels leave the expansion open) outside the expansion and on nothing clickable but an empty time slot (a desktop slot is a button)
+  // a point in the calendar's `main` outside the expansion and on nothing clickable (an empty time slot opens the create sheet)
   const p = await this.page.evaluate((r) => {
     const w = innerWidth, h = innerHeight;
     const spots: (readonly [number, number])[] = [[0.97, 0.5], [0.03, 0.5], [0.5, 0.97], [0.97, 0.3], [0.03, 0.7], [0.5, 0.03]];
-    for (let fx = 0.05; fx < 1; fx += 0.1) for (let fy = 0.05; fy < 1; fy += 0.1) spots.push([fx, fy]);
+    for (let fx = 0.05; fx < 1; fx += 0.025) for (let fy = 0.05; fy < 1; fy += 0.05) spots.push([fx, fy]);
     for (const [fx, fy] of spots) {
       const x = Math.round(w * fx), y = Math.round(h * fy);
       const inside = r && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
       const el = document.elementFromPoint(x, y);
       const clickable = el?.closest('button, a, input, select, textarea, [role="button"], [data-testid="tasklist-card"]');
-      if (!inside && el?.closest('main') && (!clickable || el.matches('[data-testid="time-slot"]'))) return { x, y };
+      if (!inside && el?.closest('main') && !clickable && !el.closest('[data-testid="time-slot"]')) return { x, y };
     }
     return null;
   }, exp);
@@ -149,8 +152,9 @@ Then('the task list {string} is expanded over the calendar', async function (thi
   await expect(exp).toBeVisible();
   await expect(exp).toHaveAttribute('data-presentation', 'overlay');
   await expect(this.taskCard(title)).toHaveAttribute('aria-expanded', 'true');
-  // it is the top element at its own centre: it covers what lies below
+  // it is the top element at its own centre: it covers what lies below (an open list sheet lies over it by design)
   await expect.poll(() => exp.evaluate((e) => {
+    if (document.querySelector('[data-testid="tasklist-expanded"]:not([data-presentation="overlay"])')) return true;
     const b = e.getBoundingClientRect();
     const top = document.elementFromPoint(b.x + b.width / 2, b.y + Math.min(b.height / 2, 40));
     return !!top && e.contains(top);
@@ -172,16 +176,8 @@ Then('the focus is inside the expanded task list', async function (this: World) 
   await expect.poll(() => grown(this).evaluate((e) => e.contains(document.activeElement))).toBe(true);
 });
 
-Then('the card of the task list {string} has the focus', async function (this: World, title: string) {
-  await expect(this.taskCard(title)).toBeFocused();
-});
-
 Then('the card of the task list {string} says it is expanded', async function (this: World, title: string) {
   await expect(this.taskCard(title)).toHaveAttribute('aria-expanded', 'true');
-});
-
-Then('the card of the task list {string} says it is collapsed', async function (this: World, title: string) {
-  await expect(this.taskCard(title)).toHaveAttribute('aria-expanded', 'false');
 });
 
 Then('the expanded task list is as tall as its content', async function (this: World) {
@@ -258,6 +254,50 @@ When('I tap the title of the expanded task list', async function (this: World) {
 
 When('I tap the title of the expanded task list {string}', async function (this: World, title: string) {
   await grown(this, title).getByTestId('tasklist-card-title').click();
+});
+
+const pressOnTitle = async (w: World, title: string, key: string) => {
+  await grown(w, title).getByTestId('tasklist-card-title').focus();
+  await w.page.keyboard.press(key);
+};
+When('I press Enter on the title of the expanded task list {string}', async function (this: World, title: string) {
+  await pressOnTitle(this, title, 'Enter');
+});
+When('I press Space on the title of the expanded task list {string}', async function (this: World, title: string) {
+  await pressOnTitle(this, title, 'Space');
+});
+
+When('I press Enter on the expanded task list {string}', async function (this: World, title: string) {
+  await grown(this, title).getByTestId('tasklist-card-grown').focus();
+  await this.page.keyboard.press('Enter');
+});
+
+Then('the title of the expanded task list {string} is called {string}', async function (this: World, title: string, name: string) {
+  await expect(grown(this, title).getByTestId('tasklist-card-title')).toHaveAttribute('aria-label', name);
+});
+
+Then('the expanded task list {string} and the expanded task list {string} overlap', async function (this: World, a: string, b: string) {
+  const [ra, rb] = [await rectOf(grown(this, a)), await rectOf(grown(this, b))];
+  expect(ra.x < rb.right && ra.right > rb.x && ra.y < rb.bottom && ra.bottom > rb.y, 'the two grown cards overlap').toBe(true);
+});
+
+/** The point in the middle of where two grown cards overlap is drawn by the first one. */
+Then('the expanded task list {string} is drawn above the expanded task list {string}', async function (this: World, top: string, under: string) {
+  const [rt, ru] = [await rectOf(grown(this, top)), await rectOf(grown(this, under))];
+  const x = (Math.max(rt.x, ru.x) + Math.min(rt.right, ru.right)) / 2;
+  const y = (Math.max(rt.y, ru.y) + Math.min(rt.bottom, ru.bottom)) / 2;
+  await expect.poll(() => grown(this, top).evaluate((e, p) => e.contains(document.elementFromPoint(p.x, p.y)), { x, y })).toBe(true);
+});
+
+When('I tap the expanded task list {string} above the expanded task list {string}', async function (this: World, title: string, other: string) {
+  const [r, o] = [await rectOf(grown(this, title)), await rectOf(grown(this, other))];
+  // inside the part the other card does not cover, away from the title row
+  await this.page.mouse.click(r.x + 6, Math.max(r.y + 2, o.y - 3));
+});
+
+Then('the task list {string} is grown but out of sight', async function (this: World, title: string) {
+  await expect(grown(this, title)).toBeHidden();
+  await expect(grown(this, title)).toHaveCount(1);
 });
 
 Then('no list sheet is open', async function (this: World) {

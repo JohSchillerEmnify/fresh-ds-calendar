@@ -111,6 +111,8 @@ export interface Prefs {
   undatedDone: UndatedDone;
   /** Tapping a task list card: grow inline (default) or open the drawer. */
   taskOpen: TaskOpen;
+  /** Several task list cards may be grown at once (default) or only one: growing another collapses the previous. */
+  growSeveral: boolean;
   /** The Tasks view's filter, shared by Open, Canvas and Archive (feature tasks-filter). */
   tasksFilter: TasksFilter;
   /** The UI language: `auto` (device language) or a fixed one (feature language). */

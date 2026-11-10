@@ -94,7 +94,7 @@ Then('I do not see the task list {string}', async function (this: World, title: 
 });
 
 Then('the task list {string} shows the done count {string}', async function (this: World, title: string, count: string) {
-  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title) + ':not([data-presentation="overlay"])');
   const target = (await expanded.count())
     ? expanded.getByTestId('tasklist-expanded-count')
     : this.taskCard(title).getByTestId('tasklist-card-count');
@@ -224,8 +224,8 @@ When('I collapse the task list', async function (this: World) {
   await expect(this.expanded).toBeHidden();
 });
 
-/** The grown card over the calendar when there is one, else the list sheet or popover. */
-const shownList = async (w: World) => ((await w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay')).count()) ? w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay')) : w.expanded);
+/** The list sheet or popover when one is open, else the grown card over the calendar. */
+const shownList = async (w: World) => ((await w.expanded.count()) ? w.expanded : w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay')));
 
 Then('the expanded task list items are {string}', async function (this: World, list: string) {
   const shown = await shownList(this);
@@ -238,11 +238,11 @@ Then('the expanded task list fits within the viewport', async function (this: Wo
 });
 
 Then('the task list {string} is expanded', async function (this: World, title: string) {
-  await expect(this.byTestId('tasklist-expanded', attr('data-title', title))).toBeVisible();
+  await expect(this.byTestId('tasklist-expanded', attr('data-title', title)).first()).toBeVisible();
 });
 
 Then('the task list {string} is collapsed', async function (this: World, title: string) {
-  await expect(this.byTestId('tasklist-expanded', attr('data-title', title))).toBeHidden();
+  await expect(this.byTestId('tasklist-expanded', attr('data-title', title))).toHaveCount(0);
   await expect(this.taskCard(title)).toBeVisible();
 });
 

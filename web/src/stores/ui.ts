@@ -34,7 +34,7 @@ export interface ResizingEntry {
   date: string;
 }
 
-/** The task list card that is expanded in place over the calendar (one at a time, remembered on this device only). */
+/** A task list card that is expanded in place over the calendar (several may be, remembered on this device only). */
 export interface ExpandedCard {
   id: string;
   date: string;
@@ -45,9 +45,23 @@ let ownerSeq = 0;
 /** A fresh id for a card instance that may show the expansion (`expandCard`'s `owner`). */
 export const nextCardOwner = (): number => ++ownerSeq;
 const TRAY_COLLAPSED_KEY = 'cal.trayCollapsedDesktop';
-export const EXPANDED_CARD_KEY = 'cal.expandedCard';
+export const EXPANDED_CARD_KEY = 'cal.expandedCards';
+/** The single-card key of earlier versions; read once into the list, then removed. */
+const OLD_EXPANDED_CARD_KEY = 'cal.expandedCard';
+const cardKey = (c: ExpandedCard): string => `${c.id}|${c.date}`;
 /** How long a revealed tray row stays highlighted. */
 const FLASH_MS = 1000;
+
+/** Moves a card grown by an earlier version (one stored object) into the list, once. */
+function migrateOldExpandedCard(list: { value: ExpandedCard[] }): void {
+  try {
+    const old = localStorage.getItem(OLD_EXPANDED_CARD_KEY);
+    if (old === null) return;
+    localStorage.removeItem(OLD_EXPANDED_CARD_KEY);
+    const c = JSON.parse(old) as ExpandedCard | null;
+    if (c && typeof c.id === 'string' && typeof c.date === 'string' && !list.value.some((x) => cardKey(x) === cardKey(c))) list.value = [...list.value, c];
+  } catch { /* storage unavailable or unreadable: nothing to carry over */ }
+}
 
 /** Shell UI state that must survive refreshes (open pickers, dialogs, snackbars). */
 export const useUiStore = defineStore('ui', () => {
@@ -79,9 +93,12 @@ export const useUiStore = defineStore('ui', () => {
   const dialog = ref<OpenDialog | null>(null);
   const resizing = ref<ResizingEntry | null>(null);
   /** Kept in this browser's storage (not synced), so the expansion survives view changes, reloads and reopening the app; other tabs keep their own. */
-  const expandedCard = useStorage<ExpandedCard | null>(EXPANDED_CARD_KEY, null, undefined, { serializer: StorageSerializers.object, listenToStorageChanges: false });
-  /** The card instance showing the expansion (a view may hold the same list twice; only one grows). Never stored. */
-  const expandedOwner = ref<number | null>(null);
+  const expandedCards = useStorage<ExpandedCard[]>(EXPANDED_CARD_KEY, [], undefined, { serializer: StorageSerializers.object, listenToStorageChanges: false });
+  migrateOldExpandedCard(expandedCards);
+  /** The card instance showing each expansion, by list and day (a view may hold the same list twice; only one grows). Never stored. */
+  const expandedOwners = reactive(new Map<string, number>());
+  /** The grown card tapped last: it is drawn above grown cards that overlap it. */
+  const frontCard = ref<string | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
 
   /** Opens a dialog registered with `registerDialog(kind, component)`. */
@@ -101,19 +118,53 @@ export const useUiStore = defineStore('ui', () => {
     flashId.value = id;
     flashStop = appTimeout(() => { flashId.value = null; }, FLASH_MS);
   }
-  /** Expands the card of that list and day, shown by the card instance `owner` (a set, never a toggle); another expanded card collapses. */
-  function expandCard(card: ExpandedCard, owner: number | null = null): void {
-    expandedCard.value = { ...card };
-    expandedOwner.value = owner;
+  /** Expands the card of that list and day, shown by the card instance `owner` (a set, never a toggle). With `several` off every other grown card collapses. */
+  function expandCard(card: ExpandedCard, owner: number | null = null, several = true): void {
+    const k = cardKey(card);
+    if (!several) for (const o of [...expandedCards.value]) if (cardKey(o) !== k) collapseCard(o);
+    if (!expandedCards.value.some((c) => cardKey(c) === k)) expandedCards.value = [...expandedCards.value, { ...card }];
+    if (owner === null) expandedOwners.delete(k);
+    else expandedOwners.set(k, owner);
   }
-  /** Collapses and forgets the expanded card; with `card` only when it is that one (a stale close must not end a newer one). */
+  /** Collapses and forgets that card (all of them without `card`). */
   function collapseCard(card?: ExpandedCard): void {
-    const c = expandedCard.value;
-    if (!card || (c && c.id === card.id && c.date === card.date)) { expandedCard.value = null; expandedOwner.value = null; }
+    if (!card) { expandedCards.value = []; expandedOwners.clear(); frontCard.value = null; return; }
+    const k = cardKey(card);
+    expandedCards.value = expandedCards.value.filter((c) => cardKey(c) !== k);
+    expandedOwners.delete(k);
+    if (frontCard.value === k) frontCard.value = null;
   }
-  /** A card instance going away stops showing the expansion but keeps it remembered for the next card of that list. */
+  /** The card instance that shows this expansion, if any. */
+  function ownerOf(card: ExpandedCard): number | undefined {
+    return expandedOwners.get(cardKey(card));
+  }
+  /** A card instance takes over a remembered expansion nobody shows yet. */
+  function claimCard(card: ExpandedCard, owner: number): void {
+    expandedOwners.set(cardKey(card), owner);
+  }
+  /** A card instance going away stops showing its expansions but keeps them remembered for the next card of that list. */
   function releaseCard(owner: number): void {
-    if (expandedOwner.value === owner) expandedOwner.value = null;
+    for (const [k, o] of expandedOwners) if (o === owner) expandedOwners.delete(k);
+  }
+  /** A list's device id was replaced by the server's: its grown cards keep their place. */
+  function renameCard(from: string, to: string): void {
+    expandedCards.value = expandedCards.value.map((c) => {
+      if (c.id !== from) return c;
+      const next = { ...c, id: to };
+      const o = expandedOwners.get(cardKey(c));
+      expandedOwners.delete(cardKey(c));
+      if (o !== undefined) expandedOwners.set(cardKey(next), o);
+      if (frontCard.value === cardKey(c)) frontCard.value = cardKey(next);
+      return next;
+    });
+  }
+  /** Draws that grown card above the ones it overlaps. */
+  function bringToFront(card: ExpandedCard): void {
+    frontCard.value = cardKey(card);
+  }
+  /** Whether that grown card is the one drawn on top. */
+  function isFront(card: ExpandedCard): boolean {
+    return frontCard.value === cardKey(card);
   }
 
   function notify(text: string, opts: Partial<Omit<SnackbarMessage, 'id' | 'text'>> = {}): number {
@@ -129,5 +180,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, barHidden, setPanel, dialog, resizing, expandedCard, expandedOwner, snackbars, openDialog, closeDialog, expandCard, collapseCard, releaseCard, notify, update, dismiss };
+  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, barHidden, setPanel, dialog, resizing, expandedCards, ownerOf, claimCard, renameCard, bringToFront, isFront, snackbars, openDialog, closeDialog, expandCard, collapseCard, releaseCard, notify, update, dismiss };
 });

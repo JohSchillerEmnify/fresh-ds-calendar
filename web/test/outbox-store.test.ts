@@ -187,7 +187,7 @@ describe('outbox: things created offline', () => {
     const out = useOutboxStore();
     const local = out.createList({ title: 'Packing', date: '2026-10-14', items: [{ title: 'Passport' }] });
     expect(items.get(local.id)).toBeDefined();
-    ui.expandedCard = { id: local.id, date: '2026-10-14' };
+    ui.expandCard({ id: local.id, date: '2026-10-14' });
     out.patchItem(local.id, (items.get(local.id) as TaskList).items[0].id, { done: true });
     await flushPromises();
     expect(writes(m)).toHaveLength(1);
@@ -196,7 +196,7 @@ describe('outbox: things created offline', () => {
     expect(writes(m).map((c) => c.path)).toEqual(['/api/tasklists', '/api/tasklists/real/items/srv0']);
     expect(items.get(local.id)).toBeUndefined();
     expect(items.get('real')).toMatchObject({ items: [{ done: true }] });
-    expect(ui.expandedCard.id).toBe('real');
+    expect(ui.expandedCards).toEqual([{ id: 'real', date: '2026-10-14' }]);
   });
 
   it('a refused create takes what followed it with it', async () => {

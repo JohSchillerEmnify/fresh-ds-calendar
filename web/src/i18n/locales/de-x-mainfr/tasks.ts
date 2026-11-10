@@ -57,6 +57,8 @@ export default {
     labelUntitledDone: 'Aufgabnlisdn, erledigt',
     labelUntitledOpen: 'Aufgabnlisdn, ned erledigt',
     noItems: 'Kane Einträge',
+    collapse: '{title} eiglabbn',
+    collapseUntitled: 'Aufgabnlisdn eiglabbn',
     from: 'Vom {date}',
     fromEarlier: 'Von früher',
     estimateMin: '~{min} Min.',

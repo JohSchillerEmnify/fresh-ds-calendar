@@ -49,6 +49,7 @@ export const SETTINGS: readonly SettingEntry[] = [
 
   e('tasklists', 'categories', 'taskCategories', 'settings.tasklists.taskCategories.label', { hint: 'settings.tasklists.taskCategories.hint', synonyms: 'settingsNav.synonyms.taskCategories' }),
   e('tasklists', 'behaviour', 'taskOpen', 'settings.tasklists.taskOpen.label'),
+  e('tasklists', 'behaviour', 'growSeveral', 'settings.tasklists.growSeveral.label', { hint: 'settings.tasklists.growSeveral.hint', parent: 'taskOpen' }),
   e('tasklists', 'behaviour', 'carriedFrom', 'settings.tasklists.carriedFrom.label', { hint: 'settings.tasklists.carriedFrom.hint' }),
   e('tasklists', 'behaviour', 'undatedDone', 'settings.tasklists.undatedDone.label'),
   e('tasklists', undefined, 'templates', 'tasks.templates.page', { hint: 'tasks.templates.pageHint' }),

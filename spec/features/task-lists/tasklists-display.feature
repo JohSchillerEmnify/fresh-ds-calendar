@@ -234,7 +234,7 @@ Feature: Task lists in the calendar views
     And the item "Milk" is ticked
     And the item "Eggs" is not ticked
     When I collapse the task list
-    Then the task list "Groceries" is collapsed
+    Then no list sheet is open
 
     Examples:
       | view | period     |
@@ -247,11 +247,11 @@ Feature: Task lists in the calendar views
     And I expand the task list "Groceries"
     Then the task list "Groceries" is expanded
 
-  Scenario: Escape collapses an expanded task list
+  Scenario: Escape closes the list sheet of an expanded task list
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I press Escape
-    Then the task list "Groceries" is collapsed
+    Then no list sheet is open
 
   Scenario: A task list created in Google with only a description is still readable
     Given Google contains a raw task list event "Legacy" on 2026-10-14 with the description:

@@ -63,6 +63,9 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
     <SettingRow id="taskOpen" wide :label="t('settings.tasklists.taskOpen.label')">
       <SegmentedButton connected :model-value="prefs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" />
     </SettingRow>
+    <SettingRow v-if="prefs.taskOpen === 'inline'" id="growSeveral" :label="t('settings.tasklists.growSeveral.label')" :hint="t('settings.tasklists.growSeveral.hint')">
+      <Switch :model-value="prefs.growSeveral" :label="t('settings.tasklists.growSeveral.label')" data-testid="settings-grow-several" @update:model-value="savePrefs({ growSeveral: $event })" />
+    </SettingRow>
     <SettingRow id="carriedFrom" :label="t('settings.tasklists.carriedFrom.label')" :hint="t('settings.tasklists.carriedFrom.hint')">
       <Switch :model-value="prefs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" />
     </SettingRow>

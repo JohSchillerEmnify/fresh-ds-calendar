@@ -64,6 +64,7 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 | Finished list without a date | segmented | on the day finished / archive only | calendar | P `undatedDone` | no |
 | Templates › | link row | `/settings/templates` | – | server | no |
 | Tapping a task list | segmented | grows in place / opens the list | inline | P `taskOpen` | no |
+| Several lists grown at once | switch (only while grow in place) | more than one grown card stays open | on | P `growSeveral` | no |
 
 ### Focus & motivation
 | Setting | Control | What it does | Default | Store | Labs |
