@@ -8,6 +8,8 @@ export const EXTRA_CREDITS: Credit[] = [
   { name: 'Solar Icon Set', author: '480 Design', license: 'CC BY 4.0', url: 'https://www.figma.com/community/file/1166831539721848736' },
   { name: 'Phosphor Icons', author: 'Phosphor Icons', license: 'MIT', url: 'https://github.com/phosphor-icons/core' },
   { name: 'Pixelarticons', author: 'Gerrit Halfmann', license: 'MIT', url: 'https://github.com/halfmage/pixelarticons' },
+  // the app icon's cap lettering, converted to outlines by web/scripts/gen-icons.mjs
+  { name: 'UnifrakturMaguntia', author: 'j. "mach" wust and Peter Wiegel', license: 'SIL OFL 1.1', url: 'https://fonts.google.com/specimen/UnifrakturMaguntia' },
 
   // the map tiles and the place search the app asks directly (event location, map picker)
   { name: 'OpenStreetMap map data and tiles', author: 'OpenStreetMap contributors', license: 'ODbL 1.0', url: 'https://www.openstreetmap.org/copyright' },

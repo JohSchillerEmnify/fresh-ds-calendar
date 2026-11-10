@@ -5,6 +5,7 @@
   ],
   "ignoreDependencies": [
     "dependency-cruiser",
+    "@fontsource/unifrakturmaguntia",
     "@capacitor/filesystem",
     "@capacitor/geolocation",
     "@capacitor/share"
