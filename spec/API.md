@@ -73,6 +73,7 @@ interface Calendar {
   name: string;            // 'Personal' | 'Work' in the mock
   color: string;           // '#rrggbb'
   primary: boolean;
+  holiday?: true;          // a Google holiday calendar (id ends in '#holiday@group.v.calendar.google.com'): listed under Settings › Calendars › Holidays
   writable: boolean;       // Google role owner or writer, whoever owns the calendar: editing follows Google's permissions; events are created and moved only into these (see CalendarEvent.readOnly)
 }
 
@@ -338,6 +339,32 @@ stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 40
 calendar (`calendarList.patch`: Google stores a calendar's notifications per person, also for calendars the person cannot edit).
 A Google error surfaces like any other save error; the app keeps no copy. Why: the owner, 2026-10-23: "the app should not ask
 google ... behaviour that we know fails" (requirements 20261023T073351Z_readonly_reminders_no_google).
+
+### `GET /api/holiday-regions?lang=de|en` → 200
+
+`{ regions: Array<{ code: string; variants: Array<'official' | 'all'>; added: Array<'official' | 'all'> }> }`: the countries of the
+curated list (`server/src/providers/holidayRegions.ts`, ISO 3166 `code`, ADR 0039) whose Google holiday calendar exists in the
+language `lang` (default `en`; any other value falls back to `en`). `variants` are the variants that exist (`official` = public
+holidays only, id `<lang>.<region>.official#holiday@group.v.calendar.google.com`; `all` = holidays and observances, id
+`<lang>.<region>#holiday@group.v.calendar.google.com`); `added` are the variants the person already has in their Google list (in any
+language). Every id is checked with `calendars.get` before it counts (a 404 falls back to a one-event `events.list`, both 404 = the
+id does not exist); the answer of each id is kept in the process for 24 h, a failed check (outage, rate limit) is not kept and
+makes the whole call `503`. A country with no existing variant is left out. Country names are not sent: the app names a `code`
+in its own language (`Intl.DisplayNames`).
+
+### `POST /api/holiday-calendars` → 201 | 200
+
+Body `{ code: string; variant: 'official' | 'all'; lang?: 'de' | 'en' }`. Subscribes the person to that holiday calendar:
+`calendarList.insert` with the id built by the server (never a client-supplied id) and `selected: true`. Returns the `Calendar`
+(`holiday: true`). `400` for a `code` outside the curated list or an unknown `variant`; `404` when Google has no such calendar;
+`200` with the existing entry when the person already has that region and variant (in any language). The person's other devices
+get it through the `calendars` and `events` change kinds.
+
+### `DELETE /api/holiday-calendars/:id` → 204
+
+Removes a holiday calendar from the person's Google list (`calendarList.delete`; the public calendar itself is untouched) and
+clears the person's stored switch for it. `:id` is URL-encoded (it contains `#` and `@`). `404` when the id is not a holiday
+calendar (`#holiday@group.v.calendar.google.com`) of the person's list; no other calendar can be removed this way.
 
 ### `GET` / `PATCH /api/reminders/tasks-calendar` → 200
 

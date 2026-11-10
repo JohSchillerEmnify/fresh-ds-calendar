@@ -84,6 +84,12 @@ export interface CalendarProvider {
   listCalendars(): Promise<ProviderCalendar[]>;
   /** Creates a secondary calendar owned by the person (`calendars.insert`). */
   insertCalendar(summary: string): Promise<ProviderCalendar>;
+  /** True when a public calendar (a holiday calendar) exists: `calendars.get`, else a one-event read; 404 on both is false, any other failure throws. */
+  publicCalendarExists(calendarId: string): Promise<boolean>;
+  /** Adds an existing public calendar to the person's list (`calendarList.insert`, `selected`); returns the new entry. */
+  subscribeCalendar(calendarId: string): Promise<ProviderCalendar>;
+  /** Removes a calendar from the person's list (`calendarList.delete`); the calendar itself stays. A calendar not in the list is `NotFoundError`. */
+  unsubscribeCalendar(calendarId: string): Promise<void>;
   /** Switches a calendar list entry off or on in Google's list (`calendarList.patch` `hidden`). */
   setCalendarHidden(calendarId: string, hidden: boolean): Promise<void>;
   /** Replaces a calendar list entry's `defaultReminders` (`calendarList.patch`). */

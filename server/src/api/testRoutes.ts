@@ -5,6 +5,9 @@ import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
 import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
+import { forgetVerifiedHolidays } from '../services/holidays.js';
+import type { HolidayVariant } from '@calendar/shared/api';
+import { HOLIDAY_REGIONS, HOLIDAY_VARIANTS, holidayCalendarId } from '../providers/holidayRegions.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
@@ -31,6 +34,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.health = null;
     ctx.calendar.invalidate();
     ctx.calendar.forgetFeedHealth();
+    forgetVerifiedHolidays();
     ctx.auth.reset();
     ctx.resetPeople();
     ctx.prefs.reset();
@@ -147,6 +151,33 @@ export function testRoutes(ctx: Ctx): Hono {
     })));
     ctx.calendarFor(mockSub(b.owner)).invalidate();
     return c.json({ ok: true });
+  });
+
+  // The Google id of a region's holiday calendar (the slug table stays on the server).
+  t.get('/holiday-id', (c) => {
+    const code = c.req.query('code') ?? '';
+    const variant = c.req.query('variant');
+    if (!(code in HOLIDAY_REGIONS) || !HOLIDAY_VARIANTS.includes(variant as HolidayVariant)) throw validation('code and variant are required');
+    return c.json({ id: holidayCalendarId(code, c.req.query('lang') === 'de' ? 'de' : 'en', variant as HolidayVariant) });
+  });
+
+  // Makes Google answer 404 for the given variants of a region (both languages), as if it had no such holiday calendar.
+  t.post('/holiday-missing', async (c) => {
+    const b = (await body(c)) as { owner?: string; code?: string; variants?: HolidayVariant[] } | undefined;
+    if (!b?.code || !(b.code in HOLIDAY_REGIONS) || !Array.isArray(b.variants)) throw validation('code and variants are required');
+    const ids = (['en', 'de'] as const).flatMap((lang) => b.variants!.filter((v) => HOLIDAY_VARIANTS.includes(v)).map((v) => holidayCalendarId(b.code!, lang, v)));
+    store(b.owner).addPublicMissing(ids);
+    forgetVerifiedHolidays();
+    return c.json({ ok: true });
+  });
+
+  // Adds a region's holiday calendar to one account's list as another Google client would.
+  t.post('/remote/holiday-calendars', async (c) => {
+    const b = (await body(c)) as { owner?: string; code?: string; variant?: HolidayVariant } | undefined;
+    if (!b?.code || !(b.code in HOLIDAY_REGIONS) || !HOLIDAY_VARIANTS.includes(b.variant!)) throw validation('code and variant are required');
+    const cal = await store(b.owner).subscribeCalendar(holidayCalendarId(b.code, 'en', b.variant!));
+    calendarOf(b.owner).invalidate();
+    return c.json(cal, 201);
   });
 
   // The raw calendar list of one account, hidden entries included.

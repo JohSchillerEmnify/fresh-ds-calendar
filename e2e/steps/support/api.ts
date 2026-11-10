@@ -130,6 +130,18 @@ export class Api {
   remoteInsertCalendar(summary: string, hidden: boolean, owner?: string, extra: { id?: string; accessRole?: string; ownerEmail?: string } = {}) {
     return this.post<RemoteCalendar>('/api/__test/remote/calendars', { summary, hidden, owner, ...extra });
   }
+  /** The Google id of a region's holiday calendar (English). */
+  async holidayId(code: string, variant: 'official' | 'all'): Promise<string> {
+    return (await this.get<{ id: string }>(`/api/__test/holiday-id?code=${code}&variant=${variant}`)).id;
+  }
+  /** Google answers 404 for these variants of the region's holiday calendar. */
+  holidayMissing(owner: string, code: string, variants: Array<'official' | 'all'>) {
+    return this.setup('/api/__test/holiday-missing', { owner, code, variants });
+  }
+  /** Adds the region's holiday calendar to the person's mock Google list as another Google client would. */
+  remoteAddHoliday(owner: string, code: string, variant: 'official' | 'all') {
+    return this.setup('/api/__test/remote/holiday-calendars', { owner, code, variant });
+  }
   /** The id of the person's "Calendar app: tasks" calendar (found or created like the app does on first use). */
   async tasksCalendarId(owner?: string): Promise<string> {
     const qs = owner === undefined ? '' : `?owner=${encodeURIComponent(owner)}`;

@@ -31,6 +31,9 @@ model {
     googleProvider = component 'Google provider' {
       description 'Talks to one person\'s Google Calendar with their token'
     }
+    holidayCalendars = component 'Holiday calendars' {
+      description 'Offers the curated holiday regions whose Google calendar exists (each id checked, kept 24 h) and adds or removes one in the person\'s Google list (ADR 0039)'
+    }
     rateGuard = component 'Rate guard' {
       description 'One person\'s short read cache and cooldown in front of Google'
     }
@@ -153,6 +156,8 @@ model {
     }
 
     prefsApi -> prefsStore 'reads and writes'
+    calendarService -> holidayCalendars 'delegates the holiday regions to it'
+    holidayCalendars -> googleProvider 'checks a public calendar, then calendarList.insert or calendarList.delete'
     calendarService -> changeFeed 'reads the changes of events and task lists through it'
     changeFeed -> googleProvider 'lists each calendar by its sync token and a changed series by its instances'
     changesApi -> calendarService 'asks for the events changed since each calendar\'s sync token, limited to ±1 year, and every task list'

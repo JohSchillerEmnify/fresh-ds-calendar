@@ -279,6 +279,15 @@ export const useDeviceStore = defineStore('device', () => {
     scheduleSave();
   }
 
+  /** A calendar that left the person's list: it and its events go from the device now (a sync that only finds the list as it is would keep the events). */
+  function dropCalendar(id: string): void {
+    if (!data.value) return;
+    const events = data.value.events.filter((e) => (e.sourceCalendarId ?? e.calendarId) !== id);
+    data.value = { ...data.value, calendars: data.value.calendars.filter((c) => c.id !== id), events };
+    useItemsStore().refreshFromDevice();
+    scheduleSave();
+  }
+
   /** Starts following the session: another person's session wipes the store and starts the page afresh; the page leaving saves. */
   function install(): () => void {
     stop();
@@ -313,6 +322,6 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   return {
-    data, ready, noteShown, syncedAt, fresh, failed, sessionPerson, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars,
+    data, ready, noteShown, syncedAt, fresh, failed, sessionPerson, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars, dropCalendar,
   };
 });

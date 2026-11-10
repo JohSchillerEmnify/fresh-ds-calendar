@@ -17,7 +17,14 @@ export interface Calendar {
   defaultReminders: number[];
   /** True for the app's own Birthdays calendar (id `birthdays`): not a Google calendar, no default reminders. */
   virtual?: true;
+  /** True for a Google holiday calendar (`...#holiday@group.v.calendar.google.com`): listed under Settings › Calendars › Holidays, removable. */
+  holiday?: true;
 }
+
+/** `official` = public holidays only, `all` = holidays and observances (ADR 0039). */
+export type HolidayVariant = 'official' | 'all';
+/** One country of `GET /api/holiday-regions`: the variants Google has, and the ones the person already has. */
+export interface HolidayRegion { code: string; variants: HolidayVariant[]; added: HolidayVariant[] }
 
 /** An item's reminders (feature reminders): `minutes` is the popup lead list in effect (the calendar's default while `useDefault`). */
 export interface Reminders {

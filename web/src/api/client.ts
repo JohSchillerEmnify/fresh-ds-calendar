@@ -16,6 +16,7 @@ import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { CalendarColor } from '@calendar/shared/colors';
 import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
+import type { HolidayRegion, HolidayVariant } from '@calendar/shared/api';
 import { ApiError, type RequestSeen } from './apiError';
 import { errorFacts, logDevice, routeOf } from '@/lib/deviceLog';
 
@@ -171,6 +172,16 @@ export class ApiClient {
   }
   calendars(o?: RequestOptions) {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);
+  }
+  /** The countries whose holiday calendar Google has in `lang`, with the variants the person already has (needs a connection). */
+  holidayRegions(lang: string, o?: RequestOptions) {
+    return this.request<{ regions: HolidayRegion[] }>('GET', `/api/holiday-regions?lang=${lang}`, undefined, o);
+  }
+  addHolidayCalendar(code: string, variant: HolidayVariant, lang: string, o?: RequestOptions) {
+    return this.request<Calendar>('POST', '/api/holiday-calendars', { code, variant, lang }, o);
+  }
+  removeHolidayCalendar(id: string, o?: RequestOptions) {
+    return this.request<void>('DELETE', `/api/holiday-calendars/${encodeURIComponent(id)}`, undefined, o);
   }
   /** What changed for the person since `cursor` (everything without one), see API.md `GET /api/changes`. */
   changes(cursor: string | null, today: LocalDate, o?: RequestOptions) {

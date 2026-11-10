@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono';
+import type { Calendar } from './types.js';
 import type { Ctx } from '../context.js';
 import { VERSION } from '../context.js';
 import { readApkInfo } from '../routes/download.js';
@@ -126,6 +127,20 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (typeof b.hidden === 'boolean') ctx.prefs.setHidden(person(c), id, b.hidden);
     const k = (await cal(c).calendars()).find((x) => x.id === id)!;
     return c.json({ ...k, hidden: ctx.prefs.hiddenCalendars(person(c)).includes(id) });
+  });
+  r.get('/holiday-regions', async (c) => c.json({ regions: await cal(c).holidays.regions(c.req.query('lang')) }));
+  r.post('/holiday-calendars', async (c) => {
+    const b = ((await body(c)) ?? {}) as { code?: unknown; variant?: unknown; lang?: unknown };
+    const { calendar, created } = await cal(c).holidays.add(b.code, b.variant, b.lang);
+    // built from Google's entry: one the person hid in Google is not in `calendars()`
+    const entry: Calendar = { id: calendar.id, name: calendar.summary, color: calendar.backgroundColor, primary: false, writable: false, defaultReminders: [], holiday: true, hidden: false };
+    return c.json(entry, created ? 201 : 200);
+  });
+  r.delete('/holiday-calendars/:id', async (c) => {
+    const id = c.req.param('id');
+    await cal(c).holidays.remove(id);
+    ctx.prefs.setHidden(person(c), id, false);
+    return c.body(null, 204);
   });
   // The tasks calendar is not in the calendar list; its reminder default is edited here (feature reminders).
   r.get('/reminders/tasks-calendar', async (c) => c.json({ defaultReminders: await cal(c).tasksDefaultReminders() }));
