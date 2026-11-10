@@ -70,9 +70,9 @@ remote commands instead of running them.
 variable `DEPLOY_ENABLED` is `true`. It builds the image, pushes it to `ghcr.io/<owner>/<repo>:<sha>`, and runs the digest
 on the VPS over SSH with a dedicated key whose `authorized_keys` entry forces `/opt/calendar/deploy-from-ghcr.sh`
 (`deploy/deploy-from-ghcr.sh`; ADR 0036). The script validates the digest, pulls, keeps `calendar:previous`, restarts compose,
-waits for `/api/health` and rolls back by itself; the workflow finally curls `APP_URL/api/health`. Deploys run one at a time
+waits for `/api/health` and rolls back by itself; only the app container is recreated, Caddy holds requests for up to 60 s meanwhile and the server drains requests in flight (ADR 0042, no 502 during a deploy, a pause of a few seconds); the workflow finally curls `APP_URL/api/health`. Deploys run one at a time
 (concurrency group `deploy`, never cancelled). It does not ship `compose.yml` or the Caddyfile: use
-`scripts/vps.sh deploy` for those. The APK follows the server deploy automatically, see "Android app".
+`scripts/vps.sh config` (files only, reloads Caddy) or `scripts/vps.sh deploy` for those. The APK follows the server deploy automatically, see "Android app".
 
 | Setting | Kind | Value |
 |---|---|---|

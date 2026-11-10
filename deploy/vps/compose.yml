@@ -12,6 +12,8 @@ services:
   app:
     image: calendar:latest
     restart: unless-stopped
+    # the server drains requests in flight for up to 10 s on SIGTERM (server/src/index.ts)
+    stop_grace_period: 15s
     env_file: .env
     environment:
       PROVIDER: google

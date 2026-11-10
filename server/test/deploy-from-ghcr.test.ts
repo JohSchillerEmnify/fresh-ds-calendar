@@ -29,9 +29,15 @@ function fake(opts: { deployEnv?: string; appJson?: string; curlFails?: boolean 
   };
   // curl: record the url, copy the fixture named by the url's last segment to the -o target
   shim('curl', `echo "curl $*" >> "${log}"\n${opts.curlFails ? 'exit 22' : 'while [[ $# -gt 1 ]]; do if [[ $1 == -o ]]; then out=$2; fi; shift; done\ncp "' + root + '/$(basename "${@: -1}")" "$out"'}`);
-  shim('docker', `echo "docker $*" >> "${log}"`);
-  const run = (cmd: string) =>
-    spawnSync('bash', [script], { encoding: 'utf8', env: { PATH: `${bin}:${process.env.PATH}`, DEPLOY_DIR: dir, SSH_ORIGINAL_COMMAND: cmd } });
+  // docker: log the call; answer the version lookup; /api/health is ok unless HEALTH=bad, and ok again once `calendar:previous` is retagged as latest
+  shim('docker', `echo "docker $*" >> "${log}"
+case "$*" in
+  "image inspect --format"*) echo "APP_VERSION=1.2.3+abc" ;;
+  "tag calendar:previous calendar:latest") touch "${root}/rolledback" ;;
+  "compose exec -T app sh -c"*) if [[ "\${HEALTH:-ok}" == ok || -f "${root}/rolledback" ]]; then echo '{"status":"ok"}'; fi ;;
+esac`);
+  const run = (cmd: string, env: Record<string, string> = {}) =>
+    spawnSync('bash', [script], { encoding: 'utf8', env: { PATH: `${bin}:${process.env.PATH}`, DEPLOY_DIR: dir, SSH_ORIGINAL_COMMAND: cmd, ...env } });
   const calls = () => { try { return readFileSync(log, 'utf8'); } catch { return ''; } };
   return { run, calls };
 }
@@ -87,5 +93,41 @@ describe('deploy/deploy-from-ghcr.sh', () => {
     const f = fake({ curlFails: true });
     expect(f.run('apk apk-1.1.7').status).toBe(1);
     expect(f.calls()).not.toContain('docker');
+  });
+
+  describe('image deploy', () => {
+    const digest = `sha256:${'d'.repeat(64)}`;
+    /** The docker calls that matter for the sequence, in order. */
+    const steps = (calls: string) => calls.split('\n').filter((l) => /docker (pull|tag|compose up|compose exec -T app sh)/.test(l)).map((l) => l.replace(/^docker /, ''));
+
+    it('recreates only the app container and leaves Caddy running', () => {
+      const f = fake();
+      const r = f.run(digest);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain('deployed calendar:1.2.3-abc');
+      const s = steps(f.calls());
+      expect(s[0]).toContain(`pull -q ghcr.io/owner/repo@${digest}`);
+      expect(s).toContain('compose up -d --no-deps --remove-orphans app');
+      expect(f.calls()).not.toMatch(/compose (down|stop|restart)/);
+      // the previous image is kept before latest moves, and the new one is started after the retag
+      const iPrev = s.indexOf('tag calendar:latest calendar:previous');
+      const iNew = s.indexOf(`tag ghcr.io/owner/repo@${digest} calendar:latest`);
+      expect(iPrev).toBeGreaterThanOrEqual(0);
+      expect(iNew).toBeGreaterThan(iPrev);
+      expect(s.indexOf('compose up -d --no-deps --remove-orphans app')).toBeGreaterThan(iNew);
+    });
+
+    it('rolls back to calendar:previous and exits 1 when the new version is not healthy', () => {
+      const f = fake();
+      const r = f.run(digest, { HEALTH: 'bad', HEALTH_TIMEOUT: '1', HEALTH_INTERVAL: '1' });
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain('rolling back to calendar:previous');
+      expect(r.stderr).toContain('rolled back: the previous version is running again');
+      const s = steps(f.calls());
+      const ups = s.filter((x) => x.startsWith('compose up'));
+      expect(ups).toEqual(Array(2).fill('compose up -d --no-deps --remove-orphans app'));
+      expect(s.indexOf('tag calendar:previous calendar:latest')).toBeGreaterThan(s.indexOf(ups[0]));
+      expect(f.calls()).not.toContain('docker rmi');
+    });
   });
 });

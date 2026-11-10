@@ -15,5 +15,9 @@
 	request_body {
 		max_size 1MB
 	}
-	reverse_proxy app:3000
+	# a deploy restarts the app for a few seconds: hold the request and retry instead of answering 502 (ADR 0042)
+	reverse_proxy app:3000 {
+		lb_try_duration 60s
+		lb_try_interval 250ms
+	}
 }
