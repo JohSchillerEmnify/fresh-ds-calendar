@@ -17,15 +17,43 @@ async function gc(cdp: CDPSession) {
   await cdp.send('HeapProfiler.collectGarbage');
 }
 
-/** JS heap used size, DOM node count and JS event listener count after two forced GCs. */
+interface HeapSnapshot { snapshot: { meta: { node_fields: string[]; node_types: [string[]] } }; nodes: number[] }
+
+/** Self size (bytes) of every heap snapshot node that is not compiled code, native (Blink) memory or synthetic. */
+export function dataHeapBytes(snap: HeapSnapshot): number {
+  const { node_fields: fields, node_types: types } = snap.snapshot.meta;
+  const [typeIdx, sizeIdx] = [fields.indexOf('type'), fields.indexOf('self_size')];
+  const skipped = new Set(['code', 'native', 'synthetic']);
+  let total = 0;
+  for (let i = 0; i < snap.nodes.length; i += fields.length) {
+    if (!skipped.has(types[0][snap.nodes[i + typeIdx]])) total += snap.nodes[i + sizeIdx];
+  }
+  return total;
+}
+
+/** Parsed heap snapshot of the page after two forced GCs. */
+async function takeSnapshot(cdp: CDPSession): Promise<HeapSnapshot> {
+  await gc(cdp);
+  const chunks: string[] = [];
+  const onChunk = (e: { chunk: string }) => chunks.push(e.chunk);
+  cdp.on('HeapProfiler.addHeapSnapshotChunk', onChunk);
+  await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+  cdp.off('HeapProfiler.addHeapSnapshotChunk', onChunk);
+  return JSON.parse(chunks.join('')) as HeapSnapshot;
+}
+
+/**
+ * JS data heap (objects, arrays, strings, closures; not V8's compiled code), DOM node count and JS event listener count
+ * after two forced GCs. Compiled code is left out because the JIT keeps tiering up hot functions for hundreds of
+ * cycles (+1.8 MB over 250 view cycles while objects and arrays grew by 45 KB, once); that is the engine warming up, not the app.
+ */
 export async function measureMemory(page: Page): Promise<BrowserMemory> {
   // Chromium keeps every mark/measure/resource entry on the JS heap; they are test noise, not app growth
   await page.evaluate(() => { performance.clearMarks(); performance.clearMeasures(); performance.clearResourceTimings(); });
   return withCdp(page, async (cdp) => {
-    await gc(cdp);
-    const heap = await cdp.send('Runtime.getHeapUsage');
+    const heap = dataHeapBytes(await takeSnapshot(cdp));
     const counters = await cdp.send('Memory.getDOMCounters');
-    return { heap: heap.usedSize, nodes: counters.nodes, listeners: counters.jsEventListeners };
+    return { heap, nodes: counters.nodes, listeners: counters.jsEventListeners };
   });
 }
 
