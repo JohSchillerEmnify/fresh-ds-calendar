@@ -243,3 +243,29 @@ Then('the open tasks row is hidden', async function (this: World) {
 Then('the open tasks row is shown', async function (this: World) {
   await expect.poll(() => barRow(this).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), { message: 'row inside the viewport' }).toBe(true);
 });
+
+Then('the open tasks tray is {int} px wide', async function (this: World, px: number) {
+  await expect.poll(async () => Math.round((await this.page.getByTestId('task-tray').boundingBox())!.width)).toBeGreaterThanOrEqual(px - 1);
+  await expect.poll(async () => Math.round((await this.page.getByTestId('task-tray').boundingBox())!.width)).toBeLessThanOrEqual(px + 1);
+});
+
+const trayPatched = (w: World) => w.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH' && (r.request().postData() ?? '').includes('trayWidth'));
+
+When("I drag the open tasks tray's edge to make it {int} px wide", async function (this: World, px: number) {
+  const box = (await this.page.getByTestId('task-tray-resize').boundingBox())!;
+  const y = box.y + box.height / 2;
+  const saved = trayPatched(this).catch(() => null); // no change (already at the limit): no save
+  await this.page.mouse.move(box.x + box.width / 2, y);
+  await this.page.mouse.down();
+  await this.page.mouse.move(this.page.viewportSize()!.width - px, y, { steps: 5 });
+  await this.page.mouse.up();
+  await Promise.race([saved, this.page.waitForTimeout(1500)]);
+});
+
+When("I press {string} {int} times on the open tasks tray's edge", async function (this: World, key: string, times: number) {
+  const edge = this.page.getByTestId('task-tray-resize');
+  await edge.focus();
+  const saved = trayPatched(this);
+  for (let i = 0; i < times; i++) await this.page.keyboard.press(key);
+  await saved;
+});

@@ -122,6 +122,7 @@ export const PREFS = {
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
   bottomBarSize: oneOf(['auto', 'expressive', 'compact'], 'auto', 'bottomBarSize must be auto, expressive or compact'),
   monthScroll: oneOf(['sideways', 'vertical', 'vertical-snap'], 'sideways', 'monthScroll must be sideways, vertical or vertical-snap'),
+  trayWidth: { default: 380, parse: (v, key) => (Number.isInteger(v) && v >= 260 && v <= 560 ? ok(v) : { error: `${key} must be a whole number from 260 to 560` }) },
   calendarPlans: { default: {}, parse: (v) => { const r = toCalendarPlans(v); return r ? ok(r) : { error: 'Invalid calendarPlans' }; } },
 };
 

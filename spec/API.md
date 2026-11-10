@@ -236,6 +236,8 @@ for an unknown value; it returns the full preferences.
 (off). A shorter timed entry is laid out as this long in every time view and the phone widget; the entry's real times
 are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMinutes`).
 
+**Tray width** (`prefs.trayWidth`, per person, feature `open-tasks-in-sight`): whole number of px from `260` to `560`, default `380`: the width of the desktop open-tasks side panel. Anything else answers 400 `VALIDATION_ERROR` (field `trayWidth`).
+
 **Month scrolling** (`prefs.monthScroll`, per person, feature `month-vertical`): `sideways | vertical | vertical-snap`, default `sideways`. `vertical` stacks the
 months in one list that scrolls up and down; `vertical-snap` is the same list, one month per page. Any other value answers 400 `VALIDATION_ERROR` (field `monthScroll`).
 

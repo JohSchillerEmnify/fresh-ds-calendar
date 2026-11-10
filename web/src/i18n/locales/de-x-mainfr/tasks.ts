@@ -46,6 +46,7 @@ export default {
     empty: 'Nix offen. Gud so.',
     fold: '{title} zammklappn',
     showItems: 'Einträge von {title} zeign',
+    resize: 'Breite vom Bereich',
     collapse: 'Leisdn mit die offna Aufgabn einklappn',
     expand: 'Leisdn mit die offna Aufgabn ausklappn',
   },

@@ -336,6 +336,42 @@ Feature: Open tasks stay in sight
     And the open tasks tray lists "Laundry, Groceries, Packing"
 
   @desktop
+  Scenario: Dragging the desktop tray's left edge sets its width, which stays after a reload
+    When I open the day view for 2026-10-12
+    Then the open tasks tray is 380 px wide
+    When I drag the open tasks tray's edge to make it 320 px wide
+    Then the open tasks tray is 320 px wide
+    When I reload the app
+    Then the open tasks tray is 320 px wide
+
+  @desktop
+  Scenario: The desktop tray's width stays between 260 and 560 px
+    When I open the day view for 2026-10-12
+    And I drag the open tasks tray's edge to make it 100 px wide
+    Then the open tasks tray is 260 px wide
+    When I drag the open tasks tray's edge to make it 900 px wide
+    Then the open tasks tray is 560 px wide
+
+  @desktop
+  Scenario: The arrow keys on the desktop tray's edge change its width
+    When I open the day view for 2026-10-12
+    And I press "ArrowLeft" 2 times on the open tasks tray's edge
+    Then the open tasks tray is 420 px wide
+    When I press "ArrowRight" 1 times on the open tasks tray's edge
+    Then the open tasks tray is 400 px wide
+    When I press "Home" 1 times on the open tasks tray's edge
+    Then the open tasks tray is 260 px wide
+
+  @desktop
+  Scenario: A tray with its own width still collapses to the slim strip and opens again
+    When I open the day view for 2026-10-12
+    And I drag the open tasks tray's edge to make it 320 px wide
+    And I collapse the open tasks tray
+    Then the open tasks tray is at most 60 px wide
+    When I open the open tasks tray
+    Then the open tasks tray is 320 px wide
+
+  @desktop
   Scenario: Opening a list the tray already shows reveals it there instead of opening a second panel
     Given the task list tap setting is "drawer"
     When I open the day view for 2026-10-12
