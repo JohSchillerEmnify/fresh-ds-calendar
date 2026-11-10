@@ -83,6 +83,9 @@ describe('device position', () => {
     expect(getCurrentPosition).not.toHaveBeenCalled();
     location = 'granted';
     expect(await currentPosition()).toEqual({ ok: true, lat: 3, lon: 4 });
+    // "Approximate" grants only the coarse permission
+    (window as unknown as { Capacitor: { Plugins: { Geolocation: { requestPermissions: unknown } } } }).Capacitor.Plugins.Geolocation.requestPermissions = async () => ({ location: 'prompt', coarseLocation: 'granted' });
+    expect(await currentPosition()).toEqual({ ok: true, lat: 3, lon: 4 });
   });
 });
 
@@ -105,6 +108,17 @@ describe('the picker page', () => {
     expect(geo).not.toHaveBeenCalled();
     (document.querySelector('[data-testid="map-picker-locate"]') as HTMLElement).click();
     expect(geo).toHaveBeenCalledTimes(1);
+    w.unmount();
+  });
+
+  it('Escape closes only the picker', async () => {
+    const w = await open(true);
+    const outer = vi.fn();
+    document.addEventListener('keydown', outer);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(w.emitted('cancel')).toHaveLength(1);
+    expect(outer).not.toHaveBeenCalled();
+    document.removeEventListener('keydown', outer);
     w.unmount();
   });
 

@@ -23,7 +23,9 @@ const SEARCH_PAUSE_MS = 250;
 /** Typed characters before the search is asked. */
 const MIN_CHARS = 3;
 
-const offline = navigator.onLine === false || !props.tileUrl;
+const loadFailed = ref(false);
+const offline = computed(() => navigator.onLine === false || !props.tileUrl || loadFailed.value);
+const root = ref<HTMLElement | null>(null);
 const mapEl = ref<HTMLElement | null>(null);
 const centre = ref(props.start ?? DEFAULT_VIEW);
 /** False until a place was chosen on purpose (the first move, search or position): "Use this place" waits for it. */
@@ -48,8 +50,17 @@ const resolver = createResolver(props.searchUrl, photonLang(language.value), {
 useOverlayHistory(() => true, () => emit('cancel'));
 
 onMounted(async () => {
-  if (offline || !mapEl.value) return;
-  const [L] = await Promise.all([import('leaflet').then((m) => m.default), import('leaflet/dist/leaflet.css')]);
+  root.value?.focus();
+  document.addEventListener('keydown', onEscape, true);
+  if (offline.value || !mapEl.value) return;
+  let L: typeof import('leaflet');
+  try {
+    [L] = await Promise.all([import('leaflet').then((m) => m.default), import('leaflet/dist/leaflet.css')]);
+  } catch {
+    // the map code could not be had: the page says it needs a connection and offers typing
+    loadFailed.value = true;
+    return;
+  }
   if (!mapEl.value) return;
   map = L.map(mapEl.value, { zoomControl: false, attributionControl: false, center: [centre.value.lat, centre.value.lon], zoom: props.start ? PLACE_ZOOM : DEFAULT_VIEW.zoom });
   L.tileLayer(props.tileUrl, { maxZoom: 19, crossOrigin: 'anonymous' }).addTo(map);
@@ -62,7 +73,14 @@ onMounted(async () => {
   if (props.start) resolver.request(props.start.lat, props.start.lon);
 });
 
-onBeforeUnmount(() => { resolver.cancel(); clearTimeout(searchTimer); map?.remove(); map = null; });
+/** Escape closes only the picker: caught before the event sheet behind it sees it. */
+function onEscape(e: KeyboardEvent): void {
+  if (e.key !== 'Escape') return;
+  e.stopImmediatePropagation();
+  emit('cancel');
+}
+
+onBeforeUnmount(() => { document.removeEventListener('keydown', onEscape, true); resolver.cancel(); clearTimeout(searchTimer); map?.remove(); map = null; });
 
 /** Moves the map (and so the pin) to a position. */
 function goTo(lat: number, lon: number): void {
@@ -110,7 +128,7 @@ function use(): void {
 
 <template>
   <Teleport to="body">
-    <div class="picker" role="dialog" aria-modal="true" :aria-label="t('calendar.event.place.picker.title')" data-testid="map-picker" @keydown.esc.stop.prevent="emit('cancel')">
+    <div ref="root" tabindex="-1" class="picker" role="dialog" aria-modal="true" :aria-label="t('calendar.event.place.picker.title')" data-testid="map-picker">
       <header class="bar">
         <IconButton :label="t('calendar.event.place.picker.close')" data-testid="map-picker-close" @click="emit('cancel')"><IconClose /></IconButton>
         <h2 class="title">{{ t('calendar.event.place.picker.title') }}</h2>

@@ -5,7 +5,7 @@ import { isNativeApp } from '@/native/app';
 export type PositionResult = { ok: true; lat: number; lon: number } | { ok: false; reason: 'denied' | 'unavailable' };
 
 interface GeolocationPlugin {
-  requestPermissions(): Promise<{ location: string }>;
+  requestPermissions(): Promise<{ location?: string; coarseLocation?: string }>;
   getCurrentPosition(o: { enableHighAccuracy: boolean; timeout: number }): Promise<{ coords: { latitude: number; longitude: number } }>;
 }
 
@@ -25,8 +25,9 @@ export async function currentPosition(): Promise<PositionResult> {
     const native = plugin();
     if (isNativeApp() && native) {
       // the plugin asks the system dialog on the first call only; a refusal stays refused until the system settings change
-      const { location } = await native.requestPermissions();
-      if (location !== 'granted' && location !== 'limited') return { ok: false, reason: 'denied' };
+      const perm = await native.requestPermissions();
+      // "Approximate" on Android 12+ grants only the coarse permission, which is enough
+      if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') return { ok: false, reason: 'denied' };
       const p = await native.getCurrentPosition({ enableHighAccuracy: false, timeout: TIMEOUT_MS });
       return { ok: true, lat: p.coords.latitude, lon: p.coords.longitude };
     }
