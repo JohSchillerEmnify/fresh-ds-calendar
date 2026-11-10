@@ -46,27 +46,27 @@ function onClick(e: MouseEvent) {
     :aria-label="t('calendar.item.range', { title: ev.title, start: bar.startDate, end: bar.endDate })" @pointerdown.capture="onDown" @click="onClick"
   >
     <span v-if="!chip && bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
-    <span class="title" data-testid="event-bar-title"><span v-if="marker" data-testid="event-marker" aria-hidden="true">{{ marker }} </span>{{ ev.title }}</span>
+    <span class="title" data-testid="event-bar-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
     <span v-if="!chip && bar.continuesToNext" class="arr" aria-hidden="true">▸</span>
   </Pressable>
 </template>
 
 <style scoped>
 .bar {
-  display: flex; align-items: center; gap: 3px; min-width: 0; height: var(--bar-h, 20px); margin: 0 1px; padding: 0 6px; overflow: hidden;
-  font: var(--md-sys-typescale-label-medium); text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 3px; min-width: 0; height: var(--bar-h, 20px); margin: 0 1px; padding: var(--entry-pad-bar); overflow: hidden;
+  font: var(--entry-font); text-align: left; cursor: pointer;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; pointer-events: auto; z-index: 2;
 }
 .bar.from { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
 .bar.next { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
 .bar[data-dragging='true'] { cursor: grabbing; z-index: 30; }
 .title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.arr { flex: none; font-size: 9px; opacity: 0.85; }
+.mark { margin-right: 3px; font-size: var(--entry-mark); }
+.arr { flex: none; font-size: var(--entry-micro); opacity: 0.85; }
 html[data-calm='true'] .bar { filter: saturate(0.6); }
-@media (max-width: 767.98px) { .bar { font-size: 10px; padding: 0 3px; } }
+@media (max-width: 767.98px) { .bar .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); } }
 /* month view: same height (from the row), padding, type and radius as an entry chip; the margin is the cell padding so the ends line up with chips */
-.bar.chip { gap: 4px; margin: 0 var(--pad, 1px); padding: 1px 4px; line-height: 16px; }
+.bar.chip { gap: 4px; margin: 0 var(--pad, 1px); }
 .bar.chip.from { margin-left: 0; }
 .bar.chip.next { margin-right: 0; }
-@media (max-width: 767.98px) { .bar.chip { padding: 0 2px 0 3px; font-size: 10px; line-height: 14px; } .bar.chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); } }
 </style>
