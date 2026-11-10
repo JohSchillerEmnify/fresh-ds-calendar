@@ -45,3 +45,19 @@ describe('cardLayout on a narrow time-grid card', () => {
     expect(cardLayout({ ...base, height: 30 })).toMatchObject({ shown: 1, more: 1, lead: false });
   });
 });
+
+describe('cardLayout: names next to the title only in titled cards about 400 px wide', () => {
+  const base = { variant: 'block', grown: false, titles: false, mini: false, height: 44, timed: true, titled: true, open: 3, total: 3 };
+  it('puts the names of a titled 300 px card in rows below the title when a row fits', () => {
+    expect(cardLayout({ ...base, width: 300 })).toMatchObject({ inline: false, shown: 1, more: 2, foot: false });
+  });
+  it('fills a 56 px titled card with two rows: a short block has no time line taking room', () => {
+    expect(cardLayout({ ...base, height: 56, width: 300 })).toMatchObject({ inline: false, shown: 2, more: 1 });
+  });
+  it('keeps them next to the title from 400 px', () => {
+    expect(cardLayout({ ...base, width: 420 })).toMatchObject({ inline: true });
+  });
+  it('leaves an untitled card as it was', () => {
+    expect(cardLayout({ ...base, titled: false, width: 300 })).toMatchObject({ inline: true });
+  });
+});

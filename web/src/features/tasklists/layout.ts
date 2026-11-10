@@ -43,6 +43,9 @@ const INK_ROW_PX = 24;
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
 const INLINE_BELOW_PX = 62;
 
+/** Titled cards narrower than this put the names in rows below the title whenever a row fits. */
+const INLINE_MIN_WIDTH_PX = 400;
+
 /** What the collapsed (or grown) task list card knows about its host and its list, for {@link cardLayout}. */
 export interface CardLayoutInput {
   /** Host variant: `block` (time grid), `allday` (band), `card` (month cell), `chip`. */
@@ -53,6 +56,8 @@ export interface CardLayoutInput {
   titles: boolean;
   /** Narrow card (mini tier, 9 px rows). */
   mini: boolean;
+  /** Card width in px; 0 or undefined = not measured (counts as wide). */
+  width?: number;
   /** Pixels available to the card; 0 or undefined = not measured. */
   height?: number;
   /** The list has a start time (a time foot can show). */
@@ -100,7 +105,8 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
       rowH: i.inked ? INK_ROW_PX : i.mini ? 11 : 14,
       // measured padding: narrow time-grid cards have 1 + 2 px, the others 3 + 3 px
       pad: block ? (i.mini ? 3 : 6) : 5,
-      footH: block && i.timed && !i.mini ? 14 : 0,
+      // a short block shows no time line, so it takes no room
+      footH: block && i.timed && !i.mini && !shortBlock ? 14 : 0,
       minLines: block ? 0 : 1,
     });
     // mini cards are too narrow for inline names: rows below the title
@@ -108,6 +114,8 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
       const shown = f.inline ? 0 : f.shown;
       return { shown, more: i.open - shown, inline: false };
     }
+    // a titled card under 400 px keeps its names in rows below the title when a row fits
+    if (!f.inline && shortBlock && i.titled && !!i.width && i.width < INLINE_MIN_WIDTH_PX) return f;
     // inline names run on in one line and fade out at the right edge, so every open one is shown
     if (f.inline || shortBlock) return { shown: i.open, more: 0, inline: true };
     return f;
