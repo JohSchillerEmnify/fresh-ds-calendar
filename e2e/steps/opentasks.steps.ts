@@ -227,6 +227,15 @@ Then('the bottom bar has no open tasks row', async function (this: World) {
   await expect(barRow(this)).toHaveCount(0);
 });
 
+Then('no open tasks row is outside the bottom bar', async function (this: World) {
+  await expect(this.page.locator('[data-testid="task-tray-toggle"]:not([data-testid="bottom-bar"] *)')).toHaveCount(0);
+});
+
+Then('there is no open tasks tray', async function (this: World) {
+  await expect(this.page.getByTestId('settings-view')).toBeVisible();
+  await expect(this.page.getByTestId('task-tray')).toHaveCount(0);
+});
+
 Then('the open tasks row is hidden', async function (this: World) {
   await expect.poll(() => barRow(this).evaluate((el) => el.getBoundingClientRect().top >= innerHeight - 1), { message: 'row out of the viewport' }).toBe(true);
 });
