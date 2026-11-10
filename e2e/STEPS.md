@@ -801,7 +801,9 @@ the server memory has grown by less than {int} MB since the recording
 
 - `@perf` runs only in the `mobile` project (`desktop` uses `grepInvert: /@mobile|@perf/`), with `workers: 1`.
 - Browser memory: Chromium DevTools protocol via `page.context().newCDPSession(page)`: `HeapProfiler.collectGarbage`
-  (twice), then `Runtime.getHeapUsage` (`usedSize`) and `Memory.getDOMCounters` (`nodes`, `jsEventListeners`).
+  (twice), then a heap snapshot summed without compiled code, native and synthetic nodes (the JS heap; the JIT keeps
+  adding code for hundreds of cycles, +1.8 MB over 250 view cycles, while objects grew 45 KB once) and
+  `Memory.getDOMCounters` (`nodes`, `jsEventListeners`).
 - "cycle through the month, week and day views N times": N × (switch to week, day, month) using the view switcher.
 - "open and close the event dialog N times": `create-button` → Event → `event-cancel`, waiting for the dialog to be
   removed from the DOM each time. "expand and collapse": `tasklist-card` click → `tasklist-close`.

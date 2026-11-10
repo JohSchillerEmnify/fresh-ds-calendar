@@ -3,7 +3,8 @@ Feature: Resource efficiency and no memory leaks
   Hard requirements. Browser memory is measured after a forced garbage collection, and only after every workload
   of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner); the node count settles after the second pass
   through the workloads (a one-time step of about 600 nodes, then flat over 100 more view cycles), so the warm-up runs twice;
-  server memory through the test-only memory endpoint. These scenarios run only at the
+  the JS heap leaves out V8's compiled code, which keeps growing for hundreds of cycles while the JIT tiers up (+1.8 MB over
+  250 cycles; objects and arrays +45 KB, once; with the JIT off the heap stays flat); server memory through the test-only memory endpoint. These scenarios run only at the
   phone viewport, serially.
 
   Background:
