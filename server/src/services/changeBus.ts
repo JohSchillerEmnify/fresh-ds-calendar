@@ -55,6 +55,7 @@ export function kindsOfPath(path: string): ChangeKind[] {
   if (a === 'categories') return b === 'share' ? ['shares', 'taskLists'] : ['settings', 'taskLists'];
   if (a === 'tasklists') return ['taskLists'];
   if (a === 'reminders') return ['calendars'];
+  if (a === 'holiday-calendars') return ['calendars', 'events'];
   if (a === 'prefs') return [seg[1] === 'theme' ? 'theme' : 'prefs'];
   const direct: Record<string, ChangeKind> = { events: 'events', calendars: 'calendars', themes: 'themes', templates: 'templates', canvas: 'canvas', settings: 'settings', streak: 'motivation' };
   const k = a ? direct[a] : undefined;

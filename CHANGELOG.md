@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-10
+- Settings › Calendars › Holidays: add the public holidays of a country (in German or English, public holidays only or with observances) and remove them again.
+
 ## 2026-11-09
 - An event's map has two buttons under it: open the place in Google Maps or on OpenStreetMap.
 - Fixed: the language you choose follows you to your other devices again.

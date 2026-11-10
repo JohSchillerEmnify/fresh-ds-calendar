@@ -4053,3 +4053,48 @@ the error log is copied and I am told so
 - "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
   "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
   downloaded error log holds N entries": the downloaded file is JSON with N `entries`.
+
+## Holiday calendars (`@id:holiday-regions`)
+
+```
+the Holidays section lists no holiday calendar
+the Holidays section lists the holiday calendar {string}
+I open the holiday region picker
+I search the holiday regions for {string}
+the holiday regions offer {string}
+the holiday regions do not offer {string}
+I choose the holiday region {string}
+the holiday variants offered are {string}
+I add the holiday region {string} as {string}
+I add the holiday region {string} without a question
+I remove the holiday calendar
+I switch the calendar off in its settings page
+Google's holiday calendar of {string} has the holiday {string} on {date}
+Google knows only the public holidays of {string}
+Google has no holiday calendar for {string}
+{string} has added the holiday region {string} as {string}
+{string} no longer has the holiday region {string} in Google
+a person with the app language German adds the region {string} as public holidays only
+Google's list gets {string}
+the app language is German
+the device is offline
+the sheet says that adding a region needs a connection
+```
+
+- The last five lines are only used by `@unit` scenarios (proved by `server/test/holidays.test.ts` and `web/test/holiday-regions.test.ts`); e2e skips them.
+
+- Hooks: the section is `settings-holidays` (a `SettingSection`) listing `settings-row` rows whose `data-setting` is the calendar's name; the
+  "Add region" row (`data-setting="Add region"`) opens the sheet `holiday-region-sheet` (an `AdaptiveSheet`) with the search field
+  `holiday-region-search` and one `holiday-region` button per region (`data-region` = the visible country name). After "I choose the
+  holiday region R" the sheet shows one `holiday-variant` button per variant (`data-variant` `official` / `all`, visible text "Public
+  holidays only" / "Holidays and observances"). "I add R as V": choose R, then click the variant with that text; "without a question":
+  choose R and the calendar is added at once. Both wait for `POST /api/holiday-calendars` (2xx) and the sheet to close.
+- Region names are English (the e2e app language) and the mock's regions are the curated list; "offer"/"do not offer" read the
+  `holiday-region` buttons left after the search. "I remove the holiday calendar" clicks `holiday-calendar-remove` on the calendar's
+  settings page and waits for `DELETE /api/holiday-calendars/:id`, after which the calendars list is shown. "I switch the calendar
+  off": clicks `settings-calendar-shown` while it is on and waits for `PATCH /api/calendars/:id`.
+- Givens work on the mock Google: "Google's holiday calendar of R has the holiday H on D" puts an all-day event into the public
+  calendar `en.<region>.official#holiday@group.v.calendar.google.com` (Google's public calendars exist without being subscribed);
+  "knows only the public holidays of R" / "has no holiday calendar for R" make the plain / every variant answer 404 to the
+  server's check (`POST /api/__test/holiday-missing`); "P has added the holiday region R as V" is a `calendarList.insert` of that
+  id on P's mock account (as another Google client would). "no longer has ... in Google" reads P's raw calendar list.

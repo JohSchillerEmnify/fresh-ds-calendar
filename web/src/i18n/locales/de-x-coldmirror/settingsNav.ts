@@ -69,6 +69,7 @@ export default {
   },
   // same words as German, plus Fresh D.'s name for calm mode
   synonyms: { ...settingsNavDe.synonyms, calmMode: 'ruhig, Fokus, Ablenkung, Ruhemodus' },
+  holidays: settingsNavDe.holidays,
   calendar: { hidden: 'Versteckt, Digga' },
   time: {
     title: 'Uhrzeit wählen, yo',

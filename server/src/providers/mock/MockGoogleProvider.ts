@@ -5,11 +5,20 @@ import { googleEventId } from '../../lib/ids.js';
 import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
 import { RateGuard } from '../google/RateGuard.js';
+import { isHolidayCalendarId, parseHolidayCalendarId } from '../holidayRegions.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError,
   type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
+
+/** The name Google gives a holiday calendar in the language of its id. */
+function holidaySummary(id: string): string {
+  const parsed = parseHolidayCalendarId(id);
+  const lang = id.startsWith('de.') ? 'de' : 'en';
+  const country = parsed ? new Intl.DisplayNames([lang], { type: 'region' }).of(parsed.code) : id;
+  return lang === 'de' ? `Feiertage in ${country}` : `Holidays in ${country}`;
+}
 
 const MOCK_CALENDARS: ProviderCalendar[] = [
   { id: 'primary', summary: 'Personal', backgroundColor: '#039be5', primary: true, accessRole: 'owner' },
@@ -46,6 +55,8 @@ export class MockGoogleProvider implements CalendarProvider {
   private rateLimitNext: number | null = null;
   private revoked = false;
   private calendarMissing = false;
+  /** Public (holiday) calendars Google answers 404 for. */
+  private missingPublic = new Set<string>();
   private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
   private timer: NodeJS.Timeout | null = null;
   private readonly file: string | null;
@@ -96,6 +107,10 @@ export class MockGoogleProvider implements CalendarProvider {
     this.calendarMissing = missing;
   }
 
+  /** Makes Google answer 404 for these public holiday calendars (they do not exist). */
+  addPublicMissing(ids: string[]): void {
+    for (const id of ids) this.missingPublic.add(id);
+  }
   setRevoked(revoked: boolean): void {
     this.revoked = revoked;
   }
@@ -114,6 +129,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.epoch = newEpoch();
     this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
+    this.missingPublic.clear();
     this.guard = newGuard();
     this.lookups = 0;
     this.rateLimitNext = null;
@@ -177,6 +193,32 @@ export class MockGoogleProvider implements CalendarProvider {
   async insertCalendar(summary: string): Promise<ProviderCalendar> {
     this.check();
     return this.doInsertCalendar(summary, false);
+  }
+
+  async publicCalendarExists(calendarId: string): Promise<boolean> {
+    this.check();
+    return this.isPublic(calendarId);
+  }
+
+  async subscribeCalendar(calendarId: string): Promise<ProviderCalendar> {
+    this.check();
+    if (!this.isPublic(calendarId)) throw new NotFoundError('Not Found');
+    // Google refuses a calendar that is already in the list with 409 "Already Exists"
+    if (this.calendars.some((c) => c.id === calendarId)) throw new ProviderError('Google 409: Already Exists');
+    const cal: ProviderCalendar = { id: calendarId, summary: holidaySummary(calendarId), backgroundColor: '#7986cb', primary: false, accessRole: 'reader', hidden: false };
+    this.calendars.push(cal);
+    this.scheduleFlush();
+    return { ...cal };
+  }
+
+  async unsubscribeCalendar(calendarId: string): Promise<void> {
+    this.check();
+    this.requireCalendar(calendarId);
+    const cal = this.calendars.find((c) => c.id === calendarId)!;
+    // Google refuses to remove the primary calendar from its own list
+    if (cal.primary) throw new ProviderError('Google 400: Cannot remove the primary calendar');
+    this.calendars = this.calendars.filter((c) => c.id !== calendarId);
+    this.scheduleFlush();
   }
 
   async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
@@ -339,8 +381,13 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   // ---- internals ----
+  /** A public holiday calendar exists for anyone, in the person's list or not, unless the test made it missing. */
+  private isPublic(id: string): boolean {
+    return isHolidayCalendarId(id) && !this.missingPublic.has(id);
+  }
+
   private requireCalendar(id: string): void {
-    if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
+    if (!this.calendars.some((c) => c.id === id) && !this.isPublic(id)) throw new NotFoundError(`Calendar ${id} not found`);
   }
 
   private doSetDefaultReminders(calendarId: string, reminders: GoogleReminder[]): void {

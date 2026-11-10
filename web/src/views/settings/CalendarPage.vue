@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /** One calendar's settings page: whether it shows (same choice as its filter chip), its colour, its plan (feature calendar-off-plan) and its default reminders. */
 import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import Button from '@/components/m3/Button.vue';
 import { ApiError } from '@/api/client';
 import CalendarColorRow from '@/components/settings/CalendarColorRow.vue';
 import Switch from '@/components/m3/Switch.vue';
@@ -10,14 +12,27 @@ import SettingSection from '@/components/settings/SettingSection.vue';
 import { planSummary } from '@/components/settings/planSummary';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
+import { useHolidaysStore } from '@/stores/holidays';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 
 const props = defineProps<{ calendarId: string }>();
 const cals = useCalendarsStore();
 const ui = useUiStore();
+const router = useRouter();
 const cal = computed(() => cals.list.find((c) => c.id === props.calendarId));
 onMounted(() => { void cals.load().catch(() => undefined); });
+
+/** Takes the holiday calendar out of the person's Google list and returns to the calendars. */
+async function removeHoliday() {
+  try {
+    await useHolidaysStore().remove(props.calendarId);
+    void useSyncStore().resyncAfterWrite();
+    void router.replace('/settings/calendars');
+  } catch (e) {
+    ui.notify(e instanceof ApiError ? e.userMessage : t('settingsNav.holidays.removeFailed'));
+  }
+}
 
 /** Saves the default list; the items on screen are read again because they carry the effective leads. */
 async function saveDefaults(minutes: number[]) {
@@ -44,6 +59,11 @@ async function saveDefaults(minutes: number[]) {
         <section class="rem" data-testid="reminders-calendar" :data-calendar-id="cal.id" :data-name="cal.name" :aria-label="cal.name">
           <ReminderEditor :model-value="{ useDefault: false, minutes: cal.defaultReminders ?? [] }" prefix="calendar-default" data-testid="reminders-calendar-list" @update:model-value="saveDefaults($event.minutes)" />
         </section>
+      </SettingRow>
+    </SettingSection>
+    <SettingSection v-if="cal.holiday">
+      <SettingRow id="removeHoliday" wide :label="t('settingsNav.holidays.remove')" :hint="t('settingsNav.holidays.removeHint')">
+        <Button variant="outlined" data-testid="holiday-calendar-remove" @click="removeHoliday">{{ t('settingsNav.holidays.remove') }}</Button>
       </SettingRow>
     </SettingSection>
   </template>

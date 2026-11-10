@@ -72,6 +72,22 @@ function mapGoogleErrorInner(e: unknown): Error {
   return new ProviderError(msg);
 }
 
+/** One `calendarList` entry as the provider's calendar. */
+function fromListEntry(c: calendar_v3.Schema$CalendarListEntry): ProviderCalendar {
+  // the primary calendar's id is the person's address; a secondary one names its owner in `dataOwner`
+  const owner = c.primary ? c.id : c.dataOwner;
+  return {
+    id: c.primary ? 'primary' : c.id!,
+    summary: c.summaryOverride ?? c.summary ?? c.id!,
+    backgroundColor: (c.backgroundColor ?? '#039be5').toLowerCase(),
+    primary: !!c.primary,
+    accessRole: (c.accessRole as ProviderCalendar['accessRole']) ?? 'reader',
+    hidden: !!c.hidden,
+    ...(owner ? { owner } : {}),
+    defaultReminders: (c.defaultReminders ?? []).map((r) => ({ method: r.method ?? 'popup', minutes: r.minutes ?? 0 })),
+  };
+}
+
 export class GoogleProvider implements CalendarProvider {
   readonly name = 'google' as const;
   private readonly guard: RateGuard;
@@ -118,28 +134,39 @@ export class GoogleProvider implements CalendarProvider {
     // hidden entries too: the person's tasks calendar is hidden in Google's list (ADR 0006)
     return this.guard.cached('calendarList', async () => {
       const res = await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
-      const out: ProviderCalendar[] = [];
-      for (const c of res.data.items ?? []) {
-        // the primary calendar's id is the person's address; a secondary one names its owner in `dataOwner`
-        const owner = c.primary ? c.id : c.dataOwner;
-        out.push({
-          id: c.primary ? 'primary' : c.id!,
-          summary: c.summaryOverride ?? c.summary ?? c.id!,
-          backgroundColor: (c.backgroundColor ?? '#039be5').toLowerCase(),
-          primary: !!c.primary,
-          accessRole: (c.accessRole as ProviderCalendar['accessRole']) ?? 'reader',
-          hidden: !!c.hidden,
-          ...(owner ? { owner } : {}),
-          defaultReminders: (c.defaultReminders ?? []).map((r) => ({ method: r.method ?? 'popup', minutes: r.minutes ?? 0 })),
-        });
-      }
-      return out;
+      return (res.data.items ?? []).map(fromListEntry);
     });
   }
 
   async insertCalendar(summary: string): Promise<ProviderCalendar> {
     const res = await this.call('calendars.insert', () => this.o.api.calendars.insert({ requestBody: { summary } }), true);
     return { id: res.data.id!, summary: res.data.summary ?? summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden: false };
+  }
+
+  async publicCalendarExists(calendarId: string): Promise<boolean> {
+    try {
+      await this.call('calendars.get', () => this.o.api.calendars.get({ calendarId }), false, calendarId);
+      return true;
+    } catch (e) {
+      if (!(e instanceof NotFoundError || e instanceof ProviderForbiddenError)) throw e;
+    }
+    // a public calendar the person has not added may be unreadable by calendars.get but still listable
+    try {
+      await this.call('events.list', () => this.o.api.events.list({ calendarId, maxResults: 1 }), false, calendarId);
+      return true;
+    } catch (e) {
+      if (e instanceof NotFoundError || e instanceof ProviderForbiddenError) return false;
+      throw e;
+    }
+  }
+
+  async subscribeCalendar(calendarId: string): Promise<ProviderCalendar> {
+    const res = await this.call('calendarList.insert', () => this.o.api.calendarList.insert({ requestBody: { id: calendarId, selected: true } }), true, calendarId);
+    return fromListEntry(res.data);
+  }
+
+  async unsubscribeCalendar(calendarId: string): Promise<void> {
+    await this.call('calendarList.delete', () => this.o.api.calendarList.delete({ calendarId }), true, calendarId);
   }
 
   /** The id a calendarList write needs: Google refuses the `primary` keyword there ("Invalid resource id value"). */

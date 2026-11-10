@@ -27,6 +27,8 @@ import { EventWrites } from './eventWrites.js';
 import { ItemQueries } from './itemQueries.js';
 import { BIRTHDAYS_COLOR, BIRTHDAYS_ID, etagEq, inContactsCalendar, isContactsCalendarId, specialOf } from './eventRules.js';
 import { logCalendarShape } from './calendarShape.js';
+import { HolidayCalendars } from './holidays.js';
+import { isHolidayCalendarId } from '../providers/holidayRegions.js';
 import { TaskSeries } from './taskSeries.js';
 import { TaskSharing } from './taskSharing.js';
 import { birthdayDateKey, birthdayDateLocked } from './birthday.js';
@@ -52,6 +54,8 @@ const notOwn = () => forbidden('Only your own events can be changed', 'calendar.
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
   private calGen = 0;
+  /** The holiday regions the person can add and the ones they have (ADR 0039). */
+  readonly holidays: HolidayCalendars;
   /** Calendars too large to walk for a sync token, and until when they are left alone (see {@link CalendarChanges}). */
   private readonly noTokenUntil = new Map<string, number>();
   /** Calendars Google keeps refusing, and their back-off (see {@link CalendarChanges}). */
@@ -80,6 +84,7 @@ export class CalendarService {
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
   ) {
+    this.holidays = new HolidayCalendars(provider, () => this.clock.real(), () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, {
       locateKind: (id, tasklist) => this.locateKind(id, tasklist), toSharedTaskList: (doc, color) => this.toSharedTaskList(doc, color),
@@ -159,7 +164,7 @@ export class CalendarService {
     return [
       ...all.filter((c) => !isContactsCalendarId(c.id)).map((c): Calendar => ({
         id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
-        defaultReminders: popups(c.defaultReminders),
+        defaultReminders: popups(c.defaultReminders), ...(isHolidayCalendarId(c.id) ? { holiday: true as const } : {}),
       })),
       { id: BIRTHDAYS_ID, name: 'Birthdays', color: this.birthdaysColor(), primary: false, writable: false, defaultReminders: [], virtual: true },
     ];
