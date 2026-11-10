@@ -5,13 +5,14 @@ Feature: A task list card grows in place over the calendar
   title wrapping instead of being cut, all items listed (the part over the list's real time block looks exactly like the
   normal card; the part that only extends it is slimmer and lighter, with a seam at the real end, so the real duration
   stays recognisable; growing upwards, the same holds above the real start), and it lies over the following events or slots without moving
-  them. The grown card is read-only in every view (done markers, no checkboxes, no edit or close button); a tap anywhere
-  on it, items included, opens the normal list sheet, where items are ticked and the list is edited. Only tapping its
-  title collapses it (owner, 2026-11-10); a tap elsewhere in the calendar, Escape, growing another card or a sheet opening
-  leave it grown. Several cards may be grown at the same time, each until its own title is
+  them. The grown card is read-only in every view (done markers, no checkboxes, no edit or close button); a tap on its items
+  opens the normal list sheet, where items are ticked and the list is edited. Tapping anywhere on its pill (the head row:
+  the list's own checkbox, title, time, count, ring), titled or untitled alike, collapses it (owner, 2026-11-10); a tap
+  elsewhere in the calendar, Escape, growing another card or a sheet opening
+  leave it grown. Several cards may be grown at the same time, each until its own pill is
   tapped (the setting "Keep several lists open", on by default; off, growing a card collapses the one grown before). A tap on
-  a grown card opens its list sheet and it stays grown behind it. The title is a button of its own ("Collapse <title>"): Enter
-  or Space on it collapses the card, Enter on the card opens the sheet like a tap, Escape does nothing. Scrolling or zooming a
+  a grown card's items opens its list sheet and it stays grown behind it. The pill is one button ("Collapse <title>", "Collapse
+  task list" without a title): Enter or Space on it collapses the card, Enter on the card opens the sheet like a tap, Escape does nothing. Scrolling or zooming a
   grown card out of sight leaves it grown (it shows again when its card is back in view). A long press keeps its meaning
   (pick up, resize handles). On the phone's month view a tap on a card still opens the day (the cells are too small to hold a
   card).
@@ -171,14 +172,14 @@ Feature: A task list card grows in place over the calendar
     When I collapse the task list
     Then the task list "Groceries" is expanded over the calendar
 
-  Scenario: Enter or Space on the title collapses it; its name says so
+  Scenario: Enter or Space on the pill collapses it; its name says so
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
-    Then the title of the expanded task list "Groceries" is called "Collapse Groceries"
-    When I press Enter on the title of the expanded task list "Groceries"
+    Then the pill of the expanded task list "Groceries" is called "Collapse Groceries"
+    When I press Enter on the pill of the expanded task list "Groceries"
     Then the task list "Groceries" is collapsed
     When I tap the task list "Groceries"
-    And I press Space on the title of the expanded task list "Groceries"
+    And I press Space on the pill of the expanded task list "Groceries"
     Then the task list "Groceries" is collapsed
 
   Scenario: Enter on the grown card opens its list sheet like a tap
@@ -195,6 +196,39 @@ Feature: A task list card grows in place over the calendar
     And I tap the title of the expanded task list
     Then the task list "Groceries" is collapsed
     And no list sheet is open
+
+  Scenario: Tapping the rest of the pill, away from the title, collapses a titled list
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I tap the right end of the pill of the expanded task list
+    Then the task list "Groceries" is collapsed
+    And no list sheet is open
+
+  Scenario: Tapping the pill of a titleless list collapses it just like a titled one
+    Given the calendar contains a task list "" on 2026-10-14 at 11:00 for 30 minutes with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I tap the titleless task list
+    And I tap the right end of the pill of the expanded task list
+    Then the titleless task list is collapsed
+    And no list sheet is open
+
+  Scenario: Tapping the list's own checkbox in the pill collapses it
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I tap the checkbox in the pill of the expanded task list
+    Then the task list "Groceries" is collapsed
+    And no list sheet is open
+
+  Scenario: The items area of a one-item list is at least 44 px tall, the item centred in it
+    Given the calendar contains a task list "Post" on 2026-10-14 at 13:00 for 30 minutes with items:
+      | item   | done |
+      | Letter | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Post"
+    Then the items area of the expanded task list "Post" is at least 44 px tall
+    And the item of the expanded task list "Post" is centred in its items area
 
   Scenario: The first item of the grown card is below its header
     When I open the day view for 2026-10-14
