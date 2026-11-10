@@ -48,7 +48,7 @@ export default {
   checkboxShape: { label: 'Form des Kästchens', round: 'Rund', square: 'Eckig', rounded: 'Abgerundet' },
   checkFill: { label: 'Füllung des Kästchens', filled: 'Gefüllt', outline: 'Umriss' },
   checkGlyph: { label: 'Häkchen', tick: 'Haken', bold: 'Fetter Haken', cross: 'Kreuz', dot: 'Punkt' },
-  iconSet: { label: 'Symbolsatz', outlined: 'Umrandet', rounded: 'Abgerundet', sharp: 'Eckig' },
+  iconSet: { label: 'Symbolsatz', outlined: 'Umrandet', rounded: 'Abgerundet', sharp: 'Eckig', solar: 'Solar', phosphor: 'Phosphor', pixelart: 'Pixel' },
   saveOwn: {
     button: 'Als mein Design speichern',
     title: 'Als mein Design speichern',

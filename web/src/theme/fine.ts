@@ -29,7 +29,7 @@ export const DENSITIES: Density[] = ['compact', 'comfortable', 'airy'];
 export const CHECKBOXES: CheckboxShape[] = ['round', 'square', 'rounded'];
 export const CHECK_FILLS: CheckFill[] = ['filled', 'outline'];
 export const CHECK_GLYPHS: CheckGlyph[] = ['tick', 'bold', 'cross', 'dot'];
-export const ICON_SETS: IconSetName[] = ['outlined', 'rounded', 'sharp'];
+export const ICON_SETS: IconSetName[] = ['outlined', 'rounded', 'sharp', 'solar', 'phosphor', 'pixelart'];
 
 /** The step whose value is exactly `value`, or null between steps. */
 export function stepOf<K extends string>(steps: Record<K, number>, value: number): K | null {

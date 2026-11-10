@@ -30,6 +30,9 @@
   },
   "devDependencies": {
     "@iconify-json/material-symbols": "1.2.97",
+    "@iconify-json/ph": "1.2.2",
+    "@iconify-json/pixelarticons": "1.2.10",
+    "@iconify-json/solar": "1.2.14",
     "@size-limit/file": "14.3.0",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "6.0.10",

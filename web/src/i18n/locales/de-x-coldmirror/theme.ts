@@ -48,7 +48,7 @@ export default {
   checkboxShape: { label: 'Form der Checkbox, yo', round: 'Rund, fresh', square: 'Eckig, Digga', rounded: 'Abgerundet, yo' },
   checkFill: { label: 'Füllung der Checkbox, yo', filled: 'Gefüllt, fresh', outline: 'Umriss, Digga' },
   checkGlyph: { label: 'Häkchen, yo', tick: 'Haken, Digga', bold: 'Fetter Haken, fresh', cross: 'Kreuz, yo', dot: 'Punkt, Digga' },
-  iconSet: { label: 'Icon-Set, fresh', outlined: 'Umrandet, yo', rounded: 'Abgerundet, Digga', sharp: 'Eckig, fresh' },
+  iconSet: { label: 'Icon-Set, fresh', outlined: 'Umrandet, yo', rounded: 'Abgerundet, Digga', sharp: 'Eckig, fresh', solar: 'Solar', phosphor: 'Phosphor', pixelart: 'Pixel' },
   saveOwn: {
     button: 'Als mein Bling-Bling speichern, yo',
     title: 'Als mein Bling-Bling speichern, fresh',

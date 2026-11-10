@@ -1,8 +1,8 @@
 /**
- * The app's icons (feature theme-menu): each is a component that draws the Material Symbols variant of the current icon
- * set (outlined, rounded or sharp). Each set is its own chunk (`icons.<set>.ts`, inline SVG by `unplugin-icons`) that is
- * fetched only when the set is in use, so the first load carries one set; the service worker precaches all three for
- * offline use. `loadIconSet` must be awaited before the first mount; until a switched-to set arrives, the loaded set draws.
+ * The app's icons (feature theme-menu): each is a component that draws the variant of the current icon set (Material
+ * Symbols outlined, rounded or sharp, Solar, Phosphor or Pixelarticons). Each set is its own chunk (`icons.<set>.ts`,
+ * inline SVG by `unplugin-icons`) that is fetched only when the set is in use, so the first load carries one set; the
+ * service worker precaches all of them for offline use. `loadIconSet` must be awaited before the first mount; until a switched-to set arrives, the loaded set draws.
  */
 import { defineComponent, h, shallowRef, watch, type Component } from 'vue';
 import { iconSet, type IconSet } from '@/theme/iconSet';
@@ -13,6 +13,9 @@ const loaders: Record<IconSet, () => Promise<{ default: SetIcons }>> = {
   outlined: () => import('./icons.outlined'),
   rounded: () => import('./icons.rounded'),
   sharp: () => import('./icons.sharp'),
+  solar: () => import('./icons.solar'),
+  phosphor: () => import('./icons.phosphor'),
+  pixelart: () => import('./icons.pixelart'),
 };
 const loaded = shallowRef<Partial<Record<IconSet, SetIcons>>>({});
 

@@ -11,8 +11,8 @@ Feature: Choosing and fine-tuning a theme
   picking a scene turns it Off. "Fine-tuning" is where every option shows itself as a small sample before it is
   picked: theme mode, seed colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square,
   round, pill), each with a slider for the value in between (glow strength, corner radius in px, entry tint in %), plus
-  density (compact, comfortable, airy), the checkbox shape and fill, the check mark and the icon set (outlined, rounded,
-  sharp); it always sits on top, in every Seasons & holidays mode, and choosing a preset resets it. There is no separate Mordor button; the Mordor preset does the same. A live
+  density (compact, comfortable, airy), the checkbox shape and fill, the check mark and the icon set (Outlined, Rounded, Sharp, Solar, Phosphor, Pixel: three Material Symbols
+  variants and three clearly different families, each drawing every icon of the app); it always sits on top, in every Seasons & holidays mode, and choosing a preset resets it. There is no separate Mordor button; the Mordor preset does the same. A live
   preview is pinned at the top of the menu and stays in view while the person scrolls through the sections: a mini
   calendar made of the app's own components (the top bar with the current scene, a short week slice with sample events
   in different colours, a task list with ticked and open checkboxes, the + button and a few icons). It follows every
@@ -312,15 +312,23 @@ Feature: Choosing and fine-tuning a theme
     And the "Glow strength" slider shows "0"
     And the event "Dentist" has a corner radius of 8 px
 
-  Scenario: The icon set changes every icon of the app
+  Scenario Outline: The icon set changes every icon of the app
     When I open the week view for 2026-10-12
     And I open the theme menu
     Then the app uses the "outlined" icon set
-    When I choose "Sharp" for the "Icon set" setting
-    Then the app uses the "sharp" icon set
+    When I choose "<label>" for the "Icon set" setting
+    Then the app uses the "<set>" icon set
     And every option of the "Icon set" setting shows a sample icon
     When I choose the theme "Default"
     Then the app uses the "outlined" icon set
+
+    Examples:
+      | label    | set      |
+      | Rounded  | rounded  |
+      | Sharp    | sharp    |
+      | Solar    | solar    |
+      | Phosphor | phosphor |
+      | Pixel    | pixelart |
 
   Scenario: Turning Header only on again drops my hand-picked scene
     Given today is 2026-12-24
