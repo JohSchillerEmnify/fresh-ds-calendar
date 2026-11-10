@@ -199,3 +199,43 @@ Feature: Background sync with Google Calendar
       And Google asks the app to slow down for the next sync
       When Google adds an event "Call mom" on 2026-10-14 from 18:00 to 18:30
       Then once the slow-down is over I see the event "Call mom" on 2026-10-14
+
+  Rule: One calendar that Google cannot read does not fail a whole period, and the daily calendar check never slows syncing
+
+    Scenario: A week outside the device's window still shows the calendars Google can read
+      Given the calendar contains an event "Standup" in the calendar "Work" on 2028-01-12 from 09:00 to 09:30
+      And the calendar contains an event "Planning" on 2028-01-13 from 10:00 to 11:00
+      And Google cannot read the calendar "Work"
+      When I open the week view for 2028-01-10
+      Then I see the event "Planning" on 2028-01-13
+      And I do not see the sync error banner
+
+    Scenario: A year outside the device's window still shows the days of the calendars Google can read
+      Given the calendar contains an event "Standup" in the calendar "Work" on 2028-01-12 from 09:00 to 09:30
+      And the calendar contains an event "Planning" on 2028-01-13 from 10:00 to 11:00
+      And Google cannot read the calendar "Work"
+      When I open the year view for 2028
+      Then the density of 2028-01-13 in the year view is 1
+      And I do not see the sync error banner
+
+    # unit: server/test/calendar-shape.test.ts:reads only the next year, not the whole history
+    @unit
+    Scenario: The daily calendar check reads a limited time window
+      Given a person with a calendar holding a birthday series
+      When the daily calendar check runs on 2026-10-12
+      Then it asks Google only for the year from 2026-10-12
+
+    # unit: server/test/calendar-shape.test.ts:a rate-limit answer to the check does not start a cooldown
+    @unit
+    Scenario: A rate-limit answer to the daily calendar check does not pause syncing
+      Given Google answers the daily calendar check with "rate limited"
+      When the daily calendar check runs on 2026-10-12
+      Then the next sync is not refused
+
+    # unit: web/test/api-client.test.ts:says the calendar server cannot be reached when saving fails without an answer
+    @unit
+    Scenario: A save that cannot reach the calendar server says so, not that Google is unavailable
+      Given the calendar server does not answer
+      When saving a change fails
+      Then the message says "the calendar server can't be reached"
+      And the message does not mention Google
