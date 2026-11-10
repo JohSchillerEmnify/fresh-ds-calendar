@@ -41,6 +41,28 @@ const rectOf = (l: Locator) => l.evaluate((e) => { const b = e.getBoundingClient
 /** Boxes of events noted before the expansion, per scenario world. */
 const notedEvents = new WeakMap<World, Record<string, Rect>>();
 
+/** Title boxes noted before the expansion, per scenario world. */
+const notedTitles = new WeakMap<World, Record<string, Rect>>();
+const source = (w: World, title: string) => w.page.locator(`${tid('tasklist-card')}${attr('data-title', title)}`).first();
+
+When('I note where the title of the task list {string} is', async function (this: World, title: string) {
+  const r = await rectOf(source(this, title).getByTestId('tasklist-card-title'));
+  notedTitles.set(this, { ...notedTitles.get(this), [title]: r });
+});
+
+Then('the expanded task list {string} shows its title where the card showed it', async function (this: World, title: string) {
+  const before = notedTitles.get(this)![title];
+  const now = await rectOf(grown(this, title).getByTestId('tasklist-card-title'));
+  expect(Math.abs(now.y - before.y), 'title top').toBeLessThanOrEqual(0.5);
+  expect(Math.abs(now.x - before.x), 'title left').toBeLessThanOrEqual(0.5);
+});
+
+Then('the collapsed card of the task list {string} is hidden while it is expanded', async function (this: World, title: string) {
+  const card = this.page.locator(`${tid('tasklist-card')}${attr('data-title', title)}[aria-expanded="true"]`);
+  await expect(card).toHaveCount(1);
+  expect(await card.evaluate((e) => getComputedStyle(e).opacity)).toBe('0');
+});
+
 When('I tap the expanded task list {string}', async function (this: World, title: string) {
   // near the bottom edge of the grown card: a tap on its title row folds it back up instead
   const card = grown(this, title).getByTestId('tasklist-card-grown');

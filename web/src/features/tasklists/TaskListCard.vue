@@ -179,7 +179,7 @@ const titles = computed(() => !props.grown && section() === 'titles' && props.va
 const collapsed = computed(() => titles.value);
 /** Item fit, time foot and lead, decided in one place (`cardLayout`). */
 const fit = computed(() => cardLayout({
-  variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, height: props.height,
+  variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, width: width.value, height: props.height,
   timed: !!tl.value.time, titled: !!title.value, open: openItems.value.length, total: tl.value.items.length, inked: inked.value,
 }));
 /** Untitled list whose card would otherwise show no item text (chip, titles mode, or a card/block too short to fit any
@@ -251,6 +251,8 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 /* the handles stick out of the block */
 .tl.resizing { overflow: visible; }
 .tl.complete { opacity: 0.55; }
+/* the grown copy (teleported) covers this card; hidden, it cannot show through a see-through (ticked or past) copy */
+.tl[aria-expanded='true'] { opacity: 0; }
 .it.done { text-decoration: line-through; }
 /* done state: a hand-drawn line over the title text (StrikeLine), not text-decoration */
 .tx { position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); vertical-align: top; --strike-w: 1.400px; }
@@ -402,6 +404,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* a tight pill is one flex line: the title shrinks and ellipsises instead of dropping below the icon where the pill would hide it;
    a tall pill keeps wrapping, so a narrow column (the 7-day week) stacks the row's parts instead of cutting them */
 .tl.grown[data-tight='true'] .row { flex-wrap: nowrap; }
+/* a taller pill packs its line at the top with the card's own padding, so growing leaves the title exactly where it was */
+.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; padding-top: 3px; }
+.tl.grown.mini:not(.flat):not([data-tight='true']) .row { padding-top: 1px; }
 .tl.grown[data-tight='true'] .title { flex: 1 1 0; min-width: 0; }
 /* a tight pill's count is compact (no capsule padding), so the title keeps as many letters as the column allows */
 .tl.grown[data-tight='true'] .count { padding: 0 2px; }
