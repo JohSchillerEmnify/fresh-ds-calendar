@@ -1,4 +1,4 @@
-import type { TaskList } from '@/api/types';
+import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import { formatDate, parseIsoDate } from '@/lib/dates';
 
@@ -18,6 +18,16 @@ export function carriedLabel(date: string | null): string {
 }
 
 export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? null;
+
+/** The one task of a one-line list: its text and done state, and the item that holds it (null while it is only the title). */
+export interface SingleTask { text: string; done: boolean; item: TaskItem | null }
+/** A list whose only line is one task: one item without a title, or a title without items; null for every other list. */
+export function singleTask(tl: Pick<TaskList, 'title' | 'items'>): SingleTask | null {
+  const title = tl.title.trim() ? tl.title : '';
+  if (!title && tl.items.length === 1) return { text: tl.items[0].title, done: tl.items[0].done, item: tl.items[0] };
+  if (title && !tl.items.length) return { text: title, done: false, item: null };
+  return null;
+}
 
 /** All items ticked (an empty list is not "done"). */
 export const isComplete = (tl: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => tl.totalCount > 0 && tl.doneCount >= tl.totalCount;

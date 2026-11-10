@@ -451,7 +451,7 @@
    "long|web/src/features/tasklists/RepeatScopeDialog.vue": 1,
    "long|web/src/features/tasklists/SaveTemplateDialog.vue": 1,
    "long|web/src/features/tasklists/StrikeLine.vue": 1,
-   "long|web/src/features/tasklists/TaskListCard.vue": 2,
+   "long|web/src/features/tasklists/TaskListCard.vue": 1,
    "long|web/src/features/tasklists/TaskListView.vue": 1,
    "long|web/src/features/tasklists/TaskTray.vue": 2,
    "long|web/src/features/tasklists/TasksCanvas.vue": 1,

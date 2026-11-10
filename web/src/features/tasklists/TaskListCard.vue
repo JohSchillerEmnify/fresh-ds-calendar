@@ -12,6 +12,8 @@
  * (`ExpandedCard`, several at once, remembered on this device in the `ui` store: a card that mounts for a remembered list grows again). The expansion renders this same card with the `grown` prop: full
  * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on its pill (head row) collapses it, a tap on the items emits
  * `open-list` (the host opens the list sheet).
+ * A one-line list (`singleTask`: one item without a title, or a title without items) is one task: its text stands in the title slot
+ * (the same element for both), the list's checkbox is its only one and ticks it, and a tap opens the list without growing.
  */
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
@@ -35,7 +37,9 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useClockStore } from '@/stores/clock';
 import { nextCardOwner, useUiStore } from '@/stores/ui';
-import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress } from './format';
+import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress, singleTask } from './format';
+import { toggleSingleTask } from './ops';
+import { useTaskListsStore } from './store';
 import { cardLayout } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
@@ -69,6 +73,12 @@ const past = computed(() => props.segment.date < clock.today);
  * A tap on the collapsed card grows it (also a block that already shows every item); only the grown card's pill collapses it.
  */
 function toggle() {
+  // a one-line list has nothing to grow into: it opens like the "drawer" setting does
+  if (one.value) {
+    el.value?.focus({ preventScroll: true });
+    ui.revealTask(tl.value.id);
+    return;
+  }
   // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
   if (prefs.taskOpen === 'drawer') {
     el.value?.focus({ preventScroll: true });
@@ -103,7 +113,9 @@ const calm = computed(() => settings.settings.calmMode);
 const prefs = usePrefsStore();
 /** Carried over to today and labelled so (Settings → Task lists can hide where it came from). */
 const carried = computed(() => !!props.segment.carriedFrom && prefs.showCarriedFrom);
-const progress = computed(() => showProgress(tl.value));
+/** The one task of a one-line collapsed list (A: one item, no title; B: a title, no items); both render and tick through this. */
+const one = computed(() => (props.grown ? null : singleTask(tl.value)));
+const progress = computed(() => showProgress(tl.value) && !one.value);
 const complete = computed(() => isComplete(tl.value));
 // A remembered expansion nobody shows: the first card of that list takes it, unless the list is complete or its day is over (then it is forgotten).
 watchEffect(() => {
@@ -119,6 +131,16 @@ watch([complete, past], ([c, p]) => { if ((c || p) && expanded.value) ui.collaps
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const title = computed(() => displayTitle(tl.value));
+/** What fills the title slot: the one task's text (or ink), else the title. */
+const slot = computed(() => (one.value ? { text: one.value.text, item: one.value.item } : title.value ? { text: title.value, item: null } : null));
+const lists = useTaskListsStore();
+/** A tap on the list's checkbox ticks the one task; the card's own tap (open the list) does not run. */
+function tickOne(e: MouseEvent) {
+  if (!one.value || (el.value && monthTapOpensDay(el.value))) return;
+  e.stopPropagation();
+  if (!one.value.done) lists.markFinished(tl.value.id);
+  toggleSingleTask(tl.value.id, one.value);
+}
 /** An ink item on the card: the text lines grow to the ink line height so text and ink sit evenly (decision M3). */
 const inked = computed(() => tl.value.items.some((i) => i.ink));
 const ink = useInkStore();
@@ -159,7 +181,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
  <component
-    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
@@ -167,9 +189,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <component :is="grown ? Pressable : 'span'" class="row" :class="{ pillbtn: grown }" :aria-label="grown ? t(title ? 'tasks.card.collapse' : 'tasks.card.collapseUntitled', { title }) : undefined" data-testid="tasklist-card-pill">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
-      <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
+      <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" :role="one ? 'checkbox' : undefined" :aria-checked="one ? one.done : undefined" :aria-label="one ? t('tasks.list.itemDone', { title: one.text }) : undefined" :aria-hidden="one ? undefined : 'true'" @click="tickOne" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
+       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx"><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
@@ -182,7 +204,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span v-if="progress" class="pbar" data-testid="tasklist-card-bar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
-    <template v-if="!calm">
+    <template v-if="!calm && !one">
       <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
@@ -242,9 +264,12 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* the item's checkbox is centred on its (taller) ink row, as text rows centre it on theirs */
 .inked .it::before { top: 8.5px; }
 .inked.mini .it::before { top: 9.5px; }
-/* a lone ink item stands in the title slot beside the list's own checkbox, so it carries no marker of its own */
-.it.lead:has(.inkitem) { flex: 1 1 0; padding-left: 0; }
-.it.lead:has(.inkitem)::before { display: none; }
+/* the ink of a one-line list stands in the title slot */
+.title .inkitem { width: 100%; }
+/* a one-line list's checkbox is the only one: a hit area around it, and in a narrow column it sits on its own line above the text */
+.one .cb::before { content: ''; position: absolute; inset: -6px; }
+.one.mini .row { flex-wrap: wrap; }
+.one.mini .title { flex: 1 0 100%; }
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
 .items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
