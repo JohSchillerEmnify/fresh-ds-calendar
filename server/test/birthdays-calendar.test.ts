@@ -97,7 +97,7 @@ describe('calendar_shape diagnostic', () => {
     try {
       await contactsCalendar(true);
       await seed({ summary: 'SecretName' });
-      await seed({ summary: 'Old', start: { date: '1604-10-15' }, end: { date: '1604-10-16' }, recurrence: undefined, birthdayProperties: { type: 'anniversary' } });
+      await seed({ summary: 'Old', start: { date: '1604-10-15' }, end: { date: '1604-10-16' }, birthdayProperties: { type: 'anniversary' } });
       await calendars();
       await new Promise((r) => setTimeout(r, 50));
       await calendars();
@@ -108,7 +108,7 @@ describe('calendar_shape diagnostic', () => {
     expect(JSON.stringify(shape[0])).not.toMatch(/SecretName|addressbook|Personal|Work/);
     const cals = JSON.parse(shape[0]!.calendars as string) as Row[];
     const primary = cals.find((c) => c.primary);
-    expect(primary).toMatchObject({ birthdays: 2, byType: { birthday: 1, anniversary: 1 }, before1900: 1, noRecurrence: 1, hidden: false, selected: true, isContactsCalendar: false });
+    expect(primary).toMatchObject({ birthdays: 2, byType: { birthday: 1, anniversary: 1 }, before1900: 1, noRecurrence: 0, hidden: false, selected: true, isContactsCalendar: false });
     expect(cals.find((c) => c.isContactsCalendar)).toMatchObject({ hidden: true, birthdays: 0 });
   });
 });

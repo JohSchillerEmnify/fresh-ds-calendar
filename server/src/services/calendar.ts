@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { LIST_ITEMS_MAX } from '@calendar/shared/limits';
 import type {
-  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
+  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
@@ -603,7 +603,7 @@ export class CalendarService {
   openTaskLists(today: string, days: number): ReturnType<ItemQueries['openTaskLists']> { return this.queries.openTaskLists(today, days); }
   allOpenTaskLists(today: string): ReturnType<ItemQueries['allOpenTaskLists']> { return this.queries.allOpenTaskLists(today); }
   archivedTaskLists(today: string): ReturnType<ItemQueries['archivedTaskLists']> { return this.queries.archivedTaskLists(today); }
-  summary(from: string, to: string): Promise<Record<string, SummaryDay>> { return this.queries.summary(from, to); }
+  summary(from: string, to: string): ReturnType<ItemQueries['summary']> { return this.queries.summary(from, to); }
 
   // ---------- sharing (see TaskSharing) ----------
   shareTaskList(id: string, personSub: string): Promise<TaskList> { return this.sharing!.shareTaskList(id, personSub); }

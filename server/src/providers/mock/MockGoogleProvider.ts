@@ -49,6 +49,7 @@ export class MockGoogleProvider implements CalendarProvider {
   /** Events that left a calendar (moved away), which a sync reports as cancelled there. */
   private gone: { calendarId: string; id: string; seq: number }[] = [];
   private outage: { status: 500 | 503 } | null = null;
+  private readonly unreadable = new Set<string>();
   /** The real provider's rate guard (ADR 0007), without a fresh-cache window: every read still reaches the store. */
   private guard = newGuard();
   /** `Retry-After` (seconds) of the "rate limited" answer the next call gets; null = none queued. */
@@ -91,6 +92,10 @@ export class MockGoogleProvider implements CalendarProvider {
     this.outage = down ? { status } : null;
   }
   /** The next call answers "rate limited" with this `Retry-After`, starting the guard's cooldown as Google would. */
+  /** Makes Google fail every events read of this calendar (the others answer as usual); `*` is every calendar. */
+  setUnreadable(calendarId: string, on: boolean): void {
+    if (on) this.unreadable.add(calendarId); else this.unreadable.delete(calendarId);
+  }
   setRateLimitNext(retryAfterSec: number): void {
     this.rateLimitNext = retryAfterSec;
   }
@@ -129,6 +134,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.epoch = newEpoch();
     this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
+    this.unreadable.clear();
     this.missingPublic.clear();
     this.guard = newGuard();
     this.lookups = 0;
@@ -240,6 +246,7 @@ export class MockGoogleProvider implements CalendarProvider {
 
   private readEvents(p: ListEventsParams): ListEventsResult {
     this.check();
+    if (this.unreadable.has(p.calendarId) || this.unreadable.has('*')) throw new ProviderError('Simulated provider error');
     return this.collect(p);
   }
 
@@ -262,9 +269,11 @@ export class MockGoogleProvider implements CalendarProvider {
       const cands = p.singleEvents !== false && e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
       // an exception past its series' UNTIL is no longer an occurrence (Google only shows what the rule makes)
       if (p.singleEvents !== false && e.recurringEventId && this.pastUntil(e)) continue;
+      // Google lists an unexpanded series when any of its occurrences falls in the window, not only its first one
+      const seriesInWindow = p.singleEvents === false && !!e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) && this.expand(e, min, max, exceptions).length > 0;
       for (const c of cands) {
         const [s, en] = this.bounds(c);
-        if (!(en > min && s < max)) continue;
+        if (!seriesInWindow && !(en > min && s < max)) continue;
         // Google: a cancelled exception only guarantees id, recurringEventId and originalStartTime (no properties)
         const shown = c.status === 'cancelled' && c.recurringEventId ? cancelledShape(c) : c;
         if (filters.some(([k, v]) => shown.extendedProperties?.private?.[k] !== v)) continue;

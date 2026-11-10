@@ -70,6 +70,7 @@ export default {
   },
   errors: {
     saveUnavailable: 'Could not save: Google Calendar is unavailable',
+    saveServerUnreachable: "Could not save: the calendar server can't be reached",
     conflict: 'This event was changed elsewhere. Reload it and try again.',
     validation: {
       endAfterStart: 'End must be after start',

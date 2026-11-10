@@ -228,6 +228,14 @@ Given('Google becomes unavailable', async function (this: World) {
   await this.api.setOutage(true);
 });
 
+Given('Google cannot read the calendar {string}', async function (this: World, name: string) {
+  await this.api.setUnreadable(await this.api.calendarId(name));
+});
+
+Given('Google cannot read any calendar', async function (this: World) {
+  await this.api.setUnreadable('*');
+});
+
 When('Google becomes available again', async function (this: World) {
   await this.api.setOutage(false);
 });

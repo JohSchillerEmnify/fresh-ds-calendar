@@ -57,6 +57,7 @@ export default {
   },
   errors: {
     saveUnavailable: 'Des hat ned geglabbd: Google Kalender is grad ned erreichbar',
+    saveServerUnreachable: 'Des hat ned geglabbd: Der Kalenderserver is grad ned erreichbar',
     conflict: "Des wurd woanners gändert. Lad's amal neu un probier's widda.",
     validation: {
       endAfterStart: 'S Ende muss nach m Anfang kumma',

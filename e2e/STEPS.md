@@ -489,7 +489,22 @@ Google renames the task list {string} to {string}
 Google becomes unavailable
 Google becomes available again
 Google asks the app to slow down for the next sync
+Google cannot read the calendar {string}
+Google cannot read any calendar
+a person with a calendar holding a birthday series
+the daily calendar check runs on {date}
+it asks Google only for the year from {date}
+Google answers the daily calendar check with {string}
+the next sync is not refused
+the calendar server does not answer
+saving a change fails
+the message says {string}
+the message does not mention Google
 ```
+
+- "Google cannot read the calendar C": `POST /api/__test/unreadable { calendarId, on: true }` for the calendar named C (id looked up
+  from `GET /api/calendars`): the mock answers every events read of that calendar with a provider error ("Simulated provider error"),
+  all other calendars as usual ("any calendar": `calendarId: "*"`, every calendar); `/api/__test/reset` clears it. The remaining steps of this block belong to @unit scenarios, proved by the named unit tests.
 
 `Google asks the app to slow down for the next sync` → `POST /api/__test/rate-limit { "retryAfterSec": 4 }` (the next
 provider call answers "rate limited", ADR 0007), then waits for two `/api/items` answers carrying `X-Stale: 1` (the

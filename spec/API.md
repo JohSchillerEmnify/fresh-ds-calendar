@@ -489,8 +489,10 @@ Returns every event and task list overlapping `[from 00:00, to 00:00)` local tim
 (or the listed ones).
 
 ```ts
-{ items: CalendarItem[]; from: LocalDate; to: LocalDate; syncedAt: DateTime; stale?: true }
+{ items: CalendarItem[]; from: LocalDate; to: LocalDate; syncedAt: DateTime; failed?: string[]; stale?: true }
 ```
+`failed` lists the calendars Google could not read this time (as `events.failed` of `GET /api/changes`); their items are missing and
+the web app reads the period again at the next sync. Only when every calendar failed does the request fail (502/503).
 `stale: true` (see "Stale data") means the items came from the server's cache while Google's rate limit was in force.
 Sorted by start (all-day first per day, then by time, then title). A Google event whose
 `extendedProperties.private.kind === 'tasklist'` is returned as `TaskList`, all others as `CalendarEvent`. Cancelled
@@ -765,8 +767,9 @@ every person's imported themes.
 
 `GET /api/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` (to exclusive, max 400 days) → `200`
 ```ts
-{ days: Record<LocalDate, { events: number; tasklists: number; openTasklists: number; density: 0 | 1 | 2 | 3 }> }
+{ days: Record<LocalDate, { events: number; tasklists: number; openTasklists: number; density: 0 | 1 | 2 | 3 }>; failed?: string[] }
 ```
+`failed`: as for `GET /api/items`.
 Only days with at least one item are listed. Multi-day items count on every covered day. Density: 0 items → 0,
 1 → 1, 2–3 → 2, ≥ 4 → 3. Errors: 400, 502, 503.
 
@@ -1039,6 +1042,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | Method | Path | Body | Effect |
 |---|---|---|---|
 | `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories) and an empty motivation state; then seeds or loads the fixture. `200 { calendars, items, settings }` |
+| `POST` | `/api/__test/unreadable` | `{ calendarId: string; on: boolean }` | Makes Google fail every events read of that calendar (the others answer); `reset` clears it. `200` the body |
 | `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number; googlePollMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling) and the interval of the server's Google change lookup for live sync (default 20000). `200` config |

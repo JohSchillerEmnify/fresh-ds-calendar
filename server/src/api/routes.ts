@@ -196,7 +196,7 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   r.get('/summary', async (c) => {
     const { from, to } = range(c, 400);
-    return c.json({ days: await cal(c).summary(from, to) });
+    return c.json(await cal(c).summary(from, to));
   });
 
   // ---- events ----

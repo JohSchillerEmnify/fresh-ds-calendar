@@ -24,6 +24,11 @@ const REFUSED_BACKOFF_MS = 60_000;
 const REFUSED_BACKOFF_MAX_MS = 30 * 60_000;
 const YEAR_BACK = 365;
 const YEAR_AHEAD = 366;
+/** Whether `e` is one calendar's own failure (that calendar is left out) and not the person's: a rate limit, a sign-in problem or a bug fails the whole answer. */
+export function isCalendarFailure(e: unknown): boolean {
+  return !(e instanceof RateLimitedError) && (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError);
+}
+
 /** Marks a cursor entry that is a content version of a token-less calendar, never a Google sync token. */
 const VERSION_PREFIX = 'v:';
 
@@ -204,9 +209,9 @@ export class CalendarChanges {
       }
       // the person-wide failures stop the whole answer; one calendar's failure leaves that calendar as the device has it
       // only the provider's own failures degrade; a rate limit, a sign-in problem or a bug (a TypeError) fails the request
-      if (e instanceof RateLimitedError || !(e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError)) throw e;
+      if (!isCalendarFailure(e)) throw e;
       if (e instanceof NotFoundError || e instanceof ProviderForbiddenError) this.strike(calendarId, e instanceof NotFoundError ? 'notFound' : 'forbidden');
-      return { failed: true, replace: false, series: [], removed: [], upserts: [], token: this.afterRefusal.has(e) ? undefined : prev?.tokens[calendarId] };
+      return { failed: true, replace: false, series: [], removed: [], upserts: [], token: this.afterRefusal.has(e as object) ? undefined : prev?.tokens[calendarId] };
     }
   }
 

@@ -65,6 +65,7 @@ export class ApiError extends Error {
   }
   /** The message the UI shows for a failed save, in the active language (API.md "Error format"). */
   get userMessage(): string {
+    if (this.isServerUnreachable) return t('errors.saveServerUnreachable');
     if (this.isUnavailable) return t('errors.saveUnavailable');
     if (this.isConflict) return t('errors.conflict');
     // unknown keys fall back to the server's English text; `details` name the message's values (e.g. `{date}`)

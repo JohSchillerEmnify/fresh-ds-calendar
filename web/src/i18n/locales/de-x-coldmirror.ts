@@ -67,6 +67,7 @@ export default {
   },
   errors: {
     saveUnavailable: 'Ey Mann, wo\'s mein Hörgerät? Google Kalender ist nicht erreichbar, Schinken!',
+    saveServerUnreachable: 'Ey Mann, wo\'s mein Hörgerät? Der Kalender-Server is nicht erreichbar, Schinken!',
     conflict: 'Fresh D vs. MCV, das Battle endet nie! Der Termin wurde woanders geändert, du Oberpflaume. Lad ihn neu.',
     validation: {
       endAfterStart: 'Das Ende vor dem Anfang? Du Oberpflaume. Das hätt nicht mal Voldemort verbockt.',

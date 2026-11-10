@@ -5,6 +5,7 @@ import { addDays, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from 
 import type { CalendarProvider, GoogleEvent, GoogleReminder, ProviderCalendar } from '../providers/CalendarProvider.js';
 import type { SettingsStore } from './settingsStore.js';
 import { BIRTHDAYS_ID } from './eventRules.js';
+import { isCalendarFailure } from './changeFeed.js';
 import { isTaskListEvent, isUndatedEvent } from './taskCodec.js';
 import type { TasksCalendar } from './tasksCalendar.js';
 
@@ -26,8 +27,19 @@ export class ItemQueries {
     private readonly clock: Clock, private readonly sub: string, private readonly tz: string, private readonly host: QueryHost,
   ) {}
 
-  /** Events of the event calendars plus the task lists of the tasks calendar (`calendarIds` narrows both). */
-  async fetchRange(from: string, to: string, calendarIds?: string[], tasklistsOnly = false): Promise<CalendarItem[]> {
+  /** Events of the event calendars plus the task lists (`calendarIds` narrows both); with `failed`, an unreadable calendar is left out and named there. */
+  async fetchRange(from: string, to: string, calendarIds?: string[], tasklistsOnly = false, failed?: string[]): Promise<CalendarItem[]> {
+    const errors: unknown[] = [];
+    const leaveOut = async <T>(id: string, read: () => Promise<T[]>): Promise<T[]> => {
+      try {
+        return await read();
+      } catch (e) {
+        if (!failed || !isCalendarFailure(e)) throw e;
+        failed.push(id);
+        errors.push(e);
+        return [];
+      }
+    };
     const tasksId = await this.tasks.id();
     // birthdays live in any calendar, so asking for them reads them all; the result is narrowed by the id each event shows
     const readAll = !calendarIds || calendarIds.includes(BIRTHDAYS_ID);
@@ -35,25 +47,29 @@ export class ItemQueries {
     const timeMin = formatInZone(startOfLocalDay(from, this.tz), this.tz);
     const timeMax = formatInZone(startOfLocalDay(to, this.tz), this.tz);
     const cats = this.settings.categories(this.sub);
-    const eventLists = cals.map(async (c) => {
+    const eventLists = cals.map((c) => leaveOut(c.id, async () => {
       const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
       // task-list-shaped events outside the tasks calendar are not task lists (ADR 0006)
       return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.host.toEvent(e, c.backgroundColor, c.defaultReminders))
         .filter((i) => !calendarIds || calendarIds.includes(i.calendarId));
-    });
-    const taskLists = (async (): Promise<CalendarItem[]> => {
+    }));
+    let reads = cals.length;
+    const taskLists = leaveOut(tasksId, async (): Promise<CalendarItem[]> => {
       if (calendarIds && !calendarIds.includes(tasksId)) return [];
+      reads++;
       const r = await this.provider.listEvents({ calendarId: tasksId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
       const color = await this.host.calendarColor(tasksId);
       // undated lists sit on the anchor date: a range that reaches it must not show them
       return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e) && !isUndatedEvent(e)).map((e): CalendarItem => this.host.toTaskList(e, color, cats));
-    })();
+    });
     const sharedLists = (): CalendarItem[] => {
       if (calendarIds && !calendarIds.includes(tasksId)) return [];
       const color = this.host.calendarColorSync(tasksId);
       return this.host.sharedTaskLists(color).filter((l) => l.date !== null && l.date >= from && l.date < to);
     };
     const [events, ...rest] = await Promise.all([Promise.all(eventLists), taskLists]);
+    // nothing readable at all is an outage, not a partial answer
+    if (errors.length && errors.length >= reads) throw errors[0];
     return [...dedupeBirthdays(events.flat() as CalendarEvent[]), ...rest.flat(), ...sharedLists()];
   }
 
@@ -70,12 +86,13 @@ export class ItemQueries {
   /** Items of `[from, to)`, plus those of the optional `also` range (deduplicated by id; API.md `GET /api/items`). */
   async items(
     from: string, to: string, calendarIds?: string[], also?: { from: string; to: string },
-  ): Promise<{ items: CalendarItem[]; from: string; to: string; also?: { from: string; to: string }; syncedAt: string; stale?: true }> {
-    const lists = await Promise.all([this.fetchRange(from, to, calendarIds), ...(also ? [this.fetchRange(also.from, also.to, calendarIds)] : [])]);
+  ): Promise<{ items: CalendarItem[]; from: string; to: string; also?: { from: string; to: string }; syncedAt: string; failed?: string[]; stale?: true }> {
+    const failed: string[] = [];
+    const lists = await Promise.all([this.fetchRange(from, to, calendarIds, false, failed), ...(also ? [this.fetchRange(also.from, also.to, calendarIds, false, failed)] : [])]);
     const items = [...new Map(lists.flat().map((i) => [i.id, i])).values()];
     const keyed = items.map((i) => ({ i, k: this.sortKey(i) }));
     keyed.sort((a, b) => a.k[0].localeCompare(b.k[0]) || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.k[3].localeCompare(b.k[3]));
-    return { items: keyed.map((x) => x.i), from, to, ...(also ? { also } : {}), syncedAt: formatInZone(this.clock.real(), this.tz), ...(this.host.stale() ? { stale: true as const } : {}) };
+    return { items: keyed.map((x) => x.i), from, to, ...(also ? { also } : {}), syncedAt: formatInZone(this.clock.real(), this.tz), ...(failed.length ? { failed: [...new Set(failed)] } : {}), ...(this.host.stale() ? { stale: true as const } : {}) };
   }
 
   /** Open lists and lists finished today, both dated in `[today - days, today]`, in tray order (API.md). */
@@ -129,11 +146,12 @@ export class ItemQueries {
     return { items: [...byId.values()].filter((l) => l.totalCount > 0 && l.doneCount >= l.totalCount) };
   }
 
-  async summary(from: string, to: string): Promise<Record<string, SummaryDay>> {
+  async summary(from: string, to: string): Promise<{ days: Record<string, SummaryDay>; failed?: string[] }> {
     const days: Record<string, SummaryDay> = {};
+    const failed: string[] = [];
     for (let a = from; a < to; a = addDays(a, 100)) {
       const b = addDays(a, 100) < to ? addDays(a, 100) : to;
-      for (const it of await this.fetchRange(a, b)) {
+      for (const it of await this.fetchRange(a, b, undefined, false, failed)) {
         let first: string, last: string;
         if (it.kind === 'tasklist') first = last = it.date!;
         else if (it.allDay) { first = it.start; last = addDays(it.end, -1); }
@@ -153,6 +171,6 @@ export class ItemQueries {
       const n = r.events + r.tasklists;
       r.density = n >= 4 ? 3 : n >= 2 ? 2 : 1;
     }
-    return days;
+    return { days, ...(failed.length ? { failed: [...new Set(failed)] } : {}) };
   }
 }
