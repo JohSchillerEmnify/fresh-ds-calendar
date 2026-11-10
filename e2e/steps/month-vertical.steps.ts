@@ -140,6 +140,7 @@ Then('every week of the month view is {int} pixels tall', async function (this: 
 
 let noted = 0;
 When('I note the scroll position of the calendar', async function (this: World) {
+  await settled(this); // a wheel scroll still gliding to its snap point is not a position to come back to
   noted = await scrollTop(this);
 });
 Then('the calendar is at the noted scroll position', async function (this: World) {
