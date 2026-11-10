@@ -118,6 +118,13 @@ Feature: Labs: handwritten lists
     When I press the writing mode switch
     Then the writing mode is "ink" and the switch shows the pen icon
 
+  @mobile
+  Scenario: The add button never covers the writing area
+    Given the Labs switch "Handwritten lists" is on
+    And the device reports pen support
+    When I open the new task list form
+    Then the add button covers no control of the "writing area"
+
   Rule: In ink mode each item is a line of ink instead of a title (assumption A1)
 
     Background:
@@ -765,10 +772,3 @@ Feature: Labs: handwritten lists
     Scenario: Deleting the list removes all its ink
       When I delete the task list "Groceries"
       Then the server holds no ink for the task list "Groceries"
-
-  @mobile
-  Scenario: The add button never covers the writing area
-    Given the Labs switch "Handwritten lists" is on
-    And the device reports pen support
-    When I open the new task list form
-    Then the add button covers no control of the "writing area"

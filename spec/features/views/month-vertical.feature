@@ -243,7 +243,8 @@ Feature: Month view that scrolls up and down
       And I scroll the calendar down by 700 pixels
       And I note the scroll position of the calendar
       And I tap the day 2026-11-14 in the month view
-      And I go back in the browser
+      Then the day view is shown
+      When I go back in the browser
       Then the calendar is at the noted scroll position
       And the URL path is "/month/2026-11"
 

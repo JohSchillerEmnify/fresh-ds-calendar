@@ -163,7 +163,7 @@ Feature: Several reminders per event, read from and written to Google
     Then I do not see a transition warning
     When I open the reminder settings
     And I switch on reminders for task lists
-    And I open the week view for 2026-10-12
+    And I leave the settings
     Then I see the transition warning "Taxes starts in 29 min"
 
   Scenario Outline: An all-day event rings at 00:00 of its day minus each reminder set for it

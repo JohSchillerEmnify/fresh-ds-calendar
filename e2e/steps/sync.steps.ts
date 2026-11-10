@@ -46,11 +46,17 @@ When('I wait for the automatic sync', async function (this: World) {
     .poll(() => status.getAttribute('data-last-sync').catch(() => null), { timeout })
     .not.toBe(before)
     .then(() => 'last-sync', () => null);
-  // A running fake clock is paused: move it one poll interval on so the app's timer fires.
+  // A running fake clock is paused: move it on until the app's timer fires. The timer waits out the pause after a failed
+  // sync (poll + 50 ms) or the stretched minute of a live connection, so one poll interval is not always enough.
   if (this.clockNowMs !== undefined) {
-    this.clockNowMs += poll;
-    await this.page.clock.runFor(poll);
-    await this.api.setClock(new Date(this.clockNowMs).toISOString(), false);
+    let fired = false;
+    void Promise.race([response, changed]).then((r) => { fired = fired || !!r; });
+    for (let i = 0; i < 4 && !fired; i++) {
+      this.clockNowMs += poll + 100;
+      await this.page.clock.runFor(poll + 100);
+      await this.api.setClock(new Date(this.clockNowMs).toISOString(), false);
+      await this.page.waitForTimeout(300); // real time for the request to answer
+    }
   }
   // Both only reject on timeout; the loser is left to settle quietly.
   if (!(await Promise.race([response, changed]))) throw new Error(`No automatic sync within ${timeout} ms`);
