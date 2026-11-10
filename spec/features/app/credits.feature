@@ -1,4 +1,4 @@
-@settings @credits @id:credits @backlog
+@settings @credits @id:credits
 Feature: Credits
   The App section of Settings (Account & app), next to the version, has one "Credits" row. It opens a list of
   every library, icon set, font or asset the app ships whose licence asks for attribution: name, author,
@@ -14,10 +14,10 @@ Feature: Credits
     When I open the settings group "Account & app"
     Then the settings page shows the setting "Credits"
 
-  Scenario: The credits list names the libraries the app is built with
+  Scenario: The credits list names the libraries and assets the app is built with
     When I open the settings group "Account & app"
     And I open the credits
-    Then the credits list shows "Vue" with the licence "MIT"
+    Then the credits list shows "@vue/runtime-core" with the licence "MIT"
     And the credits list shows "Material Symbols" with the licence "Apache-2.0"
 
   Scenario: Every credit has an author and a link
@@ -26,7 +26,7 @@ Feature: Credits
     Then every credit shows an author or a licence, and a link
 
   Scenario: The credits list opens without a connection
-    Given the network connection is lost
     When I open the settings group "Account & app"
+    And the network connection is lost
     And I open the credits
-    Then the credits list shows "Vue" with the licence "MIT"
+    Then the credits list shows "@vue/runtime-core" with the licence "MIT"

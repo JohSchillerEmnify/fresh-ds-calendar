@@ -172,6 +172,7 @@ export default {
       version: 'Version {version}',
       appCert: { label: 'App signing certificate (SHA-256)', hint: 'The Android app offered here is signed with this certificate. Compare it before you install an update.' },
       whatsNew: { label: 'What\'s new' },
+      credits: { label: 'Credits', hint: 'Libraries and assets this app uses', title: 'Credits', intro: 'This app is built with the following libraries and assets. Thank you to everyone who makes and shares them.', close: 'Close' },
       androidApp: { label: 'Android app', updateLabel: 'Update the app', hint: 'Install the calendar as an Android app with a weekly home-screen widget', download: 'Download' },
       installApp: { label: 'Install this app', hint: 'Add the calendar to your Home Screen', button: 'Show how', title: 'Install the calendar', step1: 'Tap the Share button', step2: 'Choose Add to Home Screen', step3: 'Tap Add', close: 'Got it' },
       versionCorner: { label: 'Show version in the corner' },

@@ -142,6 +142,11 @@ In practice:
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 
+### Credits (Settings > Account & app > Credits)
+The build lists every library in the web bundle on its own (`web/credits-plugin.ts`, rollup-plugin-license). Anything
+npm does not describe — an icon set, art, a native Android library — is **one entry in `web/src/credits/extra.ts`**
+(name, author, licence, link). Add it in the same change that adds the asset.
+
 ### Safari (WebKit) and the nightly run
 
 Neither is a required check; both live in the Actions tab.

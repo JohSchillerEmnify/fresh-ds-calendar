@@ -60,7 +60,7 @@ const PAGE_OF: Array<[RegExp, string]> = [
   [/^(reminders-|tasks-default-|settings-notify-)/, 'reminders'],
   [/^settings-(calm-mode|animation-level|system-reduced-motion|ignore-system-motion|sounds|streak|best-streak|support-cat|bedtime$)/, 'focus'],
   [/^settings-(labs|week-two-row)/, 'labs'],
-  [/^settings-(signout|calendar-access|backup-|install-app|android-app|whats-new|error-log|version|app-cert|reset-demo)/, 'account'],
+  [/^settings-(signout|calendar-access|backup-|install-app|android-app|whats-new|credits|error-log|version|app-cert|reset-demo)/, 'account'],
 ];
 
 /** The settings page (`views`, `focus/bedtime`, `theme`, ...) that holds the control `testid`. */

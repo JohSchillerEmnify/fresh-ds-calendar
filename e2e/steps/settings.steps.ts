@@ -291,6 +291,26 @@ Then('the settings show the app certificate {string}', async function (this: Wor
   await expect((await settingControl(this, 'settings-app-cert'))).toContainText(cert);
 });
 
+When('I open the credits', async function (this: World) {
+  await (await settingControl(this, 'settings-credits')).click();
+  await expect(this.page.getByTestId('credits-sheet')).toBeVisible();
+});
+
+Then('the credits list shows {string} with the licence {string}', async function (this: World, name: string, licence: string) {
+  const credit = this.page.locator(`[data-testid="credit"][data-credit="${name}"]`);
+  await expect(credit).toBeVisible();
+  await expect(credit.getByTestId('credit-meta')).toContainText(licence);
+});
+
+Then('every credit shows an author or a licence, and a link', async function (this: World) {
+  const credits = this.page.getByTestId('credit');
+  expect(await credits.count()).toBeGreaterThan(10);
+  for (const c of await credits.all()) {
+    await expect(c.getByTestId('credit-meta')).not.toBeEmpty();
+    await expect(c.getByTestId('credit-link')).toHaveAttribute('href', /^https?:\/\//);
+  }
+});
+
 Then('the corner shows the version {string}', async function (this: World, version: string) {
   await expect(this.page.getByTestId('app-version')).toHaveText(version);
 });
