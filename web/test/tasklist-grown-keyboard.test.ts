@@ -1,4 +1,4 @@
-/** The grown task list card: its title is a button that collapses it, Enter on the card opens the list (feature tasklists-expand-card). */
+/** The grown task list card: its pill is a button that collapses it, Enter on the card opens the list (feature tasklists-expand-card). */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import type { TaskList } from '@/api/types';
@@ -21,22 +21,24 @@ beforeEach(() => {
 afterEach(() => w.unmount());
 
 describe('grown card keyboard', () => {
-  it('names the title button after the collapse it does', () => {
-    const b = w.get('button[data-testid="tasklist-card-title"]');
+  it('names the pill button after the collapse it does', () => {
+    const b = w.get('button[data-testid="tasklist-card-pill"]');
     expect(b.attributes('aria-label')).toBe('Collapse Groceries');
   });
 
-  it('a click on the title collapses, a click elsewhere opens the list', async () => {
+  it('a click anywhere on the pill collapses, a click on an item opens the list', async () => {
     await w.get('[data-testid="tasklist-card-title"]').trigger('click');
-    expect(w.emitted('collapse')).toHaveLength(1);
+    await w.get('[data-testid="tasklist-card-check"]').trigger('click');
+    await w.get('[data-testid="tasklist-card-pill"]').trigger('click');
+    expect(w.emitted('collapse')).toHaveLength(3);
     await w.get('[data-testid="tasklist-card-item"]').trigger('click');
     expect(w.emitted('openList')).toHaveLength(1);
   });
 
-  it('Enter on the card opens the list; Enter on the title does not', async () => {
+  it('Enter on the card opens the list; Enter on the pill does not', async () => {
     await w.get('[data-testid="tasklist-card-grown"]').trigger('keydown', { key: 'Enter' });
     expect(w.emitted('openList')).toHaveLength(1);
-    await w.get('[data-testid="tasklist-card-title"]').trigger('keydown', { key: 'Enter' });
+    await w.get('[data-testid="tasklist-card-pill"]').trigger('keydown', { key: 'Enter' });
     expect(w.emitted('openList')).toHaveLength(1);
   });
 });

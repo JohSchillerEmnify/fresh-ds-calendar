@@ -256,15 +256,15 @@ When('I tap the title of the expanded task list {string}', async function (this:
   await grown(this, title).getByTestId('tasklist-card-title').click();
 });
 
-const pressOnTitle = async (w: World, title: string, key: string) => {
-  await grown(w, title).getByTestId('tasklist-card-title').focus();
+const pressOnPill = async (w: World, title: string, key: string) => {
+  await grown(w, title).getByTestId('tasklist-card-pill').focus();
   await w.page.keyboard.press(key);
 };
-When('I press Enter on the title of the expanded task list {string}', async function (this: World, title: string) {
-  await pressOnTitle(this, title, 'Enter');
+When('I press Enter on the pill of the expanded task list {string}', async function (this: World, title: string) {
+  await pressOnPill(this, title, 'Enter');
 });
-When('I press Space on the title of the expanded task list {string}', async function (this: World, title: string) {
-  await pressOnTitle(this, title, 'Space');
+When('I press Space on the pill of the expanded task list {string}', async function (this: World, title: string) {
+  await pressOnPill(this, title, 'Space');
 });
 
 When('I press Enter on the expanded task list {string}', async function (this: World, title: string) {
@@ -272,8 +272,8 @@ When('I press Enter on the expanded task list {string}', async function (this: W
   await this.page.keyboard.press('Enter');
 });
 
-Then('the title of the expanded task list {string} is called {string}', async function (this: World, title: string, name: string) {
-  await expect(grown(this, title).getByTestId('tasklist-card-title')).toHaveAttribute('aria-label', name);
+Then('the pill of the expanded task list {string} is called {string}', async function (this: World, title: string, name: string) {
+  await expect(grown(this, title).getByTestId('tasklist-card-pill')).toHaveAttribute('aria-label', name);
 });
 
 Then('the expanded task list {string} and the expanded task list {string} overlap', async function (this: World, a: string, b: string) {
@@ -355,4 +355,34 @@ Then('the real time block of the expanded task list matches the card {string}', 
     return Math.max(Math.abs(real.y - card.y), Math.abs(real.height - card.height));
   }).toBeLessThanOrEqual(2);
   await expect(this.page.locator(`${tid('tasklist-card-grown')}:visible`)).toHaveCount(1);
+});
+
+When('I tap the right end of the pill of the expanded task list', async function (this: World) {
+  const pill = grown(this).getByTestId('tasklist-card-pill');
+  const box = (await pill.boundingBox())!;
+  await pill.click({ position: { x: box.width - 3, y: box.height / 2 } });
+});
+
+When('I tap the checkbox in the pill of the expanded task list', async function (this: World) {
+  await grown(this).getByTestId('tasklist-card-pill').getByTestId('tasklist-card-check').click();
+});
+
+Then('the titleless task list is collapsed', async function (this: World) {
+  await expect(this.page.locator(`${tid('tasklist-expanded')}${attr('data-presentation', 'overlay')}`)).toHaveCount(0);
+});
+
+Then('the items area of the expanded task list {string} is at least 44 px tall', async function (this: World, title: string) {
+  const r = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
+  expect(r.height).toBeGreaterThanOrEqual(44);
+});
+
+Then('the item of the expanded task list {string} is centred in its items area', async function (this: World, title: string) {
+  const area = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
+  const item = await rectOf(grown(this, title).getByTestId('tasklist-card-item').first());
+  expect(Math.abs((item.y + item.height / 2) - (area.y + area.height / 2)), 'item centre vs area centre').toBeLessThanOrEqual(3);
+});
+
+Then('the items area of the expanded task list {string} is under 44 px tall', async function (this: World, title: string) {
+  const r = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
+  expect(r.height).toBeLessThan(44);
 });

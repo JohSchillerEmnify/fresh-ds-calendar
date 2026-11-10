@@ -344,10 +344,16 @@ I edit the task list details
 I delete the task list
 the task list tap setting is {string}
 keeping several task lists open is {string}
-I press Enter on the title of the expanded task list {string}
-I press Space on the title of the expanded task list {string}
+I press Enter on the pill of the expanded task list {string}
+I press Space on the pill of the expanded task list {string}
 I press Enter on the expanded task list {string}
-the title of the expanded task list {string} is called {string}
+the pill of the expanded task list {string} is called {string}
+I tap the right end of the pill of the expanded task list
+I tap the checkbox in the pill of the expanded task list
+the titleless task list is collapsed
+the items area of the expanded task list {string} is at least 44 px tall
+the items area of the expanded task list {string} is under 44 px tall
+the item of the expanded task list {string} is centred in its items area
 the expanded task list {string} and the expanded task list {string} overlap
 the expanded task list {string} is drawn above the expanded task list {string}
 I tap the expanded task list {string} above the expanded task list {string}

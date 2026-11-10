@@ -10,7 +10,7 @@
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap expands the card in place
  * (`ExpandedCard`, several at once, remembered on this device in the `ui` store: a card that mounts for a remembered list grows again). The expansion renders this same card with the `grown` prop: full
- * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on it emits
+ * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on its pill (head row) collapses it, a tap on the items emits
  * `open-list` (the host opens the list sheet).
  */
 import Pressable from '@/components/m3/Pressable.vue';
@@ -66,7 +66,7 @@ const clock = useClockStore();
 /** The card's day is over: a remembered expansion ends then (an open list from a past day shows carried to today). */
 const past = computed(() => props.segment.date < clock.today);
 /**
- * A tap on the collapsed card grows it (also a block that already shows every item); only the grown card's title collapses it.
+ * A tap on the collapsed card grows it (also a block that already shows every item); only the grown card's pill collapses it.
  */
 function toggle() {
   // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
@@ -77,14 +77,9 @@ function toggle() {
   }
   ui.expandCard(cardKey(), owner, prefs.growSeveral);
 }
-/**
- * A tap on the grown card's title (a button of its own, so Enter and Space fold it too) folds it back up; anywhere else on it opens
- * the list.
- */
+/** A tap on the grown card's pill (one button, so Enter and Space fold it too) folds it back up; anywhere else on it opens the list. */
 function onGrownTap(e: MouseEvent) {
-  const target = e.target as Element;
-  // a list without a title has no title button: its header row folds it
-  if (target.closest('.titlebtn') || (!title.value && target.closest('.row'))) { emit('collapse'); return; }
+  if ((e.target as Element).closest('.row')) { emit('collapse'); return; }
   emit('openList');
 }
 /** The month (and zoom month) cell card has no time axis: grown it is a plain card as tall as its content, no real block and extension. */
@@ -164,18 +159,17 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
  <component
-    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+    :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
-    <span class="row">
+    <component :is="grown ? Pressable : 'span'" class="row" :class="{ pillbtn: grown }" :aria-label="grown ? t(title ? 'tasks.card.collapse' : 'tasks.card.collapseUntitled', { title }) : undefined" data-testid="tasklist-card-pill">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <component :is="grown ? Pressable : 'span'" v-if="title" class="title" :class="{ titlebtn: grown }" :aria-label="grown ? t('tasks.card.collapse', { title }) : undefined" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></component>
-      <Pressable v-else-if="grown" class="titlebtn sr" data-testid="tasklist-card-title" :aria-label="t('tasks.card.collapseUntitled')" />
+       <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
@@ -184,7 +178,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
         <span v-if="progress" :key="tl.doneCount" class="count" data-testid="tasklist-card-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
         <ProgressRing v-if="progress" class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
-    </span>
+    </component>
     <span v-if="progress" class="pbar" data-testid="tasklist-card-bar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
@@ -220,9 +214,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .mini .tx { text-overflow: clip; }
 .it.done { opacity: 0.7; }
 .row { display: flex; align-items: center; gap: 3px; min-width: 0; min-height: 16px; }
-/* the grown card's title is a button of its own: it looks like the text it holds */
-.titlebtn { appearance: none; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.tl.grown:focus-visible, .titlebtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+/* the grown card's pill is one button: it looks like the row it holds */
+.pillbtn { appearance: none; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tl.grown:focus-visible, .pillbtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .emoji { flex: none; font-size: var(--entry-meta); line-height: 1; }
 .title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: var(--entry-weight); line-height: 16px; text-overflow: var(--tl-cut, ellipsis);
@@ -365,6 +359,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* a tight pill (one line) keeps the title on that line with an ellipsis — the pill never grows past the real block */
 .tl.grown[data-tight='true'] .title, .tl.grown[data-tight='true'] .tx { white-space: nowrap; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); overflow-wrap: normal; hyphens: manual; }.tl.grown:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: auto; }
 .tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; position: relative; min-width: 0; }
+/* a one-item list gets a tap area of at least 44 px with the item centred; longer lists keep their natural height */
+.tl.grown.single:not(.flat) .extbox { justify-content: center; box-sizing: border-box; min-height: 44px; }
 .tl.grown:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); left: -1px; right: -1px; }
 .tl.grown:not(.flat) .pbar { display: none; }
 /* the list holds items only: the time foot is neither pill content nor an item (the pill sits on its time block anyway) */
