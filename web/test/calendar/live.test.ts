@@ -56,7 +56,7 @@ describe('now marker', () => {
 describe('now card', () => {
   it('is the always-compact Approaching card with the approach track on by default', async () => {
     const { pinia } = await boot('09:20', false);
-    expect(usePrefsStore()).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
+    expect(usePrefsStore()).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3, approachTimeLeft: false });
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
     const w = mount(NowCard, { global: { plugins: [pinia, router] } });
     const card = w.get('[data-testid="now-card"]');
@@ -86,6 +86,7 @@ describe('now card', () => {
   it('counts down the current event and shows next, also while another period is shown', async () => {
     const { pinia } = await boot('09:20', false);
     usePrefsStore().approachBar = false;
+    usePrefsStore().approachTimeLeft = true;
     const cal = useCalendarStore();
     cal.view = 'day';
     cal.anchor = at('00:00');
