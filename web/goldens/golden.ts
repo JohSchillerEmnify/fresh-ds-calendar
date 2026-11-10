@@ -14,6 +14,7 @@ import { render } from 'vitest-browser-vue';
 import type { CalendarEvent, TaskItem, TaskList } from '@/api/types';
 import { acquireViewport } from '@/composables/useViewport';
 import { itemSegments, type Segment } from '@/lib/items';
+import { loadIconSet } from '@/components/icons';
 import { sectionKey } from '@/features/tasklists/section';
 
 /** Both themes of the app (`html[data-theme]`). */
@@ -120,6 +121,7 @@ const frames = () => new Promise<void>((r) => requestAnimationFrame(() => reques
  */
 export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia) => void, drive?: (container: HTMLElement) => Promise<void | (() => void)>): Promise<void> {
   viewport ??= acquireViewport();
+  await loadIconSet('outlined');
   // only Date is faked: timers, animation frames and resize observers stay real
   vi.useFakeTimers({ toFake: ['Date'], now: NOW });
   for (const theme of THEMES) {
