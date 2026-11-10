@@ -7,6 +7,13 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
+  # builds and ships the APK of main even when no native file changed (ADR 0040)
+  workflow_dispatch:
+    inputs:
+      force_apk:
+        description: Build, sign and ship the APK of this commit of main
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,6 +31,8 @@ jobs:
       github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      skip: ${{ steps.fresh.outputs.skip }}
     permissions:
       contents: read
       packages: write
@@ -89,3 +98,202 @@ jobs:
         run: |
           : "${APP_URL:?set the repository variable APP_URL, e.g. https://cal.example.org}"
           curl --retry 10 --retry-delay 3 --retry-all-errors -fsS "${APP_URL%/}/api/health"
+
+  # APK (ADR 0040). apk-build has no secret but APP_URL (public inside the APK anyway) and never sees the keystore:
+  # Gradle plugins run arbitrary code. Only apk-sign has the environment android-release.
+  apk-build:
+    needs: deploy
+    if: >-
+      always() && vars.DEPLOY_ENABLED == 'true' && needs.deploy.outputs.skip != 'true' &&
+      ((needs.deploy.result == 'success' && github.event_name == 'workflow_run') ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.force_apk))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      version_name: ${{ steps.plan.outputs.version_name }}
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      APP_URL: ${{ secrets.APP_URL }}
+      GH_TOKEN: ${{ github.token }}
+      FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_apk }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0 # versionCode is the commit count; the last APK release is compared by range
+          persist-credentials: false
+
+      # build only when native code changed since the last APK release (or none exists, or it was asked for)
+      - name: Decide whether the APK needs a new build
+        id: plan
+        run: |
+          : "${APP_URL:?set the secret APP_URL, e.g. https://cal.example.org}"
+          code="$(git rev-list --count "$SHA")"
+          echo "version_name=1.1.$code" >> "$GITHUB_OUTPUT"
+          last_tag="$(gh release list --json tagName --jq '[.[] | select(.tagName | startswith("apk-"))][0].tagName // ""')"
+          build=true
+          if [[ "$FORCE" != "true" && -n "$last_tag" ]]; then
+            last="$(gh release view "$last_tag" --json targetCommitish --jq .targetCommitish)"
+            if git cat-file -e "$last^{commit}" 2>/dev/null; then
+              changed="$(git diff --name-only "$last" "$SHA" -- android capacitor.config.ts capacitor.config.json || true)"
+              plugins="$(git diff -U0 "$last" "$SHA" -- package.json pnpm-lock.yaml | grep -E '^[+-].*@capacitor' || true)"
+              [[ -n "$changed$plugins" ]] || build=false
+            fi
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "::notice::APK build: $build (last release: ${last_tag:-none})"
+
+      - if: steps.plan.outputs.build == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.plan.outputs.build == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.plan.outputs.build == 'true'
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - if: steps.plan.outputs.build == 'true'
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;35.0.0
+      - if: steps.plan.outputs.build == 'true'
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: true
+
+      - name: Build the unsigned release APK
+        if: steps.plan.outputs.build == 'true'
+        env:
+          VERSION_NAME: ${{ steps.plan.outputs.version_name }}
+        run: |
+          export CAL_SERVER_URL="${APP_URL%/}"
+          VERSION_CODE="$(git rev-list --count "$SHA")"
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm exec cap sync android
+          (cd android && ./gradlew --no-daemon -PappVersionCode="$VERSION_CODE" -PappVersionName="$VERSION_NAME" assembleRelease)
+          out=android/app/build/outputs/apk/release
+          [[ -f "$out/app-release-unsigned.apk" ]] || { echo "the release build must be unsigned" >&2; exit 1; }
+          mkdir -p apk-out
+          cp "$out/app-release-unsigned.apk" apk-out/
+          printf '%s\n' "$VERSION_CODE" > apk-out/version-code
+
+      - name: Upload the unsigned APK
+        if: steps.plan.outputs.build == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: apk-unsigned
+          path: apk-out/
+          retention-days: 7
+          if-no-files-found: error
+
+  # The only job with the keystore: it signs bytes, verifies the pinned certificate and publishes a GitHub release.
+  # Restrict the environment to the main branch (and add a required reviewer if wanted) in its settings.
+  apk-sign:
+    needs: apk-build
+    if: needs.apk-build.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: android-release
+    permissions:
+      contents: write # create the release; nothing else in the workflow has it
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      VERSION_NAME: ${{ needs.apk-build.outputs.version_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: apk-unsigned
+          path: apk-in
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: build-tools;35.0.0
+
+      - name: Sign with apksigner (keystore only in RUNNER_TEMP, removed below)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set +x
+          : "${KS_B64:?}" "${KS_PASS:?}" "${KEY_ALIAS:?}" "${KEY_PASS:?}"
+          echo "::add-mask::$KS_PASS"
+          echo "::add-mask::$KEY_PASS"
+          echo "::add-mask::$KEY_ALIAS"
+          umask 077
+          printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          # the passwords reach apksigner on stdin (store password, then key password), not through argv
+          printf '%s\n%s\n' "$KS_PASS" "$KEY_PASS" | "$apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass stdin --key-pass stdin --out apk-in/app-release.apk apk-in/app-release-unsigned.apk
+          rm -f apk-in/app-release.apk.idsig
+
+      # the keystore never outlives the signing step
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Verify the pinned certificate and publish the release
+        id: release
+        run: |
+          source scripts/apk-cert.sh
+          export APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          apk=apk-in/app-release.apk
+          verify_apk_cert "$apk"
+          code="$(cat apk-in/version-code)"
+          [[ "$code" =~ ^[0-9]+$ && "$VERSION_NAME" == "1.1.$code" ]]
+          mkdir -p release
+          cp "$apk" release/app-release.apk
+          printf '{"versionCode":%s,"versionName":"%s","certSha256":"%s","sha256":"%s"}\n' \
+            "$code" "$VERSION_NAME" "$(pinned_cert)" "$(sha256sum "$apk" | cut -d' ' -f1)" > release/app.json
+          tag="apk-$VERSION_NAME"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # a release that already exists is reused only when its APK is byte-identical to the one just signed and verified
+            mkdir -p existing
+            gh release download "$tag" --pattern app-release.apk --dir existing
+            [[ "$(sha256sum existing/app-release.apk | cut -d' ' -f1)" == "$(sha256sum "$apk" | cut -d' ' -f1)" ]] \
+              || { echo "release $tag exists with a different APK: refusing to ship it" >&2; exit 1; }
+            echo "::notice::release $tag exists already with the same APK"
+          else
+            gh release create "$tag" release/app-release.apk release/app.json --target "$SHA" --title "Android app $VERSION_NAME" \
+              --notes "Signed Android app, shipped to the server by the Deploy workflow."
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  # Has the SSH key but no keystore: tells the VPS to fetch the release (forced command `apk <tag>`, ADR 0040).
+  apk-ship:
+    needs: apk-sign
+    if: needs.apk-sign.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      TAG: ${{ needs.apk-sign.outputs.tag }}
+    steps:
+      - name: Run apk on the VPS (it downloads the release and verifies the certificate pin)
+        run: |
+          : "${DEPLOY_HOST:?set the secret DEPLOY_HOST}" "${DEPLOY_KNOWN_HOSTS:?set DEPLOY_KNOWN_HOSTS}" "${DEPLOY_SSH_KEY:?set DEPLOY_SSH_KEY}"
+          [[ "$TAG" =~ ^apk-[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          ssh -i "$RUNNER_TEMP/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" "$DEPLOY_USER@$DEPLOY_HOST" "apk $TAG"
