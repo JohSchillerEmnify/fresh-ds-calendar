@@ -117,6 +117,46 @@ Feature: Open tasks stay in sight
       Then the open tasks tray shows the count "3 open"
       And the calendar ends above the bottom bar
 
+    @desktop
+    Scenario: In a narrow window the open tasks are in the bottom bar, not a strip above it
+      Given the browser window is 600 by 800 pixels wide and high
+      When I open the week view for 2026-10-12
+      Then the bottom bar shows the open tasks "3 open" with the names "Laundry, Groceries, Packing"
+      And no open tasks row is outside the bottom bar
+
+    @desktop
+    Scenario: In a narrow window with no open tasks the bottom bar has no extra row
+      Given the calendar is empty
+      And the browser window is 600 by 800 pixels wide and high
+      When I open the week view for 2026-10-12
+      Then the bottom bar has no open tasks row
+      And no open tasks row is outside the bottom bar
+
+    @desktop
+    Scenario: Shrinking a wide window puts the open tasks into the bottom bar
+      When I open the week view for 2026-10-12
+      And the browser window is 600 by 800 pixels wide and high
+      Then the bottom bar shows the open tasks "3 open" with the names "Laundry, Groceries, Packing"
+      And no open tasks row is outside the bottom bar
+
+    @desktop
+    Scenario: After resizing across the phone width the tray still opens and closes
+      When I open the week view for 2026-10-12
+      And the browser window is 600 by 800 pixels wide and high
+      And the browser window is 1200 by 800 pixels wide and high
+      And the browser window is 600 by 800 pixels wide and high
+      And I open the open tasks tray
+      Then the open tasks tray is expanded
+      When I collapse the open tasks tray
+      Then the open tasks tray is collapsed
+
+  Rule: The settings pages have no open tasks tray
+
+    Scenario: The settings page shows no open tasks tray
+      When I open the week view for 2026-10-12
+      And I open the settings
+      Then there is no open tasks tray
+
   Rule: The tray itself
 
   Scenario: The tray lists overdue lists first, then today's lists by time

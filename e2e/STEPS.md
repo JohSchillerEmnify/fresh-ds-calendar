@@ -3828,6 +3828,8 @@ the bottom bar size {string} is the default
 the bottom bar floats above the calendar
 the bottom bar shows the open tasks {string} with the names {string}
 the bottom bar has no open tasks row
+no open tasks row is outside the bottom bar
+there is no open tasks tray
 the open tasks row is hidden
 the open tasks row is shown
 the bottom bar floats {int} pixels from the edges of the screen
@@ -3888,7 +3890,7 @@ the floating toolbar is shown
 - Open tasks row (tray option C, feature open-tasks-in-sight): on a phone the open tasks are the row `task-tray-toggle` inside
   the `bottom-bar` element: `task-tray-count` ("3 open") and one `task-tray-chip` per open list in tray order (their texts joined
   by ", " are the names). "the bottom bar shows the open tasks C with the names N": the count text is C and the chip texts joined
-  are N, both inside `bottom-bar`. "has no open tasks row": no `task-tray-toggle` inside `bottom-bar`. "the open tasks row is
+  are N, both inside `bottom-bar`. "has no open tasks row": no `task-tray-toggle` inside `bottom-bar`. "no open tasks row is outside the bottom bar": no `task-tray-toggle` that is not inside `bottom-bar`. "there is no open tasks tray": no `task-tray` element in the page. "the open tasks row is
   hidden / shown": the row's box is out of / inside the viewport (it slides with the bar). Hooks: `task-tray-toggle`, `task-tray-count`, `task-tray-chip`.
 - Meaning, for the builder: "filled" = a solid primary-coloured container (M3 filled button, FAB); "tonal" = secondary
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the

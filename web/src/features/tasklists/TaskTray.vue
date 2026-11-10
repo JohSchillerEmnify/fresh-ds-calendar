@@ -126,7 +126,8 @@ function toggleFold(id: string) {
 
 <template>
   <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: listShown, collapsed: !listShown && !isPhone, 'in-bar': inBar }" data-testid="task-tray" :data-expanded="listShown">
-    <Teleport to="#bar-extra" defer :disabled="!inBar">
+    <!-- keyed: a Teleport mounted while the bar was absent keeps its missing target when the bar appears later -->
+    <Teleport :key="String(inBar)" to="#bar-extra" defer :disabled="!inBar">
       <Pressable
         v-if="rowShown" v-ripple class="bar" :class="{ row2: inBar }" type="button" data-testid="task-tray-toggle" :aria-expanded="listShown" aria-controls="task-tray-list"
         :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
