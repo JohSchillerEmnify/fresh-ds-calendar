@@ -34,6 +34,7 @@ export default {
     syncing: 'Gleichd grad ab',
     synced: 'Abgeglichn',
     unreachable: 'Google Kalender is ned erreichbar. Es sin die letzdn bekanndn Daden zu sehn.',
+    serverUnreachable: 'Der Kalenderserver is ned erreichbar. Es sin die letzdn bekanndn Daden zu sehn.',
     lastUpdated: 'Zuledzd aktualisierd {time}',
     lastUpdatedOn: 'Zuledzd aktualisierd {date}, {time}',
   },

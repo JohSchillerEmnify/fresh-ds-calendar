@@ -52,6 +52,7 @@ export default {
     syncing: 'Wird synchronisiert',
     synced: 'Synchronisiert',
     unreachable: 'Google Kalender ist nicht erreichbar. Es werden die zuletzt bekannten Daten gezeigt.',
+    serverUnreachable: 'Der Kalender-Server ist nicht erreichbar. Es werden die zuletzt bekannten Daten gezeigt.',
     lastUpdated: 'Zuletzt aktualisiert {time}',
     lastUpdatedOn: 'Zuletzt aktualisiert {date}, {time}',
   },

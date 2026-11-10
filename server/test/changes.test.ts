@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeCursor } from '../src/api/changesRoutes.js';
 import { NotFoundError, ProviderError, ProviderForbiddenError, SyncTokenExpiredError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
 import { mockSub } from '../src/auth/people.js';
-import { calHash, setDiagSink } from '../src/lib/diag.js';
+import { setDiagSink } from '../src/lib/diag.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 let t: TestApp;
@@ -285,7 +285,7 @@ describe('robustness', () => {
     beforeEach(() => { now = 1_000_000; t.app.ctx.clock.real = () => now; });
     const lookups = (spy: { mock: { calls: unknown[][] } }, id: string) => spy.mock.calls.filter((c) => c[0] === id).length;
 
-    it('a fresh sync token refused again (410): listed in full once, then no call for a minute, then one full read', async () => {
+    it('a fresh sync token refused again (410): listed in full at once, with no back-off and no skipped calendar', async () => {
       await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
       const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
       const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
@@ -296,21 +296,18 @@ describe('robustness', () => {
       // the first refusal is an ordinary expiry: listed in full
       const r1 = await changes(c0);
       expect(r1.events.replace).toEqual(['work']);
-      // the token that full read just got is refused too: the calendar is skipped, its data on the device stays
+      // the token that full read just got is refused too: Google says "full sync required", so the calendar is read in full again right away
       const logged: Record<string, unknown>[] = [];
       const restore = setDiagSink((l) => logged.push(JSON.parse(l)));
       const r2 = await changes(r1.cursor).finally(restore);
-      expect(logged.filter((l) => l.event === 'google_calendar_backoff')).toEqual([expect.objectContaining({ calHash: calHash('work'), cause: 'tokenRefused', strikes: 1, backoffMs: 60_000 })]);
+      expect(logged.filter((l) => l.event === 'google_calendar_backoff')).toEqual([]);
       expect(lookups(spy, 'work')).toBe(2);
       expect(r2.events.failed).toEqual([]);
-      expect(r2.events.replace).toEqual([]);
+      expect(r2.events.replace).toEqual(['work']);
+      expect(titles(r2.events.upserts)).toEqual(['Holiday']);
+      // and no call to Google with a token follows
       for (let i = 0, c = r2.cursor; i < 3; i++) c = (await changes(c)).cursor;
       expect(lookups(spy, 'work')).toBe(2);
-      // after the back-off: listed in full (no token was kept), so nothing missed while skipped is lost
-      now += 61_000;
-      const back = await changes(r2.cursor);
-      expect(back.events.replace).toEqual(['work']);
-      expect(titles(back.events.upserts)).toEqual(['Holiday']);
     });
 
     it('the test reset forgets a calendar\'s back-off, so the next scenario\'s events are not skipped', async () => {
@@ -348,7 +345,7 @@ describe('robustness', () => {
       expect(next.events.replace).toContain('work');
     });
 
-    it('a calendar whose fresh tokens Google never accepts is compared by content after the back-off: no more 410s, changes still arrive', async () => {
+    it('a calendar whose fresh tokens Google never accepts is compared by content at once: no more 410s, changes still arrive', async () => {
       await t.json('POST', '/api/__test/remote/events', { summary: 'Holiday', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
       const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
       const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
@@ -358,9 +355,8 @@ describe('robustness', () => {
       const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken');
       const r2 = await changes((await changes((await changes()).cursor)).cursor);
       expect(lookups(spy, 'work')).toBe(2);
-      now += 61_000;
       const walks = lookups(walk, 'work');
-      const back = await changes(r2.cursor);
+      const back = r2;
       expect(back.events.replace).toEqual(['work']);
       expect(titles(back.events.upserts)).toEqual(['Holiday']);
       // unchanged: answered unchanged, without a token call, a walk or a back-off, however often and long
@@ -390,8 +386,7 @@ describe('robustness', () => {
         return real(id, tok);
       });
       const r2 = await changes((await changes((await changes()).cursor)).cursor);
-      now += 61_000;
-      const back = await changes(r2.cursor);
+      const back = r2;
       spy.mockRestore();
       // the server forgets the calendar's state on a restart; the device still holds the content version in its cursor
       (t.app.ctx.calendar as unknown as { calendarHealth: Map<string, unknown> }).calendarHealth.clear();

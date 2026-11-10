@@ -6,7 +6,8 @@ Feature: Background sync with Google Calendar
   Steps starting with "Google ..." change the provider's data directly, as if the change had been
   made in the official Google Calendar app.
   If Google or the network is unreachable, a non-blocking error banner with a retry button is shown
-  and the last known data stays usable.
+  and the last known data stays usable. The banner says who cannot be reached: Google (the server reports it), at once;
+  or the calendar server itself (no answer), only once that has lasted a minute, so a deploy restart goes unnoticed.
   If Google asks the app to slow down, that is not an outage: the last known data stays, with no banner, and the app
   catches up once Google lets it through.
 
@@ -87,12 +88,12 @@ Feature: Background sync with Google Calendar
     And the item "Eggs" is ticked
 
   @offline
-  Scenario: Google outage shows a non-blocking error banner while browsing
+  Scenario: Google outage shows a non-blocking error banner saying Google cannot be reached
     Given automatic sync runs every 2 seconds
     When I open the week view for 2026-10-12
     And Google becomes unavailable
     And I wait for the automatic sync
-    Then I see the sync error banner
+    Then I see the sync error banner saying "Can't reach Google Calendar"
     And I see the event "Dentist" on 2026-10-14
     When I switch to the day view
     Then the day view is shown
@@ -158,11 +159,28 @@ Feature: Background sync with Google Calendar
     And this device keeps no unsent changes
 
   @offline
-  Scenario: Losing the network connection shows the banner, regaining it recovers
-    When I open the week view for 2026-10-12
-    And the network connection is lost
+  Scenario: A short loss of the connection to the calendar server shows no banner
+    Given automatic sync runs every 30 seconds
+    And the time is 2026-10-12 08:12 and the clock is running
+    And I have seen the week view for 2026-10-12
+    When the network connection is lost
     And the app regains focus
-    Then I see the sync error banner
+    Then I do not see the sync error banner
+    And I see the event "Dentist" on 2026-10-14
+    When the network connection is restored
+    Then I do not see the sync error banner
+
+  @offline
+  Scenario: A longer loss of the connection says the calendar server cannot be reached, not Google
+    Given automatic sync runs every 30 seconds
+    And the time is 2026-10-12 08:12 and the clock is running
+    And I have seen the week view for 2026-10-12
+    When the network connection is lost
+    And the app regains focus
+    And 2 minutes pass
+    And the app regains focus
+    Then I see the sync error banner saying "Can't reach the calendar server"
+    And I see the event "Dentist" on 2026-10-14
     When the network connection is restored
     Then I do not see the sync error banner
 

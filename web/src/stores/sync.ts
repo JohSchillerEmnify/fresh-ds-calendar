@@ -28,6 +28,8 @@ const LIVE_POLL_MS = 60_000;
 const NORMAL_POLL_MS = 30_000;
 /** A failure within this long after the page became visible again counts as "just resumed". */
 const RESUME_WINDOW_MS = 5000;
+/** How long our own server must stay unreachable before the banner says so (a deploy restart is shorter). */
+const SERVER_DOWN_BANNER_MS = 60_000;
 
 /**
  * Background sync. Exactly one polling timer exists app-wide (`pollTimer`), chained after each sync, paused while
@@ -61,7 +63,12 @@ export const useSyncStore = defineStore('sync', () => {
   /** A beacon that could not be sent (network down); the next successful sync sends it. */
   let pending: { beacon: SyncErrorBeacon; at: number } | null = null;
 
-  const errorMessage = computed(() => (error.value ? t('calendar.sync.unreachable') : ''));
+  /** When our own server first failed to answer in the current outage (null while it answers). */
+  let serverDownSince: number | null = null;
+  /** A sync has succeeded since the app opened: only then is a failed one possibly a blip (an app opened offline says so at once). */
+  let hasSynced = false;
+
+  const errorMessage = computed(() => (!error.value ? '' : error.value.isServerUnreachable ? t('calendar.sync.serverUnreachable') : t('calendar.sync.unreachable')));
 
   /** Add a refresher run on every sync (e.g. the open task tray, motivation). Returns an unregister function. */
   function registerTask(name: string, fn: () => Promise<unknown>): () => void {
@@ -100,9 +107,15 @@ export const useSyncStore = defineStore('sync', () => {
   }
 
   /** Shows the banner for an unavailable error (not for a rate limit while data is shown); `task` names the failed refresher for the diagnostics beacon. */
-  function reportError(e: unknown, task = 'other'): void {
+  function reportError(e: unknown, task = 'other', fromSync = false): void {
     if (e instanceof ApiError && e.isUnavailable) {
       noteFailure(e);
+      // a restart of our server is over in seconds: the person is told only once it has lasted (the data stays shown meanwhile)
+      // (a failed save or other action of the person is told at once)
+      if (e.isServerUnreachable) {
+        serverDownSince ??= Date.now();
+        if (fromSync && hasSynced && Date.now() - serverDownSince < SERVER_DOWN_BANNER_MS) return;
+      } else serverDownSince = null;
       if (e.isRateLimited && Object.keys(useItemsStore().ranges).length > 0) {
         rateLimited.value = true;
         return;
@@ -146,11 +159,13 @@ export const useSyncStore = defineStore('sync', () => {
     const failed = failedAt >= 0 ? (results[failedAt] as PromiseRejectedResult) : undefined;
     if (failed) {
       logFailure(failed.reason, list[failedAt]![0]);
-      if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason, list[failedAt]![0]);
+      if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason, list[failedAt]![0], true);
       if (!error.value) state.value = 'idle';
       else state.value = 'error';
     } else {
       rateLimited.value = false;
+      serverDownSince = null;
+      hasSynced = true;
       error.value = null;
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
