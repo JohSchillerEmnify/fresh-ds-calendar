@@ -1,10 +1,10 @@
-/** Phosphor Duotone variant of every app icon (one chunk: loaded only when this icon set is in use, see `icons.ts`). */
+/** Phosphor Duotone variant of every app icon (one chunk, see `icons.ts`); the plus is the regular one, as its duotone fill looks like a box. */
 import type { Component } from 'vue';
 import MoreHorizP from '~icons/ph/dots-three-duotone';
 import ContentCopyOutlineP from '~icons/ph/copy-duotone';
 import ArchiveOutlineP from '~icons/ph/archive-duotone';
 import BookmarkAddP from '~icons/ph/bookmark-simple-duotone';
-import AddP from '~icons/ph/plus-duotone';
+import AddP from '~icons/ph/plus';
 import ArrowBackP from '~icons/ph/arrow-left-duotone';
 import BedtimeP from '~icons/ph/moon-duotone';
 import LocationOnP from '~icons/ph/map-pin-duotone';
