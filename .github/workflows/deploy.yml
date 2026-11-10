@@ -261,7 +261,12 @@ jobs:
             "$code" "$VERSION_NAME" "$(pinned_cert)" "$(sha256sum "$apk" | cut -d' ' -f1)" > release/app.json
           tag="apk-$VERSION_NAME"
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "::notice::release $tag exists already: reusing it"
+            # a release that already exists is reused only when its APK is byte-identical to the one just signed and verified
+            mkdir -p existing
+            gh release download "$tag" --pattern app-release.apk --dir existing
+            [[ "$(sha256sum existing/app-release.apk | cut -d' ' -f1)" == "$(sha256sum "$apk" | cut -d' ' -f1)" ]] \
+              || { echo "release $tag exists with a different APK: refusing to ship it" >&2; exit 1; }
+            echo "::notice::release $tag exists already with the same APK"
           else
             gh release create "$tag" release/app-release.apk release/app.json --target "$SHA" --title "Android app $VERSION_NAME" \
               --notes "Signed Android app, shipped to the server by the Deploy workflow."
