@@ -203,7 +203,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 <template>
  <component
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
-    :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
+    :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-short="fit.shortBlock || undefined" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" :data-one-line="(variant === 'block' && !!one && oneLines === 1) || undefined" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
@@ -355,6 +355,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
+/* a short block's height already tells its length: the estimate gives its room to the title */
+.block[data-short] .row .est { display: none; }
 
 /* grown (the expanded card, ExpandedCard): the same card at its full height; the host scrolls when it is cut to the screen */
 .tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); overflow: visible; cursor: pointer; }
