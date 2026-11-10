@@ -190,8 +190,9 @@ export class World {
     return this.taskCards(title, date).locator('visible=true').first();
   }
 
+  /** The open list sheet or popover (a grown card over the calendar has the same test id, with `data-presentation="overlay"`). */
   get expanded(): Locator {
-    return this.byTestId('tasklist-expanded');
+    return this.byTestId('tasklist-expanded', ':not([data-presentation="overlay"])');
   }
 
   expandedItem(title: string): Locator {

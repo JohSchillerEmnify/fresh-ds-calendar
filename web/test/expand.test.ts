@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anchorVisible, clipAboveBar, fitWidth, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
+import { anchorVisible, clipAboveBar, fitWidth, growPlan, grownStarts, layerOf, placeExpanded, type Box } from '@/features/tasklists/expand';
 
 const view: Box = { left: 0, top: 0, right: 400, bottom: 800 };
 const box = (left: number, top: number, w: number, h: number): Box => ({ left, top, right: left + w, bottom: top + h });
@@ -76,5 +76,17 @@ describe('fitWidth', () => {
   });
   it('takes the whole column when the content is wider', () => {
     expect(fitWidth({ left: 200, width: 60 }, 999, col)).toEqual({ left: 2, width: 298 });
+  });
+});
+
+describe('layerOf', () => {
+  it('draws a later card above an earlier one, below the sheet, and the tapped one on top', () => {
+    grownStarts.clear();
+    grownStarts.set('a|d', 540);
+    grownStarts.set('b|d', 570);
+    expect(layerOf('b|d', false)).toBeGreaterThan(layerOf('a|d', false));
+    expect(layerOf('b|d', false)).toBeLessThan(50);
+    expect(layerOf('a|d', true)).toBe(49);
+    grownStarts.clear();
   });
 });

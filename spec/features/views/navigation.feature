@@ -376,7 +376,7 @@ Feature: Navigation and view switching
       When I open the week view for 2026-10-12
       And I expand the task list "Groceries"
       And I go back in the browser
-      Then the task list "Groceries" is collapsed
+      Then no list sheet is open
       And the URL path is "/week/2026-10-12"
 
     @mobile

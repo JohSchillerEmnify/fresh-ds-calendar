@@ -142,6 +142,7 @@ export default {
       editCategory: 'Edit {name}',
       undatedDone: { label: 'Finished list without a date', calendar: 'Show on the day it was finished', archive: 'Archive only' },
       taskOpen: { label: 'Tapping a task list', inline: 'Grows in place', drawer: 'Opens the list' },
+      growSeveral: { label: 'Keep several lists open', hint: 'Lists you tap stay open until you tap their title. Off: opening one closes the one before.' },
     },
     motivation: {
       calmMode: { label: 'Calm mode', hint: 'Fewer details, quieter colors, reduced motion' },

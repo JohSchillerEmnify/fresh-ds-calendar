@@ -196,6 +196,8 @@ not keep one view on: the client disables the last switch, and when every view i
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
 open the list sheet.
+`growSeveral` (boolean, default `true`) lets several task list cards stay grown at once; off, growing a card collapses the one
+grown before.
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; `navPhone` also accepts `drawer`, the side menu of feature nav-expressive; any other value is a 400; feature nav-position).
 The person pref `bottomBarSize` (`'auto' | 'expressive' | 'compact'`, default `'auto'`: Compact on phones, Expressive elsewhere;

@@ -86,6 +86,8 @@ export default {
     labelUntitledDone: 'Aufgabenliste, erledigt, yo',
     labelUntitledOpen: 'Aufgabenliste, nicht erledigt, yo',
     noItems: 'Keine Einträge, Digga',
+    collapse: '{title} einklappen, yo',
+    collapseUntitled: 'Aufgabenliste einklappen, yo',
     from: 'Vom {date}, yo',
     fromEarlier: 'Von früher, Gentlemen, a short view back to the past',
     estimateMin: '~{min} Min.',

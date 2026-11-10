@@ -85,6 +85,8 @@ export default {
     labelUntitledDone: 'Task list, done',
     labelUntitledOpen: 'Task list, not done',
     noItems: 'No items',
+    collapse: 'Collapse {title}',
+    collapseUntitled: 'Collapse task list',
     from: 'From {date}',
     fromEarlier: 'From earlier',
     estimateMin: '~{min} min',

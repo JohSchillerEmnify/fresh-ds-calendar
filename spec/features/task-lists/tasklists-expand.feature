@@ -6,10 +6,15 @@ Feature: A task list card grows in place over the calendar
   normal card; the part that only extends it is slimmer and lighter, with a seam at the real end, so the real duration
   stays recognisable; growing upwards, the same holds above the real start), and it lies over the following events or slots without moving
   them. The grown card is read-only in every view (done markers, no checkboxes, no edit or close button); a tap anywhere
-  on it, items included, opens the normal list sheet, where items are ticked and the list is edited. Tapping its title,
-  tapping elsewhere in the calendar or Escape collapses it; so does expanding another card or a sheet opening. One card
-  grows at a time. A long press keeps its meaning (pick up, resize handles). On the phone's month view a tap on a card
-  still opens the day (the cells are too small to hold a card).
+  on it, items included, opens the normal list sheet, where items are ticked and the list is edited. Only tapping its
+  title collapses it (owner, 2026-11-10); a tap elsewhere in the calendar, Escape, growing another card or a sheet opening
+  leave it grown. Several cards may be grown at the same time, each until its own title is
+  tapped (the setting "Keep several lists open", on by default; off, growing a card collapses the one grown before). A tap on
+  a grown card opens its list sheet and it stays grown behind it. The title is a button of its own ("Collapse <title>"): Enter
+  or Space on it collapses the card, Enter on the card opens the sheet like a tap, Escape does nothing. Scrolling or zooming a
+  grown card out of sight leaves it grown (it shows again when its card is back in view). A long press keeps its meaning
+  (pick up, resize handles). On the phone's month view a tap on a card still opens the day (the cells are too small to hold a
+  card).
   The expansion is remembered on this device only, never synced (owner, 2026-11-01): it stays through switching views,
   moving to other periods, going back, reloading and reopening the app, and the card grows again wherever the list
   shows. Taps on the app's bars and menus leave it open, and going back moves between views instead of collapsing it.
@@ -158,6 +163,32 @@ Feature: A task list card grows in place over the calendar
     Then the item "Eggs" is ticked
     And the task list "Groceries" shows the done count "2/8"
 
+  Scenario: The grown card stays grown behind its list sheet and after it
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I tap the expanded task list "Groceries"
+    Then the task list "Groceries" opens as the list sheet
+    When I collapse the task list
+    Then the task list "Groceries" is expanded over the calendar
+
+  Scenario: Enter or Space on the title collapses it; its name says so
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the title of the expanded task list "Groceries" is called "Collapse Groceries"
+    When I press Enter on the title of the expanded task list "Groceries"
+    Then the task list "Groceries" is collapsed
+    When I tap the task list "Groceries"
+    And I press Space on the title of the expanded task list "Groceries"
+    Then the task list "Groceries" is collapsed
+
+  Scenario: Enter on the grown card opens its list sheet like a tap
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I press Enter on the expanded task list "Groceries"
+    Then the task list "Groceries" opens as the list sheet
+    When I collapse the task list
+    Then the task list "Groceries" is expanded over the calendar
+
   Scenario: Tapping the title of an expanded task list collapses it
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
@@ -187,21 +218,33 @@ Feature: A task list card grows in place over the calendar
     Given the task list "Groceries" shows resize handles in the day view for 2026-10-14
     Then no task list is expanded
 
-  Scenario: Tapping elsewhere collapses it
+  Scenario: Tapping elsewhere keeps it grown
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     And I tap outside the expanded task list
-    Then the task list "Groceries" is collapsed
+    Then the task list "Groceries" is expanded over the calendar
 
-  Scenario: Escape collapses it and gives the focus back to the card
+  Scenario: Escape keeps it grown and the focus stays in it
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     Then the focus is inside the expanded task list
     And the card of the task list "Groceries" says it is expanded
     When I press Escape
-    Then the task list "Groceries" is collapsed
-    And the card of the task list "Groceries" has the focus
-    And the card of the task list "Groceries" says it is collapsed
+    Then the task list "Groceries" is expanded over the calendar
+    And the focus is inside the expanded task list
+
+  Scenario: A sheet opening and closing leaves it grown
+    Given the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
+      | item | done |
+      | Wash | no   |
+      | Fold | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I expand the task list "Laundry"
+    Then the task list "Laundry" opens as the list sheet
+    And the task list "Groceries" is expanded over the calendar
+    When I collapse the task list
+    Then the task list "Groceries" is expanded over the calendar
 
   Scenario: Changing the period hides it until the list's day shows again
     When I open the day view for 2026-10-14
@@ -211,7 +254,7 @@ Feature: A task list card grows in place over the calendar
     When I go to the previous period
     Then the task list "Groceries" is expanded over the calendar
 
-  Scenario: Only one task list is expanded at a time
+  Scenario: A second card grows while the first stays grown
     Given the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
       | item   | done |
       | Wash   | no   |
@@ -219,8 +262,39 @@ Feature: A task list card grows in place over the calendar
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     And I tap the task list "Laundry"
-    Then the task list "Laundry" is expanded
+    Then the task list "Laundry" is expanded over the calendar
+    And the task list "Groceries" is expanded over the calendar
+    When I tap the title of the expanded task list "Laundry"
+    Then the task list "Laundry" is collapsed
+    And the task list "Groceries" is expanded over the calendar
+
+  Scenario: With "Keep several lists open" off, growing another card collapses the one before
+    Given keeping several task lists open is "off"
+    And the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
+      | item   | done |
+      | Wash   | no   |
+      | Fold   | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I tap the task list "Laundry"
+    Then the task list "Laundry" is expanded over the calendar
     And the task list "Groceries" is collapsed
+
+  Scenario: Grown cards that overlap: the later one is on top, a tap on the earlier one brings it to the front
+    Given the calendar contains a task list "Laundry" on 2026-10-14 at 09:30 for 30 minutes with items:
+      | item   | done |
+      | Wash   | no   |
+      | Fold   | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Laundry"
+    And I tap the task list "Groceries"
+    Then the expanded task list "Groceries" and the expanded task list "Laundry" overlap
+    And the expanded task list "Laundry" is drawn above the expanded task list "Groceries"
+    When I tap the expanded task list "Groceries" above the expanded task list "Laundry"
+    Then the expanded task list "Groceries" is drawn above the expanded task list "Laundry"
+    And no list sheet is open
+    When I tap the expanded task list "Groceries" above the expanded task list "Laundry"
+    Then the task list "Groceries" opens as the list sheet
 
   @expand-zoom
   Scenario: A short list beside a long event does not take the whole day column
@@ -251,31 +325,22 @@ Feature: A task list card grows in place over the calendar
     Then the real time block of the expanded task list matches the card "Groceries"
 
   @mobile @expand-zoom
-  Scenario: After the grown card closes with Escape, one tap grows it again
+  Scenario: After the grown card closes with its title, one tap grows it again
     When I open the week view for 2026-10-12
     And I tap the task list "Groceries"
-    And I press Escape
+    And I tap the title of the expanded task list
     Then the task list "Groceries" is collapsed
     When I tap the task list "Groceries"
     Then the task list "Groceries" is expanded over the calendar
 
   @mobile @expand-zoom
-  Scenario: After the grown card closes with a tap elsewhere, one tap grows it again
-    When I open the week view for 2026-10-12
-    And I tap the task list "Groceries"
-    And I tap outside the expanded task list
-    Then the task list "Groceries" is collapsed
-    When I tap the task list "Groceries"
-    Then the task list "Groceries" is expanded over the calendar
-
-  @mobile @expand-zoom
-  Scenario: After a zoom took the card out of sight, one tap grows it again
+  Scenario: After a zoom took the card out of sight, it stays grown
     When I open the week view for 2026-10-12
     And I tap the task list "Groceries"
     And I zoom the time grid in far from the grown card
-    Then no task list is expanded
-    When I tap the task list "Groceries"
-    Then the task list "Groceries" is expanded over the calendar
+    Then the task list "Groceries" is grown but out of sight
+    When I reload the page
+    Then the task list "Groceries" is grown but out of sight
 
   @mobile @expand-zoom
   Scenario: Zooming around the lower edge of the grown card keeps it open on its card
@@ -353,7 +418,7 @@ Feature: A task list card grows in place over the calendar
       And I open the day view for 2026-10-14
       Then no task list is expanded
 
-    Scenario: Only the last expanded list is remembered
+    Scenario: Every grown list is remembered
       Given the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
         | item | done |
         | Wash | no   |
@@ -362,7 +427,7 @@ Feature: A task list card grows in place over the calendar
       And I tap the task list "Laundry"
       And I reload the page
       Then the task list "Laundry" is expanded over the calendar
-      And the task list "Groceries" is collapsed
+      And the task list "Groceries" is expanded over the calendar
 
     Scenario: Collapsing it by its title forgets it
       When I open the day view for 2026-10-14
@@ -371,12 +436,12 @@ Feature: A task list card grows in place over the calendar
       And I reload the page
       Then no task list is expanded
 
-    Scenario: Collapsing it by a tap elsewhere forgets it
+    Scenario: A tap elsewhere does not forget it
       When I open the day view for 2026-10-14
       And I tap the task list "Groceries"
       And I tap outside the expanded task list
       And I reload the page
-      Then no task list is expanded
+      Then the task list "Groceries" is expanded over the calendar
 
     Scenario: A remembered list closes by itself once it is completed
       Given the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
@@ -388,6 +453,39 @@ Feature: A task list card grows in place over the calendar
       And I open the Tasks view
       And I tick the item "Fold" of the task list "Laundry" in the Tasks view
       And I open the day view for 2026-10-14
+      Then the task list "Laundry" is collapsed
+
+    Scenario: Ticking the last item in the list sheet collapses the grown card and it is forgotten
+      Given the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
+        | item | done |
+        | Wash | yes  |
+        | Fold | no   |
+      When I open the day view for 2026-10-14
+      And I tap the task list "Groceries"
+      And I tap the task list "Laundry"
+      And I tap the expanded task list "Laundry"
+      And I tick the item "Fold"
+      And I collapse the task list
+      Then the task list "Laundry" is collapsed
+      And the task list "Groceries" is expanded over the calendar
+      When I reload the page
+      Then the task list "Laundry" is collapsed
+      And the task list "Groceries" is expanded over the calendar
+
+    Scenario: A list completed on another device collapses its grown card and it is forgotten
+      Given automatic sync runs every 2 seconds
+      And the calendar contains a task list "Laundry" on 2026-10-14 at 15:00 for 30 minutes with items:
+        | item | done |
+        | Wash | yes  |
+        | Fold | no   |
+      When I open the day view for 2026-10-14
+      And I tap the task list "Groceries"
+      And I tap the task list "Laundry"
+      And Google ticks the item "Fold" in the task list "Laundry"
+      And I wait for the automatic sync
+      Then the task list "Laundry" is collapsed
+      And the task list "Groceries" is expanded over the calendar
+      When I reload the page
       Then the task list "Laundry" is collapsed
 
     Scenario: A remembered list starts collapsed once its day has passed

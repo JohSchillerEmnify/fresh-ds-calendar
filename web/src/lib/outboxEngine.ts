@@ -216,7 +216,7 @@ function replaceId(s: OutboxState, from: string, fresh: CalendarItem): void {
   ports.device?.drop(from);
   setEntries(s, next);
   const ui = useUiStore();
-  if (ui.expandedCard?.id === from) ui.expandedCard = { ...ui.expandedCard, id: fresh.id };
+  ui.renameCard(from, fresh.id);
   if (ui.dialog?.props.id === from) ui.dialog = { ...ui.dialog, props: { ...ui.dialog.props, id: fresh.id } };
 }
 

@@ -83,6 +83,8 @@ export default {
     labelUntitledDone: 'Aufgabenliste, erledigt',
     labelUntitledOpen: 'Aufgabenliste, nicht erledigt',
     noItems: 'Keine Einträge',
+    collapse: '{title} einklappen',
+    collapseUntitled: 'Aufgabenliste einklappen',
     from: 'Vom {date}',
     fromEarlier: 'Von früher',
     estimateMin: '~{min} Min.',

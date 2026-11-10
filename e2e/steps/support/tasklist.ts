@@ -21,7 +21,8 @@ export async function expandTaskList(world: World, title: string) {
   // Phone month chips are pointer-events:none by design (the cell takes the tap), so Playwright's hit-target check
   // would never pass: tap the card's position instead.
   const phoneMonth = monthView && world.isPhoneProject;
-  await world.taskCard(title).click({ force: phoneMonth });
+  // a card already grown (remembered, or grown earlier) lies over its own collapsed card: go straight to it
+  if (!(await grown.isVisible())) await world.taskCard(title).click({ force: phoneMonth });
   if (phoneMonth) {
     await expect(grown.or(world.page.getByTestId('day-view')).first()).toBeVisible();
     if (!(await grown.isVisible())) await world.taskCard(title).click();

@@ -136,6 +136,7 @@ export default {
       carriedFrom: { label: 'Zeigen, woher verschobene Listen kommen, yo', hint: 'Offene Listen von früher kriegen ein „Vom Sa., 10. Okt.“-Etikett. Wenn aus, stehen die einfach bei heute, Digga.' },
       undatedDone: { label: 'Erledigte Liste ohne Datum, yo', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv, Digga' },
       taskOpen: { label: 'Tippen auf ne Aufgabenliste, yo', inline: 'Wächst an Ort und Stelle', drawer: 'Macht die Liste auf, Digga' },
+      growSeveral: { label: 'Mehrere Listen offen lassen, yo', hint: 'Angetippte Listen bleiben offen, bis du auf ihren Titel tippst. Aus: Ne neue Liste macht die vorherige zu.' },
       taskCategories: { label: 'Kategorien für Aufgabenlisten, yo', hint: 'Aufgabenlisten nach Kategorie gruppieren, sortieren, filtern und einfärben. Ausschalten blendet nur aus, nix wird gelöscht, Digga.' },
       addCategory: 'Kategorie am Start, yo',
       editCategory: '{name} pimpen',

@@ -607,6 +607,12 @@ describe('settings', () => {
     const ids = m.calls.filter((c) => c.method === 'PUT' && c.path === '/api/categories/order').map((c) => (c.body as { categoryIds: string[] }).categoryIds.length);
     expect(ids).toEqual([4]);
   });
+  it('offers "Keep several lists open" only while a tap grows the list in place', async () => {
+    const { w } = await mountAt('/settings/tasklists');
+    await wait(() => expect(w.find(tid('settings-grow-several')).exists()).toBe(true));
+    await w.get(tid('settings-task-open-drawer')).trigger('click');
+    await wait(() => expect(w.find(tid('settings-grow-several')).exists()).toBe(false));
+  });
   it('adds a category through the dialog and validates it', async () => {
     const { w } = await mountAt('/settings/tasklists');
     await wait(() => expect(w.find(tid('settings-category-add')).exists()).toBe(true));

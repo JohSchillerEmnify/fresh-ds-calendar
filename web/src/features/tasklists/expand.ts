@@ -1,4 +1,5 @@
 /** Pure placement maths for the card that expands in place over the calendar (feature tasklists-expand-card). */
+import { reactive } from 'vue';
 
 export interface Box { left: number; top: number; right: number; bottom: number }
 export interface Placement {
@@ -9,6 +10,18 @@ export interface Placement {
   maxHeight: number;
   /** Where the card grows from its collapsed box. */
   dir: 'down' | 'up';
+}
+
+/** Start minute of every grown card on screen, by `list|day`: the later one is drawn above the earlier (see `layerOf`). */
+export const grownStarts = reactive(new Map<string, number>());
+
+/** Stacking layer of a grown card: below the sheet's layer (50); later in time above earlier, the tapped one on top (49). */
+export function layerOf(key: string, front: boolean): number {
+  if (front) return 49;
+  const mine = grownStarts.get(key) ?? 0;
+  let rank = 0;
+  for (const [k, s] of grownStarts) if (s < mine || (s === mine && k < key)) rank++;
+  return 40 + Math.min(8, rank);
 }
 
 /** Room kept between the card and the edge of the area it must stay in. */
