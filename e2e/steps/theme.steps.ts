@@ -770,10 +770,19 @@ Then('the task item checkboxes are drawn as {string} with a {string} mark', asyn
   expect(shown).toEqual([glyph]);
 });
 
+/** The glyph paths of the icons last checked per scenario, to prove another set draws other shapes. */
+const drawnIcons = new WeakMap<object, { set: string; drawing: string }>();
+
 Then('the app uses the {string} icon set', async function (this: World, set: string) {
   await expect(this.page.locator('html')).toHaveAttribute('data-icons', set);
   // the icons of the menu itself are drawn in that set too
   await expect(this.page.getByTestId('theme-back').locator('svg').first()).toHaveAttribute('data-icon-set', set);
+  // every icon on screen (the menu's per-option samples excepted) is drawn in that set, and the drawn glyphs differ from the previously checked set
+  await expect.poll(() => this.page.evaluate(() => [...new Set([...document.querySelectorAll('svg[data-icon-set]')].filter((e) => !e.closest('.isamp')).map((e) => e.getAttribute('data-icon-set')))].join())).toBe(set);
+  const drawing = await this.page.evaluate(() => [...document.querySelectorAll('svg[data-icon-set]')].filter((e) => !e.closest('.isamp')).map((e) => [...e.querySelectorAll('path')].map((p) => p.getAttribute('d')).join('')).join('|'));
+  const before = drawnIcons.get(this);
+  drawnIcons.set(this, { set, drawing });
+  if (before && before.set !== set) expect(drawing, `icons drawn in "${set}" look the same as in "${before.set}"`).not.toBe(before.drawing);
 });
 
 Then('every option of the {string} setting shows a sample icon', async function (this: World, label: string) {

@@ -46,7 +46,7 @@ export default {
   checkboxShape: { label: 'Checkbox shape', round: 'Round', square: 'Square', rounded: 'Rounded' },
   checkFill: { label: 'Checkbox fill', filled: 'Filled', outline: 'Outline' },
   checkGlyph: { label: 'Check mark', tick: 'Tick', bold: 'Bold tick', cross: 'Cross', dot: 'Dot' },
-  iconSet: { label: 'Icon set', outlined: 'Outlined', rounded: 'Rounded', sharp: 'Sharp' },
+  iconSet: { label: 'Icon set', outlined: 'Outlined', rounded: 'Rounded', sharp: 'Sharp', solar: 'Solar', phosphor: 'Phosphor', pixelart: 'Pixel' },
   saveOwn: {
     button: 'Save as my theme',
     title: 'Save as my theme',

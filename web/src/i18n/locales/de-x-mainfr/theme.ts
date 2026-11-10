@@ -48,7 +48,7 @@ export default {
   checkboxShape: { label: 'Form vom Kästla', round: 'Rund', square: 'Eckig', rounded: 'Abgerundd' },
   checkFill: { label: 'Füllung vom Kästla', filled: 'Gfülld', outline: 'Umriss' },
   checkGlyph: { label: 'Häkchen', tick: 'Haken', bold: 'Fetter Haggn', cross: 'Kreuz', dot: 'Punkt' },
-  iconSet: { label: 'Symbolsadz', outlined: 'Umrandd', rounded: 'Abgerundd', sharp: 'Eckig' },
+  iconSet: { label: 'Symbolsadz', outlined: 'Umrandd', rounded: 'Abgerundd', sharp: 'Eckig', solar: 'Solar', phosphor: 'Phosphor', pixelart: 'Pixel' },
   saveOwn: {
     button: 'Als mei Design speichern',
     title: 'Als mei Design speichern',

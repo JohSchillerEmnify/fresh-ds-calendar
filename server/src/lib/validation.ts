@@ -193,7 +193,7 @@ const themeOverrides = so({
   checkbox: v.optional(v.picklist(['round', 'square', 'rounded'], 'Invalid checkbox shape')),
   checkFill: v.optional(v.picklist(['filled', 'outline'], 'Invalid checkbox fill')),
   check: v.optional(v.picklist(['tick', 'bold', 'cross', 'dot'], 'Invalid check mark')),
-  icons: v.optional(v.picklist(['outlined', 'rounded', 'sharp'], 'Invalid icon set')),
+  icons: v.optional(v.picklist(['outlined', 'rounded', 'sharp', 'solar', 'phosphor', 'pixelart'], 'Invalid icon set')),
 });
 const presetName = v.picklist([
   'Default', 'Neon', 'Spring', 'Easter', 'Summer', 'Summer holidays', 'Fall', 'Halloween', 'Christmas', 'New Year\'s Eve', 'New Year', 'Winter', 'Mordor',

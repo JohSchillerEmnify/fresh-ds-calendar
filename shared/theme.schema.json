@@ -254,7 +254,10 @@
       "enum": [
         "outlined",
         "rounded",
-        "sharp"
+        "sharp",
+        "solar",
+        "phosphor",
+        "pixelart"
       ],
       "default": "outlined",
       "description": "Style of the app's icons."
