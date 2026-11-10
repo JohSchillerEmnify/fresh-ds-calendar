@@ -386,3 +386,67 @@ Then('the items area of the expanded task list {string} is under 44 px tall', as
   const r = await rectOf(grown(this, title).getByTestId('tasklist-grown-ext'));
   expect(r.height).toBeLessThan(44);
 });
+
+// --- one-line task lists (feature tasklists-one-line) ---------------------------------------------------------
+
+const untitledCard = (w: World) => w.page.locator(`${tid('tasklist-card')}${attr('data-untitled', 'true')}`).first();
+const cardTitled = (w: World, title: string) => (title ? w.taskCard(title) : untitledCard(w));
+
+Then('the list sheet of the titleless task list is open', async function (this: World) {
+  await expect(this.page.locator(`${tid('tasklist-expanded')}:not(${attr('data-presentation', 'overlay')})`).first()).toBeVisible();
+});
+
+const looks = (card: Locator) => card.evaluate((c) => {
+  const title = c.querySelector('[data-testid="tasklist-card-title"]')!;
+  const cs = getComputedStyle(title);
+  const tb = title.getBoundingClientRect();
+  return {
+    checks: c.querySelectorAll('[data-testid="tasklist-card-check"]').length, count: c.querySelectorAll('[data-testid="tasklist-card-count"]').length,
+    bar: c.querySelectorAll('[data-testid="tasklist-card-bar"]').length, ring: c.querySelectorAll('[data-testid="tasklist-progress-ring"]').length,
+    items: [...c.querySelectorAll('[data-testid="tasklist-card-item"]')].filter((i) => i.getBoundingClientRect().height > 1).length,
+    height: Math.round(c.getBoundingClientRect().height), size: cs.fontSize, weight: cs.fontWeight, titleLeft: Math.round(tb.left - c.getBoundingClientRect().left), titleHeight: Math.round(tb.height),
+  };
+});
+
+Then('the task lists {string} and {string} show one checkbox, the same type, no count and no progress bar', async function (this: World, a: string, b: string) {
+  const [x, y] = [await looks(cardTitled(this, a)), await looks(cardTitled(this, b))];
+  expect(x).toEqual(y);
+  expect(x).toMatchObject({ checks: 1, count: 0, bar: 0, ring: 0, items: 0 });
+});
+
+When('I tick the checkbox of the titleless task list', async function (this: World) {
+  await untitledCard(this).getByTestId('tasklist-card-check').click();
+});
+
+When('I tick the checkbox of the task list {string}', async function (this: World, title: string) {
+  await this.taskCard(title).getByTestId('tasklist-card-check').click();
+});
+
+Then('the titleless task list is struck through', async function (this: World) {
+  const el = untitledCard(this).getByTestId('tasklist-card-title');
+  await expect(el).toHaveAttribute('data-struck', 'true');
+  await expect(el.getByTestId('strike-line')).toBeVisible();
+});
+
+async function checkAboveText(w: World, card: Locator) {
+  const r = await card.evaluate((c) => {
+    const cb = c.querySelector('[data-testid="tasklist-card-check"]')!.getBoundingClientRect();
+    const tx = c.querySelector('[data-testid="tasklist-card-title"]')!.getBoundingClientRect();
+    const cr = c.getBoundingClientRect();
+    return { cbBottom: cb.bottom, txTop: tx.top, txWidth: tx.width, room: cr.width };
+  });
+  expect(r.cbBottom, 'checkbox bottom vs text top').toBeLessThanOrEqual(r.txTop + 1);
+  expect(r.txWidth, 'text uses the width').toBeGreaterThan(r.room * 0.6);
+}
+
+Then('in the task list {string} the checkbox sits above the text', async function (this: World, title: string) {
+  await checkAboveText(this, this.taskCard(title));
+});
+
+Then('in the titleless task list the checkbox sits above the text', async function (this: World) {
+  await checkAboveText(this, untitledCard(this));
+});
+
+Then('the task list {string} shows no placeholder', async function (this: World, title: string) {
+  await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveCount(0);
+});

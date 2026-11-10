@@ -196,10 +196,6 @@ Then('the task list {string} shows its title without overlap', async function (t
   })).toEqual([]);
 });
 
-Then('the collapsed task list {string} shows {string}', async function (this: World, title: string, text: string) {
-  await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(text));
-});
-
 Then('the task list {string} is positioned at {time}', async function (this: World, title: string, time: string) {
   const card = this.taskCard(title);
   await expect(card).toHaveAttribute('data-time', time);

@@ -365,9 +365,8 @@ Then('the checkbox of every item of the card of {string} is centred on its row',
 });
 Then('the card of the untitled task list shows the ink as its title', async function (this: World) {
   const card = this.page.locator('[data-testid="tasklist-card"][data-untitled="true"]').locator('visible=true').first();
-  await expect(card.getByTestId('tasklist-card-lead').getByTestId('ink-line')).toBeVisible();
+  await expect(card.getByTestId('tasklist-card-title').getByTestId('ink-line')).toBeVisible();
   await expect(card.getByTestId('tasklist-card-item').first()).toBeHidden();
-  await expect(card.getByTestId('tasklist-card-title')).toHaveCount(0);
 });
 Then('a pen stroke on the card draws nothing', async function (this: World) {
   const line = this.taskCard('Groceries').locator('[data-ink="true"]').first().getByTestId('ink-line');
@@ -567,7 +566,8 @@ Then('the title field is not a writing area', async function (this: World) {
   await expect(dialog(this).getByTestId('tasklist-title').locator('svg[data-testid="ink-line"]')).toHaveCount(0);
 });
 Then('the collapsed task list shows the items {string}', async function (this: World, list: string) {
-  const shown = this.page.locator('[data-testid="tasklist-card-item"], [data-testid="tasklist-item-title"]');
+  // a one-item list without a title shows its item in the title slot
+  const shown = this.page.locator('[data-testid="tasklist-card-item"], [data-testid="tasklist-card-title"], [data-testid="tasklist-item-title"]');
   await expect.poll(async () => (await shown.allTextContents()).map((s) => s.trim()).filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).join(', ')).toBe(list);
 });
 

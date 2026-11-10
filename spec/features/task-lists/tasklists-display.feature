@@ -216,11 +216,11 @@ Feature: Task lists in the calendar views
     When I open the week view for 2026-10-12
     Then the task list "Weekend" shows the item "Call mum" below its title
 
-  Scenario: An empty task list shows a zero count and a placeholder
+  Scenario: An empty task list is one task: its title, one checkbox, no count and no placeholder
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
     When I open the day view for 2026-10-14
-    Then the task list "Ideas" shows the done count "0/0"
-    And the collapsed task list "Ideas" shows "No items"
+    Then the task list "Ideas" shows no done count
+    And the task list "Ideas" shows no placeholder
 
   Scenario: A task list on another day is not shown in the day view
     When I open the day view for 2026-10-13
