@@ -86,7 +86,7 @@ const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value 
   <Pressable
     ref="rootRef" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, narrow }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-calendar-id="ev.calendarId" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
-    :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-current="current || undefined"
+    :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-one-line="(variant === 'block' && lines === 1) || undefined" :data-current="current || undefined"
     :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
@@ -149,5 +149,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
   .chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   .allday { min-height: 18px; }
   .allday .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  /* a block one line tall is a one-line entry: it fades out like a chip; two or more lines keep the ellipsis */
+  .block[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 </style>

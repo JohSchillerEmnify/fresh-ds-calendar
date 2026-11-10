@@ -197,7 +197,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" :data-one-line="(variant === 'block' && !!one && oneLines === 1) || undefined" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <component :is="grown ? Pressable : 'span'" class="row" :class="{ pillbtn: grown }" :aria-label="grown ? t(title ? 'tasks.card.collapse' : 'tasks.card.collapseUntitled', { title }) : undefined" data-testid="tasklist-card-pill">
@@ -420,6 +420,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* phones: a card's title and item names fade out like every other one-line entry; short labels (time, estimate) keep the ellipsis */
 @media (max-width: 767.98px) {
   .title, .it { --tl-cut: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  /* a one-line list in a block one line tall fades out like an event of that size */
+  .block.one[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; overflow: hidden; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
