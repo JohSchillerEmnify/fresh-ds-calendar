@@ -218,8 +218,9 @@ Then('I see the map buttons {string} under the map', async function (this: World
   await expect(group).toBeVisible();
   await expect(group.getByRole('link')).toHaveText(list.split(', '));
   const map = dialog(this).locator(`${tid('event-map')}, ${tid('event-map-placeholder')}`).first();
-  const [m, g] = [await map.boundingBox(), await group.boundingBox()];
-  expect(g!.y, 'buttons below the map').toBeGreaterThanOrEqual(m!.y + m!.height - 0.5);
+  // both boxes in one read: the dialog scrolls the map into view, so two reads would measure two moments
+  const mapEl = await map.elementHandle();
+  await expect.poll(() => group.evaluate((g, m) => g.getBoundingClientRect().top - m!.getBoundingClientRect().bottom, mapEl), { message: 'buttons below the map' }).toBeGreaterThanOrEqual(-0.5);
 });
 
 /** The Google Maps search page for a place: its position as `query=<lat>,<lon>`. */
