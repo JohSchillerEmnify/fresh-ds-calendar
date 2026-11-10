@@ -4168,5 +4168,6 @@ in the {view} view of {date} the marker of {string} is {float} px
   of the entry: the chip or block title, the multi-day bar title or the task list card title, whichever renders it.
 - "the density is S": `PATCH /api/prefs/theme { overrides: { density } }` (`Compact` 0.9, `Comfortable` 1, `Airy` 1.12).
 - "title is N px at weight W": computed `font-size` (1 decimal) and `font-weight` of that title.
-- "fades out instead of ending in an ellipsis": computed `text-overflow` is `clip` and `mask-image` is not `none`.
+- "fades out instead of ending in an ellipsis": computed `text-overflow` is `clip`, `-webkit-line-clamp` is `none` (a
+  line clamp draws its own ellipsis) and `mask-image` is not `none`.
 - "the marker of X is N px": computed `font-size` of the first visible `event-marker` inside the entry titled X.

@@ -216,7 +216,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .tl.complete { opacity: 0.55; }
 .it.done { text-decoration: line-through; }
 /* done state: a hand-drawn line over the title text (StrikeLine), not text-decoration */
-.tx { position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: top; --strike-w: 1.400px; }
+.tx { position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); vertical-align: top; --strike-w: 1.400px; }
 .mini .tx { text-overflow: clip; }
 .it.done { opacity: 0.7; }
 .row { display: flex; align-items: center; gap: 3px; min-width: 0; min-height: 16px; }
@@ -225,7 +225,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .tl.grown:focus-visible, .titlebtn:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .emoji { flex: none; font-size: var(--entry-meta); line-height: 1; }
 .title {
-  flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: var(--entry-weight); line-height: 16px; text-overflow: ellipsis;
+  flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: var(--entry-weight); line-height: 16px; text-overflow: var(--tl-cut, ellipsis);
 }
 /* the lead is the list's first item rendered in the title slot (an actual .it, so its marker and strike match the items
  * shown below); it just fills the row like a title would */
@@ -252,10 +252,10 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .it.lead:has(.inkitem) { flex: 1 1 0; padding-left: 0; }
 .it.lead:has(.inkitem)::before { display: none; }
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
-.items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
+.items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
 .items .sep { display: none; }
-.it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 12px; }
+.it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; padding-left: 12px; }
 .it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--on); border-radius: 2px; }
 .it.done::before { background: var(--on); }
 .it.over { display: none; }
@@ -363,7 +363,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    two-row overview's columns); below that — the 7-day week's 43 px columns — the title comes first and the count stays out */
 @container (min-width: 70px) { .tl.grown[data-tight='true'] .count { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
 /* a tight pill (one line) keeps the title on that line with an ellipsis — the pill never grows past the real block */
-.tl.grown[data-tight='true'] .title, .tl.grown[data-tight='true'] .tx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; hyphens: manual; }.tl.grown:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: auto; }
+.tl.grown[data-tight='true'] .title, .tl.grown[data-tight='true'] .tx { white-space: nowrap; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); overflow-wrap: normal; hyphens: manual; }.tl.grown:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: auto; }
 .tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; position: relative; min-width: 0; }
 .tl.grown:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); left: -1px; right: -1px; }
 .tl.grown:not(.flat) .pbar { display: none; }
@@ -379,6 +379,11 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* card: month cell. Foot hidden, the cell is small */
 .card { flex: none; padding: 2px 4px 3px; }
 .card .foot { display: none; }
+
+/* phones: a card's title and item names fade out like every other one-line entry; short labels (time, estimate) keep the ellipsis */
+@media (max-width: 767.98px) {
+  .title, .it { --tl-cut: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+}
 
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
 .mini { padding: 1px 2px 2px 3px; }
