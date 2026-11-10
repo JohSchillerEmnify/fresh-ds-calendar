@@ -32,8 +32,10 @@ Then('in the {view} view of {date} the title of {string} fades out instead of en
   await open(this, view, date);
   const title = titleOf(this, name);
   await expect(title).toBeVisible();
-  const style = await title.evaluate((n) => { const s = getComputedStyle(n); return { overflow: s.textOverflow, mask: s.maskImage || s.webkitMaskImage }; });
+  const style = await title.evaluate((n) => { const s = getComputedStyle(n); return { overflow: s.textOverflow, clamp: s.webkitLineClamp, mask: s.maskImage || s.webkitMaskImage }; });
   expect(style.overflow).toBe('clip');
+  // a line clamp draws its own ellipsis whatever text-overflow says
+  expect(style.clamp).toBe('none');
   expect(style.mask).not.toBe('none');
 });
 
