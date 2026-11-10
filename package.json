@@ -35,15 +35,15 @@
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/share": "8.0.3",
     "@eslint/js": "^10.0.1",
-    "dependency-cruiser": "^18.7.0",
-    "eslint": "^10.13.0",
+    "dependency-cruiser": "^18.7.2",
+    "eslint": "^10.14.0",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-vue": "^10.12.0",
-    "globals": "^17.13.0",
+    "globals": "^17.14.0",
     "jscpd": "^5.4.2",
-    "knip": "^6.43.0",
+    "knip": "^6.44.1",
     "typescript-eslint": "^8.72.1",
-    "vue-eslint-parser": "^10.4.1"
+    "vue-eslint-parser": "^10.4.2"
   },
   "license": "AGPL-3.0-only"
 }
