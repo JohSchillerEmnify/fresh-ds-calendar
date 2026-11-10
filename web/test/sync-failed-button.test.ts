@@ -36,6 +36,15 @@ describe('sync failed icon', () => {
     expect(w.find(tid('sync-failed-icon')).exists()).toBe(false);
   });
 
+  it('shows exactly 5 minutes after the last success, not at the next minute tick', async () => {
+    vi.setSystemTime(T0 + 30_000);
+    const { w } = mountButton();
+    await vi.advanceTimersByTimeAsync(5 * 60_000 - 1);
+    expect(w.find(tid('sync-failed-icon')).exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(w.find(tid('sync-failed-icon')).exists()).toBe(true);
+  });
+
   it('waits for a sync that is running', async () => {
     const { sync, w } = mountButton();
     sync.state = 'syncing';

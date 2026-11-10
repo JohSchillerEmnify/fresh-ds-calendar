@@ -46,6 +46,12 @@ When('I wait for the automatic sync', async function (this: World) {
     .poll(() => status.getAttribute('data-last-sync').catch(() => null), { timeout })
     .not.toBe(before)
     .then(() => 'last-sync', () => null);
+  // A running fake clock is paused: move it one poll interval on so the app's timer fires.
+  if (this.clockNowMs !== undefined) {
+    this.clockNowMs += poll;
+    await this.page.clock.runFor(poll);
+    await this.api.setClock(new Date(this.clockNowMs).toISOString(), false);
+  }
   // Both only reject on timeout; the loser is left to settle quietly.
   if (!(await Promise.race([response, changed]))) throw new Error(`No automatic sync within ${timeout} ms`);
   await expect(status).not.toHaveAttribute('data-state', 'syncing');

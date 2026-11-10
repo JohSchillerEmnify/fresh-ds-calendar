@@ -251,6 +251,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | item | done |
         | Milk | no   |
       And automatic sync is disabled
+      And the time is 2026-10-12 08:12 and the clock is running
       And I have seen the day view for 2026-10-12
       And the network connection is lost
       And I expand the task list "Groceries"
@@ -273,6 +274,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
     Scenario: An unreachable Google for 5 minutes shows the sync failed icon too
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync runs every 30 seconds
+      And the time is 2026-10-12 08:12 and the clock is running
       And I have seen the week view for 2026-10-12
       And Google becomes unavailable
       When 5 minutes pass
@@ -284,6 +286,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
     Scenario: With nothing to send the icon still shows after 5 minutes of failing syncs and says so
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync runs every 30 seconds
+      And the time is 2026-10-12 08:12 and the clock is running
       And I have seen the week view for 2026-10-12
       And the network connection is lost
       When 5 minutes pass

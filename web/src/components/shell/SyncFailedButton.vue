@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onScopeDispose, ref, watch } from 'vue';
 import { IconAdd, IconCheck, IconCloudOff, IconDeleteOutline, IconEditOutline } from '@/components/icons';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { t } from '@/i18n';
 import { formatDate, parseIsoDate } from '@/lib/dates';
 import { clampLeft } from '@/lib/clamp';
+import { appTimeout } from '@/lib/timers';
 import { kindOf, type ChangeKind } from '@/lib/outbox';
 import { useClockStore } from '@/stores/clock';
 import { useOutboxStore } from '@/stores/outbox';
@@ -22,9 +23,17 @@ const clock = useClockStore();
 
 /** The newest success of a send or a sync. */
 const lastOk = computed(() => (outbox.lastSent && outbox.lastSent.wall > sync.lastOk.wall ? outbox.lastSent : sync.lastOk));
+// one-shot at the 5-minute mark (the minute tick alone shows the icon up to a minute late; it still re-checks after sleep)
+const recheck = ref(0);
+let stopRecheck: (() => void) | null = null;
+watch(lastOk, (ok) => {
+  stopRecheck?.();
+  const left = FAILED_AFTER_MS - (Date.now() - ok.wall);
+  stopRecheck = left > 0 ? appTimeout(() => { recheck.value++; }, left) : null;
+}, { immediate: true });
+onScopeDispose(() => stopRecheck?.());
 /** A sync that is running may be about to succeed (the app just became visible again): no icon meanwhile. */
-// the clock's minute tick is the re-check trigger, so this component owns no timer
-const failed = computed(() => sync.state !== 'syncing' && (clock.nowTick, Date.now()) - lastOk.value.wall >= FAILED_AFTER_MS);
+const failed = computed(() => sync.state !== 'syncing' && (clock.nowTick, recheck.value, Date.now()) - lastOk.value.wall >= FAILED_AFTER_MS);
 
 const open = ref(false);
 const button = ref<{ $el: HTMLElement } | null>(null);
