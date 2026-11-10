@@ -442,7 +442,6 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
   .title[data-cut], .it { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   /* inline names share one line: only the line's end fades (the .items rule), never each name */
   .block[data-fit='inline'] .it { -webkit-mask-image: none; mask-image: none; }
-  .items[data-fade='true'] .it.fadeout { -webkit-mask-image: var(--fade-last-row); mask-image: var(--fade-last-row); }
   /* a one-line list in a block one line tall fades out like an event of that size */
   .block.one[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; overflow: hidden; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }

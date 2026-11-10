@@ -37,7 +37,7 @@ describe('timed task list block in a 47 x 45 px column', () => {
 });
 
 describe('inline mode for blocks of about an hour or less in a wide column', () => {
-  beforeEach(() => { cardWidth.px = 200; });
+  beforeEach(() => { cardWidth.px = 420; });
   afterEach(() => { cardWidth.px = 47; });
   const mount2 = (n: number, height: number) => mount(TaskListCard, { props: { segment: itemSegments(list(n))[0], variant: 'block', height } });
   it('44 px block: every open item inline (the line fades out), no fade, no time footer', () => {
@@ -48,6 +48,11 @@ describe('inline mode for blocks of about an hour or less in a wide column', () 
     expect(w.findAll('.sep:not(.nosep)')).toHaveLength(4);
     expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     expect(w.find('.foot').exists()).toBe(false);
+  });
+  it('a titled card under 400 px puts the names in rows below the title when a row fits', () => {
+    freshPinia();
+    cardWidth.px = 200;
+    expect(mount2(5, 44).attributes('data-fit')).not.toBe('inline');
   });
   it('taller blocks keep list rows', () => {
     freshPinia();
