@@ -1,4 +1,4 @@
-# 0040 The map picker uses Leaflet on the existing tiles and asks for the device position only on tap
+# 0041 The map picker uses Leaflet on the existing tiles and asks for the device position only on tap
 
 Status: accepted (issue #58)
 

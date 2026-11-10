@@ -71,14 +71,16 @@ variable `DEPLOY_ENABLED` is `true`. It builds the image, pushes it to `ghcr.io/
 on the VPS over SSH with a dedicated key whose `authorized_keys` entry forces `/opt/calendar/deploy-from-ghcr.sh`
 (`deploy/deploy-from-ghcr.sh`; ADR 0036). The script validates the digest, pulls, keeps `calendar:previous`, restarts compose,
 waits for `/api/health` and rolls back by itself; the workflow finally curls `APP_URL/api/health`. Deploys run one at a time
-(concurrency group `deploy`, never cancelled). It does not ship `compose.yml`, the Caddyfile or the APK: use
-`scripts/vps.sh deploy` for those.
+(concurrency group `deploy`, never cancelled). It does not ship `compose.yml` or the Caddyfile: use
+`scripts/vps.sh deploy` for those. The APK follows the server deploy automatically, see "Android app".
 
 | Setting | Kind | Value |
 |---|---|---|
 | `DEPLOY_SSH_KEY` | secret | private half of the CD key |
 | `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`, `APP_URL`, `DEPLOY_ENABLED` | variables | VPS host, its pinned host key line(s), `https://<CAL_DOMAIN>`, `true` |
 | `DEPLOY_USER` | variable, optional | SSH user, default `root` |
+| `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | secrets of the environment `android-release` only | release keystore (base64) and its credentials; only the job `apk-sign` can read them |
+| `APK_CERT_SHA256` | line in `/opt/calendar/deploy.env` on the VPS | public release certificate pin, the forced command's check |
 
 Setup is one command run by the owner (it touches the VPS and repository secrets): `VPS_HOST=<ip> CAL_DOMAIN=<host>
 ~/.local/share/calendar-tools/bin/setup-cd` (generates `~/.config/calendar/deploy_key`, installs the script and the forced-command key
@@ -180,7 +182,16 @@ automatically at sign-in; Settings → Account & data has **Back up now** and **
 
 ## Android app
 
-Build on the laptop (Gradle runs in the `calendar-android-build` image from `android/build.Dockerfile`, capped at
+**Automatic (ADR 0040).** After a server deploy, `deploy.yml` builds the unsigned APK (job `apk-build`, no secrets) when native
+code changed since the last `apk-*` release (`android/`, `capacitor.config.*`, `@capacitor` dependency lines), or when
+started by hand with `force_apk`. Job `apk-sign` (environment `android-release`, the only holder of the keystore secrets)
+signs it, checks the pinned certificate and publishes release `apk-<version>` with `app-release.apk` and `app.json`; job
+`apk-ship` runs `apk apk-<version>` through the CD key, and the forced command downloads that release, verifies sha256 and
+the pin and puts both files into `/data/downloads`. One-time setup by the owner: `VPS_HOST=<ip>
+~/.local/share/calendar-tools/bin/apk-ci-setup` (creates the environment for `main` only, sets its secrets from
+`~/calendar-android-key`, reinstalls the forced command, writes the pin into `deploy.env`).
+
+Manual path: build on the laptop (Gradle runs in the `calendar-android-build` image from `android/build.Dockerfile`, capped at
 3 CPUs / 4 GB with low CPU shares; about 1 min with a warm cache in `~/.cache/calendar-gradle`), then ship it with the
 deploy:
 

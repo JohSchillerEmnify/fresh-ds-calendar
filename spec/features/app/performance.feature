@@ -3,7 +3,8 @@ Feature: Resource efficiency and no memory leaks
   Hard requirements. Browser memory is measured after a forced garbage collection, and only after every workload
   of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner); the node count settles after the second pass
   through the workloads (a one-time step of about 600 nodes, then flat over 100 more view cycles), so the warm-up runs twice;
-  server memory through the test-only memory endpoint. These scenarios run only at the
+  the JS heap leaves out V8's compiled code, which keeps growing for hundreds of cycles while the JIT tiers up (+1.8 MB over
+  250 cycles; objects and arrays +45 KB, once; with the JIT off the heap stays flat); server memory through the test-only memory endpoint. These scenarios run only at the
   phone viewport, serially.
 
   Background:
@@ -48,9 +49,10 @@ Feature: Resource efficiency and no memory leaks
     Then at most 0 requests to "/api/changes" were counted
 
   Scenario: The first load stays within the JavaScript budget
-    200 KB compressed (owner, 2026-10-23: raised from 150; well under the 1 MB that would matter).
+    220 KB compressed (owner: 2026-10-23 raised from 150 to 200; 2026-11-10 raised to 220 for the new icon sets and the
+    credits list). A ceiling, not a target; well under the 1 MB that would matter.
     When I open the app
-    Then the JavaScript downloaded for the first load is at most 200 KB compressed
+    Then the JavaScript downloaded for the first load is at most 220 KB compressed
     And the month view was rendered within 2000 ms of navigation start
 
   @month
