@@ -31,7 +31,7 @@ export function runningVersion(): string {
 }
 
 /** Activate a waiting service worker (if any), then reload. Remembers the target so a reload that comes back old is not re-offered. */
-function reload(): void {
+export function reload(): void {
   if (latest) remember(RELOADED_KEY, latest);
   if (!waiting) { location.reload(); return; }
   navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
@@ -128,6 +128,49 @@ export async function checkVersion(serverVersion: string, apk?: { versionCode: n
   latest = serverVersion;
   if (suppressed(serverVersion)) return;
   await offerWhenReady();
+}
+
+/** Resolves once `w` has installed; false when it became redundant or took too long. */
+function installed(w: ServiceWorker): Promise<boolean> {
+  if (w.state === 'installed') return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), 30_000);
+    w.addEventListener('statechange', () => {
+      if (w.state !== 'installed' && w.state !== 'redundant') return;
+      clearTimeout(timer);
+      resolve(w.state === 'installed');
+    });
+  });
+}
+
+/** Fetches the newest worker and keeps it for `reload()`; false when that failed (offline). */
+async function prepareWorker(): Promise<boolean> {
+  if (!navigator.serviceWorker?.controller) return true;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return true;
+    await reg.update();
+    if (reg.installing && !await installed(reg.installing)) return false;
+    waiting = reg.waiting;
+    return true;
+  } catch (e) {
+    logDevice('sw', { step: 'update', ...errorFacts(e) });
+    return false;
+  }
+}
+
+/** Outcome of a manual check: nothing newer, a web update to load, a newer APK offered, or no answer. */
+export type UpdateCheck = 'current' | 'ready' | 'apk' | 'failed';
+
+/** The "Check for updates" button: asks the server now and ignores what was dismissed or already tried (the person asked). */
+export async function checkForUpdate(): Promise<UpdateCheck> {
+  let c: Awaited<ReturnType<typeof api.config>>;
+  try { c = await api.config(); } catch { return 'failed'; }
+  if (await checkApk(c.apk, true)) return 'apk';
+  if (!c.version || c.version === runningVersion()) return 'current';
+  latest = c.version;
+  try { sessionStorage.removeItem(DISMISSED_KEY); sessionStorage.removeItem(RELOADED_KEY); } catch { /* storage unavailable: nothing remembered */ }
+  return await prepareWorker() ? 'ready' : 'failed';
 }
 
 /** Lightweight `/api/config` fetch for syncs that do not reload the clock; failures are ignored (offline). */

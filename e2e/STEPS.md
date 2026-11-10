@@ -909,6 +909,10 @@ the settings show the version {string}
 the server offers an app signed with the certificate {string}
 the settings show the app certificate {string}
 the corner shows the version {string}
+the version row offers {string}
+the version row says {string}
+I check for updates
+I load the update
 the settings screen is shown
 I open the credits
 the credits list shows {string} with the licence {string}

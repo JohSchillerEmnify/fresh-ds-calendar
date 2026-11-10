@@ -168,6 +168,7 @@ export default {
       signOutAll: { label: 'Überall Schönen Day noch, yo', hint: 'Beendet die Anmeldung auf allen Geräten, auch auf diesem', button: 'Überall abmelden, yo' },
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Google Kalender ist nicht erlaubt, Schinken! Erlaub ihn und setz auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalender erlauben, yo' },
       resetDemo: { label: 'Demodaten resetten, yo', hint: 'Ersetzt den Demokalender durch frische Demotermine. Kind auf die Türmatte, klingeln, wegrennen.', button: 'Hokus Pokus', done: 'Back from the Underground: Der Phönix ersteht aus seiner Asche, Demodaten sind da. Yo, vielen lieben thank und schönen day noch!', failed: 'Ich bin alt, ich bin bald tot, aus Grün wird Rot: Demodaten nicht resettet' },
+      update: { check: 'Nach Updates checken, yo', checking: 'Checke gerade…', current: 'Das ist die neueste Version, fresh.', ready: 'Eine neue Version ist am Start.', load: 'Jetzt laden, fresh', apk: 'Eine neue App-Version ist am Start.', failed: 'Hat nicht geklappt, yo. Probier es später nochmal.' },
       version: 'Version {version}, yo',
       appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was geht ab, yo' },

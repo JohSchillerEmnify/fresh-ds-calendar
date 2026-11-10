@@ -14,6 +14,7 @@ import { t } from '@/i18n';
 import { androidAppLabelKey, downloadApk, isNativeApp } from '@/native/app';
 import { isIos as detectIos, isStandalone } from '@/pwa/install';
 import { shownVersion } from '@/pwa/version';
+import { checkForUpdate, reload as loadUpdate, type UpdateCheck } from '@/pwa/update';
 import { useAuthStore } from '@/stores/auth';
 import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
@@ -52,6 +53,18 @@ async function runRestore() {
   confirmRestore.value = false;
   const r = await backup.restore();
   if (!r.ok) ui.notify(r.message);
+}
+
+const updateState = ref<'idle' | 'checking' | UpdateCheck>('idle');
+const updateHint = computed(() => {
+  const s = updateState.value;
+  const text = s === 'current' ? t('settings.account.update.current') : s === 'ready' ? t('settings.account.update.ready')
+    : s === 'apk' ? t('settings.account.update.apk') : s === 'failed' ? t('settings.account.update.failed') : '';
+  return [build.sha, text].filter(Boolean).join(' · ') || undefined;
+});
+async function checkUpdate() {
+  updateState.value = 'checking';
+  updateState.value = await checkForUpdate();
 }
 
 const isMock = computed(() => clock.config.provider === 'mock');
@@ -107,7 +120,11 @@ async function resetDemo() {
   </SettingRow>
   <SettingRow id="whatsNew" link :label="t('settings.account.whatsNew.label')" testid="settings-whats-new" @open="ui.openDialog('whats-new')" />
   <SettingRow id="errorLog" to="/settings/error-log" :label="t('deviceLog.row.label')" :hint="t('deviceLog.row.hint')" testid="settings-error-log" />
-  <SettingRow id="version" :label="t('settings.account.version', { version: build.version })" :hint="build.sha || undefined" testid="settings-version" />
+  <SettingRow id="version" :label="t('settings.account.version', { version: build.version })" :hint="updateHint" testid="settings-version">
+    <Button v-if="updateState === 'ready'" variant="tonal" data-testid="settings-update-load" @click="loadUpdate()">{{ t('settings.account.update.load') }}</Button>
+    <Button v-else-if="updateState === 'apk'" variant="tonal" data-testid="settings-update-apk" @click="downloadApk">{{ t('calendar.apk.download') }}</Button>
+    <Button v-else variant="tonal" :disabled="updateState === 'checking'" data-testid="settings-update-check" @click="checkUpdate">{{ t(updateState === 'checking' ? 'settings.account.update.checking' : 'settings.account.update.check') }}</Button>
+  </SettingRow>
   <SettingRow id="credits" link :label="t('settings.account.credits.label')" :hint="t('settings.account.credits.hint')" testid="settings-credits" @open="showCredits = true" />
   <SettingRow v-if="clock.config.apk?.certSha256" id="appCert" :label="t('settings.account.appCert.label')" :hint="t('settings.account.appCert.hint')">
     <template #sub><span class="cert" data-testid="settings-app-cert">{{ clock.config.apk.certSha256 }}</span></template>

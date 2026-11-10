@@ -165,6 +165,7 @@ export default {
       signOutAll: { label: 'Überall abmelden', hint: 'Beendet die Anmeldung auf allen Geräten, auch auf diesem', button: 'Überall abmelden' },
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehlt. Erlaube ihn und setze auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalenderzugriff erlauben' },
       resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Demokalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
+      update: { check: 'Nach Updates suchen', checking: 'Suche läuft…', current: 'Das ist die neueste Version.', ready: 'Eine neue Version ist bereit.', load: 'Jetzt laden', apk: 'Eine neue App-Version ist bereit.', failed: 'Die Suche hat nicht geklappt. Versuche es später noch einmal.' },
       version: 'Version {version}',
       appCert: { label: 'Signaturzertifikat der App (SHA-256)', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was ist neu' },
