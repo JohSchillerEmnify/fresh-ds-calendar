@@ -169,6 +169,7 @@ export default {
       version: 'Version {version}, yo',
       appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was geht ab, yo' },
+      credits: { label: 'Props, yo', hint: 'Bibliotheken und Inhalte, die diese App nutzt', title: 'Props, yo', intro: 'Diese App läuft mit den folgenden Bibliotheken und Inhalten. Respekt an alle, die sie bauen und teilen.', close: 'Zu, yo' },
       androidApp: { label: 'Android-App, fresh', updateLabel: 'App-Update, yo', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Läuft überall, Digga', download: 'Runterladen, yo' },
       installApp: { label: 'App installieren, yo', hint: 'Fresh D. auf deinen Home-Bildschirm, Digga', button: 'Zeig mal', title: 'Fresh D. installieren', step1: 'Tipp auf den Teilen-Button, yo', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügen, BÄMbus!', close: 'Alles klar, Digga' },
       versionCorner: { label: 'Version in der Ecke zeigen, yo' },
