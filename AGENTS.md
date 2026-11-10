@@ -164,7 +164,8 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   is needed instead. Production changes are run by a human or by GitHub CD. — A deploy race rolled production back.
 - **One deploy path: GitHub CD deploys `main` after a green CI run.** Use `scripts/vps.sh deploy` by hand only when
   CD is off or a human asks. A deploy that contains native changes (`android/`, widget, Capacitor plugins) ships the
-  APK with it. — Two deployers raced; web-only deploys left the app without the feature.
+  APK with it; CD builds, signs and ships it (ADR 0040), so check that its APK jobs went green. — Two deployers
+  raced; web-only deploys left the app without the feature.
 - **Debugging from logs: read the unfiltered recent log first,** narrow only afterwards, and check that a probe sends
   what you think (`curl -v`) before calling anything confirmed. — A narrow filter hid the answer for an hour.
 - **Give humans short commands.** Anything long goes into a script; one line they can copy. — Wrapped lines break.
