@@ -91,7 +91,7 @@ export const PREFS = {
   approachBar: bool(true),
   approachWindowHours: { default: 3, parse: (v) => (Number.isInteger(v) && v >= 1 && v <= 24 ? ok(v) : { error: 'approachWindowHours must be a whole number from 1 to 24' }) },
   approachingCard: bool(true),
-  approachTimeLeft: bool(true),
+  approachTimeLeft: bool(false),
   taskCategories: bool(true),
   tasksCalendarVisible: bool(false),
   supportCat: oneOf(['off', 'sometimes', 'always'], 'sometimes', 'Invalid support cat setting'),

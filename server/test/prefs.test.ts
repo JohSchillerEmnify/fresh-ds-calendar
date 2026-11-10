@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { labsViews: {}, stableViews: {}, tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, taskCategories: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, showCarriedFrom: true, navPhone: 'bottom', navDesktop: 'rail', tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', taskOpen: 'inline', growSeveral: true, tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 }, notify: { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' }, weekTwoRow: false, weekTwoRowTop: 4, labsHandwriting: false, minEventMinutes: 0, daySideBySide: 4, weekSideBySide: 2, streak: 'off', syncIndicator: false, headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: true, monthScroll: 'sideways', trayWidth: 380, calendarPlans: {} };
+    const rest = { labsViews: {}, stableViews: {}, tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, taskCategories: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, showCarriedFrom: true, navPhone: 'bottom', navDesktop: 'rail', tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', taskOpen: 'inline', growSeveral: true, tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 }, notify: { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' }, weekTwoRow: false, weekTwoRowTop: 4, labsHandwriting: false, minEventMinutes: 0, daySideBySide: 4, weekSideBySide: 2, streak: 'off', syncIndicator: false, headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: false, monthScroll: 'sideways', trayWidth: 380, calendarPlans: {} };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -130,7 +130,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, labsViews: {}, stableViews: {}, approachBar: true, approachWindowHours: 3, approachingCard: true, taskCategories: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, showCarriedFrom: true, navPhone: 'bottom', navDesktop: 'rail', tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', taskOpen: 'inline', growSeveral: true, tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 }, notify: { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' }, weekTwoRow: false, weekTwoRowTop: 4, labsHandwriting: false, minEventMinutes: 0, daySideBySide: 4, weekSideBySide: 2, streak: 'off', syncIndicator: false, headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: true, monthScroll: 'sideways', trayWidth: 380, calendarPlans: {} });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, labsViews: {}, stableViews: {}, approachBar: true, approachWindowHours: 3, approachingCard: true, taskCategories: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, showCarriedFrom: true, navPhone: 'bottom', navDesktop: 'rail', tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', taskOpen: 'inline', growSeveral: true, tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 }, notify: { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' }, weekTwoRow: false, weekTwoRowTop: 4, labsHandwriting: false, minEventMinutes: 0, daySideBySide: 4, weekSideBySide: 2, streak: 'off', syncIndicator: false, headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: false, monthScroll: 'sideways', trayWidth: 380, calendarPlans: {} });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 
@@ -206,7 +206,7 @@ describe('prefs (Labs switches)', () => {
   });
 
   it('keeps the header layout per person: two rows by default, two-rows or one-row only, never through the theme', async () => {
-    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: true });
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ headerLayout: 'auto', bottomBarSize: 'auto', approachTimeLeft: false });
     expect((await t.json('PATCH', '/api/prefs', { headerLayout: 'one-row' })).body).toMatchObject({ headerLayout: 'one-row' });
     for (const bad of ['One row', 'three-rows', true, null, 1]) expect((await t.json('PATCH', '/api/prefs', { headerLayout: bad })).status, JSON.stringify(bad)).toBe(400);
     // not theming: the theme route refuses it, and choosing a theme keeps it
@@ -223,11 +223,11 @@ describe('prefs (Labs switches)', () => {
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ syncIndicator: true });
   });
 
-  it('keeps the time-left switch of the Approaching card per person: on by default, boolean only', async () => {
-    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ approachTimeLeft: true });
-    expect((await t.json('PATCH', '/api/prefs', { approachTimeLeft: false })).body).toMatchObject({ approachTimeLeft: false });
-    for (const bad of ['yes', 1, null]) expect((await t.json('PATCH', '/api/prefs', { approachTimeLeft: bad })).status, JSON.stringify(bad)).toBe(400);
+  it('keeps the time-left switch of the Approaching card per person: off by default, boolean only', async () => {
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ approachTimeLeft: false });
+    expect((await t.json('PATCH', '/api/prefs', { approachTimeLeft: true })).body).toMatchObject({ approachTimeLeft: true });
+    for (const bad of ['yes', 1, null]) expect((await t.json('PATCH', '/api/prefs', { approachTimeLeft: bad })).status, JSON.stringify(bad)).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ approachTimeLeft: true });
   });
 
   it('keeps how many events sit side by side per person: day 1 to 4 (default 4), week 1 to 3 (default 2); 1 is "Only 1"', async () => {

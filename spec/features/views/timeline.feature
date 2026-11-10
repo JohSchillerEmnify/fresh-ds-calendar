@@ -84,6 +84,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
   Scenario: The Now card counts down the current event with a progress bar
     Given the time is 2026-10-12 09:20 and the clock is running
     And the approaching track is off
+    And the time left in the Approaching card is on
     When I open the day view for 2026-10-12
     And 95 minutes pass
     Then the now card shows the line "Dentist · 35 min left"

@@ -3,7 +3,10 @@ Feature: The Approaching card and its track
   The card above every calendar view is called Approaching (owner, 2026-10-13). It is always compact (a slim card) and can be
   switched off entirely in the settings. It is only there while something is on or ahead today: with nothing running,
   nothing timed still to come today and no night on its track, it is gone (0 px; owner, 2026-10-26, it replaces the
-  "Nothing else today" card). Its "Sprint Planning · 30 min left" line has its own switch ("Time left", on by default).
+  "Nothing else today" card). Its "Sprint Planning · 30 min left" line and the progress bar under the track have their own switch ("Time left", off by default:
+  the slim track is enough). With the track on and the time left off, the card shows neither the line nor the progress bar, since the
+  track already shows the running entry; with the track off it keeps the running entry's title as its line. A long title never pushes the
+  time left out of the line.
   Whenever the card does not show the time left (the card or its time-left line switched off), the running entry
   shows it on its own time line instead ("09:00–10:00 · 30 min left"; on the running entry the time left takes the
   place of the duration), in the day and week views (owner, 2026-10-26: "it should be visible from the chip"). Its track is on by default (it can be turned off, then the card shows the
@@ -102,16 +105,30 @@ Feature: The Approaching card and its track
 
   Scenario: With the Approaching card on the running entry does not repeat the time left
     Given the time is 2026-10-14 09:30
+    And the time left in the Approaching card is on
     When I open the day view for 2026-10-14
     Then the now card shows the line "Dentist · 30 min left"
     And the event "Dentist" shows no time left
 
   Scenario: Switching off the time left moves it from the card onto the running entry
     Given the time is 2026-10-14 09:30
+    And the time left in the Approaching card is on
     When I switch off the time left in the Approaching card in the settings
     And I open the day view for 2026-10-14
-    Then the now card shows the line "Dentist"
+    Then the now card shows no line and no progress bar
     And the event "Dentist" shows "30 min left" after its time
+
+  Scenario: By default the card shows only its track
+    Given the time is 2026-10-14 09:30
+    When I open the day view for 2026-10-14
+    Then the now card shows no line and no progress bar
+    And the event "Dentist" shows "30 min left" after its time
+
+  Scenario: With the track off the card keeps the running entry's title
+    Given the time is 2026-10-14 09:30
+    And the approach bar is off
+    When I open the day view for 2026-10-14
+    Then the now card shows the line "Dentist"
 
   Scenario: An entry that is not running shows no time left
     Given the time is 2026-10-14 08:00
