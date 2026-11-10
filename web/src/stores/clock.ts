@@ -84,13 +84,26 @@ export const useClockStore = defineStore('clock', () => {
   /** Minutes since local midnight (calendar zone). */
   const minutesNow = computed(() => nowParts.value.minutes);
 
+  /** Device-clock instants (Date.now ms) at which `nowTick` must refresh before the next minute: they share the one ticker timer. */
+  const wakes = new Set<number>();
+  /** Ask for a `nowTick` refresh at `ms` (Date.now scale), in addition to the minute ticks; past instants are ignored. */
+  function wakeAt(ms: number): void {
+    if (ms <= Date.now()) return;
+    wakes.add(ms);
+    if (stopTimer) scheduleTick();
+  }
+
   function scheduleTick() {
     stopTimer?.();
     const ms = nowMs();
-    // exactly on the minute boundary (a timer that fires a hair early is rounded up below)
-    const wait = 60000 - (ms % 60000);
+    // exactly on the minute boundary (a timer that fires a hair early is rounded up below), or earlier for a requested wake
+    let wait = 60000 - (ms % 60000);
+    const dev = Date.now();
+    for (const w of wakes) wait = Math.min(wait, Math.max(w - dev, 0));
     stopTimer = appTimeout(() => {
       const t = nowMs();
+      const now = Date.now();
+      for (const w of wakes) if (w <= now) wakes.delete(w);
       nowTick.value = t % 60000 > 59500 ? t + 500 : t;
       scheduleTick();
     }, wait);
@@ -118,6 +131,6 @@ export const useClockStore = defineStore('clock', () => {
     bag.dispose();
   }
 
-  return { config, loaded, timeZone, pollIntervalMs, nowTick, today, todayDate, minutesNow, nowMs, load, restore, startTicker, stopTicker };
+  return { config, loaded, timeZone, pollIntervalMs, nowTick, today, todayDate, minutesNow, nowMs, wakeAt, load, restore, startTicker, stopTicker };
 });
 

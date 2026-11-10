@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { IconAdd, IconCheck, IconCloudOff, IconDeleteOutline, IconEditOutline } from '@/components/icons';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -22,8 +22,9 @@ const clock = useClockStore();
 
 /** The newest success of a send or a sync. */
 const lastOk = computed(() => (outbox.lastSent && outbox.lastSent.wall > sync.lastOk.wall ? outbox.lastSent : sync.lastOk));
+// the clock's ticker wakes this at the 5-minute mark (the minute tick alone would show the icon up to a minute late)
+watch(lastOk, (ok) => clock.wakeAt(ok.wall + FAILED_AFTER_MS), { immediate: true });
 /** A sync that is running may be about to succeed (the app just became visible again): no icon meanwhile. */
-// the clock's minute tick is the re-check trigger, so this component owns no timer
 const failed = computed(() => sync.state !== 'syncing' && (clock.nowTick, Date.now()) - lastOk.value.wall >= FAILED_AFTER_MS);
 
 const open = ref(false);
