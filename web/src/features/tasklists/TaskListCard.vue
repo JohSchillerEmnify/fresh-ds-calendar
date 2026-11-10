@@ -25,7 +25,8 @@ const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { badgeInitial } from './sharing';
-import { useElementSize, useResizeObserver } from '@vueuse/core';
+import { useElementSize } from '@vueuse/core';
+import { vFade } from '@/lib/fade';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
@@ -66,10 +67,6 @@ onMounted(() => { if (el.value) emit('el', el.value); });
 if (!inPreview() && !props.grown) useCalendarDrag(el, () => props.segment, () => props.variant);
 // Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
 const { width } = useElementSize(el, undefined, { box: 'border-box' });
-/** The title text is wider than its room: only then does it fade on phones (a fade on a title that fits eats its last letter). */
-const titleTx = ref<HTMLElement | null>(null);
-const titleCut = ref(false);
-useResizeObserver(titleTx, () => { const t = titleTx.value; titleCut.value = !!t && t.scrollWidth > t.clientWidth + 1; });
 /** Expanded in place over the calendar (a swipe preview copy never is); a tap expands, items change only in the day view. */
 /** This card instance shows the expansion: a view may hold the same list twice (the zoom month's chip layer and its timeline), only one grows. */
 const owner = nextCardOwner();
@@ -212,7 +209,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span v-if="!one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined" :data-cut="titleCut || undefined"><span ref="titleTx" class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
+       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span v-fade:x class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ leadText }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
@@ -439,7 +436,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* phones: a card's title and item names fade out like every other one-line entry; short labels (time, estimate) keep the ellipsis */
 @media (max-width: 767.98px) {
   .title, .it { --tl-cut: clip; }
-  .title[data-cut], .it { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  /* a title fades only where it is really cut (v-fade:x): a fade on a title that fits eats its last letter */
+  .tx[data-cut='true'], .it { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   /* inline names share one line: only the line's end fades (the .items rule), never each name */
   .block[data-fit='inline'] .it { -webkit-mask-image: none; mask-image: none; }
   /* a one-line list in a block one line tall fades out like an event of that size */
