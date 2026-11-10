@@ -1,7 +1,8 @@
 @perf @id:resource-efficiency
 Feature: Resource efficiency and no memory leaks
   Hard requirements. Browser memory is measured after a forced garbage collection, and only after every workload
-  of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner);
+  of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner); the node count settles after the second pass
+  through the workloads (a one-time step of about 600 nodes, then flat over 100 more view cycles), so the warm-up runs twice;
   server memory through the test-only memory endpoint. These scenarios run only at the
   phone viewport, serially.
 
@@ -17,6 +18,9 @@ Feature: Resource efficiency and no memory leaks
 
   Scenario: Switching views and opening dialogs repeatedly does not leak memory
     When I open the month view for 2026-10
+    And I cycle through the month, week and day views 10 times
+    And I open and close the event dialog 10 times
+    And I expand and collapse the task list "Groceries" 10 times
     And I cycle through the month, week and day views 10 times
     And I open and close the event dialog 10 times
     And I expand and collapse the task list "Groceries" 10 times
