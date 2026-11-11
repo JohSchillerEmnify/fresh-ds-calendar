@@ -56,6 +56,7 @@ const checks = {
   'unit web': tests('web'),
   i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|^\s+missing/.test(x)) },
   steps: { cmd: ['python3', ['e2e/scripts/check-steps.py'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
+  changelog: { cmd: ['node', ['scripts/check-changelog.mjs'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
   'quality arch': quality('arch'),
   'quality dedup': quality('dedup'),
   'quality types': quality('types'),

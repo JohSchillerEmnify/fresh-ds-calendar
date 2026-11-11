@@ -124,7 +124,7 @@ In practice:
    duplication and lint, in about a minute. The quality gates (`pnpm quality`) are a ratchet: numbers in `quality-baseline.json` may only go down (`pnpm quality:ratchet`).
 4. **Run only the e2e scenarios you touched.** `pnpm e2e:affected` prints the `--grep` for them. The full suite is
    slow and only needed before a release.
-5. **Commit.** Use conventional commits (`feat:`, `fix:`, `docs:` …). They also drive the version number.
+5. **Commit.** Use conventional commits (`feat:`, `fix:`, `docs:` …). They also drive the version number. A `feat`/`fix` branch also adds one or two plain bullets under today's date in `CHANGELOG.md` ("What's new"); `pnpm verify` enforces it.
 6. **Leak guards.** Run `pnpm hooks:install` once. The pre-commit and pre-push hooks (and CI) run `scripts/leak-check.sh`:
    gitleaks rules (secrets, keys, public IPs, e-mail addresses) plus your private denylist, checked in diffs, commit
    messages and author e-mails.

@@ -37,8 +37,8 @@ The spec is the single source of truth. Code follows the spec, never the other w
    - For UI work, look at the screenshots at phone size. Green DOM checks are not proof that it looks right.
 
 ## Gates and tools
-- **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication and
-  lint, in about a minute.
+- **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication, lint and
+  the changelog gate (a `feat`/`fix` branch must change `CHANGELOG.md`), in about a minute.
 - **Quality gates are a ratchet.** `pnpm verify` also runs `pnpm quality`: architecture layers (dependency-cruiser), duplication,
   web/server type duplicates, size/complexity/comment limits, dead code (knip), colour literals and fixed px font sizes in `.vue` files, and text-contract findings in the en/de catalogues (`pnpm ui-texts` lists them). `quality-baseline.json` holds today's numbers: any
   increase fails. When you lower one, run `pnpm quality:ratchet` and commit the file; raising needs `--allow-increase "<reason>"`.
@@ -46,6 +46,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
   - `pnpm e2e:affected` gives the `--grep`.
   - Run it with the mobile project and `--workers=1`.
   - Never run the full suite and never `@perf` unless a human asks.
+- **What's new:** a `feat`/`fix` branch adds one or two plain, user-facing English bullets under today's `## YYYY-MM-DD` in `CHANGELOG.md` (test, tooling, spec-only: none); `pnpm verify` enforces it. — Users read the in-app release notes, and a skipped day of merges left them empty.
 - **Commits:** small, with conventional messages (`feat:`, `fix:`, `docs:`, `test:`, `chore:`), which drive the version
   number. `git add` named files, never `-A`.
 
@@ -142,6 +143,7 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   "needs a connection" is a blocker in review. — Retro-fitting the cache cost a rewrite.
 
 ### Git & GitHub
+- **What's new in the same branch.** Every user-visible `feat`/`fix` brings its `CHANGELOG.md` bullets before it merges; `pnpm verify` fails without them. — The rule lived only in `docs/DEPLOYMENT.md` and was skipped.
 - **Issue first.** Every piece of work has a GitHub issue before the first commit; the branch is `<type>/<N>-<slug>`
   (`feat`, `fix`, `docs`, `chore`, `test`, `refactor`) and a commit or the merge says `Fixes #N`. — Board and issue
   closing are derived from this.
