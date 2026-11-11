@@ -40,7 +40,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
 - **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication and
   lint, in about a minute.
 - **Quality gates are a ratchet.** `pnpm verify` also runs `pnpm quality`: architecture layers (dependency-cruiser), duplication,
-  web/server type duplicates, size/complexity/comment limits, dead code (knip), colour literals and fixed px font sizes in `.vue` files. `quality-baseline.json` holds today's numbers: any
+  web/server type duplicates, size/complexity/comment limits, dead code (knip), colour literals and fixed px font sizes in `.vue` files, and text-contract findings in the en/de catalogues (`pnpm ui-texts` lists them). `quality-baseline.json` holds today's numbers: any
   increase fails. When you lower one, run `pnpm quality:ratchet` and commit the file; raising needs `--allow-increase "<reason>"`.
 - **e2e: targeted only.**
   - `pnpm e2e:affected` gives the `--grep`.
@@ -129,7 +129,7 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   controls, at the size the bar allows, spread over all free areas. — Props squeezed into one gap looked tiny.
 - **User-facing texts are for users.** Plain language, one short sentence on what changes for the user, no
   implementation, version or history words, no hint that repeats its label; German reads like a native wrote it.
-  — Code-speak leaked into settings hints.
+  Contract: `docs/UI-TEXTS.md`. — Code-speak leaked into settings hints.
 
 ### Data
 - **Everything is per person.** Every setting and piece of user data is keyed by the person; only explicitly shared

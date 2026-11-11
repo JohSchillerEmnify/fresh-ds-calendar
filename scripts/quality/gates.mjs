@@ -163,4 +163,16 @@ async function fonts() {
   return { counts, summary: `${total} fixed font sizes in ${Object.keys(counts).length} .vue files (use the type tokens: calc(Npx * var(--dz, 1)) or var(--entry-...))` };
 }
 
-export const GATES = { arch, dedup, types, lint, comments, knip, colors, fonts };
+/** Contract violations in the message catalogues (docs/UI-TEXTS.md, docs/ui-texts.json) and a drifted glossary table in the doc. */
+async function texts() {
+  const { allFindings, docInSync, loadRules, nameTableFiles, DOC_FILE } = await import('../../web/scripts/ui-texts.ts');
+  const rules = loadRules();
+  const counts = {};
+  for (const { file, findings } of allFindings(rules)) for (const f of findings) bump(counts, `${file}|${f.rule}|${f.key}`);
+  for (const f of nameTableFiles()) counts[`hand-made-dates|${f}`] = 1;
+  if (!docInSync(readFileSync(DOC_FILE, 'utf8'), rules)) counts['doc-drift'] = 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, summary: `${total} text-contract findings (pnpm ui-texts lists them; see docs/UI-TEXTS.md)` };
+}
+
+export const GATES = { arch, dedup, types, lint, comments, knip, colors, fonts, texts };

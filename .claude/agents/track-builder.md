@@ -31,7 +31,8 @@ section "Working rules"; everything there binds you. This file adds how a track 
   `--project=mobile` and `--project=desktop` as needed, `--workers=1`). `pnpm e2e:affected` suggests the grep. Never
   the whole suite, never `@perf`, never a bare `--update-snapshots`. Each run blocks the shared machine: run a set once,
   never re-run a green set.
-- UI changes: run the `@visual` scenarios and LOOK at every affected picture at phone size.
+- UI changes: run the `@visual` scenarios and LOOK at every affected picture at phone size. Every user-facing string
+  follows `docs/UI-TEXTS.md`.
 - Baselines your change legitimately alters: `rebaseline "<grep of those @visual scenarios>" --project=mobile`
   (add `--project=desktop` if needed). One run rewrites only the changed pictures and prints one contact sheet (old,
   new, changed in red): look at it, then `git add` the listed PNGs. Never copy pictures by hand, never re-baseline
