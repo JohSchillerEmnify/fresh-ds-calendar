@@ -24,7 +24,8 @@ and in mockups too. The reader is a person using the app, not a developer.
 11. **Typography:** real quotes “…” in English and „…“ in German, the ellipsis …, › in menu paths
     (Settings › Calendar), no straight quotes or three dots.
 12. **German reads like a native wrote it:** the imperative and du-form the app already uses, passive status texts
-    ("Wird gespeichert", "Wird synchronisiert"), correct case and pronouns, no calques from English.
+    ("Wird gespeichert", "Wird synchronisiert"), correct case and pronouns, no calques from English. Translate the situation, not the words: describe what the user actually
+    meets (Google asks for permissions when you sign in), never a literal "Googles Bildschirm".
 13. **Fun locales keep their voice;** only grammar and the rules above are fixed, never the humour.
 14. **Every string goes through i18n in all locales;** a changed meaning changes every locale.
 
