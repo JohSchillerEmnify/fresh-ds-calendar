@@ -370,10 +370,11 @@ views {
   }
 
   dynamic view iosWidgetRefresh {
-    title 'The iPhone widget refreshes (ADR 0043)'
+    title 'The iPhone widget refreshes (ADR 0044)'
 
     owner -> calendar.web.settings 'creates a widget key and copies the script into Scriptable'
     calendar.web.settings -> calendar.server.widgetKeysApi 'creates the key; only its hash is stored'
+    calendar.iosWidget -> calendar.server.widgetKeysApi 'the installer and later the widget itself download the script with the key'
     calendar.iosWidget -> calendar.server.widgetKeysApi 'reads today and the week with the key; hidden calendars are left out'
     calendar.iosWidget -> owner 'draws the answer, or the last one with its age when offline'
   }

@@ -1,6 +1,6 @@
-# 0043 A per-device read key and the Scriptable app give the iPhone a widget
+# 0044 A per-device read key and the Scriptable app give the iPhone a widget
 
-Status: proposed (issue #95)
+Status: proposed (issue #95; number 0044 because 0043 is taken on `feat/93-contact-birthdays`)
 
 ## Decision
 - The iPhone widget is a JavaScript script run by the free Scriptable app. It cannot use the web app's session cookie (it
@@ -14,9 +14,12 @@ Status: proposed (issue #95)
   nothing; a fast hash keeps the widget route cheap. The key is shown once, at creation.
 - Use is limited to 30 requests per key per minute (429), and `lastUsedAt` is written at most hourly. Revoking keeps a record
   for 90 days, so the widget can say "removed" instead of "wrong key".
-- The key and server URL are written into the script the app offers to copy; Scriptable stores it as part of the script
-  (and in iCloud if the person has Scriptable's iCloud on). The script keeps its last answer in Scriptable's local files and
-  draws it when there is no connection.
+- The app offers a tiny **installer** script with the key and server URL in it. Run once in Scriptable, it puts the key and URL
+  in Scriptable's Keychain and downloads the real widget script from `GET /api/widget/script` (key-authenticated, no secrets
+  inside) into Scriptable's documents directory with `FileManager.writeString`. The widget script reads the key from the
+  Keychain, updates itself when the server names a newer version (checked, then written; a failed update keeps the old
+  script) and keeps its last answer in local files for offline. The key may sit in Scriptable's storage even with iCloud
+  sync on (owner decision).
 
 ## Alternatives weighed
 - **The Google sign-in or the session cookie in the script**: Scriptable cannot sign in with Google (Google refuses embedded
@@ -25,10 +28,13 @@ Status: proposed (issue #95)
 - **A signed, expiring URL per request**: needs a server round trip to renew while the phone is the only one holding the secret.
 - **A shared secret for all devices of a person**: one lost phone means rotating all; per-device keys are listed and
   revoked one by one.
+- **Paste the whole script**: works, but every script change means another paste; the installer pastes once.
+- **`importModule` of a downloaded module**: Scriptable's `importModule` loads files from its folders, so it would still need
+  the download and write step; the widget stays one file written with `FileManager`.
 - **A native iOS app with WidgetKit**: needs the paid Apple program or weekly re-signing (docs/IOS-OPTIONS.md).
 
 ## Consequences
 - A new server store per person (`widget-keys.json`, included in the person's backup) and one in-memory index id to person built at start.
 - The script and its drawing live in the repo (`ios/widget/`) and are served by the app inside the copied text; a script
-  change needs the person to copy it again (how the person learns of one is an open question in the requirements).
+  change reaches the phone by the script's own update check.
 - Refresh is up to iOS (about 40-70 per day at best); the widget is a snapshot, not a clock.

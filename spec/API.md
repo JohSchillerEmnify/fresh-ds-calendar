@@ -510,7 +510,7 @@ The web app filters hidden calendars itself, instantly; the Android widget fetch
 that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget). A calendar whose plan has
 it off is left out too, because the plan's scheduler sets `hidden` (see "Calendar plans").
 
-### Widget keys and the iPhone widget data (ADR 0043; feature iphone-widget)
+### Widget keys and the iPhone widget data (ADR 0044; feature iphone-widget)
 
 A person creates a read-only key per device in Settings; the Scriptable widget on that iPhone presents it. Keys are per
 person: every route below lists and changes only the signed-in person's keys, and the widget data is that person's.
@@ -528,15 +528,24 @@ person: every route below lists and changes only the signed-in person's keys, an
   the person's `widget-keys.json`. A revoked key keeps its record (hash, `revokedAt`) for 90 days so the widget can say
   "removed"; after that it answers as unknown.
 
+`GET /api/widget/script` → 200 `text/javascript`
+
+- Key-authenticated like the data route (same errors, same rate limit). The body is the widget script, the same for every
+  person and **with no secret and no person in it**: it reads the key and the server URL from Scriptable's Keychain, where the
+  installer put them. First line `// calendar-widget version=<n>`; `Cache-Control: no-store`.
+- Tiny installer (generated in the app, shown with "Copy installer"): holds the key and the server URL, stores both in the
+  Keychain, requests this route and saves the body with `FileManager.writeString` as a script in the documents
+  directory, so it appears in Scriptable's list. It tells the person what to do next ("Add a Scriptable widget").
+
 `GET /api/widget/data?from=YYYY-MM-DD&to=YYYY-MM-DD` → 200
 
-- The only route a key opens: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
+- The routes a key opens are this and `/api/widget/script`: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
   `UNAUTHENTICATED`**; the session cookie on this route is ignored (also **401**). Read-only by construction: no other method
   is routed for a key.
-- Answer `{ generatedAt, today, items, minEventMinutes, weekSideBySide, taskCategories }`: `items` as `GET /api/items` for the
+- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories }`: `items` as `GET /api/items` for the
   range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
   included; the key cannot turn it off), the three prefs as `GET /api/prefs` gives them. `to - from` at most 8 days.
-  `today` is the calendar's local date, so the script needs no time zone logic.
+  `scriptVersion` is the newest script's `version`; a script that is older fetches `/api/widget/script`. `today` is the calendar's local date, so the script needs no time zone logic.
 - Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
   items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
   limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).

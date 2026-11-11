@@ -3571,15 +3571,29 @@ I open the iPhone widget settings
 I open the iPhone widget settings again
 I create a widget key named {string}
 I created a widget key named {string}
-I copy the widget script
+I copy the widget installer
 I revoke the widget key {string}
 the settings show the widget key {string}
 the settings show the widget key {string} last used on {date} at {time}
 the settings show the widget key {string} as never used
 the settings do not show the widget key itself
 the new widget key is shown once with the buttons {string} and {string}
-the copied widget script holds the key and the server URL
-the copied widget script says nothing else to fill in
+the copied widget installer holds the key and the server URL
+the copied widget installer says nothing else to fill in
+the widget installer runs with the key {string}
+the widget installer runs with a key that does not exist
+the widget script is saved on the phone as a Scriptable script
+the saved widget script holds no key and no person
+the key and the server URL are kept in Scriptable's storage
+the installer says to add a Scriptable widget
+the installer says the key is not valid and nothing is saved
+the widget script request is refused as {string}
+the iPhone widget runs script version {int}
+the server offers the widget script version {int}
+the iPhone widget refreshes and the script download breaks off
+the widget script on the phone is version {int}
+the widget script on the phone is still version {int}
+the iPhone widget shows today as before
 the widget key {string} was last used on {date} at {time}
 the widget key {string} was never used
 the widget key {string} belongs to {string}
@@ -3611,13 +3625,14 @@ the iPhone widget asks to be redrawn at {time}
 ```
 
 - The Settings steps (first block) run in the browser suite once built (hooks `iphone-widget-keys`, `iphone-widget-key-row`,
-  `iphone-widget-copy`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy script" is read back from the
+  `iphone-widget-copy-installer`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy installer" is read back from the
   clipboard permission of the test browser.
 - "P has the calendar C" gives another person a calendar of their own (fixture through the mock provider).
 - "the widget key K belongs to P" creates the key through `POST /api/widget-keys` as P (the secret is kept by the step for
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- The installer and the script run in Scriptable: their unit tests (`ios/widget/test`) use fake `Request`, `FileManager` and `Keychain`; a download is written with `FileManager.writeString` into `documentsDirectory()` only after its first line parses as `// calendar-widget version=<n>` with `n` newer than the running one.
 - Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
   data answer) plus the script's own unit tests (`ios/widget/test`, run with Node against a fake `Request`, `FileManager`
   and `ListWidget`) and on a device; the browser suite skips them (`@backlog`).

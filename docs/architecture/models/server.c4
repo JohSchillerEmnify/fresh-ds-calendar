@@ -152,7 +152,7 @@ model {
       description 'The CSP, which allows only the Photon and tile origins, and the other security headers'
     }
     widgetKeysApi = component 'Widget keys API' {
-      description 'Creates, lists and revokes the person\'s widget keys, stores only the hash, and answers the key-only widget data route with the hidden-calendar rule and a rate limit'
+      description 'Creates, lists and revokes the person\'s widget keys, stores only the hash, and serves the widget script and answers the key-only widget data route with the hidden-calendar rule and a rate limit'
     }
     apkDownload = component 'APK download' {
       description 'Serves the Android app and its version, sha256 and certificate fingerprint'

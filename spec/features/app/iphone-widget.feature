@@ -1,12 +1,14 @@
 @iphone-widget @id:iphone-widget
 Feature: iPhone widgets through Scriptable
   An iPhone has no native calendar app here, so the home-screen and lock-screen widgets are a small script that runs in
-  the free Scriptable app. The person creates a widget key for the phone in Settings, copies the script (the key and the
-  server URL are already in it) into Scriptable, and adds a Scriptable widget on the home screen. The widget reads the
+  the free Scriptable app. The person creates a widget key for the phone in Settings, pastes a tiny installer (the key and the
+  server URL are already in it) into Scriptable once and runs it; the installer downloads the real widget script, which
+  later updates itself. Then the person adds a Scriptable widget on the home screen. The widget reads the
   same data as the Android widgets, for that person only, and shows its last answer when there is no connection. iOS
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
+  An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
     Given the calendar is empty
@@ -15,18 +17,49 @@ Feature: iPhone widgets through Scriptable
   Rule: A person sets the widget up from Settings in a few taps
 
     @backlog
-    Scenario: A widget key is created for this phone and the script is ready to copy
+    Scenario: A widget key is created for this phone and the installer is ready to copy
       When I open the iPhone widget settings
       And I create a widget key named "My iPhone"
       Then the settings show the widget key "My iPhone"
-      And the new widget key is shown once with the buttons "Copy script" and "Open Scriptable"
+      And the new widget key is shown once with the buttons "Copy installer" and "Open Scriptable"
 
     @backlog
-    Scenario: The copied script has the key and the server URL filled in
+    Scenario: The copied installer has the key and the server URL filled in
       Given I created a widget key named "My iPhone"
-      When I copy the widget script
-      Then the copied widget script holds the key and the server URL
-      And the copied widget script says nothing else to fill in
+      When I copy the widget installer
+      Then the copied widget installer holds the key and the server URL
+      And the copied widget installer says nothing else to fill in
+
+    @backlog
+    Scenario: The installer downloads the widget script with the key
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the widget installer runs with the key "My iPhone"
+      Then the widget script is saved on the phone as a Scriptable script
+      And the saved widget script holds no key and no person
+      And the key and the server URL are kept in Scriptable's storage
+      And the installer says to add a Scriptable widget
+
+    @backlog
+    Scenario: The widget script is refused without a valid key
+      When the widget installer runs with a key that does not exist
+      Then the widget script request is refused as "unknown"
+      And the installer says the key is not valid and nothing is saved
+
+    @backlog
+    Scenario: A new script version arrives on its own
+      Given the iPhone widget runs script version 1
+      And the server offers the widget script version 2
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget script on the phone is version 2
+      And the iPhone widget shows today as before
+
+    @backlog
+    Scenario: A failed update keeps the old script working
+      Given the iPhone widget runs script version 1
+      And the server offers the widget script version 2
+      When the iPhone widget refreshes and the script download breaks off
+      Then the widget script on the phone is still version 1
+      And the iPhone widget shows today as before
 
     @backlog
     Scenario: The key is not shown again later
