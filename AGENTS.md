@@ -37,8 +37,8 @@ The spec is the single source of truth. Code follows the spec, never the other w
    - For UI work, look at the screenshots at phone size. Green DOM checks are not proof that it looks right.
 
 ## Gates and tools
-- **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication and
-  lint, in about a minute.
+- **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication, lint and
+  the changelog gate (a `feat`/`fix` branch must change `CHANGELOG.md`), in about a minute.
 - **Quality gates are a ratchet.** `pnpm verify` also runs `pnpm quality`: architecture layers (dependency-cruiser), duplication,
   web/server type duplicates, size/complexity/comment limits, dead code (knip), colour literals and fixed px font sizes in `.vue` files, and text-contract findings in the en/de catalogues (`pnpm ui-texts` lists them). `quality-baseline.json` holds today's numbers: any
   increase fails. When you lower one, run `pnpm quality:ratchet` and commit the file; raising needs `--allow-increase "<reason>"`.

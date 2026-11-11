@@ -232,4 +232,5 @@ widget from the home screen's widget list.
   `APP_VERSION=X.Y.Z+<sha>`, which `/api/config` reports.
 - Every merge to main adds one or two plain, user-facing English sentences as `- ` bullets under a `## YYYY-MM-DD`
   heading at the top of `CHANGELOG.md`, in the merge commit itself (test, tooling and spec-only merges add nothing).
+  `pnpm verify` enforces it: a branch with a `feat`/`fix` commit and no `CHANGELOG.md` change fails.
   Text under `## Older history` is ignored. The server image includes `CHANGELOG.md`.
