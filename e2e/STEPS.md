@@ -3618,6 +3618,7 @@ the iPhone widget shows {string}
 the iPhone widget says {string}
 the iPhone widget says its data is from {time}
 the iPhone widget says nothing about its age
+the iPhone widget shows no clock
 the iPhone widget still shows its last answer greyed out
 the iPhone widget opens the app at the day view of {date}
 the iPhone widget asks to be redrawn at {time}
@@ -3631,6 +3632,7 @@ the iPhone widget asks to be redrawn at {time}
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- Lock-screen sizes are the string {string} "lock screen inline", "lock screen circle", "lock screen rectangle" = `accessoryInline`, `accessoryCircular`, `accessoryRectangular` (iOS 16+; Scriptable has no other lock-screen family).
 - The installer and the script run in Scriptable: their unit tests (`ios/widget/test`) use fake `Request`, `FileManager` and `Keychain`; a download is written with `FileManager.writeString` into `documentsDirectory()` only after its first line parses as `// calendar-widget version=<n>` with `n` newer than the running one.
 - Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
   data answer) plus the script's own unit tests (`ios/widget/test`, run with Node against a fake `Request`, `FileManager`

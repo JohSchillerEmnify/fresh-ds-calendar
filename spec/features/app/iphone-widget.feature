@@ -1,6 +1,6 @@
 @iphone-widget @id:iphone-widget
 Feature: iPhone widgets through Scriptable
-  An iPhone has no native calendar app here, so the home-screen widgets are a small script that runs in
+  An iPhone has no native calendar app here, so the home-screen and lock-screen widgets are a small script that runs in
   the free Scriptable app. The person creates a widget key for the phone in Settings, pastes a tiny installer (the key and the
   server URL are already in it) into Scriptable once and runs it; the installer downloads the real widget script, which
   later updates itself. Then the person adds a Scriptable widget on the home screen. The widget reads the
@@ -8,7 +8,9 @@ Feature: iPhone widgets through Scriptable
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
-  The widget has two views like the Android widgets, Day and Week; the size picks the view (small and medium Day, large Week).
+  The home screen has two views like the Android widgets, Day and Week; the size picks the view (small and medium Day, large Week).
+  The lock screen has the three accessory families Scriptable supports: inline, circular and rectangular. The widget draws
+  no clock of its own, because iOS shows its clock on the lock screen.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
@@ -158,6 +160,35 @@ Feature: iPhone widgets through Scriptable
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the week of 2026-10-12 with the event "Dentist" on 2026-10-14
+
+    @backlog
+    Scenario: The inline lock-screen widget shows the next entry
+      Given the time is 2026-10-14 08:00
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "lock screen inline" size
+      Then the iPhone widget says "Dentist · 09:00"
+      And the iPhone widget shows no clock
+
+    @backlog
+    Scenario: The circular lock-screen widget shows the minutes until the next entry
+      Given the time is 2026-10-14 08:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "lock screen circle" size
+      Then the iPhone widget says "40 min"
+      And the iPhone widget shows no clock
+
+    @backlog
+    Scenario: The rectangular lock-screen widget says what is going on now and what is next
+      Given the time is 2026-10-14 09:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "lock screen rectangle" size
+      Then the iPhone widget says "Dentist · 40 min left"
+      And the iPhone widget says "Next: Gym 18:00"
+      And the iPhone widget shows no clock
 
     @backlog
     Scenario: Tapping the widget opens the app at that day

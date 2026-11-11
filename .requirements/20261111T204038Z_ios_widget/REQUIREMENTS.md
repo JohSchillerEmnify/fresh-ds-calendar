@@ -6,8 +6,9 @@ Owner, 2026-11-11, on issue 95:
 2. Key storage: "Fine (Recommended)". The key in the script or Scriptable's storage is OK even with iCloud sync.
 3. Stale note: "After 2 hours".
 4. Sizes, the owner asked "can we have a scrollable day/week view? or are contents fixed?": WidgetKit widgets cannot scroll and Scriptable widgets have no buttons, so the iPhone widget is a fixed snapshot. The split (small today, medium today + tomorrow, large the week, lock screen now/next) is kept as an assumption the mockup confirms.
-5. Sizes, owner: "week and day are fine for now in ios." Two views only, Day and Week, like the Android day and week widgets. Lock-screen widgets and a medium "today + tomorrow" view are later options (not now).
-6. ADR number 0044 (0043 is taken on `feat/93-contact-birthdays`).
+5. Sizes, owner: "week and day are fine for now in ios." Two views only, Day and Week, like the Android day and week widgets. A medium "today + tomorrow" view stays dropped (not now).
+6. Lock screen, owner, later: "i like the idea of a lock screen panel, i just didn't like the clock there." The lock-screen widgets are back: inline (next entry), circular (minutes until the next entry) and rectangular (now/next), the three accessory families Scriptable supports (`accessoryInline`, `accessoryCircular`, `accessoryRectangular`, `presentAccessory*`, iOS 16+). The widget draws no clock of its own; iOS shows its clock on the lock screen.
+7. ADR number 0044 (0043 is taken on `feat/93-contact-birthdays`).
 
 ## As Is
 Android has native widgets (week, day, clock) that read `GET /api/items?excludeHidden=1` with the app's session cookie.
@@ -36,7 +37,7 @@ adds a Scriptable widget, and sees today, the next days or the week, on the home
 Each requirement is the scenario of the same name in the feature file.
 1. Setup: create key, copy the installer, open Scriptable, run it; nothing to fill in; key shown once; the installer downloads the script (`GET /api/widget/script`, key-authenticated, no secrets inside); the script updates itself and a failed update keeps the old one.
 2. Keys: list with device name and last use, revoke, revoked key explained in the widget, read-only, hash only, rate limit.
-3. Content: two views like Android: Day and Week; small and medium show Day (medium with more room), large shows Week; tap opens the day.
+3. Content: two home-screen views like Android: Day and Week (lock screen: inline, circular, rectangular); small and medium show Day (medium with more room), large shows Week; tap opens the day.
 4. Per person, hidden calendars and plans left out through the one server rule.
 5. Offline: last answer kept, age note when stale (older than 2 hours), first-run message.
 6. Refresh: asks iOS for the next change (event start/end) or at most 30 min ahead; the user is told iOS decides.
@@ -59,14 +60,14 @@ Each requirement is the scenario of the same name in the feature file.
 Settings: the new section "iPhone widget" (placement in "Account & app" or its own group, to be agreed), empty state,
 create dialog (device name), the one-time key screen with "Copy script" and "Open Scriptable" and the 3 steps, the key
 list (name, created, last used, never used, revoke with confirmation), the limit-reached state, dark, German.
-Widget: small and medium (Day), large (Week); light and dark; busy and empty day; all-day and
+Widget: small and medium (Day), large (Week), lock screen inline, circular and rectangular (no clock); light and dark; busy and empty day; all-day and
 multi-day; stale note; revoked message; "no data yet"; calendar colours as on Android.
 
 ## Assumptions and open questions
 Closed by the decisions above: paste route (1), key storage (2), stale after 2 hours (3), script updates (8 now automatic).
 Open, for the mockup or the owner:
-1. Assumption: the widget size picks the view (small and medium Day, large Week), so a user places both views without any setting. Alternative: Scriptable's widget parameter ("day" or "week") chooses the view, which needs typing and works in any size; not chosen as it adds a step. The mockup confirms. No lock screen, no iPad extra-large; the widget cannot scroll or page.
-   Not now (later options): lock-screen widgets (now/next, e.g. "Dentist · 40 min left"), a medium "today + tomorrow" view.
+1. Assumption: the widget size picks the view (small and medium Day, large Week), so a user places both views without any setting. Alternative: Scriptable's widget parameter ("day" or "week") chooses the view, which needs typing and works in any size; not chosen as it adds a step. The mockup confirms. No iPad extra-large; the widget cannot scroll or page.
+   Not now: a medium "today + tomorrow" view.
 2. Tap opens `https://<server>/day/<date>`; iOS picks Safari or the installed web app.
 3. 10 keys per person, 30 requests per key per minute, `lastUsedAt` at most hourly, revoked records 90 days.
 4. Key `cwk_<id>_<secret>` with a plain SHA-256 hash; in-memory id index at start; keys are not part of backups (a lost key is created again).
