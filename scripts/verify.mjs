@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // `pnpm verify`: quick pre-merge gate. Runs tsc (web/server/e2e), unit tests, i18n:check, check-steps and the ratcheted
-// quality gates (arch, dedup, types, lint, comments, knip; see scripts/quality.mjs) in parallel.
+// quality gates (arch, dedup, types, lint, comments, knip, colors, fonts, texts; see scripts/quality.mjs) in parallel.
 // Prints one OK line, or per failing check its name plus the first lines of relevant errors. Exit 1 on failure.
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -63,6 +63,7 @@ const checks = {
   'quality knip': quality('knip'),
   'quality colors': quality('colors'),
   'quality fonts': quality('fonts'),
+  'quality texts': quality('texts'),
 };
 
 const t0 = Date.now();

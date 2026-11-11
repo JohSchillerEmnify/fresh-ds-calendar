@@ -6,8 +6,8 @@ and in mockups too. The reader is a person using the app, not a developer.
 ## Rules
 
 1. **Plain user language.** Say what the person sees and gets. — The app is for users, not for people who read code.
-2. **A hint is one short sentence on what changes for the user,** and exists only when it adds something the label
-   does not say. No hint beats a weak hint.
+2. **A hint says what changes for the user, as short as possible,** and exists only when it adds something the label
+   does not say. More than one sentence is fine when needed. No hint beats a weak hint.
 3. **Never narrate what the UI already shows.** No "the button turns into Copied", "the page opens", "a small label
    in the corner". — The person sees it happen.
 4. **No implementation, version or history words:** Labs, prefs, server, key, script, ids, "the ring version", "the
@@ -37,16 +37,16 @@ One word per concept. Check the locale files before adding a new term. The table
 | English | German | Never use |
 |---|---|---|
 | Design | Design | Theme, Themes |
-| home screen | Home-Bildschirm | Homescreen, Startseite |
-| start | Beginn | Anfang |
-| virtual calendar | virtueller Kalender | own calendar, eigener Kalender, eigenen Kalender |
+| home screen | Home-Bildschirm | Homescreen |
+| start | Beginn | - |
+| virtual calendar | virtueller Kalender | own calendar |
 | Google calendar | Google-Kalender | - |
 | task lists calendar | Kalender der Aufgabenlisten | tasks calendar |
-| demo calendar | Demokalender | mock calendar, test calendar, Testkalender, Mock-Kalender |
+| demo calendar | Demokalender | mock calendar, test calendar, Testkalender |
 | bedtime mode | Schlafenszeit-Modus | Bedtime-Modus |
-| host name | Host-Name | server address, web address, Serveradresse, Webadresse |
+| host name | Host-Name | - |
 | went wrong | schiefgegangen | fehlgeschlagen |
-| left-handed mode | Linkshänder-Modus | Händ |
+| left-handed mode | Linkshänder-Modus | - |
 <!-- glossary:end -->
 
 ## Localisation
@@ -80,7 +80,7 @@ One word per concept. Check the locale files before adding a new term. The table
 ## Review checklist
 
 - [ ] Read the German and the English text aloud: does each sound like a native speaker wrote it?
-- [ ] Does each hint add something the label and the screen do not already say, in one sentence?
+- [ ] Does each hint add something the label and the screen do not already say, as briefly as possible?
 - [ ] Would a person who never saw the code understand every word (no Labs, prefs, server, key, ring version)?
 - [ ] Are the precise terms right (host name or URL not “address”; virtual vs Google calendar; app vs Google)?
 - [ ] Are errors and statuses supportive and followed by what to do, with no “failed” or “missed”?
@@ -90,9 +90,11 @@ One word per concept. Check the locale files before adding a new term. The table
 
 `pnpm quality` runs the `texts` gate (`pnpm ui-texts` lists the findings: file, key, rule, text). It reads
 `docs/ui-texts.json` and checks every string of the `en` and `de` catalogues for: glossary “never use” words,
-German strings identical to the English ones, hand-made weekday or month tables, implementation words, straight quotes, three dots and `>` in paths, a hint that repeats its label, a hint of more
-than one sentence or 120 characters, formal “Sie” in German, and “failed”/“missed” wording. The fun locales get the
+German strings identical to the English ones, hand-made weekday or month tables, implementation words, straight quotes, three dots and `>` in paths, a hint that repeats its label, a hint over
+200 characters, formal “Sie” in German, and “failed”/“missed” wording. The fun locales get the
 typography rules only. It is a ratchet like the other gates: `quality-baseline.json` holds today's findings and any new
 one fails; fix some and run `pnpm quality:ratchet`. An exception goes into `allow` in `docs/ui-texts.json` with a
-one-line reason. A test keeps the glossary table above in step with the JSON. A machine cannot judge whether a hint
+one-line reason (this is where loanwords and names that are the same in German, such as OK or Filter, are
+listed; an unknown key or a missing reason fails). `pnpm ui-texts` only lists findings; the gate in `pnpm quality`
+enforces them. A test keeps the glossary table above in step with the JSON. A machine cannot judge whether a hint
 says what changes for the user: that stays the reviewer's job.

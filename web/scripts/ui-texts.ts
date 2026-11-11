@@ -9,7 +9,7 @@ import de from '../src/i18n/locales/de.ts';
 import deXColdmirror from '../src/i18n/locales/de-x-coldmirror.ts';
 import deXMainfr from '../src/i18n/locales/de-x-mainfr.ts';
 import en from '../src/i18n/locales/en.ts';
-import { checkCatalogue, formatFinding, hasNameTable, sameAsEnglish, type Finding, type Rules } from './ui-texts-lib.ts';
+import { checkCatalogue, formatFinding, hasNameTable, sameAsEnglish, checkAllow, type Finding, type Rules } from './ui-texts-lib.ts';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 export const RULES_FILE = resolve(repo, 'docs/ui-texts.json');
@@ -36,7 +36,7 @@ export function docInSync(doc: string, rules: Rules): boolean {
 export function allFindings(rules: Rules): { file: string; findings: Finding[] }[] {
   return [
     { file: 'locales/en', findings: checkCatalogue(en, 'en', rules) },
-    { file: 'locales/de', findings: [...checkCatalogue(de, 'de', rules), ...sameAsEnglish(en, de, rules)] },
+    { file: 'locales/de', findings: [...checkCatalogue(de, 'de', rules), ...sameAsEnglish(en, de, rules), ...checkAllow(de, rules)] },
     { file: 'locales/de-x-mainfr', findings: checkCatalogue(deXMainfr, 'fun', rules) },
     { file: 'locales/de-x-coldmirror', findings: checkCatalogue(deXColdmirror, 'fun', rules) },
   ];

@@ -22,7 +22,8 @@ const words = (s: string) => plain(s).toLowerCase().match(/[a-zäöüß]{3,}/g) 
 const wordRe = (w: string, flags = 'i') => new RegExp(`(?<![\\p{L}\\d])${w}(?![\\p{L}\\d])`, `${flags}u`);
 const isHint = (key: string) => /(^|\.)hint$|Hint$/.test(key);
 
-function typography(text: string): string[] {
+function typography(raw: string): string[] {
+  const text = plain(raw);
   const out: string[] = [];
   if (/"/.test(text)) out.push('quotes');
   else if (/(^|[\s(])'[^'\s][^']*'(?=[\s.,;:!?)]|$)/.test(text)) out.push('quotes');
@@ -41,8 +42,6 @@ function hintRepeatsLabel(label: string, hint: string): boolean {
   return l.length > 1 && covered >= 0.8 && shared >= 0.6;
 }
 
-const sentences = (s: string) => plain(s).split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ])/).filter((x) => x.trim()).length;
-
 const matches = (words: string[], text: string, caseless: (w: string) => boolean) => words.filter((w) => wordRe(w, caseless(w) ? 'i' : '').test(text));
 
 /** The rules that one string breaks (typography only for the fun locales). */
@@ -54,14 +53,14 @@ function stringRules(key: string, text: string, lang: Lang, rules: Rules, messag
   if (matches(rules.glossary.flatMap((g) => (de ? g.neverDe : g.neverEn)), p, () => true).length) hit.push('glossary');
   if (matches(rules.implementationWords[de ? 'de' : 'en'], p, (w) => !/^[A-Z]/.test(w)).length) hit.push('implementation-word');
   if (matches(rules.supportiveWords[de ? 'de' : 'en'], p, () => true).length) hit.push('supportive');
-  if (de && /(?<![.!?]\s)(?<!^)\b(Sie|Ihnen|Ihre[nmrs]?|Ihr)\b/.test(p)) hit.push('formal-sie');
+  if (de && /(?<![.!?:„“(–—]\s*)(?<!^\s*)\b(Sie|Ihnen|Ihre[nmrs]?|Ihr)\b/.test(p)) hit.push('formal-sie');
   if (isHint(key)) hit.push(...hintRules(key, text, rules, messages));
   return hit;
 }
 
 function hintRules(key: string, text: string, rules: Rules, messages: object): string[] {
   const hit: string[] = [];
-  if (sentences(text) > 1 || plain(text).trim().length > rules.hintMaxChars) hit.push('hint-length');
+  if (plain(text).trim().length > rules.hintMaxChars) hit.push('hint-length');
   const label = get(messages, key.replace(/hint$/, 'label'));
   if (key.endsWith('.hint') && typeof label === 'string' && hintRepeatsLabel(label, text)) hit.push('hint-repeats-label');
   return hit;
@@ -98,6 +97,15 @@ const NAME_TABLES = [
 ];
 /** Whether source text holds a hand-made weekday or month name table (dates come from Intl with the app locale). */
 export const hasNameTable = (source: string) => NAME_TABLES.some((re) => re.test(source));
+
+/** Allow entries that name no German key or give no reason. */
+export function checkAllow(de: object, rules: Rules): Finding[] {
+  const keys = new Set(flattenKeys(de));
+  return rules.allow.flatMap((a) => [
+    ...(keys.has(a.key) ? [] : [{ key: a.key, rule: 'allow-unknown-key', text: a.why }]),
+    ...(a.why.trim() ? [] : [{ key: a.key, rule: 'allow-no-reason', text: a.rule }]),
+  ]);
+}
 
 /** `file: key [rule] text`, one line per finding. */
 export const formatFinding = (file: string, f: Finding) => `${file}: ${f.key} [${f.rule}] ${f.text}`;

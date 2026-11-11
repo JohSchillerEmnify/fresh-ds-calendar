@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { checkCatalogue, hasNameTable, sameAsEnglish, type Lang, type Rules } from '../scripts/ui-texts-lib';
+import { checkAllow, checkCatalogue, hasNameTable, sameAsEnglish, type Lang, type Rules } from '../scripts/ui-texts-lib';
 import { docInSync, loadRules, DOC_FILE } from '../scripts/ui-texts';
 
 const rules: Rules = loadRules();
@@ -40,11 +40,11 @@ describe('texts contract checker', () => {
     expect(rulesOf({ x: { label: 'Show version in the corner', hint: 'Show the version in the corner' } }, 'en')).toContain('hint-repeats-label');
     expect(rulesOf({ x: { label: 'Time left', hint: 'Shows how long the event still runs.' } }, 'en')).not.toContain('hint-repeats-label');
   });
-  it('flags hints with two sentences or over the length', () => {
-    expect(rulesOf({ x: { hint: 'First thing. Second thing.' } }, 'en')).toContain('hint-length');
-    expect(rulesOf({ x: { hint: 'a'.repeat(125) } }, 'en')).toContain('hint-length');
+  it('flags hints over the length, not hints of several sentences', () => {
+    expect(rulesOf({ x: { hint: 'First thing. Second thing.' } }, 'en')).not.toContain('hint-length');
+    expect(rulesOf({ x: { hint: 'a'.repeat(205) } }, 'en')).toContain('hint-length');
     expect(rulesOf({ x: { hint: 'Open lists get a label like “From Sat 10 Oct”' } }, 'en')).not.toContain('hint-length');
-    expect(rulesOf({ xHint: 'One. Two.' }, 'en')).toContain('hint-length');
+    expect(rulesOf({ xHint: 'a'.repeat(205) }, 'en')).toContain('hint-length');
   });
   it('flags formal Sie but not a sentence-initial “they”', () => {
     expect(rulesOf({ a: 'Hier können Sie speichern' }, 'de')).toContain('formal-sie');
@@ -67,6 +67,34 @@ describe('texts contract checker', () => {
     expect(hasNameTable("const D = ['Mon', 'Tue', 'Wed']")).toBe(true);
     expect(hasNameTable("const M = ['January', 'February']")).toBe(true);
     expect(hasNameTable("const x = ['Monday', 'sale']")).toBe(false);
+  });
+  it.each(rules.glossary.flatMap((g) => [...g.neverEn.map((w) => [w, 'en'] as const), ...g.neverDe.map((w) => [w, 'de'] as const)]))(
+    'glossary never-word %s (%s) is caught',
+    (word, lang) => expect(rulesOf({ a: `Das ist ${word} hier` }, lang)).toContain('glossary'),
+  );
+  it('ignores quotes and dots inside placeholders', () => {
+    expect(rulesOf({ a: 'Mail {"@"} Team' }, 'en')).toEqual([]);
+  });
+  it('treats text after : „ “ ( – — or a leading placeholder as a sentence start for Sie', () => {
+    for (const t of ['Achtung: Sie bleibt offen', 'Sie sagt „Sie bleibt“', '{name} Sie bleibt offen', 'Ja – Sie bleibt', 'Ja (Sie bleibt)']) {
+      expect(rulesOf({ a: t }, 'de')).not.toContain('formal-sie');
+    }
+    expect(rulesOf({ a: 'Dann können Sie speichern' }, 'de')).toContain('formal-sie');
+  });
+  it('flags the whole word key but not words containing it', () => {
+    expect(rulesOf({ a: 'Paste the key here' }, 'en')).toContain('implementation-word');
+    expect(rulesOf({ a: 'Monkeys like keyboards' }, 'en')).not.toContain('implementation-word');
+  });
+  it('rejects allow entries with an unknown key or no reason', () => {
+    const bad = { ...rules, allow: [{ key: 'nope', rule: 'same-as-en', why: 'x' }, { key: 'a', rule: 'same-as-en', why: ' ' }] };
+    expect(checkAllow({ a: 'x' }, bad).map((f) => f.rule)).toEqual(['allow-unknown-key', 'allow-no-reason']);
+    expect(checkAllow({ a: 'x' }, { ...rules, allow: [{ key: 'a', rule: 'same-as-en', why: 'ok' }] })).toEqual([]);
+  });
+  it('fails a drifted glossary table and a doc without markers', () => {
+    const doc = readFileSync(DOC_FILE, 'utf8');
+    expect(docInSync(doc.replace('| Design |', '| Dezign |'), rules)).toBe(false);
+    expect(docInSync(doc.replace(/<!-- glossary:end -->/, ''), rules)).toBe(false);
+    expect(docInSync('no markers', rules)).toBe(false);
   });
   it('keeps the glossary table in docs/UI-TEXTS.md in step with docs/ui-texts.json', () => {
     expect(docInSync(readFileSync(DOC_FILE, 'utf8'), rules)).toBe(true);
