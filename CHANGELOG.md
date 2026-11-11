@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-11
+- iPhone widget: Settings › Account & app › iPhone widget sets up your calendar on the iPhone home screen and lock screen with the free Scriptable app (today, today and tomorrow, or the week; on the lock screen your next appointment).
+- Birthdays from Google Contacts: allow it once (in the message or in Settings › Calendars › Birthdays) and your contacts' birthdays, anniversaries and other dates show in the Birthdays calendar.
+- Fixed: birthdays now follow the colour and the switch of the Birthdays calendar on every device.
+- The Birthdays calendar is called "Geburtstage" in German.
+
 ## 2026-11-10
 - Settings › Calendars › Holidays: add the public holidays of a country (in German or English, public holidays only or with observances) and remove them again.
 
