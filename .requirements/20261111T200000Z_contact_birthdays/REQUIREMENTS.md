@@ -21,7 +21,7 @@ changes and the Birthdays settings page offers to allow it. Spec: `spec/features
 7. Per person: own token, own sync token, own events.
 8. Permission: not asked at sign-in, nobody is logged out. While missing, the app's standard snackbar `contacts-offer`
    (persistent, "Show birthdays from your Google Contacts too?", action "Allow" -> `start?contacts=1`, ✕ = not now, for good); it stops once granted; dismissal is a per-person pref
-   (`contactsOfferDismissed`). The Birthdays settings page offers the same link. An absent permission or a failing People API
+   (`contactsOfferDismissed`). The Birthdays settings page always offers the same link while the permission is missing, also after dismissing (owner decision). An absent permission or a failing People API
    never breaks the other birthdays or the calendar.
 
 ## Acceptance Criteria
@@ -58,13 +58,14 @@ Owner, quoted exactly:
 - Other dates: "All dates"
 - Age: "In details only"
 - Message style (option S on the mockup board, "the app's standard snackbar"): "use this."
+- Allow link in Settings > Calendars > Birthdays after dismissing: "yes of course we should always have an option to allow that"
 - Earlier: "the contact bds should also be visible." and, on the Birthdays calendar, "ok, but it's only a virtual cal right?" (confirmed: it exists only in the app).
 - The Google OAuth app is in Testing mode, so `contacts.readonly` needs no verification (stated by the owner side; no question left).
 
 ## Assumptions and open questions
 Assumptions:
 1. The message is the standard snackbar (`ui.notify`, `duration: 0`, pattern of `native/apkHint.ts`); no new notice mechanism.
-2. The message is dismissed for good, per person (a pref, also across devices); a later grant stays possible from the Birthdays calendar's settings page (option C on the board; ASSUMPTION, not yet confirmed by the owner).
+2. The message is dismissed for good, per person (a pref, also across devices).
 3. The message shows when signed in, the calendar works and the permission is missing; it stops once granted.
 4. Anniversary: titled and marked like a calendar anniversary (the name, the ring). Custom date: "<label>: <name>", no marker. Other without label: the name, no marker (a guess).
 5. Age only for birthdays with a year, in the details ("Turns N"); anniversaries and other dates show none.
