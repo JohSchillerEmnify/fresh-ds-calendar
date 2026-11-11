@@ -24,7 +24,9 @@ function main() {
     try {
       base = git('merge-base', ref, 'HEAD');
       break;
-    } catch {}
+    } catch {
+      // ref not present: try the next one
+    }
   }
   if (!base) return console.log('changelog: no main ref to compare with, skipped');
   const commits = git('log', '--no-merges', '--format=%H%x09%s', `${base}..HEAD`)
