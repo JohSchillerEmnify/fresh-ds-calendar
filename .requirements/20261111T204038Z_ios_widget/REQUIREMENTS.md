@@ -42,7 +42,7 @@ Each requirement is the scenario of the same name in the feature file.
 
 ## Testing plan
 - Server (Vitest, `server/test`): key create/list/revoke, hash at rest, foreign id 404, key on other routes 401, session on
-  the widget route 401, forced `excludeHidden`, range limit, 429, `lastUsedAt` throttle, revoked/unknown codes, backup includes the file.
+  the widget route 401, forced `excludeHidden`, range limit, 429, `lastUsedAt` throttle, revoked/unknown codes, backup leaves the file out.
 - Script (Node, `ios/widget/test`, fake `Request`/`FileManager`/`ListWidget`): layout per family, offline and age note,
   revoked message, `refreshAfterDate`, tap URL `/day/<date>`, no secret in logs. Unit tests are named in `# unit:` comments when built.
 - Web (Vitest + e2e): the Settings section only. Device: a person checks the three sizes and the lock screen once.
@@ -67,7 +67,7 @@ Open, for the mockup or the owner:
 1. Content split (small today, medium today + tomorrow, large week, lock screen now/next; no iPad extra-large) is an assumption the mockup confirms; the widget cannot scroll or page.
 2. Tap opens `https://<server>/day/<date>`; iOS picks Safari or the installed web app.
 3. 10 keys per person, 30 requests per key per minute, `lastUsedAt` at most hourly, revoked records 90 days.
-4. Key `cwk_<id>_<secret>` with a plain SHA-256 hash; in-memory id index at start; keys are in the person's backup.
+4. Key `cwk_<id>_<secret>` with a plain SHA-256 hash; in-memory id index at start; keys are not part of backups (a lost key is created again).
 5. A key reaches two routes: `/api/widget/data` and `/api/widget/script`; the script is the same for everyone and holds no secret.
 6. Update rule: the data answer carries `scriptVersion`; the script downloads only a newer one and writes it only after the first line parses.
 7. The script follows the iPhone's language; colours come from the items.

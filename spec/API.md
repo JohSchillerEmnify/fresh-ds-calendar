@@ -549,6 +549,7 @@ person: every route below lists and changes only the signed-in person's keys, an
 - Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
   items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
   limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).
+- Keys are not part of the person's backup or restore; a lost key is simply created again.
 - Not cached by shared caches (`Cache-Control: no-store`). The script keeps the last answer on the phone.
 
 ### Events

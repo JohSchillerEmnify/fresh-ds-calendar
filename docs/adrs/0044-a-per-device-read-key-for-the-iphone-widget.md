@@ -34,7 +34,7 @@ Status: proposed (issue #95; number 0044 because 0043 is taken on `feat/93-conta
 - **A native iOS app with WidgetKit**: needs the paid Apple program or weekly re-signing (docs/IOS-OPTIONS.md).
 
 ## Consequences
-- A new server store per person (`widget-keys.json`, included in the person's backup) and one in-memory index id to person built at start.
+- A new server store per person (`widget-keys.json`, not part of any backup: a lost key is created again) and one in-memory index id to person built at start.
 - The script and its drawing live in the repo (`ios/widget/`) and are served by the app inside the copied text; a script
   change reaches the phone by the script's own update check.
 - Refresh is up to iOS (about 40-70 per day at best); the widget is a snapshot, not a clock.
