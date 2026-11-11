@@ -10,16 +10,16 @@
     {"en": "demo calendar", "de": "Demokalender", "concept": "calendar with demo events", "neverEn": ["mock calendar", "test calendar"], "neverDe": ["Testkalender"]},
     {"en": "bedtime mode", "de": "Schlafenszeit-Modus", "concept": "bedtime mode", "neverEn": [], "neverDe": ["Bedtime-Modus"]},
     {"en": "host name", "de": "Host-Name", "concept": "host name, URL, domain", "neverEn": ["server address", "web address"], "neverDe": ["Serveradresse", "Webadresse"]},
-    {"en": "went wrong", "de": "schiefgegangen", "concept": "a problem happened", "neverEn": [], "neverDe": ["fehlgeschlagen"]},
+    {"en": "went wrong", "de": "schiefgegangen", "concept": "a problem happened", "neverEn": [], "neverDe": []},
     {"en": "left-handed mode", "de": "Linkshänder-Modus", "concept": "left-handed mode", "neverEn": [], "neverDe": []}
   ],
   "implementationWords": {
-    "en": ["Labs", "prefs", "preferences file", "server", "token", "API", "script", "JSON", "ids?", "cache", "endpoint", "ring version", "key"],
-    "de": ["Labs", "Prefs", "Server", "Token", "API", "Skript", "Script", "JSON", "IDs?", "Cache", "Endpunkt", "Ring-Version", "Key"]
+    "en": ["Labs", "prefs", "preferences file", "token", "API", "script", "JSON", "ids?", "cache", "endpoint", "ring version", "key"],
+    "de": ["Labs", "Prefs", "Token", "API", "Skript", "Script", "JSON", "IDs?", "Cache", "Endpunkt", "Ring-Version", "Key"]
   },
   "supportiveWords": {
-    "en": ["failed", "missed"],
-    "de": ["fehlgeschlagen", "verpasst"]
+    "en": ["missed"],
+    "de": ["verpasst"]
   },
   "allow": [
     {"key": "iphoneWidget.guide.s7", "rule": "implementation-word", "why": "Script › Calendar is Scriptable's own menu text; it must match what the user sees"},

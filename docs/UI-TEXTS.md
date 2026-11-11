@@ -16,7 +16,7 @@ and in mockups too. The reader is a person using the app, not a developer.
 6. **Setup guides: one action per step.** A hint appears only for what the person could not otherwise know.
 7. **Error texts: one plain sentence on what to do next.** Supportive, never blaming, no status codes or internals
    ("it was rejected", not "the server refused it").
-8. **Supportive wording.** No "failed" or "missed"; say what could not be done and what helps. Overdue is not an error.
+8. **Supportive wording for tasks.** An overdue task is not "missed"; errors may say plainly what went wrong ("failed" is fine) and should say what helps.
 9. **Precise terms.** *Host name*, *URL*, *domain*: never "address" (that is an IP address). *Virtual calendar* exists
    only in the app; *Google calendar* exists in Google; say whether a setting is stored in the app or sent to
    Google. Never "own calendar".
@@ -45,7 +45,7 @@ One word per concept. Check the locale files before adding a new term. The table
 | demo calendar | Demokalender | mock calendar, test calendar, Testkalender |
 | bedtime mode | Schlafenszeit-Modus | Bedtime-Modus |
 | host name | Host-Name | server address, web address, Serveradresse, Webadresse |
-| went wrong | schiefgegangen | fehlgeschlagen |
+| went wrong | schiefgegangen | - |
 | left-handed mode | Linkshänder-Modus | - |
 <!-- glossary:end -->
 
@@ -83,7 +83,7 @@ One word per concept. Check the locale files before adding a new term. The table
 - [ ] Does each hint add something the label and the screen do not already say, as briefly as possible?
 - [ ] Would a person who never saw the code understand every word (no Labs, prefs, server, key, ring version)?
 - [ ] Are the precise terms right (host name or URL not “address”; virtual vs Google calendar; app vs Google)?
-- [ ] Are errors and statuses supportive and followed by what to do, with no “failed” or “missed”?
+- [ ] Do errors say what to do next, and do tasks avoid “missed”?
 - [ ] Do all locales carry the change, with the glossary words, real quotes and natural German?
 
 ## How it is enforced
@@ -91,7 +91,7 @@ One word per concept. Check the locale files before adding a new term. The table
 `pnpm quality` runs the `texts` gate (`pnpm ui-texts` lists the findings: file, key, rule, text). It reads
 `docs/ui-texts.json` and checks every string of the `en` and `de` catalogues for: glossary “never use” words,
 German strings identical to the English ones, hand-made weekday or month tables, implementation words, straight quotes, three dots and `>` in paths, a hint that repeats its label, a hint over
-200 characters, formal “Sie” in German, and “failed”/“missed” wording. The fun locales get the
+200 characters, formal “Sie” in German, and “missed” wording. The fun locales get the
 typography rules only. It is a ratchet like the other gates: `quality-baseline.json` holds today's findings and any new
 one fails; fix some and run `pnpm quality:ratchet`. An exception goes into `allow` in `docs/ui-texts.json` with a
 one-line reason (this is where loanwords and names that are the same in German, such as OK or Filter, are

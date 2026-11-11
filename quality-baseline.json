@@ -666,25 +666,16 @@
    "hand-made-dates|web/src/lib/dates.ts": 1,
    "locales/de-x-coldmirror|quotes|theme.import.issue.const": 1,
    "locales/de-x-mainfr|quotes|theme.import.issue.const": 1,
-   "locales/de|glossary|backup.status.failed": 1,
    "locales/de|hint-repeats-label|settings.account.androidApp.hint": 1,
-   "locales/de|implementation-word|calendar.sync.serverUnreachable": 1,
-   "locales/de|implementation-word|errors.saveServerUnreachable": 1,
-   "locales/de|implementation-word|outbox.refused": 1,
    "locales/de|implementation-word|theme.import.notJson": 1,
    "locales/de|same-as-en|themePreview.sample.review": 1,
-   "locales/de|supportive|backup.status.failed": 1,
    "locales/en|hint-repeats-label|settings.account.androidApp.hint": 1,
    "locales/en|hint-repeats-label|settings.account.calendarAccess.hint": 1,
-   "locales/en|implementation-word|calendar.sync.serverUnreachable": 1,
-   "locales/en|implementation-word|errors.saveServerUnreachable": 1,
-   "locales/en|implementation-word|outbox.refused": 1,
    "locales/en|implementation-word|settingsNav.groups.labs.title": 1,
    "locales/en|implementation-word|settingsNav.labels.showLabs": 1,
    "locales/en|implementation-word|theme.import.notJson": 1,
    "locales/en|quotes|calendar.calendarAccess.message": 1,
-   "locales/en|quotes|theme.import.issue.const": 1,
-   "locales/en|supportive|backup.status.failed": 1
+   "locales/en|quotes|theme.import.issue.const": 1
   }
  },
  "allowedIncreases": [

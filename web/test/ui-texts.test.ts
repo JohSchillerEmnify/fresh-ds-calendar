@@ -16,14 +16,15 @@ describe('texts contract checker', () => {
     expect(rulesOf({ a: 'Your own calendar' }, 'en')).toContain('glossary');
   });
   it('flags implementation words, not words that merely contain them', () => {
-    expect(rulesOf({ a: 'Stored on the server' }, 'en')).toContain('implementation-word');
+    expect(rulesOf({ a: 'Stored on the server' }, 'en')).not.toContain('implementation-word');
+    expect(rulesOf({ a: 'Sent with a token' }, 'en')).toContain('implementation-word');
     expect(rulesOf({ a: 'Servers are fun' }, 'en')).not.toContain('implementation-word');
     expect(rulesOf({ a: 'Show Labs features' }, 'en')).toContain('implementation-word');
     expect(rulesOf({ a: 'Nutze einen Token' }, 'de')).toContain('implementation-word');
   });
   it('honours the allow-list with its reason', () => {
     const allow = { ...rules, allow: [{ key: 'a', rule: 'implementation-word', why: 'test' }] };
-    expect(rulesOf({ a: 'Stored on the server' }, 'en', allow)).toEqual([]);
+    expect(rulesOf({ a: 'Sent with a token' }, 'en', allow)).toEqual([]);
   });
   it('flags straight quotes, three dots and the > menu arrow, also in fun locales', () => {
     expect(rulesOf({ a: 'Tap "Save"' }, 'fun')).toContain('quotes');
@@ -51,7 +52,8 @@ describe('texts contract checker', () => {
     expect(rulesOf({ a: 'Sie bleibt offen' }, 'de')).not.toContain('formal-sie');
   });
   it('flags unsupportive words', () => {
-    expect(rulesOf({ a: 'Backup failed' }, 'en')).toContain('supportive');
+    expect(rulesOf({ a: 'Backup failed' }, 'en')).not.toContain('supportive');
+    expect(rulesOf({ a: 'You missed a task' }, 'en')).toContain('supportive');
     expect(rulesOf({ a: 'Termin verpasst' }, 'de')).toContain('supportive');
     expect(rulesOf({ a: 'Could not back up' }, 'en')).toEqual([]);
   });
