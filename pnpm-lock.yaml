@@ -269,6 +269,9 @@ importers:
       '@googleapis/calendar':
         specifier: 20.1.0
         version: 20.1.0(supports-color@7.2.0)
+      '@googleapis/people':
+        specifier: 12.0.1
+        version: 12.0.1(supports-color@7.2.0)
       '@hono/node-server':
         specifier: 2.1.5
         version: 2.1.5(hono@4.13.14)
@@ -1324,6 +1327,10 @@ packages:
 
   '@googleapis/calendar@20.1.0':
     resolution: {integrity: sha512-bPO9wts48OAEhJn5UfgPC4FuyW/D6ufUzdXx0JHfeJIqg+O5bHvX/TenaAdbJuGhluhn5FLlyl6HzuhE4rFJqw==}
+    engines: {node: '>=22.0.0'}
+
+  '@googleapis/people@12.0.1':
+    resolution: {integrity: sha512-8I5c9wfiPUxxbaPIyOQUG3MkTviyKWsnj4uYBgCcS5y0PY3q2xjjQlnCem72m6DMn3EVjUoD+MxdHE8cEmmA/g==}
     engines: {node: '>=22.0.0'}
 
   '@hono/node-server@2.1.5':
@@ -6336,6 +6343,12 @@ snapshots:
       tslib: 2.8.1
 
   '@googleapis/calendar@20.1.0(supports-color@7.2.0)':
+    dependencies:
+      googleapis-common: 9.2.0(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@googleapis/people@12.0.1(supports-color@7.2.0)':
     dependencies:
       googleapis-common: 9.2.0(supports-color@7.2.0)
     transitivePeerDependencies:

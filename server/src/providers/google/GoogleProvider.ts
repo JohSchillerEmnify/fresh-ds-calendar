@@ -1,11 +1,13 @@
 import { calendar as makeCalendar, type calendar_v3 } from '@googleapis/calendar';
+import { people as makePeople, type people_v1 } from '@googleapis/people';
+import { fromPerson } from './person.js';
 import type { OAuth2Client } from 'google-auth-library';
 import type { CalendarColor } from '@calendar/shared/colors';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, RateLimitedError, ProviderForbiddenError, ProviderUnavailableError,
   ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
-  type ListEventsResult, type ProviderCalendar, type WriteOptions,
+  type ListEventsResult, type ProviderCalendar, type WriteOptions, type ContactsResult, type GoogleContact,
 } from '../CalendarProvider.js';
 import { GOOGLE_TIMEOUT_MS, calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
 import { calHash, causeOf, describeGoogleError, logEvent, noteCause, subHash } from '../../lib/diag.js';
@@ -16,6 +18,8 @@ type Dt = calendar_v3.Schema$EventDateTime;
 
 export interface GoogleProviderOptions {
   api: Api;
+  /** The People API client of the same person (contact birthdays, feature contact-birthdays). */
+  people?: people_v1.People;
   /** Optional hook, e.g. a "not authorised" check performed before every call. */
   ready?: () => void;
   /** The person's Google `sub`; only its short hash is ever logged (diagnostics). */
@@ -31,6 +35,15 @@ const MAX_INSTANCE_PAGES = 40;
 const MAX_TOKEN_PAGES = 200;
 
 interface GoogleErrorBody { status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] }
+
+const MAX_CONTACT_PAGES = 50;
+
+/** The People API refuses a sync token older than 7 days with HTTP 400 and the reason `EXPIRED_SYNC_TOKEN`. */
+function isExpiredContactsToken(e: unknown): boolean {
+  const err = e as { response?: { status?: number; data?: unknown }; status?: number };
+  const status = Number(err.response?.status ?? err.status);
+  return status === 400 && JSON.stringify(err.response?.data ?? '').includes('EXPIRED_SYNC_TOKEN');
+}
 
 /** Google's 403 reasons for a token that lacks the needed scope. */
 function isInsufficientScope(body: string | GoogleErrorBody | undefined): boolean {
@@ -300,6 +313,34 @@ export class GoogleProvider implements CalendarProvider {
     return nextSyncToken;
   }
 
+  async listContacts(syncToken?: string): Promise<ContactsResult> {
+    const people = this.o.people;
+    if (!people) throw new ProviderError('No People API client');
+    const items: GoogleContact[] = [];
+    let pageToken: string | undefined;
+    let nextSyncToken: string | undefined;
+    let pages = 0;
+    // every page repeats the parameters of the first call, the sync token included (People API `connections.list`)
+    do {
+      const res = await this.call('people.connections.list', async () => {
+        try {
+          return await people.people.connections.list({
+            resourceName: 'people/me', personFields: 'names,birthdays,events', pageSize: 1000, requestSyncToken: true, ...(syncToken ? { syncToken } : {}), pageToken,
+          });
+        } catch (e) {
+          if (isExpiredContactsToken(e)) throw new SyncTokenExpiredError('Contacts sync token expired', { cause: e });
+          throw e;
+        }
+      });
+      for (const p of res.data.connections ?? []) items.push(fromPerson(p));
+      pageToken = res.data.nextPageToken ?? undefined;
+      nextSyncToken = res.data.nextSyncToken ?? undefined;
+      pages++;
+    } while (pageToken && pages < MAX_CONTACT_PAGES);
+    if (pageToken || !nextSyncToken) throw new ProviderError('Contacts too many to read');
+    return { items, nextSyncToken };
+  }
+
   async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
     const items: GoogleEvent[] = [];
     let pageToken: string | undefined;
@@ -373,6 +414,7 @@ export function createGoogleProvider(config: AppConfig, sub: string, fetchImplem
   return new GoogleProvider({
     sub,
     api: makeApi(auth, fetchImplementation),
+    people: makePeople({ version: 'v1', auth, timeout: GOOGLE_TIMEOUT_MS, ...(fetchImplementation ? { fetchImplementation } : {}) } as Parameters<typeof makePeople>[0]),
     ready: () => {
       if (!hasUserToken(config, sub) && !auth.credentials.refresh_token && !auth.credentials.access_token) {
         throw new ReauthRequiredError('No Google access stored for this person');

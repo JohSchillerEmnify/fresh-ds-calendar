@@ -19,6 +19,8 @@ export interface Calendar {
   virtual?: true;
   /** True for a Google holiday calendar (`...#holiday@group.v.calendar.google.com`): listed under Settings › Calendars › Holidays, removable. */
   holiday?: true;
+  /** Only on the virtual `birthdays`: whether the person's token has `contacts.readonly` (contact birthdays are read) or not (feature contact-birthdays). */
+  contactsPermission?: 'granted' | 'missing';
 }
 
 /** `official` = public holidays only, `all` = holidays and observances (ADR 0039). */
@@ -59,10 +61,14 @@ export interface CalendarEvent {
   sourceCalendarId?: string;
   /** Birthdays only: the same value on the same date means the same birthday seen twice (contact link, else title), shown once. */
   dupKey?: string;
+  /** Contact dates only: a second key; the date is also dropped when a calendar birthday has this one (same title and day). */
+  dupAlt?: string;
   /** True when the app cannot edit or delete it: not in an own calendar, an invitation, or a birthday of the contacts calendar. */
   readOnly?: true;
   /** Why `readOnly` is set (an invitation from `by`, or an event in the calendar of `by`); absent for the contacts Birthdays calendar. */
-  readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };
+  readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string } | { kind: 'contact' };
+  /** Only on a date read from Google Contacts (ADR 0043): its People API resource name; `birthYear` only for a birthday with a year (the age is shown in the details). */
+  contactBirthday?: { resourceName: string; birthYear?: number };
   /** Birthdays only: true when Google keeps the date (linked to a contact, or the person's own birthday); name and colour stay editable. */
   dateLocked?: true;
   reminders: Reminders;

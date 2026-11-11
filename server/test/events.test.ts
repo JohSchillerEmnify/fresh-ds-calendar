@@ -174,7 +174,7 @@ describe('calendars, config, health, errors', () => {
     expect(r.body.calendars).toEqual([
       { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, defaultReminders: [], hidden: false },
       { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, defaultReminders: [], hidden: false },
-      { id: 'birthdays', name: 'Birthdays', color: '#9fc6e7', primary: false, writable: false, defaultReminders: [], hidden: false, virtual: true },
+      { id: 'birthdays', name: 'Birthdays', color: '#9fc6e7', primary: false, writable: false, defaultReminders: [], hidden: false, virtual: true, contactsPermission: 'missing' },
     ]);
   });
 

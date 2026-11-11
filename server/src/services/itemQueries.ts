@@ -18,6 +18,8 @@ export interface QueryHost {
   calendarColor(id: string): Promise<string>;
   calendarColorSync(id: string): string;
   stale(): boolean;
+  /** The dates of the person's Google contacts in `[from, to)` (feature contact-birthdays). */
+  contactEvents(from: string, to: string): Promise<CalendarEvent[]>;
 }
 
 /** Read side of the calendar: item ranges, the open and archived task lists, and the per-day summary. */
@@ -70,7 +72,8 @@ export class ItemQueries {
     const [events, ...rest] = await Promise.all([Promise.all(eventLists), taskLists]);
     // nothing readable at all is an outage, not a partial answer
     if (errors.length && errors.length >= reads) throw errors[0];
-    return [...dedupeBirthdays(events.flat() as CalendarEvent[]), ...rest.flat(), ...sharedLists()];
+    const contacts = readAll && !tasklistsOnly ? await this.host.contactEvents(from, to) : [];
+    return [...dedupeBirthdays([...events.flat() as CalendarEvent[], ...contacts]), ...rest.flat(), ...sharedLists()];
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {

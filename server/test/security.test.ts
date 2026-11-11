@@ -287,8 +287,8 @@ describe('M4 sign-out clears push', () => {
 describe('M5 stateless OAuth state', () => {
   it('a state we signed is accepted, with its app flag', () => {
     const s = new StateStore(() => 1_000, 'secret');
-    expect(s.consume(s.create(false))).toEqual({ app: false });
-    expect(s.consume(s.create(true))).toEqual({ app: true });
+    expect(s.consume(s.create(false))).toEqual({ app: false, contacts: false, settings: false });
+    expect(s.consume(s.create(true))).toEqual({ app: true, contacts: false, settings: false });
   });
 
   it('a forged OAuth state is rejected', () => {
@@ -311,7 +311,7 @@ describe('M5 stateless OAuth state', () => {
     const s = new StateStore(() => now, 'secret');
     const state = s.create();
     now += 10 * 60_000;
-    expect(s.consume(state)).toEqual({ app: false });
+    expect(s.consume(state)).toEqual({ app: false, contacts: false, settings: false });
     now += 1;
     expect(s.consume(state)).toBeNull();
   });

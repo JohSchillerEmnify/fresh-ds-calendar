@@ -12,6 +12,7 @@ import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { parse, clockSchema, outageSchema, unreadableSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, refuseNextWriteSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
+import type { MockContactInput } from '../providers/mock/MockContacts.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -194,6 +195,28 @@ export function testRoutes(ctx: Ctx): Hono {
 
   t.get('/remote/calendars', (c) => c.json({ calendars: store(c.req.query('owner')).remote.calendars() }));
 
+  // Contacts of one account's People API stand-in (feature contact-birthdays); `owner` as above.
+  t.post('/remote/contacts', async (c) => {
+    const b = (await body(c)) as { owner?: string; name?: unknown; birthday?: unknown; events?: unknown } | undefined;
+    if (typeof b?.name !== 'string' || !b.name) throw validation('name is required', 'name');
+    const resourceName = store(b.owner).contacts.add({ name: b.name, ...(b.birthday ? { birthday: b.birthday as MockContactInput['birthday'] } : {}), ...(b.events ? { events: b.events as MockContactInput['events'] } : {}) });
+    calendarOf(b.owner).invalidate();
+    return c.json({ resourceName }, 201);
+  });
+  t.delete('/remote/contacts/:resourceName{.+}', (c) => {
+    const owner = c.req.query('owner');
+    if (!store(owner).contacts.remove(c.req.param('resourceName'))) throw notFound('Contact not found');
+    calendarOf(owner).invalidate();
+    return c.body(null, 204);
+  });
+  t.post('/remote/contacts-error', async (c) => {
+    const b = (await body(c)) as { owner?: string; status?: unknown } | undefined;
+    if (b?.status !== null && typeof b?.status !== 'number') throw validation('status must be a number or null', 'status');
+    store(b.owner).contacts.setError(b.status);
+    calendarOf(b.owner).invalidate();
+    return c.body(null, 204);
+  });
+
   // Adds a calendar to one account's list as another Google client would (e.g. an existing tasks calendar).
   t.post('/remote/calendars', async (c) => {
     const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown; id?: string; color?: string; readOnly?: boolean; accessRole?: ProviderCalendar['accessRole']; ownerEmail?: string } | undefined;
@@ -307,8 +330,9 @@ export function testRoutes(ctx: Ctx): Hono {
   t.get('/oauth/consent', (c) => {
     const fake = ctx.auth.fake!;
     const state = c.req.query('state');
-    if (!fake.account || !state) throw validation('No Google account chosen');
-    return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.codeFor(fake.account))}&state=${encodeURIComponent(state)}`, 302);
+    // signed out (local mode) the Contacts grant needs no account: the callback ends it before the code is used
+    if (!state || (!fake.account && ctx.auth.on)) throw validation('No Google account chosen');
+    return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.account ? fake.codeFor(fake.account) : 'fake:local')}&state=${encodeURIComponent(state)}`, 302);
   });
 
   // The fake consent screen leaves the "Google Calendar" checkbox unticked (granted: false) or ticked again.
@@ -316,6 +340,15 @@ export function testRoutes(ctx: Ctx): Hono {
     const b = (await body(c)) as { granted?: unknown } | undefined;
     if (typeof b?.granted !== 'boolean') throw validation('granted must be a boolean', 'granted');
     ctx.auth.fake!.calendarGranted = b.granted;
+    return c.json({ granted: b.granted });
+  });
+
+  // The fake consent screen adds the Contacts permission (feature contact-birthdays); for the signed-out person this is the grant itself.
+  t.post('/oauth/contacts-access', async (c) => {
+    const b = (await body(c)) as { granted?: unknown } | undefined;
+    if (typeof b?.granted !== 'boolean') throw validation('granted must be a boolean', 'granted');
+    ctx.auth.fake!.contactsScope = b.granted;
+    ctx.calendar.invalidate();
     return c.json({ granted: b.granted });
   });
 

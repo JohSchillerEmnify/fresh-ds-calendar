@@ -45,6 +45,9 @@ const EXCHANGE_FAILED_PAGE = `<!doctype html><meta charset="utf-8"><meta name="v
 <body style="font:16px system-ui;margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px"><div>
 <p>This sign-in link has expired or was already used.</p><p><a href="/signin">Sign in again</a></p></div></body>`;
 
+/** Where a round trip returns to: the calendar, or (a Contacts grant started in the settings) the Birthdays settings page. */
+const returnTarget = (issued: { contacts: boolean; settings: boolean }): string => (issued.contacts && issued.settings ? '/?settings=birthdays-contacts' : '/');
+
 /** The OAuth backend in use: real Google with PROVIDER=google, the test double in TEST_MODE, else none (404). */
 async function backend(ctx: Ctx): Promise<OAuthBackend> {
   if (ctx.config.provider === 'google') {
@@ -68,11 +71,13 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     // an app sign-in is bound to the app that started it (RFC 7636 S256): no challenge, no sign-in
     const challenge = c.req.query('challenge');
     if (app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('App sign-in needs a challenge (update the app)');
-    const state = ctx.auth.states.create(app);
+    // the plain sign-in never asks for the Contacts permission; `contacts=1` (the snackbar, the Birthdays settings) does, `to=settings` returns there
+    const contacts = c.req.query('contacts') === '1';
+    const state = ctx.auth.states.create(app, contacts, contacts && c.req.query('to') === 'settings');
     setCookie(c, STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
     if (app) setCookie(c, CHALLENGE_COOKIE, challenge!, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
     logEvent('auth_flow', { step: 'start', app, durationMs: Date.now() - started });
-    return c.redirect(oauth.authUrl(state), 302);
+    return c.redirect(oauth.authUrl(state, contacts), 302);
   });
 
   r.get('/auth/google/callback', async (c) => {
@@ -87,6 +92,8 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const challenge = getCookie(c, CHALLENGE_COOKIE);
     deleteCookie(c, CHALLENGE_COOKIE, { path: '/api/auth' });
     if (issued.app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('Invalid state');
+    // signed out (local mode, test double only) there is no person to grant it to: the double's switch is the grant
+    if (issued.contacts && !ctx.auth.on) return c.redirect(returnTarget(issued), 302);
     // a refused code is the person's problem, not a server error: answer 400 and log no error object (it can carry tokens)
     const who = await oauth.exchange(code).catch(() => null);
     if (!who) {
@@ -116,7 +123,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     await ctx.backup.restoreIfEmpty(who.sub);
     const sessionId = ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) });
     // signed in, but Google's token response (the authority, not the callback's scope query) lacks the calendar: say so instead of pretending
-    const target = missing ? '/?calendar=missing' : '/';
+    const target = missing ? '/?calendar=missing' : returnTarget(issued);
     logEvent('auth_flow', { step: 'callback', app: issued.app, subHash: subHash(who.sub), durationMs: Date.now() - started });
     if (issued.app) {
       // this browser must not keep the session: the app's WebView gets it by redeeming the code
