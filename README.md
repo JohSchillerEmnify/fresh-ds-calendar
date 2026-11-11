@@ -4,7 +4,7 @@
 
 > Trag ein, trag aus, macht mir nix aus!
 
-This is a calendar and task-list app that sits on top of your Google Calendar. I made it for people with ADHD, because
+Yo. This is a calendar and task-list app that sits on top of your Google Calendar. I made it for people with ADHD, because
 the calendars I tried either showed me a pretty grid and then let me forget everything in it, or made me feel bad about
 every task I didn't finish.
 
@@ -25,7 +25,9 @@ three days late.
   free Scriptable app.
 - **Works offline.** Everything you see is kept on your device. Changes you make without a connection are sent when you
   are back online.
-- **German and English**, light and dark, and a few themes with seasonal scenes.
+- **German and English**, light and dark, and a few themes with seasonal scenes. There is also a third language, a
+  German in the voice of Fresh D., the headmaster who tries far too hard to be a rapper. Pick it in the language
+  setting if you want the app to talk like that. Digga.
 
 Almost everything can be switched on or off in the settings, and your settings follow you to every device. Yes, there
 are a lot of settings. I regret nothing.
@@ -45,7 +47,7 @@ trust runs for you), for example at `https://cal.example.org`. How to set one up
   Settings › Account & app › iPhone widget and needs the free Scriptable app.
 - **Anything else:** open the instance in a browser. It installs as an app there too.
 
-## Yes, a bot wrote it
+## Yes, a bot wrote it (fresh, I know)
 
 All of the code was written by AI agents, under my direction. I mostly say "no, the other thing" a lot. It's spec-first and test-first, so I know what it should
 do and that the tests agree, but no experienced human has read it line by line. Use it at your own risk, lol, and
@@ -67,4 +69,5 @@ with a mock calendar and demo data.
 ## License
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+This is an unofficial fan project. It is not affiliated with or endorsed by coldmirror.
 Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).
