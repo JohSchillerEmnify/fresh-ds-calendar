@@ -13,7 +13,8 @@ Feature: iPhone widgets through Scriptable
   "Tomorrow" section (medium), and a "+N more" line when things overflow. No size has a time strip: a widget cannot scroll,
   so a full day does not fit.
   The lock screen has the three accessory families Scriptable supports: inline, circular and rectangular. The widget draws
-  no clock of its own, because iOS shows its clock on the lock screen.
+  no clock of its own, because iOS shows its clock on the lock screen, and no date line above the circle and the box, because
+  they show it themselves. The circle says "in N min" (time until the next entry starts), never time left.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
@@ -36,6 +37,30 @@ Feature: iPhone widgets through Scriptable
       Then the setup offers a link to get Scriptable
 
     @backlog
+    Scenario: The setup is a guide of seven steps, each with what to expect
+      When I open the iPhone widget settings
+      And I create a widget key named "My iPhone"
+      Then the setup guide step 1 says "Install Scriptable (free)." and expects "The App Store opens. Tap Get, then come back here."
+      And the setup guide step 2 says "Copy the installer." and expects "The button turns into Copied ✓."
+      And the setup guide step 3 says "Open Scriptable." and expects "Scriptable opens an empty page. If it shows a welcome screen first, close it and tap Open Scriptable again."
+      And the setup guide step 4 says "Tap the empty page once, then tap Paste." and expects "The page fills with text. Its first line is Calendar widget installer."
+      And the setup guide step 5 says "Tap ▶ at the bottom right." and expects "Installed. Now add the widget."
+      And the setup guide step 6 says "On the home screen, press and hold an empty spot, tap Edit › Add Widget, search Scriptable, pick a size, tap Add Widget." and expects "A grey box says Select script in widget configurator."
+      And the setup guide step 7 says "Tap that box, tap Script › Calendar, then tap outside." and expects "The calendar appears and this page shows Widget connected ✓."
+
+    @backlog
+    Scenario: Copying the installer is confirmed on the button
+      Given I created a widget key named "My iPhone"
+      When I copy the widget installer
+      Then the button "Copy installer" now says "Copied ✓"
+
+    @backlog
+    Scenario: The settings say when the widget is connected
+      Given I created a widget key named "My iPhone"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the setup guide shows "Widget connected ✓" for the widget key "My iPhone"
+
+    @backlog
     Scenario: The copied installer has the key and the server URL filled in
       Given I created a widget key named "My iPhone"
       When I copy the widget installer
@@ -46,7 +71,7 @@ Feature: iPhone widgets through Scriptable
     Scenario: The installer downloads the widget script with the key
       Given the widget key "My iPhone" belongs to "jo@example.com"
       When the widget installer runs with the key "My iPhone"
-      Then the widget script is saved on the phone as a Scriptable script
+      Then the widget script is saved on the phone as a Scriptable script named "Calendar"
       And the saved widget script holds no key and no person
       And the key and the server URL are kept in Scriptable's storage
       And the installer says to add a Scriptable widget
@@ -56,6 +81,30 @@ Feature: iPhone widgets through Scriptable
       When the widget installer runs with a key that does not exist
       Then the widget script request is refused as "unknown"
       And the installer says the key is not valid and nothing is saved
+
+    @backlog
+    Scenario: The installer says what to do when the key was removed
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      And I revoke the widget key "My iPhone"
+      When the widget installer runs with the key "My iPhone"
+      Then the installer says "This key was removed. In the calendar app open Settings, create a new widget key and copy the installer again."
+
+    @backlog
+    Scenario: The installer says what to do without a connection
+      When the widget installer runs without a connection
+      Then the installer says "No connection. Connect to Wi-Fi or mobile data, then tap ▶ again."
+      And nothing is saved
+
+    @backlog
+    Scenario: The installer says what to do when the server does not answer
+      When the widget installer runs and the server does not answer
+      Then the installer says "The calendar server did not answer. Try again in a few minutes."
+      And nothing is saved
+
+    @backlog
+    Scenario: An unconfigured widget explains how to add it
+      When the iPhone widget runs without a key
+      Then the iPhone widget says "Open the Calendar installer in Scriptable first, then run it with ▶."
 
     @backlog
     Scenario: A new script version arrives on its own
@@ -176,9 +225,12 @@ Feature: iPhone widgets through Scriptable
     @backlog
     Scenario: The large widget shows the Week view
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an all-day event "Holiday" on 2026-10-14
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the week of 2026-10-12 with the event "Dentist" on 2026-10-14
+      And the iPhone widget shows the event "Dentist" with its start time "09:00" on its own line above the title
+      And the iPhone widget shows "all day"
 
     @backlog
     Scenario: The inline lock-screen widget shows the next entry
@@ -195,7 +247,7 @@ Feature: iPhone widgets through Scriptable
       And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "lock screen circle" size
-      Then the iPhone widget says "40 min"
+      Then the iPhone widget says "in 40 min"
       And the iPhone widget shows no clock
 
     @backlog
@@ -207,6 +259,7 @@ Feature: iPhone widgets through Scriptable
       When I look at the iPhone widget in the "lock screen rectangle" size
       Then the iPhone widget says "Dentist · 40 min left"
       And the iPhone widget says "Next: Gym 18:00"
+      And the iPhone widget shows no date line above the box
       And the iPhone widget shows no clock
 
     @backlog

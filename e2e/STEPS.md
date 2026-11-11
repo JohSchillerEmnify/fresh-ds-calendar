@@ -3579,11 +3579,19 @@ the settings show the widget key {string} as never used
 the settings do not show the widget key itself
 the new widget key is shown once with the buttons {string} and {string}
 the setup offers a link to get Scriptable
+the setup guide step {int} says {string} and expects {string}
+the button {string} now says {string}
+the setup guide shows {string} for the widget key {string}
+the installer says {string}
+the widget installer runs without a connection
+the widget installer runs and the server does not answer
+nothing is saved
+the iPhone widget runs without a key
 the copied widget installer holds the key and the server URL
 the copied widget installer says nothing else to fill in
 the widget installer runs with the key {string}
 the widget installer runs with a key that does not exist
-the widget script is saved on the phone as a Scriptable script
+the widget script is saved on the phone as a Scriptable script named {string}
 the saved widget script holds no key and no person
 the key and the server URL are kept in Scriptable's storage
 the installer says to add a Scriptable widget
@@ -3615,6 +3623,8 @@ the iPhone widget shows the event {string}
 the iPhone widget does not show the event {string}
 the iPhone widget shows the event {string} from {time} to {time}
 the iPhone widget shows the date {date}
+the iPhone widget shows the event {string} with its start time {string} on its own line above the title
+the iPhone widget shows no date line above the box
 the iPhone widget shows the week of {date} with the event {string} on {date}
 the iPhone widget shows {string}
 the iPhone widget says {string}
@@ -3630,6 +3640,8 @@ the iPhone widget asks to be redrawn at {time}
   `iphone-widget-copy-installer`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy installer" is read back from the
   clipboard permission of the test browser.
 - "the setup offers a link to get Scriptable": the setup's step 1 holds a link "Get Scriptable" to `https://apps.apple.com/app/id1405459188` (hook `iphone-widget-get-scriptable`). Scriptable's URL scheme has no parameter that carries a script, so the installer stays copy + "Open Scriptable" (`scriptable:///add`).
+- The guide's seven steps (hooks `iphone-widget-step-1` ... `-7`, each with its action text and a grey "expects" line `iphone-widget-step-N-expects`; "Get Scriptable" is step 1's link, "Copy installer" and "Open Scriptable" steps 2 and 3). The guide polls the key list while it is open, so "Widget connected ✓ — <device>, <time>" (`iphone-widget-connected`) appears when the key's first data read arrived. In the step texts of the feature file the quotation marks inside the expectation are left out.
+- "the installer says T" and "nothing is saved" are proven by the installer's unit test with a fake Scriptable `Alert`, `Request`, `FileManager` and `Keychain` (the iPhone follows English or German; the scenarios use English).
 - "the calendar contains N more events on D after T" adds N one-hour events ("More 1" ... "More N") from T on, one per hour.
 - "P has the calendar C" gives another person a calendar of their own (fixture through the mock provider).
 - "the widget key K belongs to P" creates the key through `POST /api/widget-keys` as P (the secret is kept by the step for
