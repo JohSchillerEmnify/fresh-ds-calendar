@@ -19,15 +19,16 @@ three days late.
   ones from templates. What you didn't finish carries over to today, no red, no shame.
 - **Time you can see.** What is running or coming up shows the time left or when it starts, and there is a clock view
   that draws your day as a ring.
-- **Bedtime mode.** Tell it when you want to sleep and the day shows a moon when it's time to wind down.
+- **Bedtime mode.** Tell it when you want to sleep and it gently reminds you (with a little moon) when
+  it's time to wind down.
 - **Birthdays**, including the ones from your Google Contacts, in their own Birthdays calendar.
 - **Widgets.** Your week on the Android home screen. On iPhone you get home-screen and lock-screen widgets through the
   free Scriptable app.
 - **Works offline.** Everything you see is kept on your device. Changes you make without a connection are sent when you
   are back online.
 - **German and English**, light and dark, and a few themes with seasonal scenes. There is also a third language, a
-  German in the voice of Fresh D., the headmaster who tries far too hard to be a rapper. Pick it in the language
-  setting if you want the app to talk like that. Digga.
+  German in the voice of Fresh D., the headmaster who tries far too hard to be a rapper. Pick "Coldmirror" in the
+  language setting if you want the app to talk like that. Digga.
 
 Almost everything can be switched on or off in the settings, and your settings follow you to every device. Yes, there
 are a lot of settings. I regret nothing.
@@ -49,9 +50,9 @@ trust runs for you), for example at `https://cal.example.org`. How to set one up
 
 ## Yes, a bot wrote it (fresh, I know)
 
-All of the code was written by AI agents, under my direction. My job was mostly saying "no, the other thing"
-a lot. It's spec-first and test-first, so I know what it should do and that the tests agree, but no experienced human has read it line by line. Use it at your own risk, lol, and
-don't make it your only copy of anything important.
+All of the code was written by AI agents, under my direction. My job was mostly saying "no, the other thing" a lot.
+It's spec-first and test-first, so I know what it should do and that the tests agree, but no experienced human has
+read it line by line. Use it at your own risk, lol, and don't make it your only copy of anything important.
 
 ## For developers
 
@@ -68,6 +69,7 @@ with a mock calendar and demo data.
 
 ## License
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). Security issues: see
+[SECURITY.md](SECURITY.md).
+
 This is an unofficial fan project. It is not affiliated with or endorsed by coldmirror.
-Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).
