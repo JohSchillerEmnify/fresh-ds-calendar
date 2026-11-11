@@ -542,9 +542,9 @@ person: every route below lists and changes only the signed-in person's keys, an
 - The routes a key opens are this and `/api/widget/script`: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
   `UNAUTHENTICATED`**; the session cookie on this route is ignored (also **401**). Read-only by construction: no other method
   is routed for a key.
-- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories }`: `items` as `GET /api/items` for the
+- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories, widgetCircle }`: `items` as `GET /api/items` for the
   range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
-  included; the key cannot turn it off), the three prefs as `GET /api/prefs` gives them. `to - from` at most 8 days.
+  included; the key cannot turn it off), the four prefs as `GET /api/prefs` gives them (`widgetCircle`: `time` (default) or `countdown`, the lock-screen circle's drawing, per person, validation field `widgetCircle`; the script keeps the answer, setting included, for offline). `to - from` at most 8 days.
   `scriptVersion` is the newest script's `version`; a script that is older fetches `/api/widget/script`. `today` is the calendar's local date, so the script needs no time zone logic.
 - Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
   items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is

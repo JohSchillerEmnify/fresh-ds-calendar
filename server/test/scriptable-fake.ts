@@ -19,7 +19,7 @@ export interface Options {
 }
 
 export interface Fakes {
-  texts: { text: string; bold: boolean; where: string }[];
+  texts: { text: string; bold: boolean; where: string; relative?: boolean }[];
   alerts: { title: string; message: string }[];
   files: Map<string, string>;
   keychain: Map<string, string>;
@@ -47,6 +47,11 @@ export function fakeScriptable(o: Options = {}): Fakes {
       const rec = { text, bold: false, where: this.where };
       texts.push(rec);
       return { set font(f: { bold: boolean }) { rec.bold = f.bold; } };
+    }
+    addDate(date: Date) {
+      const rec: Fakes['texts'][number] = { text: `date:${date.toISOString()}`, bold: false, where: this.where, relative: false };
+      texts.push(rec);
+      return { applyRelativeStyle() { rec.relative = true; }, set font(f: { bold: boolean }) { rec.bold = f.bold; } };
     }
     addStack() { return new Node(this.where); }
     addImage() { return new Node(this.where); }

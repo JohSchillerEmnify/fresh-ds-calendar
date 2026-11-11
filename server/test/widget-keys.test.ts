@@ -82,6 +82,16 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await data(key.key)).body.items).toEqual([]);
   });
 
+  it('carries the lock screen circle setting of the key\'s person, start time by default', async () => {
+    const key = await mint(jo);
+    expect((await data(key.key)).body.widgetCircle).toBe('time');
+    await t.json('PATCH', '/api/prefs', { widgetCircle: 'countdown' }, as(jo));
+    expect((await data(key.key)).body.widgetCircle).toBe('countdown');
+    const other = await mint(ann);
+    expect((await data(other.key)).body.widgetCircle).toBe('time');
+    expect((await t.json('PATCH', '/api/prefs', { widgetCircle: 'soon' }, as(jo))).status).toBe(400);
+  });
+
   it('refuses an unknown or malformed key and a session without a key', async () => {
     const key = await mint(jo);
     for (const h of [bearer('cwk_AAAAAAAA_' + 'A'.repeat(43)), bearer('nonsense'), {}, as(jo), bearer(key.key.slice(0, -1) + (key.key.endsWith('A') ? 'B' : 'A'))]) {

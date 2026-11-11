@@ -76,13 +76,38 @@ describe('the widget script: lock screen', () => {
     expect(d.said).toEqual(['Dentist · 09:00']);
   });
 
-  it('circular shows only the next start time, never a countdown, and redraws like the others', async () => {
+  it('circular shows the next start time by default, also with no setting in an older answer', async () => {
     for (const now of [at('08:20'), at('08:59') + 30000, at('07:30')]) {
       const d = await draw([dentist], 'accessoryCircular', now);
       expect(d.said).toEqual(['09:00']);
     }
     const d = await draw([dentist], 'accessoryCircular', at('08:20'));
     expect(d.widget.refreshAfterDate.getTime()).toBe(at('09:00'));
+    expect((await draw([dentist], 'accessoryCircular', at('08:20'), {}, { widgetCircle: 'time' })).said).toEqual(['09:00']);
+  });
+
+  it('circular countdown counts down live to the next start with a relative date, not static minutes', async () => {
+    const d = await draw([dentist], 'accessoryCircular', at('08:20'), {}, { widgetCircle: 'countdown' });
+    const date = d.f.texts.find((t) => t.text.startsWith('date:'))!;
+    expect(date.text).toBe(`date:${new Date(at('09:00')).toISOString()}`);
+    expect(date.relative).toBe(true);
+    expect(d.said).toContain('in');
+    expect(d.said.join(' ')).not.toMatch(/\d+ min/);
+    expect(d.widget.refreshAfterDate.getTime()).toBe(at('08:59'));
+  });
+
+  it('circular countdown says now in the last minute and then moves on to the following entry', async () => {
+    const d = await draw([dentist, gym], 'accessoryCircular', at('08:59'), {}, { widgetCircle: 'countdown' });
+    expect(d.said).toEqual(['now']);
+    expect(d.widget.refreshAfterDate.getTime()).toBe(at('09:00'));
+    const after = await draw([dentist, gym], 'accessoryCircular', at('09:02'), {}, { widgetCircle: 'countdown' });
+    expect(after.said).toEqual(['18:00']);
+  });
+
+  it('circular countdown shows the start time when far away and redraws when it comes within the hour', async () => {
+    const d = await draw([dentist], 'accessoryCircular', at('07:30'), {}, { widgetCircle: 'countdown' });
+    expect(d.said).toEqual(['09:00']);
+    expect(d.widget.refreshAfterDate.getTime()).toBe(at('08:00'));
   });
 
   it('rectangular says what is going on now and what is next, with no date line', async () => {

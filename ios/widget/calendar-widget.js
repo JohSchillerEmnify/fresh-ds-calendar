@@ -1,6 +1,6 @@
 // calendar-widget version=1
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
-// Small = the day, medium = today and tomorrow, large = the week; the lock screen shows start times, never a countdown. No clock of its own.
+// Small = the day, medium = today and tomorrow, large = the week; the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
 const VERSION = 1;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
@@ -13,14 +13,14 @@ const SIZES = { small: [158, 158], medium: [338, 158], large: [338, 354] };
 const TEXTS = {
   en: {
     tomorrow: 'Tomorrow', allDay: 'all day', more: (n) => `+${n} more`, then: 'then', next: 'Next', nothing: 'Nothing planned',
-    until: 'until',
+    until: 'until', now: 'now', inWord: 'in',
     from: (t) => `Data from ${t}`, noData: 'No data yet. Open the widget once with a connection.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
     tomorrow: 'Morgen', allDay: 'ganztägig', more: (n) => `+${n} weitere`, then: 'danach', next: 'Als Nächstes', nothing: 'Nichts geplant',
-    until: 'bis',
+    until: 'bis', now: 'jetzt', inWord: 'in',
     from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
     invalid: 'Dieses Widget ist ungültig. Füge es in den Einstellungen neu hinzu.',
@@ -95,11 +95,12 @@ function nowAndNext(entries, nowMs) {
 }
 
 /** When iOS is asked to redraw: the next start or end of an entry or midnight, at most an hour ahead. */
-function nextRedraw(entries, nowMs, offsetMin) {
+function nextRedraw(entries, nowMs, offsetMin, circle) {
   const day = localNow(nowMs, offsetMin).date;
   const midnight = Date.parse(`${addDays(day, 1)}T00:00:00Z`) - offsetMin * 60000;
   const changes = entries.flatMap((e) => [e.startMs, e.endMs]).filter((ms) => ms !== null && ms > nowMs);
-  return Math.min(nowMs + MAX_AHEAD_MS, midnight, ...changes);
+  const next = circle === 'countdown' ? nowAndNext(entries, nowMs).next : null;
+  return Math.min(nowMs + MAX_AHEAD_MS, midnight, ...changes, ...(next ? [circleRedraw(next, nowMs)] : []));
 }
 
 function textColor(hex) {
@@ -218,15 +219,39 @@ function weekWidget(entries, today, lang, T, dim) {
   return w;
 }
 
+/**
+ * The circle: the next start time, or with the "countdown" setting a live countdown (WidgetDate's relative style, which
+ * iOS keeps updating; not confirmed for lock screens in the docs), "now" in the last minute, the start time beyond an hour.
+ */
+function addCircle(w, mode, next, nowMs, T) {
+  if (!next) return addLine(w, '–', 15, { bold: true });
+  const left = next.startMs - nowMs;
+  if (mode !== 'countdown' || left > 3600e3) return addLine(w, next.startTime, 15, { bold: true });
+  if (left <= 60000) return addLine(w, T.now, 14, { bold: true });
+  addLine(w, T.inWord, 10);
+  const d = w.addDate(new Date(next.startMs));
+  d.applyRelativeStyle();
+  d.font = Font.boldSystemFont(13);
+  d.minimumScaleFactor = 0.6;
+  d.lineLimit = 1;
+  return d;
+}
+
+/** When the circle's drawing changes: the countdown starts an hour ahead and ends a minute before and after the start. */
+function circleRedraw(next, nowMs) {
+  const left = next.startMs - nowMs;
+  return left <= 60000 ? next.startMs + 60000 : left <= 3600e3 ? next.startMs - 60000 : next.startMs - 3600e3;
+}
+
 /** Inline, circular and rectangular lock-screen widgets: the next entry, never a clock or a date line. */
-function lockWidget(family, entries, nowMs, T) {
+function lockWidget(family, entries, nowMs, T, circle) {
   const w = new ListWidget();
   const { now, next } = nowAndNext(entries, nowMs);
   if (family === 'accessoryInline') {
     w.addText(next ? `${next.title} · ${next.startTime}` : T.nothing);
   } else if (family === 'accessoryCircular') {
     w.addAccessoryWidgetBackground = true;
-    addLine(w, next ? next.startTime : '–', 15, { bold: true });
+    addCircle(w, circle, next, nowMs, T);
   } else {
     if (now) addLine(w, `${now.title} · ${T.until} ${now.endTime}`, 13, { bold: true });
     if (next) addLine(w, `${T.next}: ${next.title} ${next.startTime}`, 12);
@@ -324,10 +349,10 @@ function buildWidget(family, data, nowMs, lang, T) {
   const today = localNow(nowMs, offset).date;
   const entries = data.items.map(entryOf).filter(Boolean);
   let w;
-  if (family.startsWith('accessory')) w = lockWidget(family, entries, nowMs, T);
+  if (family.startsWith('accessory')) w = lockWidget(family, entries, nowMs, T, data.widgetCircle);
   else if (family === 'large' || family === 'extraLarge') w = weekWidget(entries, today, lang, T, false);
   else w = dayWidget(dayModel(entries, nowMs, today), family === 'medium' ? 'medium' : 'small', lang, T, false);
-  w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset));
+  w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset, family === 'accessoryCircular' ? data.widgetCircle : null));
   return { w, today, entries, offset };
 }
 

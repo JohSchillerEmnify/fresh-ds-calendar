@@ -6,6 +6,7 @@ import Button from '@/components/m3/Button.vue';
 import ButtonGroup from '@/components/m3/ButtonGroup.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import CreditsSheet from '@/components/settings/CreditsSheet.vue';
+import IphoneWidgetSection from '@/components/settings/IphoneWidgetSection.vue';
 import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
@@ -110,6 +111,8 @@ async function resetDemo() {
       </ButtonGroup>
     </SettingRow>
   </SettingSection>
+
+  <IphoneWidgetSection />
 
   <SettingSection :title="t('settingsNav.sub.app')">
   <SettingRow v-if="showIosInstall" id="installApp" :label="t('settings.account.installApp.label')" :hint="t('settings.account.installApp.hint')">

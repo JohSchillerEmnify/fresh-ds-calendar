@@ -12,9 +12,9 @@ Feature: iPhone widgets through Scriptable
   Every size reads top-down: a big date, the next entry as a large coloured block, the rest of today in small text, a compact
   "Tomorrow" section (medium), and a "+N more" line when things overflow. No size has a time strip: a widget cannot scroll,
   so a full day does not fit.
-  The lock screen has the accessory families inline and rectangular; a circular one is not offered, because iOS redraws widgets only every few minutes and a countdown that lags would annoy. The widget draws
+  The lock screen has the accessory families inline and rectangular; the circular one shows the next start time (the default) or, if the person chooses it in Settings, a live countdown that iOS updates by itself and that may lag a few minutes behind. The widget draws
   no clock of its own, because iOS shows its clock on the lock screen,, and no date line above the box, because
-  it shows it itself. Nothing on the lock screen counts down: it shows start times, which do not go stale.
+  it shows it itself. Inline and rectangular show start times and titles only, which do not go stale.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
@@ -132,6 +132,14 @@ Feature: iPhone widgets through Scriptable
       When the iPhone widget refreshes and the script download breaks off
       Then the widget script on the phone is still version 1
       And the iPhone widget shows today as before
+
+    @backlog
+    Scenario: The lock screen circle can show the start time or a countdown
+      When I open the iPhone widget settings
+      Then the lock screen circle is set to "Start time"
+      And the lock screen circle row says "Countdown may lag a few minutes behind."
+      When I set the lock screen circle to "Countdown"
+      Then the lock screen circle is set to "Countdown"
 
     @backlog
     Scenario: The key is not shown again later
@@ -265,15 +273,58 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget says "Dentist · 09:00"
       And the iPhone widget shows no clock
 
-    # unit: server/test/ios-widget.test.ts:circular shows only the next start time
+    # unit: server/test/ios-widget.test.ts:circular shows the next start time by default
     @unit
-    Scenario: A circular lock-screen widget shows the next start time and no countdown
+    Scenario: The circular lock-screen widget shows the next start time by default
       Given the time is 2026-10-14 08:20
       And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "lock screen circle" size
       Then the iPhone widget says "09:00"
       And the iPhone widget shows no clock
+
+    # unit: server/test/ios-widget.test.ts:circular countdown counts down live
+    @unit
+    Scenario: The countdown circle counts down to the next entry
+      Given the time is 2026-10-14 08:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the lock screen circle is chosen as "countdown"
+      When I look at the iPhone widget in the "lock screen circle" size
+      Then the iPhone widget counts down live to 09:00
+      And the iPhone widget shows no clock
+
+    # unit: server/test/ios-widget.test.ts:circular countdown says now in the last minute
+    @unit
+    Scenario: The countdown circle says now in the last minute and then moves on
+      Given the time is 2026-10-14 08:59
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the lock screen circle is chosen as "countdown"
+      When I look at the iPhone widget in the "lock screen circle" size
+      Then the iPhone widget says "now"
+      Given the time is 2026-10-14 09:02
+      When I look at the iPhone widget in the "lock screen circle" size
+      Then the iPhone widget says "18:00"
+
+    # unit: server/test/ios-widget.test.ts:circular countdown shows the start time when far away
+    @unit
+    Scenario: The countdown circle shows the start time when the next entry is more than an hour away
+      Given the time is 2026-10-14 07:30
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the lock screen circle is chosen as "countdown"
+      When I look at the iPhone widget in the "lock screen circle" size
+      Then the iPhone widget says "09:00"
+
+    # unit: server/test/widget-keys.test.ts:carries the lock screen circle setting
+    @unit
+    Scenario: The widget data carries the lock screen circle setting
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      And the lock screen circle is chosen as "countdown"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the lock screen circle "countdown"
 
     # unit: server/test/ios-widget.test.ts:rectangular says what is going on now
     @unit
