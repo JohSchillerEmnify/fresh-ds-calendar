@@ -14,7 +14,7 @@ export default {
     weekend: { label: 'Am Wochenende annerschd', hint: 'Für die Nächd vor Samsdag un Sonndag' },
     weekendBedtime: 'Ins Bett am Wochenende',
     weekendWake: 'Aufstehn am Wochenende',
-    dynamicHint: 'Dei erschder Termin vom nächsdn Dag kann die Bettzeit nur früher leggn als die festn Zeidn. Ohne Termin mit Uhrzeit gelden die festn Zeidn.',
+    dynamicHint: 'Is dei erschder Termin vom nächsdn Dag fräh, gehsd du endsprechend fräher ins Bedd. Sonschd gelden die festn Zeidn.',
     sleep: { label: 'Wie lang schlafn', hours: '{count} Stund | {count} Stunden' },
     lead: { label: 'Zeit vor dem erschdn Termin', minutes: '{count} Min.', none: 'Kei' },
     reminder: { label: 'Vorher Bescheid sachn', minutes: '{count} Min.', off: 'Aus' },

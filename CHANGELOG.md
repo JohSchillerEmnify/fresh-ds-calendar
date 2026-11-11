@@ -5,6 +5,7 @@
 - Birthdays from Google Contacts: allow it once (in the message or in Settings › Calendars › Birthdays) and your contacts' birthdays, anniversaries and other dates show in the Birthdays calendar.
 - Fixed: birthdays now follow the colour and the switch of the Birthdays calendar on every device.
 - The Birthdays calendar is called "Geburtstage" in German.
+- Clearer wording in German and English across the app, including the Google sign-in messages, the update button and the iPhone widget.
 
 ## 2026-11-10
 - Settings › Calendars › Holidays: add the public holidays of a country (in German or English, public holidays only or with observances) and remove them again.
@@ -50,7 +51,7 @@
 ## 2026-10-31
 - Labs, handwritten lists: "Draw with finger" works again (a broad fingertip was mistaken for a resting palm), and after writing with a pen the list always scrolls with a finger again.
 - iPhone: going back with the swipe from the left screen edge no longer also flips the calendar one month (or week or day) back. Reopening the app within 30 minutes brings you back to where you were.
-- Tapping a task list now follows your setting again: with "Tapping a task list: Grows in place" the list grows right where it is; with "Opens the list sheet" the sheet opens. A hidden extra switch had overridden it.
+- Tapping a task list now follows your setting again: with "Tapping a task list: Expands in place" the list expands right where it is; with "Opens the list sheet" the sheet opens. A hidden extra switch had overridden it.
 - New events now always take the colour of the calendar you choose; you can still pick another colour for a single event. The "Default event color" setting is gone.
 
 ## 2026-10-30

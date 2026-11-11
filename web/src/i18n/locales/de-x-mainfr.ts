@@ -111,7 +111,7 @@ export default {
       androidApp: { label: 'Android-App', updateLabel: 'App aktualisiern', hint: 'Den Kalender als Android-App mit Wochen-Widget', download: 'Runnerladen' },
       installApp: { label: 'App installiern', hint: 'Den Kalender affn Home-Bildschirm lekn', button: 'Anleidung', title: 'Kalender installiern', step1: 'Tipp auf den Teiln-Knopf', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügn', close: 'Bassd' },
       signOut: 'Abmelden',
-      calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehld. Erlaub ihn un setz auf Googles Bildschirm des Häkla beim Kalender.', grant: 'Kalenderzugriff erlaubn' },
+      calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehld. Erlaub ihn un setz des Häkla beim Kalender, wenn Google nach de Berechtigungn fragd.', grant: 'Kalenderzugriff erlaubn' },
       resetDemo: { done: 'Demodaden sin widda da' },
       update: { check: 'Nach Updates gugn', checking: 'Gugg grad…', current: 'Des is die neuesde Version.', ready: 'Ä neue Version is da.', load: 'Jetzd lodn', apk: 'Ä neue App-Version is da.', failed: 'Hod ned gglabbd. Probier’s später nomal.' },
     },

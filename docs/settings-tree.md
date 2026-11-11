@@ -39,7 +39,7 @@ Settings  [search bar: "Search settings"]
 │  │  ├─ <category rows>                drag to reorder, tap to edit/share (replaces up/down buttons)
 │  │  └─ Add category                   tonal button, right under the list (moved from the end of the card)
 │  ├─ Behaviour
-│  │  ├─ Tapping a task list            Grows in place / Opens the list
+│  │  ├─ Tapping a task list            Expands in place / Opens the list
 │  │  ├─ Show where carried-over lists come from   switch
 │  │  └─ Finished list without a date   Show on the day / Archive only
 │  └─ Templates  ›

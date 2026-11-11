@@ -17,7 +17,7 @@ export default {
     todayNone: 'Heid ändert sich nix vo alleene',
     headerOf: '{base} · {name}-Kopfzeil',
   },
-  gallery: { title: 'Vorlagn' },
+  gallery: { title: 'Designs' },
   preset: {
     default: 'Normal', neon: 'Neon', spring: 'Frühjahr', easter: 'Ostern', summer: 'Summer', summerHolidays: 'Summerferien',
     fall: 'Herbsd', halloween: 'Halloween', christmas: 'Weihnachdn', newYearsEve: 'Silvesder', newYear: 'Neujahr', winter: 'Winder', mordor: 'Mordor',
@@ -86,7 +86,7 @@ export default {
     repairCopied: 'Reparadur-Prompt kopierd',
     issue: {
       theTheme: 'Des Design',
-      const: '{field} muss "{value}" sei',
+      const: '{field} muss „{value}“ sei',
       enum: '{field} muss oans von {options} sei',
       text: '{field} muss Text sei',
       empty: '{field} derf ned leer sei',

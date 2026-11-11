@@ -14,14 +14,14 @@ const TEXTS = {
   en: {
     today: 'TODAY', tomorrow: 'TOMORROW', allDay: 'all day', more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
     until: 'until', now: 'now', inWord: 'in',
-    from: (t) => `Data from ${t}`, noData: 'No data yet. Open the widget once with a connection.',
+    from: (t) => `Data from ${t}`, noData: 'No data yet. The widget loads it as soon as your iPhone is online.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
     today: 'HEUTE', tomorrow: 'MORGEN', allDay: 'ganztägig', more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
     until: 'bis', now: 'jetzt', inWord: 'in',
-    from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.',
+    from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
     invalid: 'Dieses Widget ist ungültig. Füge es in den Einstellungen neu hinzu.',
     setup: 'Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.',

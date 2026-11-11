@@ -58,11 +58,11 @@ export default {
   },
   birthdaysCalendar: 'Geburtstage',
   reauth: {
-    message: 'Google akzeptiert deinen Zugriff nicht mehr. Melde dich erneut mit Google an, um deinen Kalender zu sehen.',
+    message: 'Deine Anmeldung bei Google ist abgelaufen. Melde dich erneut an, um deinen Kalender zu sehen.',
     signIn: 'Anmelden',
   },
   calendarAccess: {
-    message: 'Der Zugriff auf Google Kalender wurde nicht erlaubt, deshalb kann dein Kalender nicht geladen werden. Melde dich noch einmal an und setze auf Googles Bildschirm den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
+    message: 'Du hast den Zugriff auf Google Kalender nicht erlaubt, deshalb lässt sich dein Kalender nicht laden. Melde dich noch einmal an und setz das Häkchen bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“, wenn Google nach den Berechtigungen fragt.',
     grant: 'Kalenderzugriff erlauben',
   },
   install: {

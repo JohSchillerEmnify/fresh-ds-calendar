@@ -49,7 +49,7 @@ export default {
     done: "Done",
     remove: "Remove filter {name}",
     saveFailed: "Couldn't save the filter.",
-    whenOption: { all: 'All', nodate: 'No date', dated: 'Dated', overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', week: 'This week' },
+    whenOption: { all: 'All', nodate: 'No date', dated: 'With date', overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', week: 'This week' },
   },
   view: {
     groupBy: 'Group by',
@@ -72,7 +72,7 @@ export default {
     none: 'No open tasks',
     next: 'Next: {title}',
     empty: 'Nothing waiting. Nice.',
-    fold: 'Fold {title}',
+    fold: 'Hide items of {title}',
     showItems: 'Show items of {title}',
     resize: 'Panel width',
     collapse: 'Collapse the open tasks panel',

@@ -422,7 +422,7 @@ Feature: iPhone widgets through Scriptable
     @unit
     Scenario: Before the first answer the widget says it is waiting
       When the iPhone widget refreshes without a connection and has no earlier answer
-      Then the iPhone widget says "No data yet. Open the widget once with a connection."
+      Then the iPhone widget says "No data yet. The widget loads it as soon as your iPhone is online."
 
   Rule: The widget asks iOS for its next redraw
 

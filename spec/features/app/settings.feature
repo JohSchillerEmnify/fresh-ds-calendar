@@ -140,7 +140,7 @@ Feature: Settings
     When a new version of the app is deployed
     And I check for updates
     Then the version row says "A new version is ready."
-    And the version row offers "Load it now"
+    And the version row offers "Update now"
     And the "settings page" still looks like "settings-update-ready"
     When I load the update
     Then the app runs the new version

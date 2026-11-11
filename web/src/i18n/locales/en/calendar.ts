@@ -56,11 +56,11 @@ export default {
   },
   birthdaysCalendar: 'Birthdays',
   reauth: {
-    message: 'Google no longer accepts your access. Sign in with Google again to see your calendar.',
+    message: 'Your Google sign-in has expired. Sign in again to see your calendar.',
     signIn: 'Sign in',
   },
   calendarAccess: {
-    message: 'Google Calendar access was not granted, so your calendar can\'t be loaded. Sign in again and tick the box "See, edit, share, and permanently delete all the calendars you can access using Google Calendar" on Google\'s screen.',
+    message: 'Google Calendar access wasn\'t granted, so your calendar can\'t be loaded. Sign in again and tick the box “See, edit, share, and permanently delete all the calendars you can access using Google Calendar” when Google asks for permissions.',
     grant: 'Grant calendar access',
   },
   install: {

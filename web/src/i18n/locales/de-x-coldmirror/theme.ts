@@ -86,7 +86,7 @@ export default {
     repairCopied: 'Reparatur-Prompt kopiert, yo',
     issue: {
       theTheme: 'Das Design',
-      const: '{field} muss "{value}" sein, du Oberpflaume',
+      const: '{field} muss „{value}“ sein, du Oberpflaume',
       enum: '{field} muss eins von {options} sein, so steht\'s in den Schriftrollen',
       text: '{field} muss Text sein, Fresh D. kann keine Zahlen essen',
       empty: '{field} darf nicht leer sein, leerer als Crabbes und Goyles Köpfe',

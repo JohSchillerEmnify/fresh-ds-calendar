@@ -99,7 +99,7 @@ describe('the widget script: German', () => {
     expect((await draw([], 'medium', at('08:00'), { net: undefined, files: cache })).said).toContain('Stand 06:00');
     const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
     expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toEqual(['Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.']);
-    expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.']);
+    expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.']);
     expect((await draw([], 'medium', at('08:00'), { keychain: {}, language: 'de' })).said).toEqual(['Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.']);
     const circle = await draw([dentist], 'accessoryCircular', at('08:20'), { language: 'en' }, { language: 'de', widgetCircle: 'countdown' });
     expect(circle.said).toContain('in');
@@ -265,7 +265,7 @@ describe('the widget script: offline, refusals, redraw, tap', () => {
 
   it('says it is waiting before the first answer', async () => {
     const d = await draw([], 'medium', at('08:00'), { net: undefined });
-    expect(d.said).toEqual(['No data yet. Open the widget once with a connection.']);
+    expect(d.said).toEqual(['No data yet. The widget loads it as soon as your iPhone is online.']);
   });
 
   it('says the key was removed, drops the cached answer and shows nothing else', async () => {

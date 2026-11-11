@@ -84,7 +84,7 @@ export default {
     repairCopied: 'Repair prompt copied',
     issue: {
       theTheme: 'The theme',
-      const: '{field} must be "{value}"',
+      const: '{field} must be “{value}”',
       enum: '{field} must be one of {options}',
       text: '{field} must be text',
       empty: '{field} must not be empty',
