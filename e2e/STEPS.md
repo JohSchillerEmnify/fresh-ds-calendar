@@ -1747,7 +1747,9 @@ the Birthdays settings do not offer to allow Google Contacts
 I allow Google Contacts
 I am told that birthdays from Google Contacts can be shown
 I am no longer told that birthdays from Google Contacts can be shown
-the message has the action "Allow"
+the message reads {string}
+the message has the action {string}
+the event dialog shows the age text {string}
 I allow in the message about Google Contacts
 I dismiss the message about Google Contacts
 I am still signed in
@@ -1762,8 +1764,8 @@ I am still signed in
   `DELETE /api/__test/remote/contacts/:resourceName`, `POST /api/__test/remote/contacts-error`.
 - Dates: "on D" is the full date of birth (year, month, day); "on S without a year" takes "MM-DD". "of P" is the person P.
 - "the contacts permission is granted / is not granted": the fake consent of the next sign-in of the person (and the stored
-  token's scope) contains / lacks `contacts.readonly` (`POST /api/__test/oauth/account { contactsScope }`); it is a Given
-  and applies from the start of the scenario (default of the test double: not granted).
+  token's scope) contains / lacks `contacts.readonly` (`POST /api/__test/oauth/contacts-access { granted }`); it is a Given
+  and applies from the start of the scenario (the double grants it by default, so other scenarios show no offer).
 - "the calendar C has a birthday T on D linked to the contact N": as "linked to a contact", but `birthdayProperties.contact`
   is the resource name of the mock contact named N (which must exist; the step creates it with the date when missing).
 - "the event dialog shows the age N": `birthday-age` in the details view reads "Turns N" (the age on the day shown; the
@@ -1779,6 +1781,7 @@ I am still signed in
   contacts scope and `contacts-offer-allow` is pressed; the round trip returns to the calendar. "I dismiss the message":
   presses `contacts-offer-dismiss` (a per-person pref, `PATCH /api/prefs` `contactsOfferDismissed`). "I am still signed in":
   `GET /api/auth/me` answers the person's email and the calendar is shown.
+- "the message reads T": the text of the snackbar `contacts-offer` is T (German with a German browser). "shows the age text T": `birthday-age` has the text T.
 - "the Google contacts have an anniversary N on D" / "a custom date L for N on D": the contact N with an `events` entry of type
   `anniversary` / the custom label L and that date (full date; the title in the app is N, resp. "L: N").
 
@@ -4348,7 +4351,7 @@ the device is offline
 the sheet says that adding a region needs a connection
 ```
 
-- The last five lines are only used by `@unit` scenarios (proved by `server/test/holidays.test.ts` and `web/test/holiday-regions.test.ts`); e2e skips them.
+- The last five lines are used by `@unit` scenarios (proved by `server/test/holidays.test.ts` and `web/test/holiday-regions.test.ts`; e2e skips them); "the device is offline" is also used by feature contact-birthdays and drops the connection like "the network connection is lost".
 
 - Hooks: the section is `settings-holidays` (a `SettingSection`) listing `settings-row` rows whose `data-setting` is the calendar's name; the
   "Add region" row (`data-setting="Add region"`) opens the sheet `holiday-region-sheet` (an `AdaptiveSheet`) with the search field

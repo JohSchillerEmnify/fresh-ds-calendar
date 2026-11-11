@@ -20,7 +20,6 @@ Feature: Birthdays from Google Contacts
     And today is 2026-10-12
     And the contacts permission is granted
 
-  @backlog
   Scenario: A contact birthday shows under Birthdays in its colour
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the month view for 2026-10
@@ -29,13 +28,11 @@ Feature: Birthdays from Google Contacts
     And the event "Anna" is in the calendar "Birthdays"
     And the event "Anna" has the color "#9fc6e7"
 
-  @backlog
   Scenario: A contact birthday repeats every year
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the month view for 2027-10
     Then I see the event "Anna" on 2027-10-14
 
-  @backlog
   Scenario: Switching Birthdays off hides the contact birthdays too
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And the calendar contains an all-day event "Holiday" on 2026-10-14
@@ -44,7 +41,6 @@ Feature: Birthdays from Google Contacts
     Then I do not see the event "Anna" on 2026-10-14
     And I see the event "Holiday" on 2026-10-14
 
-  @backlog
   Scenario: A contact birthday takes the colour chosen for Birthdays
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the settings
@@ -54,7 +50,6 @@ Feature: Birthdays from Google Contacts
     And I leave the settings
     Then the event "Anna" has the color "#16a765"
 
-  @backlog
   Scenario: A birthday that is also a calendar birthday shows once, linked by the contact
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And the calendar "Personal" has a birthday "Anna M." on 2026-10-14 linked to the contact "Anna"
@@ -62,14 +57,12 @@ Feature: Birthdays from Google Contacts
     Then the event "Anna M." is shown once on 2026-10-14
     And I do not see the event "Anna" on 2026-10-14
 
-  @backlog
   Scenario: A birthday with the same name and date as a calendar birthday shows once
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And the calendar "Personal" has a birthday "Anna" on 2026-10-14
     When I open the month view for 2026-10
     Then the event "Anna" is shown once on 2026-10-14
 
-  @backlog
   Scenario: Two contacts with the same name on different days both show
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And the Google contacts have a birthday "Anna" on 1985-10-20
@@ -77,14 +70,12 @@ Feature: Birthdays from Google Contacts
     Then the event "Anna" is shown once on 2026-10-14
     And the event "Anna" is shown once on 2026-10-20
 
-  @backlog
   Scenario: A contact birthday with a year shows the age in its details
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the week view for 2026-10-12
     And I open the event "Anna"
     Then the event dialog shows the age 36
 
-  @backlog
   Scenario: A contact birthday without a year shows no age
     Given the Google contacts have a birthday "Max" on "10-15" without a year
     When I open the week view for 2026-10-12
@@ -92,7 +83,6 @@ Feature: Birthdays from Google Contacts
     When I open the event "Max"
     Then the event dialog shows no age
 
-  @backlog
   Scenario: A contact birthday is read-only and points to Google Contacts
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the week view for 2026-10-12
@@ -101,7 +91,6 @@ Feature: Birthdays from Google Contacts
     And the event dialog has no save or delete button
     And the event dialog shows the hint "Change this birthday in Google Contacts"
 
-  @backlog
   Scenario: A contact anniversary shows like a calendar anniversary
     Given the Google contacts have an anniversary "Max and Eva" on 2010-10-14
     When I open the month view for 2026-10
@@ -109,7 +98,6 @@ Feature: Birthdays from Google Contacts
     And the event "Max and Eva" is marked as an anniversary
     And the event "Max and Eva" is in the calendar "Birthdays"
 
-  @backlog
   Scenario: A contact anniversary shows no age
     Given the Google contacts have an anniversary "Max and Eva" on 2010-10-14
     When I open the week view for 2026-10-12
@@ -117,7 +105,6 @@ Feature: Birthdays from Google Contacts
     Then the event dialog is read-only
     And the event dialog shows no age
 
-  @backlog
   Scenario: A custom date of a contact shows with its label and the name
     Given the Google contacts have a custom date "Moving day" for "Anna" on 2015-10-15
     When I open the month view for 2026-10
@@ -125,7 +112,6 @@ Feature: Birthdays from Google Contacts
     And the event "Moving day: Anna" is not marked as a birthday
     And the event "Moving day: Anna" is in the calendar "Birthdays"
 
-  @backlog
   Scenario: A custom date is read-only and shows no age
     Given the Google contacts have a custom date "Moving day" for "Anna" on 2015-10-15
     When I open the week view for 2026-10-12
@@ -134,7 +120,6 @@ Feature: Birthdays from Google Contacts
     And the event dialog shows the hint "Change this birthday in Google Contacts"
     And the event dialog shows no age
 
-  @backlog
   Scenario: A contact birthday is shown on the device without a connection
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And I have seen the month view for 2026-10-12
@@ -144,7 +129,6 @@ Feature: Birthdays from Google Contacts
     Then I see the event "Anna" on 2026-10-14
     And the event "Anna" is marked as a birthday
 
-  @backlog
   Scenario: A birthday removed from Google Contacts disappears after the next sync
     Given the Google contacts have a birthday "Anna" on 1990-10-14
     And I have seen the month view for 2026-10-12
@@ -152,7 +136,6 @@ Feature: Birthdays from Google Contacts
     And I wait for the automatic sync
     Then I do not see the event "Anna" on 2026-10-14
 
-  @backlog
   Scenario: Contact birthdays of one person do not show for another
     Given the Google contacts of "anna@example.com" have a birthday "Lena" on 1992-10-16
     And "anna@example.com" and "jo@example.com" may use the calendar
@@ -160,7 +143,6 @@ Feature: Birthdays from Google Contacts
     When I open the month view for 2026-10
     Then I do not see the event "Lena" on 2026-10-16
 
-  @backlog
   Scenario: Without the permission a message offers to allow Google Contacts and nothing breaks
     Given the contacts permission is not granted
     And the Google contacts have a birthday "Anna" on 1990-10-14
@@ -172,7 +154,6 @@ Feature: Birthdays from Google Contacts
     And I do not see the event "Anna" on 2026-10-14
     And I am still signed in
 
-  @backlog
   Scenario: Allowing in the message brings the contact birthdays in
     Given the contacts permission is not granted
     And the Google contacts have a birthday "Anna" on 1990-10-14
@@ -181,7 +162,6 @@ Feature: Birthdays from Google Contacts
     Then I see the event "Anna" on 2026-10-14
     And I am no longer told that birthdays from Google Contacts can be shown
 
-  @backlog
   Scenario: The message can be dismissed with the cross and stays away
     Given the contacts permission is not granted
     When I open the month view for 2026-10
@@ -190,7 +170,6 @@ Feature: Birthdays from Google Contacts
     When I open the app again
     Then I am no longer told that birthdays from Google Contacts can be shown
 
-  @backlog
   Scenario: After dismissing the message the Birthdays settings still offer to allow
     Given the contacts permission is not granted
     And the Google contacts have a birthday "Anna" on 1990-10-14
@@ -205,7 +184,6 @@ Feature: Birthdays from Google Contacts
     And I open the month view for 2026-10
     Then I see the event "Anna" on 2026-10-14
 
-  @backlog
   Scenario: With the permission there is no message and no offer
     When I open the month view for 2026-10
     Then I am no longer told that birthdays from Google Contacts can be shown
@@ -214,9 +192,21 @@ Feature: Birthdays from Google Contacts
     And I open the calendar "Birthdays" in the settings
     Then the Birthdays settings do not offer to allow Google Contacts
 
-  @backlog
   Scenario: When Google Contacts cannot be read the other birthdays stay
     Given the Google contacts answer with an error
     And the Birthdays calendar has a birthday "Carl" on 2026-10-16
     When I open the month view for 2026-10
     Then I see the event "Carl" on 2026-10-16
+
+  Scenario: The message and the details read in German with a German browser
+    Given the browser language is "de-DE"
+    And the contacts permission is not granted
+    And the Google contacts have a birthday "Anna" on 1990-10-14
+    When I open the month view for 2026-10
+    Then the message reads "Auch Geburtstage aus deinen Google Kontakten anzeigen?"
+    And the message has the action "Erlauben"
+    When I allow in the message about Google Contacts
+    And I open the week view for 2026-10-12
+    And I open the event "Anna"
+    Then the event dialog shows the age text "Wird 36"
+    And the event dialog shows the hint "Diesen Geburtstag änderst du in Google Kontakte."
