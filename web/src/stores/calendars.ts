@@ -24,7 +24,7 @@ const named = (c: Calendar): Calendar => (c.virtual && c.id === 'birthdays' ? { 
 /** Every calendar of the person with their hidden choice and plan (feature calendar-off-plan). Toggling is instant; the server is told in the background. */
 export const useCalendarsStore = defineStore('calendars', () => {
   const raw = ref<Calendar[]>([]);
-  const list = computed<Calendar[]>({ get: () => raw.value.map(named), set: (v) => { raw.value = v; } });
+  const list = computed(() => raw.value.map(named));
   let saving = 0;
   const clock = useClockStore();
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
@@ -121,5 +121,5 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
+  return { list, stored: raw, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
 });

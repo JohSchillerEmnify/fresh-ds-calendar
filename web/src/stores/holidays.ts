@@ -16,14 +16,14 @@ export const useHolidaysStore = defineStore('holidays', () => {
   /** Adds a region's holiday calendar; it joins the list at once. */
   async function add(code: string, variant: HolidayVariant, lang: string): Promise<void> {
     const cal = await api.addHolidayCalendar(code, variant, lang);
-    cals.list = [...cals.list.filter((c) => c.id !== cal.id), cal];
-    useDeviceStore().putCalendars(cals.list);
+    cals.stored = [...cals.stored.filter((c) => c.id !== cal.id), cal];
+    useDeviceStore().putCalendars(cals.stored);
   }
 
   /** Removes a holiday calendar; it and its events leave the list and the device once Google has done it. */
   async function remove(id: string): Promise<void> {
     await api.removeHolidayCalendar(id);
-    cals.list = cals.list.filter((c) => c.id !== id);
+    cals.stored = cals.stored.filter((c) => c.id !== id);
     useDeviceStore().dropCalendar(id);
   }
 
