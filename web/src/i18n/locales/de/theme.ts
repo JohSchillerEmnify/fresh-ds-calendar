@@ -17,7 +17,7 @@ export default {
     todayNone: 'Heute: nichts ändert sich automatisch',
     headerOf: '{base} · {name}-Kopfzeile',
   },
-  gallery: { title: 'Vorlagen' },
+  gallery: { title: 'Designs' },
   preset: {
     default: 'Standard', neon: 'Neon', spring: 'Frühling', easter: 'Ostern', summer: 'Sommer', summerHolidays: 'Sommerferien',
     fall: 'Herbst', halloween: 'Halloween', christmas: 'Weihnachten', newYearsEve: 'Silvester', newYear: 'Neujahr', winter: 'Winter', mordor: 'Mordor',

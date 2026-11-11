@@ -58,7 +58,7 @@ export default {
   },
   birthdaysCalendar: 'Geburtstage',
   reauth: {
-    message: 'Google akzeptiert deinen Zugriff nicht mehr. Melde dich erneut mit Google an, um deinen Kalender zu sehen.',
+    message: 'Deine Anmeldung bei Google ist abgelaufen. Melde dich erneut an, um deinen Kalender zu sehen.',
     signIn: 'Anmelden',
   },
   calendarAccess: {

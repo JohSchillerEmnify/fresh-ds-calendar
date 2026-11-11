@@ -23,7 +23,7 @@ export default {
     header: 'Noch {left} bis ins Bett · {free} frei',
     now: 'Jetzt {time}',
     bed: 'Bett {time}',
-    off: 'Die Schlafenszeit ist aus – stelle sie in den Einstellungen ein',
+    off: 'Die Schlafenszeit ist aus. Stell sie in den Einstellungen ein.',
     passed: 'Schlafenszeit war um {time}',
     openSettings: 'Einstellungen öffnen',
   },

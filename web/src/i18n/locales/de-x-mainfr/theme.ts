@@ -17,7 +17,7 @@ export default {
     todayNone: 'Heid ändert sich nix vo alleene',
     headerOf: '{base} · {name}-Kopfzeil',
   },
-  gallery: { title: 'Vorlagn' },
+  gallery: { title: 'Designs' },
   preset: {
     default: 'Normal', neon: 'Neon', spring: 'Frühjahr', easter: 'Ostern', summer: 'Summer', summerHolidays: 'Summerferien',
     fall: 'Herbsd', halloween: 'Halloween', christmas: 'Weihnachdn', newYearsEve: 'Silvesder', newYear: 'Neujahr', winter: 'Winder', mordor: 'Mordor',

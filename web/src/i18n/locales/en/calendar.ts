@@ -56,7 +56,7 @@ export default {
   },
   birthdaysCalendar: 'Birthdays',
   reauth: {
-    message: 'Google no longer accepts your access. Sign in with Google again to see your calendar.',
+    message: 'Your Google sign-in has expired. Sign in again to see your calendar.',
     signIn: 'Sign in',
   },
   calendarAccess: {
