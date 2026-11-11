@@ -3729,6 +3729,48 @@ the iPhone widget asks to be redrawn at {time}
 - Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
   data answer) plus the script's own unit tests (`ios/widget/test`, run with Node against a fake `Request`, `FileManager`
   and `ListWidget`) and on a device; the browser suite skips them (`@backlog`).
+## Scrolling phone widget (native, `@scrolling-widget`)
+
+```
+I look at the scrolling widget in the {string} style
+I look at a narrow scrolling widget in the {string} style
+I look at a short scrolling widget in the {string} style
+the scrolling widget shows the day header {string} with the entry {string} at {string}
+the scrolling widget shows the day header {string} with the task list {string} and {string}
+the scrolling widget lists {string} before {string} under the day header {string}
+the scrolling widget has no day header {string}
+the scrolling widget shows no day header {string}
+the scrolling widget shows the entry {string} at {string}
+the scrolling widget does not show the entry {string}
+the scrolling widget shows the entry {string} without a time
+the scrolling widget draws the day {string} as a strip with {string} from {time} to {time}
+the scrolling widget draws one strip per day that has entries
+I placed a scrolling widget and chose the {string} style
+I place a second scrolling widget and choose the {string} style
+I reconfigure the scrolling widget and choose the {string} style
+the first scrolling widget still shows the {string} style
+the second scrolling widget shows the {string} style
+the scrolling widget shows the {string} style
+I tap the entry {string} in the scrolling widget
+I tap the day header {string} in the scrolling widget
+I tap the day strip {string} in the scrolling widget
+the app opens the event {string}
+the app opens the day view for {date}
+the phone has no connection to the server
+the calendar contains {int} events on {date}
+the event {string} moves to {time} in the app
+the date changes to {date}
+the scrolling widget says {string}
+the scrolling widget shows fewer entries than exist and scrolls to the others
+the app's theme is dark
+the scrolling widget uses the dark theme colours
+I look at the week widget, the day widget and the clock widget
+they are still drawn as one picture each and do not scroll
+```
+
+- All of these run on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or a device
+  prove them; they stay `@backlog` for Playwright. "{string} style" is "Agenda" or "Timeline". Day headers use the
+  app's date wording ("Wed 14 Oct"). "the calendar contains N events on D" are N ordinary timed events.
 
 ## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
 
