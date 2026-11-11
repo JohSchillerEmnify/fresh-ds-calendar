@@ -110,6 +110,9 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   a test in the same change. — A request that lives only in chat or one grid comes back.
 - **Read the docs before using an API.** Check the current documentation for every new external call (Google, a
   library, a platform) before writing code. — "From memory" produced wrong semantics.
+- **Never guess.** Versions, compatibility, permissions, platform behaviour and reasons ("why is it like this") are
+  looked up (official docs, release notes, web search, the repo's code and history) and the source is named in the
+  report; what could not be checked is marked "unverified". — Guessed answers cost the owner hours of correcting.
 - **A mock must behave like the real service.** For each new Google call, make the mock follow the documented
   semantics, including what the call does *not* change. — Green tests against a too-friendly mock proved nothing.
 - **Gates stay in step with the spec.** Spec text, `e2e/STEPS.md`, step code and `@unit` comments change together;
