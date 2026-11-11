@@ -544,10 +544,10 @@ person: every route below lists and changes only the signed-in person's keys, an
   is routed for a key.
 - Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories, widgetCircle, language }`: `items` as `GET /api/items` for the
   range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
-  included; the key cannot turn it off), the five prefs as `GET /api/prefs` gives them (`language`: the person's app language, so the widget speaks it; `auto` means the iPhone's, and anything but German or English reads as English; `widgetCircle`: `time` (default) or `countdown`, the lock-screen circle's drawing, per person, validation field `widgetCircle`; the script keeps the answer, setting included, for offline). `to - from` at most 8 days.
+  included; the key cannot turn it off), the five prefs as `GET /api/prefs` gives them (`language`: the person's app language, so the widget speaks it; `auto` means the iPhone's, and anything but German or English reads as English; `widgetCircle`: `time` (default) or `countdown`, the lock-screen circle's drawing, per person, validation field `widgetCircle`; the script keeps the answer, setting included, for offline). `to - from` at most 14 days (the script asks for the week and the days around it, so one cache serves every size).
   `scriptVersion` is the newest script's `version`; a script that is older fetches `/api/widget/script`. `today` is the calendar's local date, so the script needs no time zone logic.
 - Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
-  items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
+  items, at most 14 days), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
   limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).
 - The key list also travels in `GET /api/changes` as the `widgetKeys` file, so Settings shows it offline (the secret never does).
 - Keys are not part of the person's backup or restore; a lost key is simply created again.

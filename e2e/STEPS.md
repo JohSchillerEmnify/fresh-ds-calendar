@@ -3644,7 +3644,7 @@ the widget data carries the lock screen circle {string}
 the lock screen circle is set to {string}
 the lock screen circle row says {string}
 I set the lock screen circle to {string}
-the iPhone widget still shows its last answer greyed out
+the iPhone widget keeps no calendar data
 the iPhone widget opens the app at the day view of {date}
 the iPhone widget asks to be redrawn at {time}
 ```

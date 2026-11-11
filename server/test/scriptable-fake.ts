@@ -17,6 +17,8 @@ export interface Options {
   runsInWidget?: boolean;
   widgetFamily?: string;
   scriptName?: string;
+  /** FileManager.remove throws (the installer cannot delete itself). */
+  removeFails?: boolean;
 }
 
 export interface Fakes {
@@ -95,6 +97,7 @@ export function fakeScriptable(o: Options = {}): Fakes {
     documentsDirectory: dir('docs'), libraryDirectory: dir('lib'),
     joinPath: (a: string, b: string) => `${a}/${b}`,
     fileExists: (p: string) => files.has(p), readString: (p: string) => files.get(p)!, writeString: (p: string, s: string) => { files.set(p, s); },
+    remove: (p: string) => { if (o.removeFails) throw new Error('cannot remove'); files.delete(p); },
   };
   class Alert {
     title = ''; message = '';
@@ -117,7 +120,7 @@ const AsyncFunction = Object.getPrototypeOf(async () => undefined).constructor a
 
 /** Runs a Scriptable script text with the fakes as its globals; `extra` adds more globals (e.g. the test switch). */
 export async function runScript(source: string, f: Fakes, extra: Record<string, unknown> = {}): Promise<{ exports: any }> {
-  const module = { exports: {} as any };
+  const module = { exports: {} as any, filename: '/docs/Untitled Script.js' };
   const all = { ...f.globals, ...extra, module };
   await new AsyncFunction(...Object.keys(all), source)(...Object.values(all));
   return module;

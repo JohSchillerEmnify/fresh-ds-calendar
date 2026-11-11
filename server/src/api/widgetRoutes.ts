@@ -1,4 +1,6 @@
 /** Widget keys (session, Settings) and the two routes a key opens, `/widget/data` and `/widget/script` (ADR 0044). */
+import { createHash } from 'node:crypto';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import type { Ctx } from '../context.js';
@@ -7,8 +9,20 @@ import { parse, widgetKeySchema } from '../lib/validation.js';
 import { readWidgetScript } from '../services/widgetScript.js';
 import { body, range, readItems, type RouteDeps } from './routeHelpers.js';
 
-const MAX_RANGE_DAYS = 8;
+const MAX_RANGE_DAYS = 14;
 const PER_MINUTE = 30;
+/** Clients share this many buckets, so wrong-key guessing from many addresses cannot grow the limiter's memory. */
+const CLIENT_BUCKETS = 4096;
+
+/** The caller: the address the trusted proxy (Caddy, Traefik) appended last to X-Forwarded-For, else the socket's. */
+function clientOf(c: Context): string {
+  const hops = (c.req.header('x-forwarded-for') ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+  let who = hops.at(-1);
+  if (!who) {
+    try { who = getConnInfo(c).remote.address; } catch { /* no socket (tests) */ }
+  }
+  return String(createHash('sha256').update(who ?? 'direct').digest().readUInt16BE(0) % CLIENT_BUCKETS);
+}
 
 /** Registers `POST/GET/DELETE /api/widget-keys` for the signed-in person. */
 export function registerWidgetKeys({ r, ctx, person }: RouteDeps): void {
@@ -33,7 +47,7 @@ export function widgetRoutes(ctx: Ctx): Hono {
     c.json({ error: { code: 'RATE_LIMITED', message: 'Too many requests' } }, 429, { 'Retry-After': String(Math.ceil(res.msBeforeNext / 1000)) });
 
   const gate: MiddlewareHandler = async (c, next) => {
-    const client = (c.req.header('x-forwarded-for') ?? '').split(',')[0]!.trim() || 'direct';
+    const client = clientOf(c);
     const bearer = /^Bearer (.+)$/.exec(c.req.header('authorization') ?? '')?.[1];
     let who: { sub: string; id: string };
     try {

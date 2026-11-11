@@ -15,6 +15,7 @@ const LANGUAGE = ${JSON.stringify(language)};
 const de = [LANGUAGE, Device.language()].map((c) => String(c || '').toLowerCase()).find((c) => c.startsWith('de') || c.startsWith('en'))?.startsWith('de') === true;
 const T = de ? {
   done: 'Installiert',
+  delete: 'Lösche bitte diesen Installer in Scriptable.',
   invalid: 'Dieses Widget ist ungültig. Füge es in den Einstellungen der App neu hinzu.',
   removed: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
   offline: 'Keine Verbindung. Verbinde dich mit dem Internet und tippe erneut auf ▶.',
@@ -22,6 +23,7 @@ const T = de ? {
   server: 'Der Kalender ist nicht erreichbar. Versuche es in ein paar Minuten erneut.',
 } : {
   done: 'Installed',
+  delete: 'Please delete this installer in Scriptable.',
   invalid: 'This widget is not valid. Add it again in Settings.',
   removed: 'This widget was removed in the app. Add it again in Settings.',
   offline: 'No connection. Connect to the internet and tap ▶ again.',
@@ -61,12 +63,18 @@ async function install() {
     return say(code === 'WIDGET_KEY_REVOKED' ? T.removed : T.invalid);
   }
   if (status === 429) return say(T.busy);
-  if (status !== 200 || !/^\\/\\/ calendar-widget version=\\d+/.test(body)) return say(T.server);
+  if (status !== 200 || !/^\\/\\/ calendar-widget version=\\d+/.test(body) || !/\\n\\/\\/ calendar-widget end\\s*$/.test(body)) return say(T.server);
   const fm = docsFileManager();
   fm.writeString(fm.joinPath(fm.documentsDirectory(), NAME + '.js'), body);
   Keychain.set('calendar-widget-key', KEY);
   Keychain.set('calendar-widget-url', SERVER_URL);
-  await say(T.done);
+  // the installer holds the key: it removes itself, and asks the person to if it cannot
+  let removed = false;
+  try {
+    fm.remove(module.filename);
+    removed = !fm.fileExists(module.filename);
+  } catch (e) { /* reported below */ }
+  await say(removed ? T.done : T.done + '\\n\\n' + T.delete);
 }
 await install();
 `;

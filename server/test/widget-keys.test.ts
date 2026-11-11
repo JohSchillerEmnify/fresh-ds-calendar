@@ -119,10 +119,10 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await data(key.key)).body.error.code).toBe('WIDGET_KEY_INVALID');
   });
 
-  it('limits the range to 8 days and answers 400 for a bad one', async () => {
+  it('limits the range to 14 days and answers 400 for a bad one', async () => {
     const key = await mint(jo);
-    expect((await data(key.key, '2026-10-14', '2026-10-22')).status).toBe(200);
-    expect((await data(key.key, '2026-10-14', '2026-10-23')).status).toBe(400);
+    expect((await data(key.key, '2026-10-12', '2026-10-26')).status).toBe(200);
+    expect((await data(key.key, '2026-10-12', '2026-10-27')).status).toBe(400);
     expect((await data(key.key, '2026-10-14', '2026-10-14')).status).toBe(400);
   });
 
@@ -152,9 +152,12 @@ describe('the widget data (/api/widget/data)', () => {
     expect(Number(res!.headers.get('retry-after'))).toBeGreaterThan(0);
   });
 
-  it('slows a client that keeps presenting wrong keys', async () => {
+  it('slows a client that keeps presenting wrong keys, whatever it writes first in X-Forwarded-For', async () => {
     let last = 0;
-    for (let i = 0; i < 40 && last !== 429; i++) last = (await t.json('GET', '/api/widget/data?from=2026-10-14&to=2026-10-15', undefined, { ...bearer('cwk_AAAAAAAA_' + 'A'.repeat(43)), 'x-forwarded-for': '203.0.113.7' })).status;
+    for (let i = 0; i < 40 && last !== 429; i++) {
+      // the proxy appends the real address last; the caller can only forge what comes before it
+      last = (await t.json('GET', '/api/widget/data?from=2026-10-14&to=2026-10-15', undefined, { ...bearer('cwk_AAAAAAAA_' + 'A'.repeat(43)), 'x-forwarded-for': `198.51.100.${i}, 203.0.113.7` })).status;
+    }
     expect(last).toBe(429);
   });
 });

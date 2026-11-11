@@ -163,7 +163,7 @@ Feature: iPhone widgets through Scriptable
       And the settings show the widget key "Old phone" as never used
 
     # unit: server/test/widget-keys.test.ts:for a removed key and
-    # unit: server/test/ios-widget.test.ts:says the key was removed and still shows
+    # unit: server/test/ios-widget.test.ts:says the key was removed, drops the cached answer
     @unit
     Scenario: A revoked key stops working and the widget says so
       Given the widget key "My iPhone" belongs to "jo@example.com"
@@ -171,7 +171,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget refreshes with the key "My iPhone"
       Then the widget data request is refused as "revoked"
       And the iPhone widget shows "This widget was removed in the app. Add it again in Settings."
-      And the iPhone widget still shows its last answer greyed out
+      And the iPhone widget keeps no calendar data
 
     # unit: server/test/widget-keys.test.ts:refuses an unknown or malformed key
     @unit

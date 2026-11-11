@@ -370,6 +370,11 @@ function readCache() {
   }
 }
 
+function dropCache() {
+  const { fm, path } = cacheFile();
+  try { if (fm.fileExists(path)) fm.remove(path); } catch { /* nothing more to forget */ }
+}
+
 function writeCache(saved) {
   const { fm, path } = cacheFile();
   try { fm.writeString(path, JSON.stringify(saved)); } catch { /* the next draw simply asks again */ }
@@ -398,13 +403,18 @@ async function fetchData(base, key, from, to) {
   return { fail: 'offline' };
 }
 
-/** Saves a newer script over this one, only after its first line names a newer version; a failure keeps the old one. */
+/** Whether a downloaded script is whole: its first line names a version and its last line is the end marker. */
+function wholeScript(text) {
+  return /^\/\/ calendar-widget version=\d+/.test(text) && /\n\/\/ calendar-widget end\s*$/.test(text);
+}
+
+/** Saves a newer script over this one, only after it is whole and newer; a failure keeps the old one. */
 async function updateScript(base, key, offered) {
   if (!(offered > VERSION)) return false;
   try {
     const r = await get(base, key, '/api/widget/script');
     const n = Number((/^\/\/ calendar-widget version=(\d+)/.exec(r.text) || [])[1]);
-    if (r.status !== 200 || !(n > VERSION)) return false;
+    if (r.status !== 200 || !wholeScript(r.text) || !(n > VERSION)) return false;
     const fm = docsFileManager();
     fm.writeString(fm.joinPath(fm.documentsDirectory(), `${Script.name()}.js`), r.text);
     return true;
@@ -413,8 +423,12 @@ async function updateScript(base, key, offered) {
   }
 }
 
-function rangeFor(family, deviceDate) {
-  return family === 'large' ? [weekStart(deviceDate), addDays(weekStart(deviceDate), 7)] : [addDays(deviceDate, -1), addDays(deviceDate, 7)];
+/** One range for every size, so any size can draw offline from the one cache: the week and yesterday to a week ahead. */
+function rangeFor(deviceDate) {
+  const monday = weekStart(deviceDate);
+  const from = [monday, addDays(deviceDate, -1)].sort()[0];
+  const to = [addDays(monday, 7), addDays(deviceDate, 7)].sort().pop();
+  return [from, to];
 }
 
 /** German or English: the app's language setting, else the iPhone's; the fun German variants read as German. */
@@ -457,40 +471,44 @@ async function run() {
   const key = Keychain.get(KEY_ID);
   const nowMs = api.now();
   const cached = readCache();
-  const [from, to] = rangeFor(family, localNow(nowMs, cached ? offsetMinutesOf(cached.data.generatedAt) : 0).date);
+  const [from, to] = rangeFor(localNow(nowMs, cached ? offsetMinutesOf(cached.data.generatedAt) : 0).date);
   const got = await fetchData(base, key, from, to);
   if (got.data) {
     writeCache({ data: got.data, savedAt: nowMs });
     await updateScript(base, key, got.data.scriptVersion);
   }
+  if (got.fail === 'revoked' || got.fail === 'invalid') {
+    // a removed device keeps no calendar data: the cache goes, only the message stays
+    const gone = TEXTS[pickLanguage(cached && cached.data.language)][got.fail];
+    dropCache();
+    return finish(messageWidget(gone));
+  }
   const data = got.data || (cached && cached.data);
-  if (!data) return finish(messageWidget(got.fail === 'offline' ? T0.noData : T0[got.fail]));
+  if (!data) return finish(messageWidget(T0.noData));
   const lang = pickLanguage(data.language);
   const T = TEXTS[lang];
-  const dim = got.fail === 'revoked' || got.fail === 'invalid';
   const built = buildWidget(family, data, nowMs, lang, T);
   let w = built.w;
-  if (dim || (got.fail && nowMs - cached.savedAt >= STALE_AFTER_MS)) {
-    const note = dim ? T[got.fail] : T.from(data.generatedAt.slice(11, 16));
-    w = withNote(family, built, lang, T, dim, note);
-  }
+  if (got.fail && nowMs - cached.savedAt >= STALE_AFTER_MS) w = withNote(family, built, lang, T, T.from(data.generatedAt.slice(11, 16)));
   w.url = `${base}/day/${built.today}`;
   finish(w);
 }
 
-/** The same picture with the stale or refusal note added (greyed when the key is gone). */
-function withNote(family, built, lang, T, dim, note) {
+/** The same picture with the stale note added. */
+function withNote(family, built, lang, T, note) {
   const { w, today, entries } = built;
-  if (family.startsWith('accessory')) return dim ? messageWidget(note) : w;
-  const again = (family === 'large' || family === 'extraLarge') ? weekWidget(entries, today, localNow(api.now(), built.offset).minutes, built.data.minEventMinutes, lang, T, dim)
-    : family === 'medium' ? mediumWidget(entries, api.now(), today, lang, T, dim) : smallWidget(entries, api.now(), today, lang, T, dim);
-  addLine(again, note, 10, { color: dim ? new Color('#b3261e') : new Color(GREY), lines: 2 });
+  if (family.startsWith('accessory')) return w;
+  const again = (family === 'large' || family === 'extraLarge') ? weekWidget(entries, today, localNow(api.now(), built.offset).minutes, built.data.minEventMinutes, lang, T, false)
+    : family === 'medium' ? mediumWidget(entries, api.now(), today, lang, T, false) : smallWidget(entries, api.now(), today, lang, T, false);
+  addLine(again, note, 10, { color: new Color(GREY), lines: 2 });
   again.refreshAfterDate = w.refreshAfterDate;
   return again;
 }
 
 const api = {
-  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, hourRange, nextRedraw, localNow, weekStart, addDays, buildWidget, fetchData, updateScript, run,
+  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, hourRange, nextRedraw, localNow, weekStart, addDays, rangeFor, buildWidget, fetchData, updateScript, run,
 };
 module.exports = api;
 if (typeof CALENDAR_WIDGET_TEST === 'undefined') await run();
+// calendar-widget end
+

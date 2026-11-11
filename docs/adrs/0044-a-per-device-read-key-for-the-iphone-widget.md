@@ -30,7 +30,14 @@ Status: proposed (issue #95; number 0044 because 0043 is taken on `feat/93-conta
   widget's `WeekLayout.hourRange`; the script carries a copy that a test keeps equal (the script is served alone).
 - The key list is a per-person file `widgetKeys` of the device store (it travels in `GET /api/changes`, never the secret),
   so Settings shows it offline; creating and removing need the server.
-- Rate limiting uses the `rate-limiter-flexible` library (in-memory, per key and per client for wrong keys).
+- Rate limiting uses the `rate-limiter-flexible` library (in-memory, per key and per client for wrong keys). The client is the
+  right-most `X-Forwarded-For` entry, which the proxy in front (Caddy in production, Traefik at home) appends itself and a
+  caller cannot forge; with no header the socket address (`getConnInfo`) counts. A server exposed with no proxy would trust a
+  forged header, so it must sit behind one. Clients map to 4096 buckets, so the limiter's memory is bounded.
+- The installer holds the key, so after a good install it deletes itself (`module.filename`, `FileManager.remove`) and, if that
+  fails, asks the person to. A revoked or unknown key makes the widget drop its cached answer: a removed device keeps no
+  calendar data. The script asks one range for every size, so the one cache serves every size offline. The served script ends
+  with `// calendar-widget end`; an update or install is saved only when that line and the version line are both there.
 
 ## Alternatives weighed
 - **The Google sign-in or the session cookie in the script**: Scriptable cannot sign in with Google (Google refuses embedded

@@ -14,10 +14,11 @@ const gym = ev('Gym', T14('18:00'), T14('19:00'), '#188038');
 const allDay = (title: string, date: string) => ({ ...ev(title, T14('00:00'), T14('00:00')), allDay: true, start: date, end: date.replace(/\d\d$/, (d) => String(Number(d) + 1)) });
 const at = (h: string, day = '14') => Date.parse(`2026-10-${day}T${h}:00+02:00`);
 
+const SCRIPT_2 = '// calendar-widget version=2\nconst x = 1;\n// calendar-widget end\n';
 const answer = (items: unknown[], over: object = {}) => ({
   generatedAt: '2026-10-14T08:00:00+02:00', today: '2026-10-14', scriptVersion: 1, items, minEventMinutes: 0, weekSideBySide: false, taskCategories: false, ...over });
 const ok = (body: unknown): { status: number; body: string } => ({ status: 200, body: JSON.stringify(body) });
-const serve = (items: unknown[], over: object = {}): Net => (url) => (url.includes('/api/widget/data') ? ok(answer(items, over)) : { status: 200, body: '// calendar-widget version=2\nconst x = 1;\n' });
+const serve = (items: unknown[], over: object = {}): Net => (url) => (url.includes('/api/widget/data') ? ok(answer(items, over)) : { status: 200, body: SCRIPT_2 });
 
 /** Runs the widget once at `nowMs` and returns what it drew. */
 async function draw(items: unknown[], family: string, now: number, o: Options = {}, over: object = {}) {
@@ -97,7 +98,7 @@ describe('the widget script: German', () => {
     const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00', language: 'de' }), savedAt: at('06:00') }) };
     expect((await draw([], 'medium', at('08:00'), { net: undefined, files: cache })).said).toContain('Stand 06:00');
     const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
-    expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toContain('Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.');
+    expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toEqual(['Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.']);
     expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.']);
     expect((await draw([], 'medium', at('08:00'), { keychain: {}, language: 'de' })).said).toEqual(['Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.']);
     const circle = await draw([dentist], 'accessoryCircular', at('08:20'), { language: 'en' }, { language: 'de', widgetCircle: 'countdown' });
@@ -130,7 +131,7 @@ describe('the widget script: Week view', () => {
     expect(canvas).toEqual(expect.arrayContaining(['M 12', 'W 14', 'S 18', '09:00 Dentist', '18:00 Gym', 'Holiday', '09', '18']));
     const holiday = d.f.texts.find((t) => t.text === 'Holiday')!;
     expect(holiday.rect!.y).toBeLessThan(g.top);
-    expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-19');
+    expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
   });
 
   it('the week grid draws the red now-line in today\'s column only', async () => {
@@ -267,10 +268,11 @@ describe('the widget script: offline, refusals, redraw, tap', () => {
     expect(d.said).toEqual(['No data yet. Open the widget once with a connection.']);
   });
 
-  it('says the key was removed and still shows the last answer greyed out', async () => {
+  it('says the key was removed, drops the cached answer and shows nothing else', async () => {
     const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
     const d = await draw([], 'medium', at('08:00'), { net, files: cacheOf([dentist], at('07:00')) });
-    expect(d.said).toEqual(expect.arrayContaining(['Dentist', 'This widget was removed in the app. Add it again in Settings.']));
+    expect(d.said).toEqual(['This widget was removed in the app. Add it again in Settings.']);
+    expect(d.f.files.has('/lib/calendar-widget-data.json')).toBe(false);
   });
 
   it('shows only the refusal when there is no earlier answer', async () => {
@@ -304,6 +306,29 @@ describe('the widget script: offline, refusals, redraw, tap', () => {
   });
 });
 
+describe('the widget script: one cache for every size', () => {
+  it('asks for the same range in every size and draws the full week offline after a small widget wrote the cache', async () => {
+    const monday = ev('Standup', '12 09:30', '12 10:00');
+    const friday = ev('Retro', '16 15:00', '16 16:00');
+    const small = await draw([monday, friday, dentist], 'small', at('08:00'));
+    expect(small.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
+    for (const fam of ['medium', 'large', 'accessoryRectangular']) {
+      expect((await draw([], fam, at('08:00'))).f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
+    }
+    const files = Object.fromEntries(small.f.files);
+    const large = await draw([], 'large', at('08:00'), { net: undefined, files, widgetFamily: 'large' });
+    const canvas = large.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
+    expect(canvas).toEqual(expect.arrayContaining(['09:30 Standup', '09:00 Dentist', '15:00 Retro']));
+  });
+
+  it('keeps the range within what the server allows, on a Sunday as well', async () => {
+    const f = fakeScriptable();
+    const { exports: api } = await runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true });
+    expect(api.rangeFor('2026-10-18')).toEqual(['2026-10-12', '2026-10-25']);
+    expect(api.rangeFor('2026-10-12')).toEqual(['2026-10-11', '2026-10-19']);
+  });
+});
+
 describe('the widget script: updates itself', () => {
   it('saves a newer script and keeps drawing today as before', async () => {
     const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 2 });
@@ -318,10 +343,20 @@ describe('the widget script: updates itself', () => {
     expect(d.said).toContain('Dentist');
   });
 
+  it('does not save a truncated download that lacks the end marker', async () => {
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=2\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 2 })));
+    const d = await draw([dentist], 'small', at('08:00'), { net });
+    expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
+  });
+
   it('does not save a download whose first line is not a newer version', async () => {
     const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 2 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
+  });
+
+  it('ends with the marker line the updater checks', () => {
+    expect(WIDGET_SOURCE.trimEnd().split('\n').at(-1)).toBe('// calendar-widget end');
   });
 
   it('has the version its first line names', () => {
@@ -336,7 +371,7 @@ describe('the installer', () => {
     await runScript(widgetInstaller(BASE + '/', KEY), f);
     return f;
   };
-  const script = '// calendar-widget version=1\n';
+  const script = '// calendar-widget version=1\n// calendar-widget end\n';
 
   it('starts with the words Calendar widget installer and has the key and the server URL in it', () => {
     const text = widgetInstaller(BASE, KEY);
@@ -354,6 +389,25 @@ describe('the installer', () => {
     expect(f.requests[0]).toEqual({ url: `${BASE}/api/widget/script`, headers: { Authorization: `Bearer ${KEY}` } });
     expect(f.alerts[0]!.message).toBe('Installed');
     expect(f.files.get('/docs/Calendar.js')).not.toContain(KEY);
+  });
+
+  it('deletes itself after a good install', async () => {
+    const f = await install({ net: () => ({ status: 200, body: script }), files: { '/docs/Untitled Script.js': 'installer text' } });
+    expect(f.files.has('/docs/Untitled Script.js')).toBe(false);
+    expect(f.alerts.map((a) => a.message)).toEqual(['Installed']);
+  });
+
+  it('asks the person to delete it when it cannot, in German too', async () => {
+    const f = await install({ net: () => ({ status: 200, body: script }), files: { '/docs/Untitled Script.js': 'installer text' }, removeFails: true });
+    expect(f.alerts.map((a) => a.message)).toEqual(['Installed\n\nPlease delete this installer in Scriptable.']);
+    const g = await install({ net: () => ({ status: 200, body: script }), files: { '/docs/Untitled Script.js': 'x' }, removeFails: true, language: 'de' });
+    expect(g.alerts[0]!.message).toBe('Installiert\n\nLösche bitte diesen Installer in Scriptable.');
+  });
+
+  it('keeps nothing from a truncated script', async () => {
+    const f = await install({ net: () => ({ status: 200, body: '// calendar-widget version=1\n' }) });
+    expect(f.files.has('/docs/Calendar.js')).toBe(false);
+    expect(f.alerts[0]!.message).toBe('The calendar is not reachable. Try again in a few minutes.');
   });
 
   it('falls back to the local folder when iCloud is off', async () => {
