@@ -153,6 +153,8 @@ export default {
     readOnly: 'Kommt aus Google Kontakte. Da ändern, Schinken!',
     readOnlyInvitation: 'Einladung von {by}, yo',
     readOnlyCalendar: 'Kalender von {by}, Digga',
+    contactHint: 'Diesen Geburtstag änderst du in Google Kontakte, yo.',
+    turns: 'Wird {n}, Digga',
     genericError: 'Voldemort war\'s, nicht Fresh D.',
     rollback: '{what} wurde nicht gespeichert. Alles wieder wie vorher, Digga.',
     fields: {
@@ -233,6 +235,10 @@ export default {
   undo: {
     deleted: 'Gelöscht: {title}, yo',
     undo: 'Rückgängig, bitte',
+  },
+  contacts: {
+    offer: 'Auch Geburtstage aus deinen Google Kontakten anzeigen, yo?',
+    allow: 'Erlauben, fresh',
   },
   apk: {
     available: 'Neue App-Version am Start, yo',

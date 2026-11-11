@@ -13,6 +13,8 @@ import NowMarker from './NowMarker.vue';
 import { startTransitionWarnings } from './transitionWarning';
 import './calendar.css';
 
+export { allowContacts, useContactsOffer } from './contactsOffer';
+
 let done = false;
 export function registerCalendarFeature(): void {
   startTransitionWarnings(); // (re)binds to the active Pinia

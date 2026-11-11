@@ -40,6 +40,15 @@ describe('applyChanges', () => {
     expect(next.files.prefs).toEqual({ language: 'de' });
   });
 
+  it('holds the dates of Google Contacts under their own source: replaced as a whole, dropped when the source is no longer answered', () => {
+    const contact = (id: string, date: string) => ({ ...ev(id, date, 'birthdays'), sourceCalendarId: 'people' });
+    const d = held([ev('a', '2026-10-13'), contact('contact:c1', '2026-10-14')]);
+    const replaced = applyChanges(d, answer({ events: { calendars: ['primary', 'people'], replace: ['people'], series: [], removed: [], failed: [], upserts: [contact('contact:c2', '2026-10-15')] } }));
+    expect(ids(replaced)).toEqual(['a', 'contact:c2']);
+    expect(ids(applyChanges(d, answer({ events: { calendars: ['primary', 'people'], replace: [], series: [], removed: [], failed: [], upserts: [] } })))).toEqual(['a', 'contact:c1']);
+    expect(ids(applyChanges(d, answer()))).toEqual(['a']);
+  });
+
   it('drops the events of a calendar that is gone and of one answered as replace, before the upserts', () => {
     const d = held([ev('a', '2026-10-13', 'primary'), ev('w', '2026-10-13', 'work'), ev('x', '2026-10-13', 'old')]);
     const next = applyChanges(d, answer({

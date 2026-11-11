@@ -7,6 +7,7 @@
  * confirmed (feature background-sync). Props `draft` / `draftEvent` / `error` restore a form after a failed attempt ("Edit again").
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { ageOn } from '@calendar/shared/birthdays';
 import { api, ApiError } from '@/api/client';
 import { googleColor, EVENT_COLOR_OPTIONS } from '@/api/colors';
 import type { CalendarEvent, Reminders } from '@/api/types';
@@ -54,7 +55,14 @@ const readOnly = computed(() => !!original.value?.readOnly);
 /** The "Invitation from X" / "Calendar of X" line of the details; none for the contacts Birthdays calendar. */
 const readOnlyReason = computed(() => {
   const r = original.value?.readOnlyReason;
-  return r ? t(r.kind === 'invitation' ? 'calendar.event.readOnlyInvitation' : 'calendar.event.readOnlyCalendar', { by: r.by }) : '';
+  return r && r.kind !== 'contact' ? t(r.kind === 'invitation' ? 'calendar.event.readOnlyInvitation' : 'calendar.event.readOnlyCalendar', { by: r.by }) : '';
+});
+/** A date read from Google Contacts is changed there, never in the app. */
+const fromContacts = computed(() => original.value?.readOnlyReason?.kind === 'contact');
+/** "Turns N" of a contact birthday with a year (the details only; never for other dates or on the chip). */
+const age = computed(() => {
+  const o = original.value;
+  return o?.special === 'birthday' && o.contactBirthday?.birthYear ? ageOn(o.contactBirthday.birthYear, String(o.start).slice(0, 10)) : null;
 });
 /** When the read-only event takes place, from the same form values the editable dialog would show. */
 const whenText = computed(() => {
@@ -300,9 +308,11 @@ function remove() {
         <EventMap v-if="readOnlyPlace" :place="readOnlyPlace" :tile-url="clock.config.mapTileUrl" />
       </template>
       <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
-      <p v-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
+      <p v-if="age !== null" class="lab" data-testid="birthday-age">{{ t('calendar.event.turns', { n: age }) }}</p>
+      <p v-if="fromContacts" class="lab" data-testid="event-readonly-hint">{{ t('calendar.event.contactHint') }}</p>
+      <p v-else-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
       <p v-else class="lab">{{ t('calendar.event.readOnly') }}</p>
-      <div v-if="!original.special" class="colors" :inert="saving" :aria-busy="saving">
+      <div v-if="!original.special && !fromContacts" class="colors" :inert="saving" :aria-busy="saving">
         <span class="lab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor :model-value="original.reminders ?? { useDefault: true, minutes: [] }" prefix="event" allow-default :default-minutes="readOnlyDefaults" data-testid="event-reminders" @update:model-value="saveReadOnlyReminders" />
       </div>
