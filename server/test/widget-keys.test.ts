@@ -34,7 +34,9 @@ describe('widget keys (/api/widget-keys)', () => {
     expect(k.body.key).toMatch(/^cwk_[A-Za-z0-9_-]{8}_[A-Za-z0-9_-]{43}$/);
     const list = await t.json('GET', '/api/widget-keys', undefined, as(jo));
     expect(list.body).toEqual([{ id: k.body.id, name: 'My iPhone', createdAt: expect.any(String), lastUsedAt: null }]);
-    expect(JSON.stringify(list.body)).not.toContain(k.body.key.split('_')[2]);
+    // id and secret use the base64url alphabet, which includes '_': take the secret by its fixed position, as the server does
+    const secret = /^cwk_[A-Za-z0-9_-]{8}_([A-Za-z0-9_-]{43})$/.exec(k.body.key)![1]!;
+    expect(JSON.stringify(list.body)).not.toContain(secret);
     expect((await t.req('DELETE', `/api/widget-keys/${k.body.id}`, undefined, as(jo))).status).toBe(204);
     expect((await t.json('GET', '/api/widget-keys', undefined, as(jo))).body).toEqual([]);
   });
