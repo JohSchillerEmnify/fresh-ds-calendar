@@ -3578,6 +3578,7 @@ the settings show the widget key {string} last used on {date} at {time}
 the settings show the widget key {string} as never used
 the settings do not show the widget key itself
 the new widget key is shown once with the buttons {string} and {string}
+the setup offers a link to get Scriptable
 the copied widget installer holds the key and the server URL
 the copied widget installer says nothing else to fill in
 the widget installer runs with the key {string}
@@ -3598,6 +3599,7 @@ the widget key {string} was last used on {date} at {time}
 the widget key {string} was never used
 the widget key {string} belongs to {string}
 {string} has the calendar {string}
+the calendar contains {int} more events on {date} after {time}
 the iPhone widget refreshes with the key {string}
 the iPhone widget refreshes with the key {string} {int} times within a minute
 the iPhone widget refreshes with a key that does not exist
@@ -3627,6 +3629,8 @@ the iPhone widget asks to be redrawn at {time}
 - The Settings steps (first block) run in the browser suite once built (hooks `iphone-widget-keys`, `iphone-widget-key-row`,
   `iphone-widget-copy-installer`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy installer" is read back from the
   clipboard permission of the test browser.
+- "the setup offers a link to get Scriptable": the setup's step 1 holds a link "Get Scriptable" to `https://apps.apple.com/app/id1405459188` (hook `iphone-widget-get-scriptable`). Scriptable's URL scheme has no parameter that carries a script, so the installer stays copy + "Open Scriptable" (`scriptable:///add`).
+- "the calendar contains N more events on D after T" adds N one-hour events ("More 1" ... "More N") from T on, one per hour.
 - "P has the calendar C" gives another person a calendar of their own (fixture through the mock provider).
 - "the widget key K belongs to P" creates the key through `POST /api/widget-keys` as P (the secret is kept by the step for
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.

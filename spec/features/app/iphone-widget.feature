@@ -8,7 +8,10 @@ Feature: iPhone widgets through Scriptable
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
-  The home screen has two views like the Android widgets, Day and Week; the size picks the view (small and medium Day, large Week).
+  The home screen has the Day view (small), today and tomorrow (medium) and the Week (large); the size picks the view.
+  Every size reads top-down: a big date, the next entry as a large coloured block, the rest of today in small text, a compact
+  "Tomorrow" section (medium), and a "+N more" line when things overflow. No size has a time strip: a widget cannot scroll,
+  so a full day does not fit.
   The lock screen has the three accessory families Scriptable supports: inline, circular and rectangular. The widget draws
   no clock of its own, because iOS shows its clock on the lock screen.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
@@ -25,6 +28,12 @@ Feature: iPhone widgets through Scriptable
       And I create a widget key named "My iPhone"
       Then the settings show the widget key "My iPhone"
       And the new widget key is shown once with the buttons "Copy installer" and "Open Scriptable"
+
+    @backlog
+    Scenario: The setup offers a link to get Scriptable
+      When I open the iPhone widget settings
+      And I create a widget key named "My iPhone"
+      Then the setup offers a link to get Scriptable
 
     @backlog
     Scenario: The copied installer has the key and the server URL filled in
@@ -145,14 +154,24 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget shows the date 2026-10-14
 
     @backlog
-    Scenario: The medium widget shows the Day view with more room
+    Scenario: The medium widget shows today and tomorrow
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
+      And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "medium" size
       Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
-      And the iPhone widget shows the event "Gym" from 18:00 to 19:00
       And the iPhone widget shows the date 2026-10-14
+      And the iPhone widget shows "Tomorrow"
+      And the iPhone widget shows the event "Gym"
+
+    @backlog
+    Scenario: The widget says how many more entries do not fit
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains 6 more events on 2026-10-14 after 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "small" size
+      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
+      And the iPhone widget shows "+5 more"
 
     @backlog
     Scenario: The large widget shows the Week view
