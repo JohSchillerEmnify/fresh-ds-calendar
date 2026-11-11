@@ -61,7 +61,7 @@ Feature: ADHD support: estimates, transition warnings, calm mode
     Then calm mode is active
     When I open the week view for 2026-10-12
     Then the collapsed task list "Groceries" does not list its items
-    And the task list "Groceries" shows the done count "0/0"
+    And the task list "Groceries" shows no done count
     When I reload the page
     Then calm mode is active
 
