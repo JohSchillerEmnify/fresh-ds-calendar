@@ -12,6 +12,7 @@ export type BarSize = 'auto' | 'expressive' | 'compact';
 export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 /** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
+export type WidgetCircle = 'time' | 'countdown';
 /** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
 export type HeaderLayout = 'auto' | 'two-rows' | 'one-row';
 /** How the Tasks view groups its lists (feature tasks-view). */
@@ -133,6 +134,8 @@ export interface Prefs {
   daySideBySide: DaySideBySide;
   /** Overlapping events side by side in the week view and the phone widget's week before they cascade (default 2). */
   weekSideBySide: WeekSideBySide;
+  /** The iPhone widget's lock-screen circle: the next entry's start time (the default) or a live countdown to it (feature iphone-widget). */
+  widgetCircle: WidgetCircle;
   /** What the top bar shows of the streak: off (the default), flame or plant. */
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */

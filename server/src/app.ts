@@ -22,6 +22,7 @@ import { downloadRoutes } from './routes/download.js';
 import { staticRoutes } from './routes/static.js';
 import { securityHeaders } from './lib/securityHeaders.js';
 import { pluginRoutes } from './plugins/registry.js';
+import { widgetRoutes } from './api/widgetRoutes.js';
 import { idempotency, refuseNextWrite } from './api/idempotency.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
@@ -98,6 +99,8 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
 
   // Plugins (ADR 0004) answer machine clients with their own keys: mounted before the session middleware, gated per request.
   app.route('/api', pluginRoutes(ctx));
+  // the iPhone widget presents a key, not a session (ADR 0044): its two routes sit before the session middleware
+  app.route('/api', widgetRoutes(ctx));
 
   app.use('/api/*', sessionMiddleware(ctx));
   if (config.testMode) app.use('/api/*', refuseNextWrite(ctx));

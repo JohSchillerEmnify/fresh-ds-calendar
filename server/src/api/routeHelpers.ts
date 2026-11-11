@@ -44,6 +44,17 @@ export function range(c: Context, maxDays: number): { from: string; to: string }
   return checkRange(dateParam(c, 'from'), dateParam(c, 'to'), maxDays, 'to');
 }
 
+/** The items of a range for one person; `excludeHidden` is the one visibility rule of the Android and iPhone widgets. */
+export async function readItems(ctx: Ctx, sub: string, cal: ReturnType<Ctx['calendarFor']>, from: string, to: string,
+  opts: { ids?: string[]; also?: { from: string; to: string }; excludeHidden: boolean }) {
+  const res = await cal.items(from, to, opts.ids, opts.also);
+  if (opts.excludeHidden) {
+    const hidden = new Set(ctx.prefs.hiddenCalendars(sub));
+    res.items = res.items.filter((i) => !hidden.has(i.calendarId));
+  }
+  return res;
+}
+
 /** The optional `also=YYYY-MM-DD..YYYY-MM-DD` range (same rules as `from`/`to`). */
 export function alsoRange(c: Context, maxDays: number): { from: string; to: string } | undefined {
   const v = c.req.query('also');

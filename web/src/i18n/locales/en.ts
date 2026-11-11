@@ -9,6 +9,7 @@
  */
 import calendarEn from './en/calendar.ts';
 import outboxEn from './en/outbox.ts';
+import iphoneWidgetEn from './en/iphoneWidget.ts';
 import deviceLogEn from './en/deviceLog.ts';
 import backupEn from './en/backup.ts';
 import canvasEn from './en/canvas.ts';
@@ -23,6 +24,7 @@ export default {
   settingsNav: settingsNavEn,
   calendar: calendarEn,
   outbox: outboxEn,
+  iphoneWidget: iphoneWidgetEn,
   deviceLog: deviceLogEn,
   backup: backupEn,
   canvas: canvasEn,

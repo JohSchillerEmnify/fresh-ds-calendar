@@ -47,6 +47,9 @@ model {
     widget = app 'Phone widget' {
       description 'Native Android home-screen widgets (week, day and clock) that draw the current days'
     }
+    iosWidget = app 'iPhone widget' {
+      description 'A Scriptable script on the iPhone that draws today, today and tomorrow, the week as a time grid and the lock screen with a per-device read key, in the person\'s language, and keeps its last answer'
+    }
     androidApp = app 'Android app' {
       description 'The Capacitor shell that shows the chosen server\'s web app and carries the native plugins'
     }
@@ -85,6 +88,8 @@ model {
   owner -> calendar.widget 'glances at the week'
   calendar.web -> calendar.widget 'pushes a week snapshot through the widget bridge'
   calendar.widget -> calendar.server 'reads the week and the preferences with the app session'
+  owner -> calendar.iosWidget 'glances at today and the week'
+  calendar.iosWidget -> calendar.server 'reads today and the week with a widget key (no session)'
   owner -> calendar.androidApp 'uses the calendar on the phone'
   owner -> aiChat 'asks for a theme with the copied prompt, pastes the answer back'
   calendar.web -> photon 'asks for place suggestions straight from the browser'

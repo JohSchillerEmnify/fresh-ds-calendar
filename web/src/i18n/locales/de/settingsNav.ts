@@ -83,6 +83,7 @@ export default {
     bedtimeReminder: 'Schlafenszeit-Erinnerung, Erinnerung vor dem Schlafen',
     labs: 'experimentell, Beta',
     backup: 'Google Drive, wiederherstellen, Sicherung',
+    iphoneWidget: 'iPhone, iOS, Widget, Sperrbildschirm, Scriptable, Countdown',
     errorLog: 'Fehler, Absturz, Probleme, Diagnose',
     version: 'Build, Über',
   },

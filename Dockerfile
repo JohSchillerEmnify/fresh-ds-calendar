@@ -33,6 +33,8 @@ COPY --from=build /out server
 COPY --from=build /app/web/dist web/dist
 # the release notes the server parses at start (CHANGELOG_PATH, default two levels above server/dist)
 COPY CHANGELOG.md CHANGELOG.md
+# the iPhone widget script the server hands out (WIDGET_SCRIPT_PATH, default two levels above server/dist)
+COPY ios/widget ios/widget
 RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 3000

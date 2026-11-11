@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { configResponse } from './routes.js';
 import { placeTestRoutes } from './testPlaces.js';
 import type { Ctx } from '../context.js';
-import { ApiException, validation } from '../lib/errors.js';
+import { ApiException, notFound, validation } from '../lib/errors.js';
 import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { forgetVerifiedHolidays } from '../services/holidays.js';
@@ -46,6 +46,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.canvas.reset();
     ctx.ink.reset();
     ctx.templates.reset();
+    ctx.widgetKeys.reset();
     ctx.idempotency.reset();
     ctx.people.reset();
     ctx.shared.reset();
@@ -280,6 +281,17 @@ export function testRoutes(ctx: Ctx): Hono {
     // the allowed addresses count as people who signed in once, so they can be picked as members
     for (const e of ctx.auth.allowedEmails) ctx.people.recordMock(e);
     return c.json({ on: true, allowedEmails: ctx.auth.allowedEmails });
+  });
+
+  // When a widget key was last used (`at: null` = never); the key is named by its device name.
+  t.post('/widget-keys/last-used', async (c) => {
+    const b = (await body(c)) as { owner?: unknown; name?: unknown; at?: unknown } | undefined;
+    if (typeof b?.name !== 'string' || (b.at !== null && typeof b.at !== 'string')) throw validation('name and at are required', 'name');
+    const sub = typeof b.owner === 'string' ? mockSub(b.owner) : LOCAL_PERSON;
+    const key = ctx.widgetKeys.list(sub).find((k) => k.name === b.name);
+    if (!key) throw notFound('Widget key not found');
+    ctx.widgetKeys.setLastUsed(sub, key.id, b.at);
+    return c.json({ ok: true });
   });
 
   // The Google account the fake consent screen signs in next.

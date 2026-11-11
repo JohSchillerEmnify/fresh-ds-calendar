@@ -472,7 +472,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   A repeating list contributes its instances inside the window.
 - `files`: per-person data, each part present only when its version (a hash of what the app would show) moved since the
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
-  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
+  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `widgetKeys` (`{ keys }` as `GET /api/widget-keys`, never a key itself), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
   (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
@@ -509,6 +509,49 @@ Optional `&excludeHidden=1` leaves out the items of the calendars the signed-in 
 The web app filters hidden calendars itself, instantly; the Android widget fetches this endpoint natively, cannot see
 that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget). A calendar whose plan has
 it off is left out too, because the plan's scheduler sets `hidden` (see "Calendar plans").
+
+### Widget keys and the iPhone widget data (ADR 0044; feature iphone-widget)
+
+A person creates a read-only key per device in Settings; the Scriptable widget on that iPhone presents it. Keys are per
+person: every route below lists and changes only the signed-in person's keys, and the widget data is that person's.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `POST` | `/api/widget-keys` | `{ name }` (1-40 characters, the device name) | `201` `{ id, name, createdAt, lastUsedAt: null, key }` |
+| `GET` | `/api/widget-keys` | – | `200` `[{ id, name, createdAt, lastUsedAt }]` (never the key) |
+| `DELETE` | `/api/widget-keys/:id` | – | `204` |
+
+- These three need the normal session. `key` is in the `201` answer only (`Cache-Control: no-store`) and cannot be read again.
+  At most 10 active keys per person (else **409 `WIDGET_KEY_LIMIT`**); an unknown or foreign `:id` answers **404**.
+- `key` has the form `cwk_<id>_<secret>`: `id` 8 characters `[A-Za-z0-9_-]` (also the list's `id`), `secret` 256 random bits,
+  base64url. The server stores `id`, `name`, `createdAt`, `lastUsedAt` and the SHA-256 of `secret` (never the secret) in
+  the person's `widget-keys.json`. A revoked key keeps its record (hash, `revokedAt`) for 90 days so the widget can say
+  "removed"; after that it answers as unknown.
+
+`GET /api/widget/script` → 200 `text/javascript`
+
+- Key-authenticated like the data route (same errors, same rate limit). The body is the widget script, the same for every
+  person and **with no secret and no person in it**: it reads the key and the server URL from Scriptable's Keychain, where the
+  installer put them. First line `// calendar-widget version=<n>`; `Cache-Control: no-store`.
+- Tiny installer (generated in the app, shown with "Copy installer"): holds the key and the server URL, stores both in the
+  Keychain, requests this route and saves the body with `FileManager.writeString` as a script in the documents
+  directory, so it appears in Scriptable's list. It tells the person what to do next ("Add a Scriptable widget").
+
+`GET /api/widget/data?from=YYYY-MM-DD&to=YYYY-MM-DD` → 200
+
+- The routes a key opens are this and `/api/widget/script`: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
+  `UNAUTHENTICATED`**; the session cookie on this route is ignored (also **401**). Read-only by construction: no other method
+  is routed for a key.
+- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories, widgetCircle, language }`: `items` as `GET /api/items` for the
+  range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
+  included; the key cannot turn it off), the five prefs as `GET /api/prefs` gives them (`language`: the person's app language, so the widget speaks it; `auto` means the iPhone's, and anything but German or English reads as English; `widgetCircle`: `time` (default) or `countdown`, the lock-screen circle's drawing, per person, validation field `widgetCircle`; the script keeps the answer, setting included, for offline). `to - from` at most 14 days (the script asks for the week and the days around it, so one cache serves every size).
+  `scriptVersion` is the newest script's `version`; a script that is older fetches `/api/widget/script`. `today` is the calendar's local date, so the script needs no time zone logic.
+- Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
+  items, at most 14 days), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
+  limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).
+- The key list also travels in `GET /api/changes` as the `widgetKeys` file, so Settings shows it offline (the secret never does).
+- Keys are not part of the person's backup or restore; a lost key is simply created again.
+- Not cached by shared caches (`Cache-Control: no-store`). The script keeps the last answer on the phone.
 
 ### Events
 

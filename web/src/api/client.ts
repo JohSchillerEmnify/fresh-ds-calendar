@@ -16,7 +16,7 @@ import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { CalendarColor } from '@calendar/shared/colors';
 import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
-import type { HolidayRegion, HolidayVariant } from '@calendar/shared/api';
+import type { HolidayRegion, HolidayVariant, WidgetKey, WidgetKeyCreated } from '@calendar/shared/api';
 import { ApiError, type RequestSeen } from './apiError';
 import { errorFacts, logDevice, routeOf } from '@/lib/deviceLog';
 
@@ -215,6 +215,16 @@ export class ApiClient {
   }
   deleteTemplate(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/templates/${enc(id)}`, undefined, o);
+  }
+
+  widgetKeys(o?: RequestOptions) {
+    return this.request<WidgetKey[]>('GET', '/api/widget-keys', undefined, o);
+  }
+  createWidgetKey(name: string, o?: RequestOptions) {
+    return this.request<WidgetKeyCreated>('POST', '/api/widget-keys', { name }, o);
+  }
+  deleteWidgetKey(id: string, o?: RequestOptions) {
+    return this.request<void>('DELETE', `/api/widget-keys/${enc(id)}`, undefined, o);
   }
 
   themePref(o?: RequestOptions) {

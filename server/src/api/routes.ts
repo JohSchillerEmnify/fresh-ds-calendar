@@ -11,8 +11,9 @@ import { parsePrefsPatch } from '@calendar/shared/prefs';
 import { canvasDocSchema, defaultRemindersSchema, calendarColorPickSchema, createBirthdaySchema, createEventSchema, parse, parseTemplate, updateEventSchema } from '../lib/validation.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { registerChanges } from './changesRoutes.js';
-import { alsoRange, body, range, type RouteDeps } from './routeHelpers.js';
+import { alsoRange, body, range, readItems, type RouteDeps } from './routeHelpers.js';
 import { registerSettings } from './settingsRoutes.js';
+import { registerWidgetKeys } from './widgetRoutes.js';
 import { registerTaskLists } from './taskListRoutes.js';
 import { registerThemes, themeReaders } from './themeRoutes.js';
 import { kindsOfPath } from '../services/changeBus.js';
@@ -185,13 +186,8 @@ export function apiRoutes(ctx: Ctx): Hono {
     const { from, to } = range(c, 100);
     const also = alsoRange(c, 100);
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
-    const res = await cal(c).items(from, to, ids, also);
     // the widget cannot filter by the person's hidden calendars itself, so it asks the server to
-    if (c.req.query('excludeHidden') === '1') {
-      const hidden = new Set(ctx.prefs.hiddenCalendars(person(c)));
-      res.items = res.items.filter((i) => !hidden.has(i.calendarId));
-    }
-    return c.json(res);
+    return c.json(await readItems(ctx, person(c), cal(c), from, to, { ids, also, excludeHidden: c.req.query('excludeHidden') === '1' }));
   });
 
   r.get('/summary', async (c) => {
@@ -216,6 +212,7 @@ export function apiRoutes(ctx: Ctx): Hono {
 
 
   registerTaskLists(deps);
+  registerWidgetKeys(deps);
   registerSettings(deps);
 
   // ---- motivation ----

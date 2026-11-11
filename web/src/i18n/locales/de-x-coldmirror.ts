@@ -7,6 +7,7 @@ import outboxDe from './de/outbox.ts';
 import deviceLogDe from './de/deviceLog.ts';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
 import backupColdmirror from './de-x-coldmirror/backup.ts';
+import iphoneWidgetColdmirror from './de-x-coldmirror/iphoneWidget.ts';
 import canvasColdmirror from './de-x-coldmirror/canvas.ts';
 import inkColdmirror from './de-x-coldmirror/ink.ts';
 import bedtimeColdmirror from './de-x-coldmirror/bedtime.ts';
@@ -22,6 +23,7 @@ export default {
   outbox: outboxDe,
   deviceLog: deviceLogDe,
   backup: backupColdmirror,
+  iphoneWidget: iphoneWidgetColdmirror,
   canvas: canvasColdmirror,
   ink: inkColdmirror,
   bedtime: bedtimeColdmirror,

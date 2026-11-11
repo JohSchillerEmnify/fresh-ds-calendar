@@ -17,6 +17,8 @@ export interface AppConfig {
   webDist: string | null;
   /** CHANGELOG.md the release notes are parsed from at start (a missing file means no notes). */
   changelogPath: string;
+  /** The iPhone widget script the server hands out (ADR 0044); the Docker image copies `ios/widget/`. */
+  widgetScriptPath: string;
   tz: string;
   seed: boolean;
   testMode: boolean;
@@ -93,6 +95,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     provider: env.PROVIDER === 'google' ? 'google' : 'mock',
     webDist: env.WEB_DIST ?? path.resolve(here, '../../web/dist'),
     changelogPath: env.CHANGELOG_PATH ?? path.resolve(here, '../../CHANGELOG.md'),
+    widgetScriptPath: env.WIDGET_SCRIPT_PATH ?? path.resolve(here, '../../ios/widget/calendar-widget.js'),
     tz,
     seed: bool(env.SEED, true) && !testMode,
     testMode,

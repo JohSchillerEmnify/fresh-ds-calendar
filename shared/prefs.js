@@ -117,6 +117,7 @@ export const PREFS = {
   minEventMinutes: oneOf([0, 15, 30], 0, 'minEventMinutes must be 0, 15 or 30'),
   daySideBySide: oneOf([1, 2, 3, 4], 4, 'daySideBySide must be 1, 2, 3 or 4'),
   weekSideBySide: oneOf([1, 2, 3], 2, 'weekSideBySide must be 1, 2 or 3'),
+  widgetCircle: oneOf(['time', 'countdown'], 'time', 'widgetCircle must be time or countdown'),
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),

@@ -66,6 +66,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const sources: Record<string, () => unknown> = {
       settings: () => ctx.settings.get(sub), prefs: () => ctx.prefs.labsPrefs(sub), theme: () => v.theme(sub), themes: () => v.themes(sub),
       templates: () => ({ templates: ctx.templates.list(sub) }), canvas: () => ctx.canvas.get(sub), ink: () => ctx.inks.doc(sub), motivation: () => ctx.motivation.get(sub),
+      widgetKeys: () => ({ keys: ctx.widgetKeys.list(sub) }),
       categoryShares: () => ({ shares: ctx.shared.rulesOf(sub) }), people: () => ({ people: ctx.shared.candidates(sub) }),
     };
     const files: Record<string, unknown> = {};

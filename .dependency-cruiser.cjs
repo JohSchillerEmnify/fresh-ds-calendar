@@ -92,7 +92,7 @@ module.exports = {
           '^web/src/(main|sw)\\.ts$',
           '^server/src/index\\.ts$',
           '\\.d\\.ts$',
-          '^shared/(index|prefs|birthdays|colors|limits|ink|zone)\\.js$',
+          '^shared/(index|prefs|birthdays|colors|limits|ink|zone|weekHours|widgetInstaller)\\.js$',
         ],
       },
       to: {},

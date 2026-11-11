@@ -3564,6 +3564,112 @@ the clock widget says {string}
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 
+## iPhone widgets (`@iphone-widget`, Scriptable)
+
+```
+I open the iPhone widget settings
+I open the iPhone widget settings again
+I create a widget key named {string}
+I created a widget key named {string}
+I copy the widget installer
+I revoke the widget key {string}
+the settings show the widget key {string}
+the settings show the widget key {string} last used on {date} at {time}
+the settings show the widget key {string} as never used
+the settings do not show the widget key itself
+the new widget key is shown once with the buttons {string} and {string}
+the setup offers a link to get Scriptable
+the setup says {string}
+the setup guide step {int} says {string} and expects {string}
+the setup guide step {int} says {string} and has no hint
+the button {string} now says {string}
+the setup guide shows {string} for the widget key {string}
+the installer says {string}
+the widget installer runs without a connection
+the widget installer runs and the server does not answer
+nothing is saved
+the iPhone widget runs without a key
+the copied widget installer holds the key and the server URL
+the copied widget installer says nothing else to fill in
+the widget installer runs with the key {string}
+the widget installer runs with a key that does not exist
+the widget script is saved on the phone as a Scriptable script named {string}
+the saved widget script holds no key and no person
+the key and the server URL are kept in Scriptable's storage
+the installer says to add a Scriptable widget
+the installer says the key is not valid and nothing is saved
+the widget script request is refused as {string}
+the iPhone widget runs script version {int}
+the server offers the widget script version {int}
+the iPhone widget refreshes and the script download breaks off
+the widget script on the phone is version {int}
+the widget script on the phone is still version {int}
+the iPhone widget shows today as before
+the widget key {string} was last used on {date} at {time}
+the widget key {string} was never used
+the widget key {string} belongs to {string}
+{string} has the calendar {string}
+the calendar contains {int} more events on {date} after {time}
+the iPhone widget refreshes with the key {string}
+the iPhone widget refreshes with the key {string} {int} times within a minute
+the iPhone widget refreshes with a key that does not exist
+the iPhone widget refreshes without a connection
+the iPhone widget refreshes without a connection and has no earlier answer
+the iPhone widget showed the event {string} on {date} at {time} at {date} {time}
+I request {string} with the widget key {string}
+the widget data request is refused as {string}
+the server's key file holds a hash of the key {string} and not the key
+I look at the iPhone widget in the {string} size
+I tap the iPhone widget
+the iPhone widget shows the event {string}
+the iPhone widget does not show the event {string}
+the iPhone widget shows the entry {string} with its start {string}
+the iPhone widget places the event {string} in the week grid from {time} to {time}
+the iPhone widget shows {string} in the all-day band
+the iPhone widget shows the hours from {time} to {time}
+the iPhone widget draws a red now-line at {time} in today's column
+the iPhone widget shows no date line above the box
+the iPhone widget shows the week of {date} with the event {string} on {date}
+the iPhone widget shows {string}
+the iPhone widget says {string}
+the iPhone widget says its data is from {time}
+the iPhone widget says nothing about its age
+the iPhone widget shows no clock
+the iPhone widget counts down live to {time}
+the lock screen circle is chosen as {string}
+the app language is chosen as {string}
+I look at the iPhone widget in the {string} size on an iPhone set to {string}
+the widget data carries the app language {string}
+the widget data carries the lock screen circle {string}
+the lock screen circle is set to {string}
+the lock screen circle row says {string}
+I set the lock screen circle to {string}
+the iPhone widget keeps no calendar data
+the iPhone widget opens the app at the day view of {date}
+the iPhone widget asks to be redrawn at {time}
+```
+
+- The Settings steps (first block) run in the browser suite once built (hooks `iphone-widget-keys`, `iphone-widget-key-row`,
+  `iphone-widget-copy-installer`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy installer" is read back from the
+  clipboard permission of the test browser.
+- "the setup offers a link to get Scriptable": the setup's step 1 holds a link "Get Scriptable" to `https://apps.apple.com/app/id1405459188` (hook `iphone-widget-get-scriptable`). Scriptable's URL scheme has no parameter that carries a script, so the installer stays copy + "Open Scriptable" (`scriptable:///add`).
+- The guide's seven steps (hooks `iphone-widget-step-1` ... `-7`, each with its action text and a grey "expects" line `iphone-widget-step-N-expects`; "Get Scriptable" is step 1's link, "Copy installer" and "Open Scriptable" steps 2 and 3). The guide polls the key list while it is open, so "Widget connected ✓ – <device>, <time>" (`iphone-widget-connected`) appears when the key's first data read arrived. Step 2 has no grey line (the button's own "Copied ✓" is the feedback). In the step texts of the feature file the quotation marks inside the expectation are left out.
+- "the installer says T" and "nothing is saved" are proven by the installer's unit test with a fake Scriptable `Alert`, `Request`, `FileManager` and `Keychain` (the iPhone follows English or German; the scenarios use English).
+- "the calendar contains N more events on D after T" adds N one-hour events ("More 1" ... "More N") from T on, one per hour.
+- "P has the calendar C" gives another person a calendar of their own (fixture through the mock provider).
+- "the widget key K belongs to P" creates the key through `POST /api/widget-keys` as P (the secret is kept by the step for
+  later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
+- "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
+  the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
+- "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
+- The widget and the installer speak the person's app language (`prefs.language`, sent in the widget data and into the installer), `auto` follows the iPhone, the fun German variants read as German, anything else English; German is the primary language: every widget, guide, setting and error text is written in German first. iOS and Scriptable menu names in the German guide ("Bearbeiten › Widget hinzufügen", "Einsetzen") are unverified until a real iPhone is checked.
+- Lock-screen sizes are the string {string} "lock screen inline", "lock screen circle", "lock screen rectangle" = `accessoryInline`, `accessoryCircular`, `accessoryRectangular` (iOS 16+). The circle is not offered (no countdown that lags); it only appears in the scenario that pins that it shows a start time.
+- The installer and the script run in Scriptable: their unit tests (`ios/widget/test`) use fake `Request`, `FileManager` and `Keychain`; a download is written with `FileManager.writeString` into `documentsDirectory()` only after its first line parses as `// calendar-widget version=<n>` with `n` newer than the running one.
+- Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
+  data answer) plus the script's own unit tests (`ios/widget/test`, run with Node against a fake `Request`, `FileManager`
+  and `ListWidget`) and on a device; the browser suite skips them (`@backlog`).
+
 ## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
 
 ```
