@@ -81,6 +81,15 @@ describe('the widget script: lock screen', () => {
     expect(d.said).toEqual(['in 40 min']);
   });
 
+  it('circular says now in the last minute, the start time beyond an hour, and redraws on the minute', async () => {
+    expect((await draw([dentist], 'accessoryCircular', at('08:59') + 30000)).said).toEqual(['now']);
+    expect((await draw([dentist], 'accessoryCircular', at('07:30'))).said).toEqual(['09:00']);
+    expect((await draw([dentist], 'accessoryCircular', at('08:20') + 15000)).said).toEqual(['in 40 min']);
+    const d = await draw([dentist], 'accessoryCircular', at('08:20') + 15000);
+    expect(d.widget.refreshAfterDate.getTime()).toBe(at('08:21'));
+    expect((await draw([dentist], 'accessoryCircular', at('07:30'))).widget.refreshAfterDate.getTime()).toBe(at('08:00'));
+  });
+
   it('rectangular says what is going on now and what is next, with no date line', async () => {
     const d = await draw([dentist, gym], 'accessoryRectangular', at('09:20'));
     expect(d.said).toEqual(['Dentist · 40 min left', 'Next: Gym 18:00']);

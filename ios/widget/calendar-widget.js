@@ -13,14 +13,14 @@ const SIZES = { small: [158, 158], medium: [338, 158], large: [338, 354] };
 const TEXTS = {
   en: {
     tomorrow: 'Tomorrow', allDay: 'all day', more: (n) => `+${n} more`, then: 'then', next: 'Next', nothing: 'Nothing planned',
-    inMin: (n) => `in ${n} min`, inHours: (n) => `in ${n} h`, left: (n) => `${n} min left`,
+    inMin: (n) => `in ${n} min`, now: 'now', left: (n) => `${n} min left`,
     from: (t) => `Data from ${t}`, noData: 'No data yet. Open the widget once with a connection.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
     tomorrow: 'Morgen', allDay: 'ganztägig', more: (n) => `+${n} weitere`, then: 'danach', next: 'Als Nächstes', nothing: 'Nichts geplant',
-    inMin: (n) => `in ${n} Min.`, inHours: (n) => `in ${n} Std.`, left: (n) => `noch ${n} Min.`,
+    inMin: (n) => `in ${n} Min.`, now: 'jetzt', left: (n) => `noch ${n} Min.`,
     from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
     invalid: 'Dieses Widget ist ungültig. Füge es in den Einstellungen neu hinzu.',
@@ -96,12 +96,29 @@ function nowAndNext(entries, nowMs) {
 
 const minutesUntil = (ms, nowMs) => Math.max(1, Math.ceil((ms - nowMs) / 60000));
 
+/**
+ * The circle always counts down to the start of the next entry: "in 19 min", "now" in the last minute, the start time
+ * when it is more than an hour away. Drawn as text (WidgetDate's relative style is not documented for lock screens).
+ */
+function circleLabel(next, nowMs, T) {
+  if (!next) return '–';
+  const left = next.startMs - nowMs;
+  if (left <= 60000) return T.now;
+  return left > 3600e3 ? next.startTime : T.inMin(Math.ceil(left / 60000));
+}
+
 /** When iOS is asked to redraw: the next start or end of an entry or midnight, at most an hour ahead. */
-function nextRedraw(entries, nowMs, offsetMin) {
+function nextRedraw(entries, nowMs, offsetMin, family) {
   const day = localNow(nowMs, offsetMin).date;
   const midnight = Date.parse(`${addDays(day, 1)}T00:00:00Z`) - offsetMin * 60000;
   const changes = entries.flatMap((e) => [e.startMs, e.endMs]).filter((ms) => ms !== null && ms > nowMs);
-  return Math.min(nowMs + MAX_AHEAD_MS, midnight, ...changes);
+  const tick = [];
+  if (family === 'accessoryCircular') {
+    // the label changes every minute, or once the next start comes within the hour
+    const next = nowAndNext(entries, nowMs).next;
+    tick.push(next && next.startMs - nowMs > 3600e3 ? next.startMs - 3600e3 : Math.floor(nowMs / 60000) * 60000 + 60000);
+  }
+  return Math.min(nowMs + MAX_AHEAD_MS, midnight, ...changes, ...tick);
 }
 
 function textColor(hex) {
@@ -228,8 +245,7 @@ function lockWidget(family, entries, nowMs, T) {
     w.addText(next ? `${next.title} · ${next.startTime}` : T.nothing);
   } else if (family === 'accessoryCircular') {
     w.addAccessoryWidgetBackground = true;
-    const mins = next ? minutesUntil(next.startMs, nowMs) : null;
-    addLine(w, mins === null ? '–' : mins < 60 ? T.inMin(mins) : T.inHours(Math.round(mins / 60)), 13, { bold: true });
+    addLine(w, circleLabel(next, nowMs, T), 13, { bold: true });
   } else {
     if (now) addLine(w, `${now.title} · ${T.left(minutesUntil(now.endMs, nowMs))}`, 13, { bold: true });
     if (next) addLine(w, `${T.next}: ${next.title} ${next.startTime}`, 12);
@@ -330,7 +346,7 @@ function buildWidget(family, data, nowMs, lang, T) {
   if (family.startsWith('accessory')) w = lockWidget(family, entries, nowMs, T);
   else if (family === 'large' || family === 'extraLarge') w = weekWidget(entries, today, lang, T, false);
   else w = dayWidget(dayModel(entries, nowMs, today), family === 'medium' ? 'medium' : 'small', lang, T, false);
-  w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset));
+  w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset, family));
   return { w, today, entries, offset };
 }
 
