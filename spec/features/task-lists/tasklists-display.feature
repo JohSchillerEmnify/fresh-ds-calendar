@@ -174,7 +174,7 @@ Feature: Task lists in the calendar views
 
   @mobile @day
   Scenario: A short timed task list in the phone day view shows its items below the title
-    Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
+    Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 60 minutes with items:
       | item | done |
       | Milk | no   |
       | Eggs | no   |

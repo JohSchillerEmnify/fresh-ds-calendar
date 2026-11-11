@@ -96,10 +96,10 @@ Feature: The same kind of entry looks the same in every view
 
   @mobile
   Scenario Outline: On a phone a task list title fades out in every view
-    Given the calendar contains a task list "Groceries for the whole long weekend away" on 2026-10-14 with items:
+    Given the calendar contains a task list "Groceries for the whole long weekend away at the lake house with everyone from the old school" on 2026-10-14 with items:
       | item  | done |
       | Milk  | no   |
-    Then in the <view> view of 2026-10-14 the title of "Groceries for the whole long weekend away" fades out instead of ending in an ellipsis
+    Then in the <view> view of 2026-10-14 the title of "Groceries for the whole long weekend away at the lake house with everyone from the old school" fades out instead of ending in an ellipsis
 
     Examples:
       | view  |
