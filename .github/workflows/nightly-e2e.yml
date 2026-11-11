@@ -5,8 +5,8 @@ name: Nightly
 # WebKit job on a Mac. A failure opens (or updates) one "Nightly e2e failed" issue. Not a required check.
 on:
   schedule:
-    # 03:47 UTC: off the top of the hour, in the quietest global window, so GitHub's scheduled-run delays stay short
-    - cron: '47 3 * * *'
+    # 01:00 UTC: GitHub starts scheduled runs hours late, so start early enough to finish by the morning
+    - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
       force:
