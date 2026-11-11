@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { api } from '@/api/client';
+import { t } from '@/i18n';
 import type { Calendar } from '@/api/types';
 import type { CalendarPlan } from '@calendar/shared/prefs';
 import { saveCalendarColor } from '@/lib/calendarColor';
@@ -17,21 +18,25 @@ export function setPlanSource(s: PlanSource): void {
   source.value = s;
 }
 
+// the server names the virtual Birthdays calendar in English; the device copy keeps that, the screen shows the app language
+const named = (c: Calendar): Calendar => (c.virtual && c.id === 'birthdays' ? { ...c, name: t('calendar.birthdaysCalendar') } : c);
+
 /** Every calendar of the person with their hidden choice and plan (feature calendar-off-plan). Toggling is instant; the server is told in the background. */
 export const useCalendarsStore = defineStore('calendars', () => {
-  const list = ref<Calendar[]>([]);
+  const raw = ref<Calendar[]>([]);
+  const list = computed<Calendar[]>({ get: () => raw.value.map(named), set: (v) => { raw.value = v; } });
   let saving = 0;
   const clock = useClockStore();
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
   const planOf = (id: string): CalendarPlan | undefined => source.value.plans()[id];
 
   // the server switches `hidden` at a plan's edges, so this is the one flag every view reads
-  const hidden = computed(() => new Set(list.value.filter((c) => c.hidden).map((c) => c.id)));
+  const hidden = computed(() => new Set(raw.value.filter((c) => c.hidden).map((c) => c.id)));
   const isHidden = (calendarId: string) => hidden.value.has(calendarId);
 
   /** Takes the list the device holds; a poll must not undo a toggle that is still being saved. */
   function fromDevice(saved: Calendar[]): void {
-    if (saving === 0) list.value = saved;
+    if (saving === 0) raw.value = saved;
   }
 
   /** Reads the list from the device store; the server only before the device has had its first sync. */
@@ -51,7 +56,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** A tap: switches what the person sees now; it holds until the plan's next edge, and ends "Off for a while". */
   async function toggle(id: string): Promise<void> {
-    const cur = list.value.find((c) => c.id === id);
+    const cur = raw.value.find((c) => c.id === id);
     if (!cur) return;
     const plan = planOf(id);
     if (hasPlan(plan) && awayActive(plan, nowWall.value)) {
@@ -68,20 +73,20 @@ export const useCalendarsStore = defineStore('calendars', () => {
   async function setPlan(id: string, plan: CalendarPlan | undefined): Promise<void> {
     const fresh = plan && { ...(plan.windows?.length ? { windows: plan.windows } : {}), ...(plan.until ? { until: plan.until, since: plan.since ?? nowWall.value } : {}) };
     await savePlan(id, fresh);
-    if (!hasPlan(fresh) && list.value.find((c) => c.id === id)?.hidden) await setHidden(id, false);
+    if (!hasPlan(fresh) && raw.value.find((c) => c.id === id)?.hidden) await setHidden(id, false);
     // the server applies a new plan at once; read its flags now instead of waiting for the next sync
     else if (hasPlan(fresh)) await api.calendars().then((r) => { fromDevice(r.calendars); useDeviceStore().putCalendars(r.calendars); }).catch((e) => logUndone('calendar plan refresh', e));
   }
 
   async function setHidden(id: string, next: boolean): Promise<void> {
-    list.value = list.value.map((c) => (c.id === id ? { ...c, hidden: next } : c));
+    raw.value = raw.value.map((c) => (c.id === id ? { ...c, hidden: next } : c));
     saving++;
     try {
       await api.setCalendarHidden(id, next);
-      useDeviceStore().putCalendars(list.value);
+      useDeviceStore().putCalendars(raw.value);
     } catch (e) {
       logUndone('calendar hidden', e);
-      list.value = list.value.map((c) => (c.id === id ? { ...c, hidden: !next } : c));
+      raw.value = raw.value.map((c) => (c.id === id ? { ...c, hidden: !next } : c));
     } finally {
       saving--;
     }
@@ -89,17 +94,17 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** Replaces a calendar's popup reminder defaults (Google's `defaultReminders`); shown at once, rolled back on failure. */
   async function setDefaultReminders(id: string, minutes: number[]): Promise<void> {
-    const before = list.value;
-    list.value = before.map((c) => (c.id === id ? { ...c, defaultReminders: minutes } : c));
+    const before = raw.value;
+    raw.value = before.map((c) => (c.id === id ? { ...c, defaultReminders: minutes } : c));
     saving++;
     try {
       const saved = await api.setCalendarDefaultReminders(id, minutes);
-      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
-      useDeviceStore().putCalendars(list.value);
+      raw.value = raw.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
+      useDeviceStore().putCalendars(raw.value);
     } catch (e) {
       logUndone('calendar default reminders', e);
       // an empty list is deliberate when the calendar is missing from the snapshot
-      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders ?? [] } : c));
+      raw.value = raw.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders ?? [] } : c));
       throw e;
     } finally {
       saving--;
@@ -110,7 +115,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
   async function setColor(id: string, color: string, colorId?: string): Promise<void> {
     saving++;
     try {
-      await saveCalendarColor(list, id, color, colorId, useDeviceStore().putCalendars);
+      await saveCalendarColor(raw, id, color, colorId, useDeviceStore().putCalendars);
     } finally {
       saving--;
     }

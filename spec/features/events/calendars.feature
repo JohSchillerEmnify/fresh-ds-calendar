@@ -28,3 +28,8 @@ Feature: All of a person's Google calendars
   Scenario: The Birthdays calendar is listed next to my own
     When "jo@example.com" signs in with Google
     Then the filter bar offers the calendar "Birthdays" once
+
+  Scenario: The Birthdays calendar is named in the app's language
+    Given the browser language is "de-DE"
+    When "jo@example.com" signs in with Google
+    Then the filter bar offers the calendar "Geburtstage" once

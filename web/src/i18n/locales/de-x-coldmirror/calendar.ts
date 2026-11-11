@@ -56,6 +56,7 @@ export default {
     lastUpdated: 'Zuletzt frisch gemacht {time}, yo',
     lastUpdatedOn: 'Zuletzt frisch gemacht {date}, {time}, yo',
   },
+  birthdaysCalendar: 'Geburtstage, yo',
   reauth: {
     message: 'Google lässt dich nicht mehr rein, du Oberpflaume. Meld dich nochmal an, dann siehst du den Kalender wieder, yo.',
     signIn: 'Anmelden, yo',

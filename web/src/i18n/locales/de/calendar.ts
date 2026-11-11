@@ -56,6 +56,7 @@ export default {
     lastUpdated: 'Zuletzt aktualisiert {time}',
     lastUpdatedOn: 'Zuletzt aktualisiert {date}, {time}',
   },
+  birthdaysCalendar: 'Geburtstage',
   reauth: {
     message: 'Google akzeptiert deinen Zugriff nicht mehr. Melde dich erneut mit Google an, um deinen Kalender zu sehen.',
     signIn: 'Anmelden',

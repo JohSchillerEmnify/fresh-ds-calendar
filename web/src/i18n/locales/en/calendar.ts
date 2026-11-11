@@ -54,6 +54,7 @@ export default {
     lastUpdated: 'Last updated {time}',
     lastUpdatedOn: 'Last updated {date}, {time}',
   },
+  birthdaysCalendar: 'Birthdays',
   reauth: {
     message: 'Google no longer accepts your access. Sign in with Google again to see your calendar.',
     signIn: 'Sign in',
