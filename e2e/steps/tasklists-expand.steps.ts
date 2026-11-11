@@ -313,8 +313,11 @@ Then('the expanded task list {string} is drawn above the expanded task list {str
 
 When('I tap the expanded task list {string} above the expanded task list {string}', async function (this: World, title: string, other: string) {
   const [r, o] = [await rectOf(grown(this, title)), await rectOf(grown(this, other))];
-  // inside the part the other card does not cover, away from the title row
-  await this.page.mouse.click(r.x + 6, Math.max(r.y + 2, o.y - 3));
+  const pill = await rectOf(grown(this, title).getByTestId('tasklist-card-pill'));
+  // a tap on the title row collapses the card: tap below it, in a part the other card does not cover
+  const y = Math.min(pill.bottom + 6, r.bottom - 2);
+  const x = o.x > r.x + 12 ? r.x + 6 : Math.min(o.right + 6, r.right - 2);
+  await this.page.mouse.click(x, y);
 });
 
 Then('the task list {string} is grown but out of sight', async function (this: World, title: string) {
