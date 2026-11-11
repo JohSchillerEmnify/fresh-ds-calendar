@@ -22,6 +22,8 @@
     "de": ["fehlgeschlagen", "verpasst"]
   },
   "allow": [
+    {"key": "iphoneWidget.guide.s7", "rule": "implementation-word", "why": "Script › Calendar is Scriptable's own menu text; it must match what the user sees"},
+    {"key": "iphoneWidget.circle.countdown", "rule": "same-as-en", "why": "Countdown is the normal German word"},
     {"key": "app.name", "rule": "same-as-en", "why": "proper name of the app"},
     {"key": "app.short", "rule": "same-as-en", "why": "proper name of the app"},
     {"key": "app.slogan", "rule": "same-as-en", "why": "proper name of the app"},
