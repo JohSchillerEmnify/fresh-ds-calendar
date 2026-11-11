@@ -249,6 +249,7 @@ describe('robustness', () => {
 
   it('answers a calendar too large for a sync token as failed, and leaves it alone for a while', async () => {
     await ev('Home');
+    await t.json('POST', '/api/__test/oauth/contacts-access', { granted: false });
     const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken').mockImplementation(async (id) => {
       if (id === 'work') throw new SyncTokenTooLargeError('big');
       return 'sync-x';

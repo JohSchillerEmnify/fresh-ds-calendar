@@ -60,7 +60,7 @@ model {
 
   google = system 'Google' {
     #external
-    description 'Each person\'s Google account: sign-in, their calendars (where events and task lists live) and Drive'
+    description 'Each person\'s Google account: sign-in, their calendars (where events and task lists live), Drive and, if allowed, the dates of their contacts'
   }
 
   aiChat = system 'AI chat' {

@@ -13,11 +13,7 @@ interface Stored { person: people_v1.Schema$Person; seq: number }
 
 const newEpoch = (): string => Math.random().toString(36).slice(2, 8);
 
-/**
- * Stand-in for `people.connections.list` of one person: persons are kept in the People API's own shape and read through
- * the same mapping as the real answer. A sync-token read returns only the contacts changed since the token, a deleted
- * contact with `metadata.deleted`; a token of an earlier epoch is expired; `contacts.readonly` is needed (403 without).
- */
+/** People API stand-in: raw persons mapped like the real answer; token reads give only changes (deleted flagged), 403 without the scope. */
 export class MockContacts {
   private persons = new Map<string, Stored>();
   private seq = 0;

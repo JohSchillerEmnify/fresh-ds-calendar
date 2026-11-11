@@ -24,32 +24,12 @@ export function ageOn(birthYear, date) {
 
 const rank = (i) => (i.readOnlyReason?.kind === 'contact' ? 2 : i.readOnly ? 1 : 0);
 
-/**
- * Drops later copies of a birthday that share a `dupKey` (or the `dupAlt` of a contact date): an editable copy wins over a
- * read-only calendar one, which wins over a contact date.
- */
+/** Drops copies sharing a `dupKey` or `dupAlt`: an editable copy beats a read-only calendar one, which beats a contact date. */
 export function dedupeBirthdays(items) {
   const keysOf = (i) => [i.dupKey, i.dupAlt].filter(Boolean);
-  const groupOf = new Map();
-  const groups = [];
-  for (const i of items) {
-    const keys = keysOf(i);
-    if (!keys.length) continue;
-    const hit = [...new Set(keys.map((k) => groupOf.get(k)).filter(Boolean))];
-    const g = hit[0] ?? { best: i };
-    if (!hit.length) groups.push(g);
-    for (const o of hit.slice(1)) {
-      g.best = better(g.best, o.best);
-      o.best = null;
-      for (const [k, v] of groupOf) if (v === o) groupOf.set(k, g);
-    }
-    g.best = better(g.best, i);
-    for (const k of keys) groupOf.set(k, g);
-  }
-  return items.filter((i) => {
-    const keys = keysOf(i);
-    return !keys.length || groupOf.get(keys[0]).best === i;
-  });
+  const best = new Map();
+  for (const i of items) for (const k of keysOf(i)) best.set(k, best.has(k) ? better(best.get(k), i) : i);
+  return items.filter((i) => keysOf(i).every((k) => best.get(k) === i));
 }
 
 // the same rank keeps the lower id, so a re-sync never flips the copy shown

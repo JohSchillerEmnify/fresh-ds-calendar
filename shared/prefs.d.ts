@@ -140,6 +140,8 @@ export interface Prefs {
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
   syncIndicator: boolean;
+  /** The person said "not now" to the offer to show birthdays from Google Contacts (feature contact-birthdays); the Birthdays settings still offer it. */
+  contactsOfferDismissed: boolean;
   /** The phone's top bar: Expressive (`two-rows`), Compact (`one-row`) or `auto` (the default: Compact on phones; features header-layout, header-expressive). */
   headerLayout: HeaderLayout;
   /** The bottom bar's size: Expressive 64 px or Compact 52 px (`auto`: Compact on phones, Expressive elsewhere; feature nav-expressive). */

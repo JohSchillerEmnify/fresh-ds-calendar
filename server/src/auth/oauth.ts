@@ -19,6 +19,9 @@ export interface OAuthBackend {
   exchange(code: string): Promise<OAuthResult>;
 }
 
+/** Where a round trip returns to: the calendar, or (a Contacts grant started in the settings) the Birthdays settings page. */
+export const returnTarget = (issued: { contacts: boolean; settings: boolean }): string => (issued.contacts && issued.settings ? '/settings/calendars/birthdays' : '/');
+
 const STATE_TTL_MS = 10 * 60_000;
 
 /**
@@ -38,10 +41,7 @@ export class StateStore {
     return createHmac('sha256', this.key).update(payload).digest('base64url');
   }
 
-  /**
-   * Issues a state; `app` remembers that the round trip belongs to the Android app (its session goes out by exchange code),
-   * `contacts` that it asks for the Contacts permission and `settings` where the callback returns to.
-   */
+  /** Issues a state; `app` = Android app round trip, `contacts` = asks for the Contacts permission, `settings` = returns to the settings. */
   create(app = false, contacts = false, settings = false): string {
     const payload = Buffer.from(JSON.stringify({ n: randomBytes(16).toString('hex'), app, ...(contacts ? { contacts, settings } : {}), exp: this.now() + STATE_TTL_MS })).toString('base64url');
     return `${payload}.${this.sign(payload)}`;
@@ -77,8 +77,8 @@ export class FakeOAuth implements OAuthBackend {
   driveScope = true;
   /** False: the fake consent screen is answered without the calendar scope (the person left the checkbox unticked). */
   calendarGranted = true;
-  /** Whether the consent adds `contacts.readonly`; also what the signed-out (local) person's token holds in the test double. */
-  contactsScope = false;
+  /** Whether the consent adds `contacts.readonly` (on by default); for the signed-out person this is the grant. */
+  contactsScope = true;
 
   authUrl(state: string): string {
     return `/api/__test/oauth/consent?state=${encodeURIComponent(state)}`;

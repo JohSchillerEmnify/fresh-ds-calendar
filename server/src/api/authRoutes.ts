@@ -7,7 +7,7 @@ import { parse, pushUnsubscribeSchema } from '../lib/validation.js';
 import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
 import { CHALLENGE_RE } from '../auth/appExchange.js';
-import type { OAuthBackend } from '../auth/oauth.js';
+import { returnTarget, type OAuthBackend } from '../auth/oauth.js';
 import { SESSION_COOKIE } from '../auth/sessions.js';
 import type { AuthEnv } from '../auth/middleware.js';
 
@@ -44,9 +44,6 @@ function openAppPage(link: string): string {
 const EXCHANGE_FAILED_PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in</title>
 <body style="font:16px system-ui;margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px"><div>
 <p>This sign-in link has expired or was already used.</p><p><a href="/signin">Sign in again</a></p></div></body>`;
-
-/** Where a round trip returns to: the calendar, or (a Contacts grant started in the settings) the Birthdays settings page. */
-const returnTarget = (issued: { contacts: boolean; settings: boolean }): string => (issued.contacts && issued.settings ? '/?settings=birthdays-contacts' : '/');
 
 /** The OAuth backend in use: real Google with PROVIDER=google, the test double in TEST_MODE, else none (404). */
 async function backend(ctx: Ctx): Promise<OAuthBackend> {
@@ -92,8 +89,6 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const challenge = getCookie(c, CHALLENGE_COOKIE);
     deleteCookie(c, CHALLENGE_COOKIE, { path: '/api/auth' });
     if (issued.app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('Invalid state');
-    // signed out (local mode, test double only) there is no person to grant it to: the double's switch is the grant
-    if (issued.contacts && !ctx.auth.on) return c.redirect(returnTarget(issued), 302);
     // a refused code is the person's problem, not a server error: answer 400 and log no error object (it can carry tokens)
     const who = await oauth.exchange(code).catch(() => null);
     if (!who) {

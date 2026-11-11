@@ -45,7 +45,7 @@ export class AuthState {
       this.fake.account = null;
       this.fake.driveScope = true;
       this.fake.calendarGranted = true;
-      this.fake.contactsScope = false;
+      this.fake.contactsScope = true;
     }
   }
 }

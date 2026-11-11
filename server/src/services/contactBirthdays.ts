@@ -1,13 +1,9 @@
-/**
- * Dates of the person's Google contacts as read-only events of the virtual Birthdays calendar (feature contact-birthdays,
- * ADR 0043). The contacts are read through the People API's sync token and kept per person; the events are derived from them
- * for any window, so they travel through the change feed like the Google events.
- */
+/** Contact dates as read-only Birthdays events (feature contact-birthdays, ADR 0043), derived per window from contacts held per person. */
 import { birthdayContactKey, birthdayTitleKey, yearlyDate } from '@calendar/shared/birthdays';
-import type { CalendarEvent } from '../api/types.js';
+import type { CalendarEvent } from '@calendar/shared/api';
 import { addDays } from '../lib/time.js';
 import { logEvent } from '../lib/diag.js';
-import { SyncTokenExpiredError, type CalendarProvider, type ContactDate, type GoogleContact } from '../providers/CalendarProvider.js';
+import { SyncTokenExpiredError, type CalendarProvider, type ContactDate, type ContactsResult, type GoogleContact } from '../providers/CalendarProvider.js';
 import { BIRTHDAYS_ID } from './eventRules.js';
 
 /** The pseudo source calendar the contact dates are held under on the device and in the change feed cursor. */
@@ -47,22 +43,22 @@ export class ContactsSource {
     return this.granted();
   }
 
+  /** A token read, or a full one when there is no token or Google expired it. */
+  private async fetch(): Promise<{ res: ContactsResult; full: boolean }> {
+    if (!this.token) return { res: await this.provider.listContacts(), full: true };
+    try {
+      return { res: await this.provider.listContacts(this.token), full: false };
+    } catch (e) {
+      if (!(e instanceof SyncTokenExpiredError)) throw e;
+      return { res: await this.provider.listContacts(), full: true };
+    }
+  }
+
   private async read(): Promise<boolean> {
     try {
-      let full = !this.token;
-      let res;
-      try {
-        res = await this.provider.listContacts(this.token);
-      } catch (e) {
-        if (!(e instanceof SyncTokenExpiredError)) throw e;
-        full = true;
-        res = await this.provider.listContacts();
-      }
+      const { res, full } = await this.fetch();
       if (full) this.held.clear();
-      for (const c of res.items) {
-        if (c.deleted) this.held.delete(c.resourceName);
-        else this.held.set(c.resourceName, c);
-      }
+      for (const c of res.items) this.keep(c);
       this.token = res.nextSyncToken;
       this.at = this.nowMs();
       return true;
@@ -73,6 +69,11 @@ export class ContactsSource {
     }
   }
 
+  private keep(c: GoogleContact): void {
+    if (c.deleted) this.held.delete(c.resourceName);
+    else this.held.set(c.resourceName, c);
+  }
+
   /** The contact dates falling in `[from, to)`, one event per year. */
   events(from: string, to: string, color: string): CalendarEvent[] {
     return contactEvents([...this.held.values()], from, to, color);
@@ -81,41 +82,38 @@ export class ContactsSource {
 
 interface Entry { kind: 'birthday' | 'anniversary' | 'other'; idKey: string; title: string; date: ContactDate }
 
+/** The kind and title of a custom-typed entry: `anniversary`, `other` or none keep the name; a label prefixes it. */
+function describe(type: string | undefined, name: string): { kind: Entry['kind']; title: string } {
+  const t = type?.trim();
+  if (t?.toLowerCase() === 'anniversary') return { kind: 'anniversary', title: name };
+  return { kind: 'other', title: !t || t.toLowerCase() === 'other' ? name : `${t}: ${name}` };
+}
+
 /** Every dated entry of a contact with its kind and title; a contact without a display name has none. */
 function entriesOf(c: GoogleContact): Entry[] {
   const name = c.name?.trim();
   if (!name) return [];
-  const out: Entry[] = [];
-  if (c.birthday) out.push({ kind: 'birthday', idKey: 'b', title: name, date: c.birthday });
-  c.dates.forEach((d, i) => {
-    const type = d.type?.trim().toLowerCase();
-    if (type === 'anniversary') out.push({ kind: 'anniversary', idKey: `e${i}`, title: name, date: d.date });
-    else if (!type || type === 'other') out.push({ kind: 'other', idKey: `e${i}`, title: name, date: d.date });
-    else out.push({ kind: 'other', idKey: `e${i}`, title: `${d.type!.trim()}: ${name}`, date: d.date });
-  });
+  const out: Entry[] = c.birthday ? [{ kind: 'birthday', idKey: 'b', title: name, date: c.birthday }] : [];
+  c.dates.forEach((d, i) => out.push({ ...describe(d.type, name), idKey: `e${i}`, date: d.date }));
   return out;
+}
+
+/** One occurrence of a contact's entry as a read-only event. */
+function eventOf(c: GoogleContact, e: Entry, date: string, color: string): CalendarEvent {
+  const special = e.kind === 'other' ? undefined : e.kind;
+  return {
+    kind: 'event', id: `contact:${c.resourceName}:${e.idKey}:${date}`, calendarId: BIRTHDAYS_ID, title: e.title, description: '', location: '',
+    allDay: true, start: date, end: addDays(date, 1), colorId: null, color,
+    ...(special ? { special, dupKey: birthdayContactKey(c.resourceName, special, date), dupAlt: birthdayTitleKey(e.title, date) } : {}),
+    sourceCalendarId: CONTACTS_SOURCE, readOnly: true, readOnlyReason: { kind: 'contact' },
+    contactBirthday: { resourceName: c.resourceName, ...(e.kind === 'birthday' && e.date.year ? { birthYear: e.date.year } : {}) },
+    reminders: { useDefault: false, minutes: [] }, etag: `"contact"`, updated: NEVER,
+  };
 }
 
 /** The read-only events of the contacts' dates in `[from, to)`; every date repeats every year. */
 export function contactEvents(contacts: GoogleContact[], from: string, to: string, color: string): CalendarEvent[] {
-  const events: CalendarEvent[] = [];
-  const y0 = Number(from.slice(0, 4)), y1 = Number(to.slice(0, 4));
-  for (const c of contacts) {
-    for (const e of entriesOf(c)) {
-      for (let y = y0; y <= y1; y++) {
-        const date = yearlyDate(y, e.date.month, e.date.day);
-        if (date < from || date >= to) continue;
-        const special = e.kind === 'other' ? undefined : e.kind;
-        events.push({
-          kind: 'event', id: `contact:${c.resourceName}:${e.idKey}:${date}`, calendarId: BIRTHDAYS_ID, title: e.title, description: '', location: '',
-          allDay: true, start: date, end: addDays(date, 1), colorId: null, color,
-          ...(special ? { special, dupKey: birthdayContactKey(c.resourceName, special, date), dupAlt: birthdayTitleKey(e.title, date) } : {}),
-          sourceCalendarId: CONTACTS_SOURCE, readOnly: true, readOnlyReason: { kind: 'contact' },
-          contactBirthday: { resourceName: c.resourceName, ...(e.kind === 'birthday' && e.date.year ? { birthYear: e.date.year } : {}) },
-          reminders: { useDefault: false, minutes: [] }, etag: `"contact"`, updated: NEVER,
-        });
-      }
-    }
-  }
-  return events;
+  const years = Array.from({ length: Number(to.slice(0, 4)) - Number(from.slice(0, 4)) + 1 }, (_, i) => Number(from.slice(0, 4)) + i);
+  return contacts.flatMap((c) => entriesOf(c).flatMap((e) =>
+    years.map((y) => yearlyDate(y, e.date.month, e.date.day)).filter((d) => d >= from && d < to).map((d) => eventOf(c, e, d, color))));
 }

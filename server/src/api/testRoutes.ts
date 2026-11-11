@@ -5,6 +5,7 @@ import type { Ctx } from '../context.js';
 import { ApiException, notFound, validation } from '../lib/errors.js';
 import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
+import { returnTarget } from '../auth/oauth.js';
 import { forgetVerifiedHolidays } from '../services/holidays.js';
 import type { HolidayVariant } from '@calendar/shared/api';
 import { HOLIDAY_REGIONS, HOLIDAY_VARIANTS, holidayCalendarId } from '../providers/holidayRegions.js';
@@ -330,9 +331,11 @@ export function testRoutes(ctx: Ctx): Hono {
   t.get('/oauth/consent', (c) => {
     const fake = ctx.auth.fake!;
     const state = c.req.query('state');
-    // signed out (local mode) the Contacts grant needs no account: the callback ends it before the code is used
-    if (!state || (!fake.account && ctx.auth.on)) throw validation('No Google account chosen');
-    return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.account ? fake.codeFor(fake.account) : 'fake:local')}&state=${encodeURIComponent(state)}`, 302);
+    // signed out (local mode) a Contacts grant has no person to sign in: it returns at once, the double's switch is the grant
+    const issued = state && !ctx.auth.on ? ctx.auth.states.consume(state) : null;
+    if (issued?.contacts) return c.redirect(returnTarget(issued), 302);
+    if (!state || !fake.account) throw validation('No Google account chosen');
+    return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.codeFor(fake.account))}&state=${encodeURIComponent(state)}`, 302);
   });
 
   // The fake consent screen leaves the "Google Calendar" checkbox unticked (granted: false) or ticked again.

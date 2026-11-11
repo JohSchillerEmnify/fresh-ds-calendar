@@ -125,6 +125,7 @@ export const PREFS = {
   monthScroll: oneOf(['sideways', 'vertical', 'vertical-snap'], 'sideways', 'monthScroll must be sideways, vertical or vertical-snap'),
   trayWidth: { default: 380, parse: (v, key) => (Number.isInteger(v) && v >= 260 && v <= 560 ? ok(v) : { error: `${key} must be a whole number from 260 to 560` }) },
   calendarPlans: { default: {}, parse: (v) => { const r = toCalendarPlans(v); return r ? ok(r) : { error: 'Invalid calendarPlans' }; } },
+  contactsOfferDismissed: bool(false),
 };
 
 /** The preference names, in table order. */

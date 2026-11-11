@@ -141,10 +141,7 @@ export class CalendarChanges {
     };
   }
 
-  /**
-   * The contacts' dates as one more event source, compared by content (the dates are derived per window, so a moved window or a
-   * recolour is a change too). Never a failure: when Google cannot answer, the device keeps what it holds.
-   */
+  /** The contacts' dates as one more event source, compared by content; when Google cannot answer the device keeps what it holds. */
   private async addContacts(prev: FeedState | null, events: EventChanges, tokens: Record<string, string>): Promise<void> {
     const c = this.deps.contacts;
     if (!c?.source.enabled) return;

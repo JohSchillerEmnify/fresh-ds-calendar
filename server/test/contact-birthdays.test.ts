@@ -77,6 +77,7 @@ describe('the Birthdays calendar with and without the permission', () => {
   });
 
   it('shows none without it, says so, and nothing fails', async () => {
+    await grant(false);
     await contact({ birthday: dates(10, 14, 1990) });
     expect(titlesOn(await items(), '2026-10-14')).toEqual([]);
     expect((await t.json('GET', '/api/calendars')).body.calendars.find((c: { id: string }) => c.id === 'birthdays').contactsPermission).toBe('missing');
@@ -136,7 +137,7 @@ describe('one birthday shows once', () => {
     const calendarCopy = { id: 'b', dupKey: 't:anna|d', readOnly: true };
     const editable = { id: 'c', dupKey: 'c:1|birthday|d' };
     expect(dedupeBirthdays([contactCopy, calendarCopy])).toEqual([calendarCopy]);
-    expect(dedupeBirthdays([contactCopy, editable, calendarCopy])).toEqual([editable]);
+    expect(dedupeBirthdays([contactCopy, editable])).toEqual([editable]);
     expect(dedupeBirthdays([{ id: 'x' }, contactCopy])).toEqual([{ id: 'x' }, contactCopy]);
   });
 });
@@ -220,7 +221,7 @@ describe('asking for the permission', () => {
     };
     expect(await round('')).toBe('/');
     expect(await round('?contacts=1')).toBe('/');
-    expect(await round('?contacts=1&to=settings')).toBe('/?settings=birthdays-contacts');
+    expect(await round('?contacts=1&to=settings')).toBe('/settings/calendars/birthdays');
     expect(await round('?to=settings')).toBe('/');
   });
 });

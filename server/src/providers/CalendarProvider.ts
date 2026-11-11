@@ -130,10 +130,7 @@ export interface CalendarProvider {
   listSyncToken(calendarId: string): Promise<string | undefined>;
   /** The instances of one repeating event (`events.instances`) in `[timeMin, timeMax)`, exceptions applied, cancelled ones left out. */
   listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]>;
-  /**
-   * The person's contacts with their dates (People API `people.connections.list`, every page; needs `contacts.readonly`).
-   * With `syncToken` only the changes come, deleted contacts flagged; {@link SyncTokenExpiredError} when the token is too old.
-   */
+  /** The person's contacts with their dates (People API, every page); with `syncToken` only changes, deleted ones flagged; expired token throws SyncTokenExpiredError. */
   listContacts(syncToken?: string): Promise<ContactsResult>;
   /** Milliseconds left of a rate-limit cooldown (no Google calls are made meanwhile); 0 or absent when not cooling down. */
   cooldownMs?(): number;
