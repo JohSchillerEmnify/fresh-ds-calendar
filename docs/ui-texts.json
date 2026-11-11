@@ -1,0 +1,25 @@
+{
+  "hintMaxChars": 120,
+  "glossary": [
+    { "en": "Design", "de": "Design", "concept": "theme (a look)", "neverEn": [], "neverDe": ["Theme", "Themes"] },
+    { "en": "home screen", "de": "Home-Bildschirm", "concept": "home screen", "neverEn": [], "neverDe": ["Homescreen", "Startseite"] },
+    { "en": "start", "de": "Beginn", "concept": "start of an event", "neverEn": [], "neverDe": ["Anfang"] },
+    { "en": "virtual calendar", "de": "virtueller Kalender", "concept": "calendar that exists only in the app", "neverEn": ["own calendar"], "neverDe": ["eigener Kalender", "eigenen Kalender"] },
+    { "en": "Google calendar", "de": "Google-Kalender", "concept": "calendar that exists in Google", "neverEn": [], "neverDe": [] },
+    { "en": "task lists calendar", "de": "Kalender der Aufgabenlisten", "concept": "calendar of the task lists", "neverEn": ["tasks calendar"], "neverDe": [] },
+    { "en": "demo calendar", "de": "Demokalender", "concept": "calendar with demo events", "neverEn": ["mock calendar", "test calendar"], "neverDe": ["Testkalender", "Mock-Kalender"] },
+    { "en": "bedtime mode", "de": "Schlafenszeit-Modus", "concept": "bedtime mode", "neverEn": [], "neverDe": ["Bedtime-Modus"] },
+    { "en": "host name", "de": "Host-Name", "concept": "host name, URL, domain", "neverEn": ["server address", "web address"], "neverDe": ["Serveradresse", "Webadresse"] },
+    { "en": "went wrong", "de": "schiefgegangen", "concept": "a problem happened", "neverEn": [], "neverDe": ["fehlgeschlagen"] },
+    { "en": "left-handed mode", "de": "Linkshänder-Modus", "concept": "left-handed mode", "neverEn": [], "neverDe": ["Händ"] }
+  ],
+  "implementationWords": {
+    "en": ["Labs", "prefs", "preferences file", "server", "token", "API", "script", "JSON", "ids?", "cache", "endpoint", "ring version"],
+    "de": ["Labs", "Prefs", "Server", "Token", "API", "Skript", "Script", "JSON", "IDs?", "Cache", "Endpunkt", "Ring-Version"]
+  },
+  "supportiveWords": {
+    "en": ["failed", "missed"],
+    "de": ["fehlgeschlagen", "verpasst"]
+  },
+  "allow": []
+}
