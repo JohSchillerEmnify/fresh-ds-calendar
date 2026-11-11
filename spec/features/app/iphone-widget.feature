@@ -1,0 +1,170 @@
+@iphone-widget @id:iphone-widget
+Feature: iPhone widgets through Scriptable
+  An iPhone has no native calendar app here, so the home-screen and lock-screen widgets are a small script that runs in
+  the free Scriptable app. The person creates a widget key for the phone in Settings, copies the script (the key and the
+  server URL are already in it) into Scriptable, and adds a Scriptable widget on the home screen. The widget reads the
+  same data as the Android widgets, for that person only, and shows its last answer when there is no connection. iOS
+  decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
+  the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
+  in the browser suite, except the Settings ones.
+
+  Background:
+    Given the calendar is empty
+    And today is 2026-10-14
+
+  Rule: A person sets the widget up from Settings in a few taps
+
+    @backlog
+    Scenario: A widget key is created for this phone and the script is ready to copy
+      When I open the iPhone widget settings
+      And I create a widget key named "My iPhone"
+      Then the settings show the widget key "My iPhone"
+      And the new widget key is shown once with the buttons "Copy script" and "Open Scriptable"
+
+    @backlog
+    Scenario: The copied script has the key and the server URL filled in
+      Given I created a widget key named "My iPhone"
+      When I copy the widget script
+      Then the copied widget script holds the key and the server URL
+      And the copied widget script says nothing else to fill in
+
+    @backlog
+    Scenario: The key is not shown again later
+      Given I created a widget key named "My iPhone"
+      When I open the iPhone widget settings again
+      Then the settings show the widget key "My iPhone"
+      And the settings do not show the widget key itself
+
+  Rule: Keys are listed, revocable and one person's only
+
+    @backlog
+    Scenario: The list shows the device name and the last use
+      Given the widget key "My iPhone" was last used on 2026-10-13 at 18:30
+      And the widget key "Old phone" was never used
+      When I open the iPhone widget settings
+      Then the settings show the widget key "My iPhone" last used on 2026-10-13 at 18:30
+      And the settings show the widget key "Old phone" as never used
+
+    @backlog
+    Scenario: A revoked key stops working and the widget says so
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When I revoke the widget key "My iPhone"
+      And the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data request is refused as "revoked"
+      And the iPhone widget shows "This widget key was removed. Create a new one in Settings."
+      And the iPhone widget still shows its last answer greyed out
+
+    @backlog
+    Scenario: A wrong key is refused and reads nothing
+      When the iPhone widget refreshes with a key that does not exist
+      Then the widget data request is refused as "unknown"
+
+    @backlog
+    Scenario: A key reads the widget data only
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When I request "GET /api/prefs" with the widget key "My iPhone"
+      Then the response status is 401
+      When I request "POST /api/events" with the widget key "My iPhone"
+      Then the response status is 401
+
+    @backlog
+    Scenario: The server keeps only a hash of the key
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      Then the server's key file holds a hash of the key "My iPhone" and not the key
+
+    @backlog
+    Scenario: A key used too often is slowed down
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone" 40 times within a minute
+      Then the response status is 429
+
+  Rule: The widget shows that person's data, like the Android widgets
+
+    @backlog
+    Scenario: Only the key's person is seen
+      Given "jo@example.com" has the calendar "Work"
+      And "ann@example.com" has the calendar "Private"
+      And the calendar "Work" has an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar "Private" has an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the iPhone widget shows the event "Dentist"
+      And the iPhone widget does not show the event "Yoga"
+
+    @backlog
+    Scenario: Hidden calendars stay off the widget
+      Given "jo@example.com" has the calendar "Work" and the shared calendar "Anna"
+      And the calendar "Anna" has an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+      And "jo@example.com" hid the calendar "Anna"
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the iPhone widget does not show the event "Yoga"
+
+    @backlog
+    Scenario: The small widget shows today
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "small" size
+      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
+      And the iPhone widget shows the date 2026-10-14
+
+    @backlog
+    Scenario: The medium widget shows today and tomorrow
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "medium" size
+      Then the iPhone widget shows the event "Dentist" under 2026-10-14
+      And the iPhone widget shows the event "Gym" under 2026-10-15
+
+    @backlog
+    Scenario: The large widget shows the week
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget shows the week of 2026-10-12 with the event "Dentist" on 2026-10-14
+
+    @backlog
+    Scenario: The lock-screen widget says what is going on now
+      Given the time is 2026-10-14 09:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "lock screen" size
+      Then the iPhone widget says "Dentist · 40 min left"
+
+    @backlog
+    Scenario: Tapping the widget opens the app at that day
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When I tap the iPhone widget
+      Then the iPhone widget opens the app at the day view of 2026-10-14
+
+  Rule: The widget keeps working without a connection
+
+    @backlog
+    Scenario: Without a connection the widget shows its last answer and says how old it is
+      Given the iPhone widget showed the event "Dentist" on 2026-10-14 at 09:00 at 2026-10-14 06:00
+      And the time is 2026-10-14 08:00
+      When the iPhone widget refreshes without a connection
+      Then the iPhone widget shows the event "Dentist"
+      And the iPhone widget says its data is from 06:00
+
+    @backlog
+    Scenario: A fresh answer carries no age note
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the iPhone widget says nothing about its age
+
+    @backlog
+    Scenario: Before the first answer the widget says it is waiting
+      When the iPhone widget refreshes without a connection and has no earlier answer
+      Then the iPhone widget says "No data yet. Open the widget once with a connection."
+
+  Rule: The widget asks iOS for its next redraw
+
+    @backlog
+    Scenario: The next redraw is asked for at the next change in the day
+      Given the time is 2026-10-14 09:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the iPhone widget asks to be redrawn at 10:00

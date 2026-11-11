@@ -151,10 +151,14 @@ model {
     securityHeaders = component 'Security headers' {
       description 'The CSP, which allows only the Photon and tile origins, and the other security headers'
     }
+    widgetKeysApi = component 'Widget keys API' {
+      description 'Creates, lists and revokes the person\'s widget keys, stores only the hash, and answers the key-only widget data route with the hidden-calendar rule and a rate limit'
+    }
     apkDownload = component 'APK download' {
       description 'Serves the Android app and its version, sha256 and certificate fingerprint'
     }
 
+    widgetKeysApi -> itemsApi 'reads the widget week through the same items service, hidden calendars always left out'
     prefsApi -> prefsStore 'reads and writes'
     calendarService -> holidayCalendars 'delegates the holiday regions to it'
     holidayCalendars -> googleProvider 'checks a public calendar, then calendarList.insert or calendarList.delete'

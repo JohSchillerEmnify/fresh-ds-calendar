@@ -3564,6 +3564,64 @@ the clock widget says {string}
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 
+## iPhone widgets (`@iphone-widget`, Scriptable)
+
+```
+I open the iPhone widget settings
+I open the iPhone widget settings again
+I create a widget key named {string}
+I created a widget key named {string}
+I copy the widget script
+I revoke the widget key {string}
+the settings show the widget key {string}
+the settings show the widget key {string} last used on {date} at {time}
+the settings show the widget key {string} as never used
+the settings do not show the widget key itself
+the new widget key is shown once with the buttons {string} and {string}
+the copied widget script holds the key and the server URL
+the copied widget script says nothing else to fill in
+the widget key {string} was last used on {date} at {time}
+the widget key {string} was never used
+the widget key {string} belongs to {string}
+{string} has the calendar {string}
+the iPhone widget refreshes with the key {string}
+the iPhone widget refreshes with the key {string} {int} times within a minute
+the iPhone widget refreshes with a key that does not exist
+the iPhone widget refreshes without a connection
+the iPhone widget refreshes without a connection and has no earlier answer
+the iPhone widget showed the event {string} on {date} at {time} at {date} {time}
+I request {string} with the widget key {string}
+the widget data request is refused as {string}
+the server's key file holds a hash of the key {string} and not the key
+I look at the iPhone widget in the {string} size
+I tap the iPhone widget
+the iPhone widget shows the event {string}
+the iPhone widget does not show the event {string}
+the iPhone widget shows the event {string} from {time} to {time}
+the iPhone widget shows the event {string} under {date}
+the iPhone widget shows the date {date}
+the iPhone widget shows the week of {date} with the event {string} on {date}
+the iPhone widget shows {string}
+the iPhone widget says {string}
+the iPhone widget says its data is from {time}
+the iPhone widget says nothing about its age
+the iPhone widget still shows its last answer greyed out
+the iPhone widget opens the app at the day view of {date}
+the iPhone widget asks to be redrawn at {time}
+```
+
+- The Settings steps (first block) run in the browser suite once built (hooks `iphone-widget-keys`, `iphone-widget-key-row`,
+  `iphone-widget-copy`, `iphone-widget-open-scriptable`, `iphone-widget-revoke`). "Copy script" is read back from the
+  clipboard permission of the test browser.
+- "P has the calendar C" gives another person a calendar of their own (fixture through the mock provider).
+- "the widget key K belongs to P" creates the key through `POST /api/widget-keys` as P (the secret is kept by the step for
+  later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
+- "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
+  the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
+  data answer) plus the script's own unit tests (`ios/widget/test`, run with Node against a fake `Request`, `FileManager`
+  and `ListWidget`) and on a device; the browser suite skips them (`@backlog`).
+
 ## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
 
 ```

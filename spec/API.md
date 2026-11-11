@@ -510,6 +510,38 @@ The web app filters hidden calendars itself, instantly; the Android widget fetch
 that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget). A calendar whose plan has
 it off is left out too, because the plan's scheduler sets `hidden` (see "Calendar plans").
 
+### Widget keys and the iPhone widget data (ADR 0043; feature iphone-widget)
+
+A person creates a read-only key per device in Settings; the Scriptable widget on that iPhone presents it. Keys are per
+person: every route below lists and changes only the signed-in person's keys, and the widget data is that person's.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `POST` | `/api/widget-keys` | `{ name }` (1-40 characters, the device name) | `201` `{ id, name, createdAt, lastUsedAt: null, key }` |
+| `GET` | `/api/widget-keys` | – | `200` `[{ id, name, createdAt, lastUsedAt }]` (never the key) |
+| `DELETE` | `/api/widget-keys/:id` | – | `204` |
+
+- These three need the normal session. `key` is in the `201` answer only (`Cache-Control: no-store`) and cannot be read again.
+  At most 10 active keys per person (else **409 `WIDGET_KEY_LIMIT`**); an unknown or foreign `:id` answers **404**.
+- `key` has the form `cwk_<id>_<secret>`: `id` 8 characters `[A-Za-z0-9_-]` (also the list's `id`), `secret` 256 random bits,
+  base64url. The server stores `id`, `name`, `createdAt`, `lastUsedAt` and the SHA-256 of `secret` (never the secret) in
+  the person's `widget-keys.json`. A revoked key keeps its record (hash, `revokedAt`) for 90 days so the widget can say
+  "removed"; after that it answers as unknown.
+
+`GET /api/widget/data?from=YYYY-MM-DD&to=YYYY-MM-DD` → 200
+
+- The only route a key opens: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
+  `UNAUTHENTICATED`**; the session cookie on this route is ignored (also **401**). Read-only by construction: no other method
+  is routed for a key.
+- Answer `{ generatedAt, today, items, minEventMinutes, weekSideBySide, taskCategories }`: `items` as `GET /api/items` for the
+  range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
+  included; the key cannot turn it off), the three prefs as `GET /api/prefs` gives them. `to - from` at most 8 days.
+  `today` is the calendar's local date, so the script needs no time zone logic.
+- Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
+  items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
+  limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).
+- Not cached by shared caches (`Cache-Control: no-store`). The script keeps the last answer on the phone.
+
 ### Events
 
 | Method | Path | Body | Success |
