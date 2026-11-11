@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/branding/logo.svg" alt="App icon" width="120"></p>
+
 # Fresh-D's Kalender
 
 > Trag ein, trag aus, macht mir nix aus!
