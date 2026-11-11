@@ -86,7 +86,7 @@ export default {
     repairCopied: 'Reparadur-Prompt kopierd',
     issue: {
       theTheme: 'Des Design',
-      const: '{field} muss "{value}" sei',
+      const: '{field} muss „{value}“ sei',
       enum: '{field} muss oans von {options} sei',
       text: '{field} muss Text sei',
       empty: '{field} derf ned leer sei',

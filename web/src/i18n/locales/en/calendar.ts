@@ -60,7 +60,7 @@ export default {
     signIn: 'Sign in',
   },
   calendarAccess: {
-    message: 'Google Calendar access was not granted, so your calendar can\'t be loaded. Sign in again and tick the box "See, edit, share, and permanently delete all the calendars you can access using Google Calendar" on Google\'s screen.',
+    message: 'Google Calendar access wasn\'t granted, so your calendar can\'t be loaded. Sign in again and tick the box “See, edit, share, and permanently delete all the calendars you can access using Google Calendar” on Google\'s screen.',
     grant: 'Grant calendar access',
   },
   install: {

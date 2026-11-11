@@ -24,6 +24,10 @@
   "allow": [
     {"key": "iphoneWidget.guide.s7", "rule": "implementation-word", "why": "Script › Calendar is Scriptable's own menu text; it must match what the user sees"},
     {"key": "iphoneWidget.circle.countdown", "rule": "same-as-en", "why": "Countdown is the normal German word"},
+    {"key": "settingsNav.groups.labs.title", "rule": "implementation-word", "why": "Labs is the deliberate name of the experimental features group (owner kept it)"},
+    {"key": "settingsNav.labels.showLabs", "rule": "implementation-word", "why": "Labs is the deliberate name of the experimental features group (owner kept it)"},
+    {"key": "theme.import.notJson", "rule": "implementation-word", "why": "JSON is what the user must ask the AI for; the owner kept the wording"},
+    {"key": "themePreview.sample.review", "rule": "same-as-en", "why": "Review is the normal German word for this meeting"},
     {"key": "app.name", "rule": "same-as-en", "why": "proper name of the app"},
     {"key": "app.short", "rule": "same-as-en", "why": "proper name of the app"},
     {"key": "app.slogan", "rule": "same-as-en", "why": "proper name of the app"},
