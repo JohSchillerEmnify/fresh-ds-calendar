@@ -1,5 +1,4 @@
-import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+/* eslint-disable @typescript-eslint/no-explicit-any -- the script and the API answers are untyped JavaScript objects */
 import { describe, expect, it } from 'vitest';
 import { widgetInstaller } from '@calendar/shared/widget-installer';
 import { hourRange } from '@calendar/shared/week-hours';
@@ -182,10 +181,9 @@ describe('the week hour rule (the Android WeekLayoutTest cases)', () => {
     expect(hourRange(week(0, 60))[0]).toBe(0);
   });
   it('shows 08 to 18 for an empty week', () => { expect(hourRange([])).toEqual([8, 18]); });
-  it('is the same function in the script and in shared/', () => {
-    const text = fs.readFileSync(fileURLToPath(new URL('../../shared/weekHours.js', import.meta.url)), 'utf8');
-    const fn = text.slice(text.indexOf('function hourRange')).trim();
-    expect(WIDGET_SOURCE).toContain(fn);
+  it('is the shared function inside the script the server serves', () => {
+    expect(WIDGET_SOURCE).toContain(hourRange.toString());
+    expect(WIDGET_SOURCE).not.toContain('@inline');
   });
 });
 

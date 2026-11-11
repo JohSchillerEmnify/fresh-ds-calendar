@@ -44,10 +44,7 @@ export function range(c: Context, maxDays: number): { from: string; to: string }
   return checkRange(dateParam(c, 'from'), dateParam(c, 'to'), maxDays, 'to');
 }
 
-/**
- * The items of a range for one person, as `GET /api/items`; `excludeHidden` leaves out the calendars the person switched
- * off (the one visibility rule, shared by the Android widget and the iPhone widget data).
- */
+/** The items of a range for one person; `excludeHidden` is the one visibility rule of the Android and iPhone widgets. */
 export async function readItems(ctx: Ctx, sub: string, cal: ReturnType<Ctx['calendarFor']>, from: string, to: string,
   opts: { ids?: string[]; also?: { from: string; to: string }; excludeHidden: boolean }) {
   const res = await cal.items(from, to, opts.ids, opts.also);

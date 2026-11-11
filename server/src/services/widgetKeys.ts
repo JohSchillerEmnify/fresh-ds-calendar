@@ -1,6 +1,6 @@
 /** Per-device read keys of the iPhone widget (ADR 0044): one JSON file per person, only a hash of the secret is stored. */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { WidgetKey, WidgetKeyCreated } from '../api/types.js';
+import type { WidgetKey, WidgetKeyCreated } from '@calendar/shared/api';
 import { listUserSubs } from '../auth/people.js';
 import { ApiException, notFound } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';

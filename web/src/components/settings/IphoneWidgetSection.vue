@@ -11,12 +11,12 @@ import SettingSection from '@/components/settings/SettingSection.vue';
 import { dateLocale, t } from '@/i18n';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { usePrefsStore } from '@/stores/prefs';
+import { useWidgetKeys } from '@/composables/useWidgetKeys';
 import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
-import { useWidgetKeysStore } from '@/stores/widgetKeys';
 
-const keys = useWidgetKeysStore();
+const { keys, loaded, load, refresh, remove: removeKey } = useWidgetKeys();
 const clock = useClockStore();
 const backup = useBackupStore();
 const ui = useUiStore();
@@ -27,10 +27,10 @@ const adding = ref(false);
 const removing = ref<WidgetKey | null>(null);
 
 // the list shows at once from the device (last known state) and is read again here: the widget may have been used since
-onMounted(() => { keys.load().then(() => keys.refresh()).catch(() => undefined); });
+onMounted(() => { load().then(() => refresh()).catch(() => undefined); });
 
 const usedText = (k: WidgetKey) => (k.lastUsedAt ? t('iphoneWidget.lastUsed', { time: backup.formatTime(k.lastUsedAt, clock.timeZone) }) : t('iphoneWidget.never'));
-/** "2026-10-13 18:30" in the calendar's time zone, for tests and assistive tools. */
+/** Year-month-day and hour:minute in the calendar's time zone, for tests and assistive tools. */
 function usedLocal(k: WidgetKey): string {
   if (!k.lastUsedAt) return '';
   const p = Object.fromEntries(new Intl.DateTimeFormat(dateLocale(), { timeZone: clock.timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -42,22 +42,22 @@ async function remove() {
   const k = removing.value;
   removing.value = null;
   if (!k) return;
-  try { await keys.remove(k.id); } catch { ui.notify(t('iphoneWidget.failed')); }
+  try { await removeKey(k.id); } catch { ui.notify(t('iphoneWidget.failed')); }
 }
 </script>
 
 <template>
   <SettingSection :title="t('iphoneWidget.title')">
     <div data-testid="iphone-widget-keys">
-      <SettingRow v-if="keys.loaded && !keys.keys.length" id="iphoneWidget" :label="t('iphoneWidget.intro')">
+      <SettingRow v-if="loaded && !keys.length" id="iphoneWidget" wide :label="t('iphoneWidget.intro')">
         <Button variant="tonal" data-testid="iphone-widget-add" @click="adding = true">{{ t('iphoneWidget.add') }}</Button>
       </SettingRow>
       <template v-else>
-        <SettingRow v-for="k in keys.keys" :id="`iphoneWidget-${k.id}`" :key="k.id" :label="k.name" testid="iphone-widget-key-row" :data-name="k.name">
+        <SettingRow v-for="k in keys" :id="`iphoneWidget-${k.id}`" :key="k.id" :label="k.name" testid="iphone-widget-key-row" :data-name="k.name">
           <template #sub><span class="sub" :data-last-used-local="usedLocal(k)" :data-never="k.lastUsedAt ? undefined : ''">{{ usedText(k) }}</span></template>
           <Button variant="text" data-testid="iphone-widget-revoke" @click="removing = k">{{ t('iphoneWidget.remove') }}</Button>
         </SettingRow>
-        <SettingRow v-if="keys.keys.length" id="iphoneWidgetAdd" link :label="t('iphoneWidget.addAnother')" testid="iphone-widget-add-another" @open="adding = true" />
+        <SettingRow v-if="keys.length" id="iphoneWidgetAdd" link :label="t('iphoneWidget.addAnother')" testid="iphone-widget-add-another" @open="adding = true" />
       </template>
     </div>
     <SettingRow id="widgetCircle" wide :label="t('iphoneWidget.circle.label')">

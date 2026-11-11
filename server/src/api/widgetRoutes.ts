@@ -1,23 +1,14 @@
 /** Widget keys (session, Settings) and the two routes a key opens, `/widget/data` and `/widget/script` (ADR 0044). */
-import fs from 'node:fs';
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import type { Ctx } from '../context.js';
-import { ApiException } from '../lib/errors.js';
 import { localDateOf, formatInZone } from '../lib/time.js';
 import { parse, widgetKeySchema } from '../lib/validation.js';
+import { readWidgetScript } from '../services/widgetScript.js';
 import { body, range, readItems, type RouteDeps } from './routeHelpers.js';
 
 const MAX_RANGE_DAYS = 8;
 const PER_MINUTE = 30;
-
-/** The script text and its `// calendar-widget version=<n>` number, read once from disk. */
-export function widgetScript(ctx: Ctx): { text: string; version: number } {
-  const text = fs.readFileSync(ctx.config.widgetScriptPath, 'utf8');
-  const version = Number(/^\/\/ calendar-widget version=(\d+)/.exec(text)?.[1]);
-  if (!Number.isInteger(version)) throw new Error('widget script has no version line');
-  return { text, version };
-}
 
 /** Registers `POST/GET/DELETE /api/widget-keys` for the signed-in person. */
 export function registerWidgetKeys({ r, ctx, person }: RouteDeps): void {
@@ -61,7 +52,7 @@ export function widgetRoutes(ctx: Ctx): Hono {
   r.use('/widget/data', gate);
   r.use('/widget/script', gate);
 
-  r.get('/widget/script', (c) => c.body(widgetScript(ctx).text, 200, { 'Content-Type': 'text/javascript; charset=utf-8' }));
+  r.get('/widget/script', (c) => c.body(readWidgetScript(ctx.config.widgetScriptPath).text, 200, { 'Content-Type': 'text/javascript; charset=utf-8' }));
 
   r.get('/widget/data', async (c) => {
     const sub = c.get('widgetSub');
@@ -72,7 +63,7 @@ export function widgetRoutes(ctx: Ctx): Hono {
     const now = ctx.clock.nowMs();
     const p = ctx.prefs.labsPrefs(sub);
     return c.json({
-      generatedAt: formatInZone(now, ctx.config.tz), today: localDateOf(now, ctx.config.tz), scriptVersion: widgetScript(ctx).version,
+      generatedAt: formatInZone(now, ctx.config.tz), today: localDateOf(now, ctx.config.tz), scriptVersion: readWidgetScript(ctx.config.widgetScriptPath).version,
       items, minEventMinutes: p.minEventMinutes, weekSideBySide: p.weekSideBySide, taskCategories: p.taskCategories, widgetCircle: p.widgetCircle, language: p.language,
     });
   });

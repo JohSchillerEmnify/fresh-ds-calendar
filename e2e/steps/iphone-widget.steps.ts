@@ -69,7 +69,7 @@ Then('the settings show the widget key {string} as never used', async function (
 Then('the settings do not show the widget key itself', async function (this: World) {
   const body = await this.page.locator('body').innerText();
   expect(body).not.toMatch(/cwk_/);
-  for (const secret of secretsOf(this).values()) expect(await this.page.content()).not.toContain(secret.split('_')[2]!);
+  for (const secret of secretsOf(this).values()) expect(await this.page.content()).not.toContain(secret.slice('cwk_AAAAAAAA_'.length));
 });
 
 Then('the new widget key is shown once with the buttons {string} and {string}', async function (this: World, a: string, b: string) {

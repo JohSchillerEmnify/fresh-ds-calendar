@@ -108,7 +108,6 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const ink = new InkStore(config.dataDir);
   const idempotency = new IdempotencyStore(config.dataDir);
   const templates = new TemplateStore(config.dataDir);
-  const widgetKeys = new WidgetKeyStore(config.dataDir, () => clock.nowMs(), (m) => console.warn(m));
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
   const auth = new AuthState(config, () => clock.real());
@@ -143,7 +142,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys, backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys: new WidgetKeyStore(config.dataDir, () => clock.nowMs()), backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));

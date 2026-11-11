@@ -1,8 +1,5 @@
-/**
- * The tiny installer a person pastes into Scriptable once (ADR 0044): it keeps the key and the server URL in the
- * Keychain, downloads the widget script and saves it as the Scriptable script "Calendar". Plain JavaScript text, so it
- * runs in Scriptable; its words follow the app language it was made with (`auto`: the iPhone's), German or English.
- */
+/** The installer pasted into Scriptable once (ADR 0044): stores the key and server URL in the Keychain, saves the widget script
+ * as "Calendar". Plain JavaScript text in the app language it was made with. */
 export const WIDGET_SCRIPT_NAME = 'Calendar';
 export const SCRIPTABLE_APP_STORE_URL = 'https://apps.apple.com/app/id1405459188';
 export const SCRIPTABLE_ADD_URL = 'scriptable:///add';

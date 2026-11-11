@@ -177,18 +177,7 @@ function segmentOn(e, date, minLen) {
   return { e, start: s, end: Math.min(1440, Math.max(end, s + Math.max(minLen || 0, 1))) };
 }
 
-/** The hours the grid shows: the same rule as the Android week widget (a copy of shared/weekHours.js, kept equal by a test). */
-function hourRange(segments) {
-  const defaultFrom = 8, defaultTo = 18, minSpan = 6;
-  if (!segments.length) return [defaultFrom, defaultTo];
-  let first = Math.max(0, Math.floor(Math.min(...segments.map((g) => g.start)) / 60));
-  let last = Math.min(24, Math.ceil(Math.max(...segments.map((g) => Math.max(g.end, g.start + 1))) / 60));
-  while (last - first < minSpan) {
-    if (last < 24) last++;
-    if (last - first < minSpan && first > 0) first--;
-  }
-  return [first, last];
-}
+// @inline hourRange
 
 /** Side-by-side lanes for the overlapping blocks of one day. */
 function lanes(day) {
@@ -243,6 +232,44 @@ function weekGrid(entries, today, nowMin, minLen, W, H) {
   return { first, last, hourH, top, colW, cols, nowLine, yOf };
 }
 
+/** Draws the text `s` into a rectangle with the font and colour given. */
+function drawText(ctx, s, rect, size, bold, color) {
+  ctx.setFont(bold ? Font.boldSystemFont(size) : Font.systemFont(size));
+  ctx.setTextColor(color);
+  ctx.drawTextInRect(s, new Rect(...rect));
+}
+
+/** The hour scale with its faint hour lines. */
+function drawHours(ctx, g, W) {
+  const faint = dyn('#d8d8de', '#3a3a40');
+  const step = g.hourH < 18 ? 2 : 1;
+  for (let h = g.first; h < g.last; h++) {
+    const y = g.yOf(h * 60);
+    ctx.setFillColor(faint);
+    ctx.fillRect(new Rect(WEEK.gutter, y, W - WEEK.gutter, 0.5));
+    if ((h - g.first) % step === 0) drawText(ctx, pad2(h), [0, y - 1, WEEK.gutter - 3, 10], 8, false, new Color(GREY));
+  }
+}
+
+/** One day column: its header, all-day chips and blocks. */
+function drawColumn(ctx, g, c, lang, T, dim) {
+  const ink = dyn('#1b1b1f', '#f2f0f4');
+  if (c.today) {
+    ctx.setFillColor(new Color('#b3261e'));
+    ctx.fillRect(new Rect(c.x + 1, 0, g.colW - 2, WEEK.head));
+  }
+  drawText(ctx, `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`, [c.x + 2, 2, g.colW - 4, WEEK.head - 2], 10, true, c.today ? new Color('#ffffff') : ink);
+  const paint = (e, rect, label, size) => {
+    const color = dim ? GREY : e.color;
+    ctx.setFillColor(new Color(color));
+    ctx.fillRect(new Rect(...rect));
+    drawText(ctx, label, [rect[0] + 1, rect[1], rect[2] - 2, rect[3]], size, false, new Color(dim ? '#ffffff' : textColor(color)));
+  };
+  c.chips.forEach((e, k) => paint(e, [c.x + 1, WEEK.head + 2 + k * WEEK.chip, g.colW - 2, WEEK.chip - 1], e.title, 8));
+  if (c.moreChips > 0) drawText(ctx, T.more(c.moreChips), [c.x + 2, WEEK.head + 2 + WEEK.maxChips * WEEK.chip - 1, g.colW - 4, 9], 7, false, ink);
+  c.blocks.forEach((b) => paint(b.e, [b.x, b.y, b.w, b.h], b.label, 8));
+}
+
 function weekWidget(entries, today, nowMin, minLen, lang, T, dim) {
   const [W, H] = SIZES.large;
   const g = weekGrid(entries, today, nowMin, minLen, W, H);
@@ -250,40 +277,8 @@ function weekWidget(entries, today, nowMin, minLen, lang, T, dim) {
   ctx.size = new Size(W, H);
   ctx.opaque = false;
   ctx.respectScreenScale = true;
-  const ink = dyn('#1b1b1f', '#f2f0f4');
-  const faint = dyn('#d8d8de', '#3a3a40');
-  const text = (s, x, y, w, h, size, bold, color) => {
-    ctx.setFont(bold ? Font.boldSystemFont(size) : Font.systemFont(size));
-    ctx.setTextColor(color);
-    ctx.drawTextInRect(s, new Rect(x, y, w, h));
-  };
-  const step = g.hourH < 18 ? 2 : 1;
-  for (let h = g.first; h < g.last; h++) {
-    const y = g.yOf(h * 60);
-    ctx.setFillColor(faint);
-    ctx.fillRect(new Rect(WEEK.gutter, y, W - WEEK.gutter, 0.5));
-    if ((h - g.first) % step === 0) text(pad2(h), 0, y - 1, WEEK.gutter - 3, 10, 8, false, new Color(GREY));
-  }
-  for (const c of g.cols) {
-    if (c.today) {
-      ctx.setFillColor(new Color('#b3261e'));
-      ctx.fillRect(new Rect(c.x + 1, 0, g.colW - 2, WEEK.head));
-    }
-    text(`${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`, c.x + 2, 2, g.colW - 4, WEEK.head - 2, 10, true, c.today ? new Color('#ffffff') : ink);
-    c.chips.forEach((e, k) => {
-      const color = dim ? GREY : e.color;
-      ctx.setFillColor(new Color(color));
-      ctx.fillRect(new Rect(c.x + 1, WEEK.head + 2 + k * WEEK.chip, g.colW - 2, WEEK.chip - 1));
-      text(e.title, c.x + 2, WEEK.head + 2 + k * WEEK.chip, g.colW - 4, WEEK.chip - 1, 8, false, new Color(dim ? '#ffffff' : textColor(color)));
-    });
-    if (c.moreChips > 0) text(T.more(c.moreChips), c.x + 2, WEEK.head + 2 + WEEK.maxChips * WEEK.chip - 1, g.colW - 4, 9, 7, false, ink);
-    for (const b of c.blocks) {
-      const color = dim ? GREY : b.e.color;
-      ctx.setFillColor(new Color(color));
-      ctx.fillRect(new Rect(b.x, b.y, b.w, b.h));
-      text(b.label, b.x + 1, b.y, b.w - 2, b.h, 8, false, new Color(dim ? '#ffffff' : textColor(color)));
-    }
-  }
+  drawHours(ctx, g, W);
+  g.cols.forEach((c) => drawColumn(ctx, g, c, lang, T, dim));
   if (g.nowLine && g.nowLine.col >= 0) {
     ctx.setFillColor(new Color('#d93025'));
     ctx.fillRect(new Rect(g.cols[g.nowLine.col].x, g.nowLine.y - 0.75, g.colW, 1.5));
@@ -356,7 +351,7 @@ function docsFileManager() {
     const f = FileManager.iCloud();
     f.documentsDirectory();
     return f;
-  } catch (e) {
+  } catch {
     return FileManager.local();
   }
 }
@@ -370,14 +365,14 @@ function readCache() {
   const { fm, path } = cacheFile();
   try {
     return fm.fileExists(path) ? JSON.parse(fm.readString(path)) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
 function writeCache(saved) {
   const { fm, path } = cacheFile();
-  try { fm.writeString(path, JSON.stringify(saved)); } catch (e) { /* the next draw simply asks again */ }
+  try { fm.writeString(path, JSON.stringify(saved)); } catch { /* the next draw simply asks again */ }
 }
 
 async function get(base, key, path) {
@@ -385,7 +380,7 @@ async function get(base, key, path) {
   r.headers = { Authorization: `Bearer ${key}` };
   r.timeoutInterval = 20;
   let text;
-  try { text = await r.loadString(); } catch (e) { return { status: 0, text: '' }; }
+  try { text = await r.loadString(); } catch { return { status: 0, text: '' }; }
   return { status: r.response ? r.response.statusCode : 0, text };
 }
 
@@ -393,11 +388,11 @@ async function get(base, key, path) {
 async function fetchData(base, key, from, to) {
   const r = await get(base, key, `/api/widget/data?from=${from}&to=${to}`);
   if (r.status === 200) {
-    try { return { data: JSON.parse(r.text) }; } catch (e) { return { fail: 'offline' }; }
+    try { return { data: JSON.parse(r.text) }; } catch { return { fail: 'offline' }; }
   }
   if (r.status === 401) {
     let code = '';
-    try { code = JSON.parse(r.text).error.code; } catch (e) { /* an unreadable refusal counts as invalid */ }
+    try { code = JSON.parse(r.text).error.code; } catch { /* an unreadable refusal counts as invalid */ }
     return { fail: code === 'WIDGET_KEY_REVOKED' ? 'revoked' : 'invalid' };
   }
   return { fail: 'offline' };
@@ -413,7 +408,7 @@ async function updateScript(base, key, offered) {
     const fm = docsFileManager();
     fm.writeString(fm.joinPath(fm.documentsDirectory(), `${Script.name()}.js`), r.text);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -452,7 +447,9 @@ async function run() {
   const finish = (w) => {
     if (config.runsInWidget) Script.setWidget(w);
     else if (family.startsWith('accessory')) w.presentAccessoryRectangular();
-    else (family === 'small' ? w.presentSmall() : family === 'large' ? w.presentLarge() : w.presentMedium());
+    else if (family === 'small') w.presentSmall();
+    else if (family === 'large') w.presentLarge();
+    else w.presentMedium();
     Script.complete();
   };
   if (!Keychain.contains(KEY_ID) || !Keychain.contains(URL_ID)) return finish(messageWidget(T0.setup));

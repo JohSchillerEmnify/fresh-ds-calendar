@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- the script and the API answers are untyped JavaScript objects */
 /** A stand-in for the Scriptable app's API (docs.scriptable.app): enough to run the widget script and the installer on Node and see what they draw. */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { buildWidgetScript } from '../src/services/widgetScript.js';
 
-export const WIDGET_SOURCE = fs.readFileSync(fileURLToPath(new URL('../../ios/widget/calendar-widget.js', import.meta.url)), 'utf8');
+export const WIDGET_SOURCE = buildWidgetScript(fs.readFileSync(fileURLToPath(new URL('../../ios/widget/calendar-widget.js', import.meta.url)), 'utf8'));
 
-export interface NetReply { status: number; body: string }
-export type Net = (url: string, headers: Record<string, string>) => NetReply;
+export type Net = (url: string, headers: Record<string, string>) => { status: number; body: string };
 
 export interface Options {
   net?: Net;

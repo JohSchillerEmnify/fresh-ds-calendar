@@ -1,9 +1,5 @@
 <script setup lang="ts">
-/**
- * Settings › Account & app › iPhone widget (feature iphone-widget): names the device, makes its widget key and walks
- * through the seven steps of the setup. The key exists only in this sheet (inside the installer text) and cannot be
- * read again; the sheet polls the key list so "Widget connected" shows when the widget's first read arrives.
- */
+/** Settings › Account & app › iPhone widget: names the device, makes its key and walks through the seven setup steps; the key lives only here. */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import type { WidgetKeyCreated } from '@/api/types';
@@ -12,13 +8,13 @@ import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { dateLocale, t } from '@/i18n';
 import { copyText } from '@/lib/copyText';
+import { useWidgetKeys } from '@/composables/useWidgetKeys';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
-import { useWidgetKeysStore } from '@/stores/widgetKeys';
 import { SCRIPTABLE_ADD_URL, SCRIPTABLE_APP_STORE_URL, widgetInstaller } from '@calendar/shared/widget-installer';
 
 const emit = defineEmits<{ close: [] }>();
-const keys = useWidgetKeysStore();
+const { keys, create: createKey, refresh } = useWidgetKeys();
 const clock = useClockStore();
 const prefs = usePrefsStore();
 
@@ -30,7 +26,7 @@ const copied = ref(false);
 const field = ref<HTMLTextAreaElement | null>(null);
 
 const installer = computed(() => (created.value ? widgetInstaller(clock.config.publicUrl ?? window.location.origin, created.value.key, prefs.language) : ''));
-const usedAt = computed(() => keys.keys.find((k) => k.id === created.value?.id)?.lastUsedAt ?? null);
+const usedAt = computed(() => keys.value.find((k) => k.id === created.value?.id)?.lastUsedAt ?? null);
 const connected = computed(() => (usedAt.value && created.value
   ? t('iphoneWidget.guide.connected', { name: created.value.name, time: new Intl.DateTimeFormat(dateLocale(), { timeStyle: 'short', timeZone: clock.timeZone }).format(new Date(usedAt.value)) })
   : ''));
@@ -40,7 +36,7 @@ async function create() {
   busy.value = true;
   error.value = '';
   try {
-    created.value = await keys.create(name.value.trim());
+    created.value = await createKey(name.value.trim());
   } catch (e) {
     error.value = e instanceof ApiError ? e.userMessage : t('iphoneWidget.failed');
   } finally {
@@ -57,7 +53,7 @@ function openScriptable() {
 }
 
 // the widget's first read shows here without any new channel: the key list is read again every few seconds and on return to the app
-const poll = () => { if (created.value && !usedAt.value) keys.refresh().catch(() => undefined); };
+const poll = () => { if (created.value && !usedAt.value) refresh().catch(() => undefined); };
 let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => { timer = setInterval(poll, 4000); document.addEventListener('visibilitychange', poll); });
 onBeforeUnmount(() => { clearInterval(timer); document.removeEventListener('visibilitychange', poll); });
