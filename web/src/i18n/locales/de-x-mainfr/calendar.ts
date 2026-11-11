@@ -43,7 +43,7 @@ export default {
     signIn: 'Anmelden',
   },
   calendarAccess: {
-    message: 'Der Zugriff auf Google Kalender is ned erlaubd worrn, deswegn kann dei Kalender ned geladn wern. Meld di nochamal an un setz auf Googles Bildschirm des Häkla bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
+    message: 'Der Zugriff auf Google Kalender is ned erlaubd worrn, deswegn kann dei Kalender ned geladn wern. Meld di nochamal an un setz des Häkla bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
     grant: 'Kalenderzugriff erlaubn',
   },
   install: {

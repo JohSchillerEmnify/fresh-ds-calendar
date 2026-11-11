@@ -12,7 +12,7 @@ export default {
     weekend: { label: 'Different on weekends', hint: 'For the nights before Saturday and Sunday' },
     weekendBedtime: 'Weekend bedtime',
     weekendWake: 'Weekend wake-up',
-    dynamicHint: 'Your first appointment of the next day can only move bedtime earlier than the fixed times. Without a timed appointment the fixed times apply.',
+    dynamicHint: 'If your first appointment the next day is early, bedtime moves earlier to match. Otherwise the fixed times apply.',
     sleep: { label: 'Sleep duration', hours: '{count} hour | {count} hours' },
     lead: { label: 'Time before the first appointment', minutes: '{count} min', none: 'None' },
     reminder: { label: 'Remind me before bedtime', minutes: '{count} min', off: 'Off' },

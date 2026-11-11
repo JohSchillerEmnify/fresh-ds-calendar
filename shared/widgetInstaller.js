@@ -32,7 +32,7 @@ const T = de ? {
 };
 async function say(message) {
   const a = new Alert();
-  a.title = 'Calendar widget';
+  a.title = de ? 'Kalender-Widget' : 'Calendar widget';
   a.message = message;
   a.addAction('OK');
   await a.presentAlert();

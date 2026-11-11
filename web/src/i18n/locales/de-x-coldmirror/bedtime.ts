@@ -17,7 +17,7 @@ export default {
     weekend: { label: 'Am Wochenende anders, du Oberpflaume', hint: 'Für die Nächte vor Samstag und Sonntag, nicht mal Snape kontrolliert da' },
     weekendBedtime: 'Ab ins Bett am Wochenende',
     weekendWake: 'Aufstehen am Wochenende',
-    dynamicHint: 'Dein erster Termin kann die Bettzeit nur früher legen als die festen Zeiten, sonst wird Fresh D. grantig wie Filch. Ohne Termin mit Uhrzeit gelten die festen Zeiten.',
+    dynamicHint: 'Ist dein erster Termin am nächsten Tag früh, gehst du entsprechend früher in die Koje, sonst wird Fresh D. grantig wie Filch. Ansonsten gelten die festen Zeiten.',
     sleep: { label: 'Schlafdauer, yo', hours: '{count} Stunde, yo | {count} Stunden, yo' },
     lead: { label: 'Zeit vor dem ersten Termin', minutes: '{count} Min., yo', none: 'Keine, Digga' },
     reminder: { label: 'Vorher Bescheid sagen, fresh', minutes: '{count} Min., yo', off: 'Aus, bye' },

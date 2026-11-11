@@ -52,6 +52,6 @@ Feature: Labs: the bedtime runway
   Scenario: The runway is a Labs view, off by default
     When I open the week view for 2026-10-12
     And I turn on experimental views in the settings
-    Then the view switcher does not offer "Runway"
-    When I switch the Labs view "Runway" on in the settings
-    Then the view switcher offers the experimental views "Runway"
+    Then the view switcher does not offer "Until bedtime"
+    When I switch the Labs view "Until bedtime" on in the settings
+    Then the view switcher offers the experimental views "Until bedtime"

@@ -8,7 +8,7 @@ import { exactText, tid, type World } from './support/world.js';
 import { setLabsSwitch, turnOnLabsSwitch } from './support/settings.js';
 
 /** A Labs view label as its registry id: lower case, words joined by "-" ("Clock: rings" → "clock-rings"; the plain clock is "Plain clock" → "clock"). */
-const labId = (label: string) => ({ 'Plain clock': 'clock', 'Zoom month': 'zoom' }[label] ?? label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const labId = (label: string) => ({ 'Plain clock': 'clock', 'Zoom month': 'zoom', 'Until bedtime': 'runway' }[label] ?? label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 When('I turn on experimental views in the settings', async function (this: World) {
   await turnOnLabsSwitch(this, 'settings-labs');

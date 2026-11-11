@@ -62,7 +62,7 @@ export default {
     signIn: 'Anmelden, yo',
   },
   calendarAccess: {
-    message: 'Du Oberpflaume hast Google Kalender nicht erlaubt, deshalb kann Fresh D. deinen Kalender nicht laden, Digga. Melde dich nochmal an und setz auf Googles Bildschirm den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“, sonst schaut Fresh D. in die Röhre wie Dobby ohne Socke.',
+    message: 'Du Oberpflaume hast Google Kalender nicht erlaubt, deshalb kann Fresh D. deinen Kalender nicht laden, Digga. Melde dich nochmal an und setz den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“, sonst schaut Fresh D. in die Röhre wie Dobby ohne Socke.',
     grant: 'Kalender erlauben, yo',
   },
   install: {

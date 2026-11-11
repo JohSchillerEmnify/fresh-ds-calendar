@@ -14,7 +14,7 @@ export default {
     weekend: { label: 'Am Wochenende anders', hint: 'Für die Nächte vor Samstag und Sonntag' },
     weekendBedtime: 'Schlafenszeit am Wochenende',
     weekendWake: 'Aufstehen am Wochenende',
-    dynamicHint: 'Dein erster Termin am nächsten Tag kann die Schlafenszeit nur früher als die festen Zeiten legen. Ohne Termin mit Uhrzeit gelten die festen Zeiten.',
+    dynamicHint: 'Ist dein erster Termin am nächsten Tag früh, gehst du entsprechend früher schlafen. Sonst gelten die festen Zeiten.',
     sleep: { label: 'Schlafdauer', hours: '{count} Stunde | {count} Stunden' },
     lead: { label: 'Zeit vor dem ersten Termin', minutes: '{count} Min.', none: 'Keine' },
     reminder: { label: 'Vor der Schlafenszeit erinnern', minutes: '{count} Min.', off: 'Aus' },
