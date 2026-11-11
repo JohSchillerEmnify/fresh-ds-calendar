@@ -3612,7 +3612,6 @@ I tap the iPhone widget
 the iPhone widget shows the event {string}
 the iPhone widget does not show the event {string}
 the iPhone widget shows the event {string} from {time} to {time}
-the iPhone widget shows the event {string} under {date}
 the iPhone widget shows the date {date}
 the iPhone widget shows the week of {date} with the event {string} on {date}
 the iPhone widget shows {string}

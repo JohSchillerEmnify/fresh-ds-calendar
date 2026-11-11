@@ -1,6 +1,6 @@
 @iphone-widget @id:iphone-widget
 Feature: iPhone widgets through Scriptable
-  An iPhone has no native calendar app here, so the home-screen and lock-screen widgets are a small script that runs in
+  An iPhone has no native calendar app here, so the home-screen widgets are a small script that runs in
   the free Scriptable app. The person creates a widget key for the phone in Settings, pastes a tiny installer (the key and the
   server URL are already in it) into Scriptable once and runs it; the installer downloads the real widget script, which
   later updates itself. Then the person adds a Scriptable widget on the home screen. The widget reads the
@@ -8,6 +8,7 @@ Feature: iPhone widgets through Scriptable
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
+  The widget has two views like the Android widgets, Day and Week; the size picks the view (small and medium Day, large Week).
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
@@ -134,7 +135,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget does not show the event "Yoga"
 
     @backlog
-    Scenario: The small widget shows today
+    Scenario: The small widget shows the Day view
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "small" size
@@ -142,28 +143,21 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget shows the date 2026-10-14
 
     @backlog
-    Scenario: The medium widget shows today and tomorrow
+    Scenario: The medium widget shows the Day view with more room
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-      And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
+      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "medium" size
-      Then the iPhone widget shows the event "Dentist" under 2026-10-14
-      And the iPhone widget shows the event "Gym" under 2026-10-15
+      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
+      And the iPhone widget shows the event "Gym" from 18:00 to 19:00
+      And the iPhone widget shows the date 2026-10-14
 
     @backlog
-    Scenario: The large widget shows the week
+    Scenario: The large widget shows the Week view
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the week of 2026-10-12 with the event "Dentist" on 2026-10-14
-
-    @backlog
-    Scenario: The lock-screen widget says what is going on now
-      Given the time is 2026-10-14 09:20
-      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-      And the widget key "My iPhone" belongs to "jo@example.com"
-      When I look at the iPhone widget in the "lock screen" size
-      Then the iPhone widget says "Dentist · 40 min left"
 
     @backlog
     Scenario: Tapping the widget opens the app at that day
