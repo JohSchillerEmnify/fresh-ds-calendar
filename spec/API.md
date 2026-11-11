@@ -409,8 +409,8 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
 
 ### `GET /api/changes[?cursor=<opaque>][&today=YYYY-MM-DD]` → 200 (device sync, ADR 0025)
 
-What changed for the signed-in person since the device's cursor. Without a cursor, or with one that is not ours (also one made for another person) or is
-unreadable, everything the device keeps is answered in full (`full: true`). `today` is the device's date; it defaults to the
+What changed for the signed-in person since the device's cursor. Without a cursor, or with one that is not ours (also one made for another person, or one from before
+the shape of stored events last changed) or is unreadable, everything the device keeps is answered in full (`full: true`). `today` is the device's date; it defaults to the
 app clock's today and is ignored (the server's today is used) when it is more than 3 days away from it.
 The cursor is opaque to the app: send back the `cursor` of the last answer you applied. It is per device (it holds the
 state of that device's last answer; two devices of one person sync independently) and is only a position, never a

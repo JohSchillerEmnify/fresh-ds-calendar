@@ -13,7 +13,9 @@ import { windowOf } from '../services/changeFeed.js';
 import type { CalendarService, ChangeState } from '../services/calendar.js';
 
 /** `p` is a short hash of the person the cursor was made for: another person's cursor is no cursor. */
-interface Cursor extends ChangeState { v: 1; p: string; files: Record<string, string> }
+// raised when the shape of stored events changes (2: birthdays moved to their own calendar), so every device reads everything again
+const CURSOR_VERSION = 2;
+interface Cursor extends ChangeState { v: typeof CURSOR_VERSION; p: string; files: Record<string, string> }
 const MAX_CURSOR_CHARS = 32_768;
 const MAX_DATE_SKEW_DAYS = 3;
 
@@ -26,7 +28,7 @@ export function decodeCursor(raw: string | undefined, person?: string): Cursor |
   if (!raw || raw.length > MAX_CURSOR_CHARS) return null;
   try {
     const c = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as Partial<Cursor>;
-    return c.v === 1 && typeof c.to === 'string' && isLocalDate(c.to) && isStringMap(c.tokens) && isStringMap(c.shared) && isStringMap(c.files) && (person === undefined || c.p === personOf(person)) ? (c as Cursor) : null;
+    return c.v === CURSOR_VERSION && typeof c.to === 'string' && isLocalDate(c.to) && isStringMap(c.tokens) && isStringMap(c.shared) && isStringMap(c.files) && (person === undefined || c.p === personOf(person)) ? (c as Cursor) : null;
   } catch {
     return null;
   }
@@ -89,7 +91,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const g = await cal.changesSince(prev, today, forced);
     // a calendar that failed is retried next time, including the relist its reminder overrides asked for
     if ((g.events.failed.length || g.taskLists.failed) && prev?.files.reminderOverrides !== undefined) versions.reminderOverrides = prev.files.reminderOverrides;
-    const cursor: Cursor = { v: 1, p: personOf(sub), ...g.state, files: versions };
+    const cursor: Cursor = { v: CURSOR_VERSION, p: personOf(sub), ...g.state, files: versions };
     return c.json({ full: prev === null, cursor: encodeCursor(cursor), window: windowOf(today), calendars, events: g.events, taskLists: g.taskLists, files });
   });
 }

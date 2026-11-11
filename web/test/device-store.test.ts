@@ -217,6 +217,16 @@ describe('the device store', () => {
     expect(device.noteShown).toBe(true);
   });
 
+  it('a full answer replaces a birthday stored under its Google calendar by the one under Birthdays', async () => {
+    const old = { ...ev('Bday', '2026-10-14'), calendarId: 'primary', color: '#039be5' };
+    events = [old];
+    server();
+    const { device } = await session();
+    const moved = { ...old, calendarId: 'birthdays', sourceCalendarId: 'primary', color: '#9fc6e7' };
+    device.take({ ...answer(), events: { ...answer().events, upserts: [moved] } });
+    expect(device.data!.events.map((e) => [e.id, e.calendarId, e.color])).toEqual([['Bday', 'birthdays', '#9fc6e7']]);
+  });
+
   it('a change goes into the device copy at once; the server\'s answer replaces it; a delete leaves it', async () => {
     server();
     await session();

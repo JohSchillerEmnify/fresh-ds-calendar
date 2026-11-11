@@ -50,9 +50,15 @@ describe('first call (no cursor)', () => {
     expect((await changes(c0)).full).toBe(false);
   });
 
+  it('a cursor from before birthdays had their own calendar is no cursor: the device reads everything again', async () => {
+    const c0 = (await changes()).cursor;
+    const old = Buffer.from(JSON.stringify({ ...decodeCursor(c0)!, v: 1 })).toString('base64url');
+    expect((await changes(old)).full).toBe(true);
+  });
+
   it('treats a cursor that is not ours as no cursor', async () => {
     expect((await changes('garbage')).full).toBe(true);
-    expect((await changes(Buffer.from('{"v":2}').toString('base64url'))).full).toBe(true);
+    expect((await changes(Buffer.from('{"v":99}').toString('base64url'))).full).toBe(true);
   });
 
   it('keeps events inside the window only', async () => {
