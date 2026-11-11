@@ -32,6 +32,7 @@ import { isHolidayCalendarId } from '../providers/holidayRegions.js';
 import { TaskSeries } from './taskSeries.js';
 import { TaskSharing } from './taskSharing.js';
 import { birthdayDateKey, birthdayDateLocked } from './birthday.js';
+import { ContactsSource } from './contactBirthdays.js';
 import { placeOf } from './place.js';
 import { calHash, logEvent } from '../lib/diag.js';
 import { hasWriteRole, readOnlyReason } from './ownership.js';
@@ -72,6 +73,8 @@ export class CalendarService {
   private readonly queries: ItemQueries;
   /** Create, update and delete of events. */
   private readonly events: EventWrites;
+  /** The person's Google contacts, whose dates show in the Birthdays calendar. */
+  private readonly contacts: ContactsSource;
 
   constructor(
     private readonly provider: CalendarProvider,
@@ -83,7 +86,10 @@ export class CalendarService {
     readonly sub: string,
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
+    /** Whether the person's token has `contacts.readonly` (feature contact-birthdays). */
+    contactsGranted: () => boolean = () => false,
   ) {
+    this.contacts = new ContactsSource(provider, contactsGranted, () => clock.real());
     this.holidays = new HolidayCalendars(provider, () => this.clock.real(), () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, {
@@ -94,7 +100,7 @@ export class CalendarService {
     this.queries = new ItemQueries(provider, settings, this.tasks, clock, sub, config.tz, {
       eventCalendars: () => this.eventCalendars(), toEvent: (e, c, d) => this.toEvent(e, c, d), toTaskList: (e, c, cats) => this.toTaskList(e, c, cats),
       sharedTaskLists: (c) => this.sharedTaskLists(c), calendarColor: (id) => this.calendarColor(id), calendarColorSync: (id) => this.calendarColorSync(id),
-      stale: () => this.stale(),
+      stale: () => this.stale(), contactEvents: (from, to) => this.contactEvents(from, to),
     });
     this.events = new EventWrites(provider, motivation, prefs, sub, config.tz, {
       calendarColor: (id) => this.calendarColor(id), eventCalendars: () => this.eventCalendars(), locateKind: (id, tasklist) => this.locateKind(id, tasklist),
@@ -116,6 +122,7 @@ export class CalendarService {
     return (this.provider.cooldownMs?.() ?? 0) > 0;
   }
   invalidate(): void {
+    this.contacts.forgetFreshness();
     this.dropCalendars();
     this.tasks.forget();
   }
@@ -154,6 +161,12 @@ export class CalendarService {
     return this.prefs.birthdaysColor(this.sub) ?? BIRTHDAYS_COLOR;
   }
 
+  /** The contact dates in `[from, to)` for the range read; none while the permission is missing or Google cannot answer. */
+  private async contactEvents(from: string, to: string): Promise<CalendarEvent[]> {
+    if (!this.contacts.enabled || !(await this.contacts.refresh())) return [];
+    return this.contacts.events(from, to, this.birthdaysColor());
+  }
+
   /** The calendars the person sees: Google's (the old contacts calendar left out) and the app's own Birthdays calendar (ADR 0038). */
   async calendars(): Promise<Calendar[]> {
     this.dropCalendars(); // the endpoint always hits the provider (outages must surface)
@@ -166,7 +179,7 @@ export class CalendarService {
         id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c),
         defaultReminders: popups(c.defaultReminders), ...(isHolidayCalendarId(c.id) ? { holiday: true as const } : {}),
       })),
-      { id: BIRTHDAYS_ID, name: 'Birthdays', color: this.birthdaysColor(), primary: false, writable: false, defaultReminders: [], virtual: true },
+      { id: BIRTHDAYS_ID, name: 'Birthdays', color: this.birthdaysColor(), primary: false, writable: false, defaultReminders: [], virtual: true, contactsPermission: this.contacts.enabled ? 'granted' : 'missing' },
     ];
   }
 
@@ -624,7 +637,7 @@ export class CalendarService {
     const feed = new CalendarChanges(this.provider, this.tz, {
       eventCalendars: () => this.eventCalendars(), tasksId,
       toEvent: (e, c) => this.toEvent(e, c.backgroundColor, c.defaultReminders), toTaskList: (e) => this.toTaskList(e, color, cats),
-      noTokenUntil: this.noTokenUntil, health: this.calendarHealth, nowMs: () => this.clock.real(),
+      noTokenUntil: this.noTokenUntil, health: this.calendarHealth, nowMs: () => this.clock.real(), contacts: { source: this.contacts, color: this.birthdaysColor() },
     }, today);
     const g = await feed.since(prev, forced);
     const stamps: Record<string, string> = {};

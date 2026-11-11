@@ -53,4 +53,28 @@ describe('event dialog in birthday mode', () => {
     expect(document.querySelector(tid('event-readonly'))).not.toBeNull();
     expect(document.querySelector(tid('birthday-name'))).toBeNull();
   });
+
+  describe('a date read from Google Contacts', () => {
+    const fromContacts = (over: Partial<CalendarEvent> = {}): CalendarEvent => ({
+      ...anna, id: 'contact:people/c1:b:2026-10-14', calendarId: 'birthdays', start: '2026-10-14', end: '2026-10-15', dateLocked: undefined,
+      readOnly: true, readOnlyReason: { kind: 'contact' }, contactBirthday: { resourceName: 'people/c1', birthYear: 1990 }, ...over,
+    });
+
+    it('shows the age of a birthday with a year and the hint to change it in Google Contacts, and no way to save or delete', async () => {
+      await open({ id: 'contact:people/c1:b:2026-10-14' }, fromContacts());
+      expect(document.querySelector(tid('birthday-age'))!.textContent).toBe('Turns 36');
+      expect(document.querySelector(tid('event-readonly-hint'))!.textContent).toBe('Change this birthday in Google Contacts');
+      for (const id of ['event-save', 'event-delete', 'event-reminders']) expect(document.querySelector(tid(id)), id).toBeNull();
+    });
+
+    it('shows no age without a year, for an anniversary or for another date', async () => {
+      for (const over of [{ contactBirthday: { resourceName: 'people/c1' } }, { special: 'anniversary' as const }, { special: undefined }]) {
+        await open({ id: 'contact:people/c1:b:2026-10-14' }, fromContacts(over));
+        expect(document.querySelector(tid('birthday-age')), JSON.stringify(over)).toBeNull();
+        expect(document.querySelector(tid('event-readonly-hint'))).not.toBeNull();
+        wrapper?.unmount();
+        document.body.innerHTML = '';
+      }
+    });
+  });
 });

@@ -2,6 +2,7 @@
  * Google birthdays (`eventType: "birthday"`): the exact create body Google accepts and the patch it allows
  * (feature birthdays). Pure functions, no I/O.
  */
+import { birthdayContactKey, birthdayTitleKey } from '@calendar/shared/birthdays';
 import { validation } from '../lib/errors.js';
 import { addDays, isLocalDate } from '../lib/time.js';
 import type { UpdateEventInput } from '../api/types.js';
@@ -28,7 +29,7 @@ export function birthdayCreateBody(title: string, date: string, colorId?: string
 /** What makes two birthday events the same birthday on `date`: the Google contact and kind when linked, else the title. */
 export function birthdayDateKey(ev: Pick<GoogleEvent, 'birthdayProperties' | 'summary'>, date: string): string {
   const contact = ev.birthdayProperties?.contact;
-  return contact ? `c:${contact}|${ev.birthdayProperties?.type ?? ''}|${date}` : `t:${ev.summary ?? ''}|${date}`;
+  return contact ? birthdayContactKey(contact, ev.birthdayProperties?.type ?? '', date) : birthdayTitleKey(ev.summary ?? '', date);
 }
 
 /** True when the date of the birthday cannot change: it comes from a contact, or it is the person's own (`type: self`). */

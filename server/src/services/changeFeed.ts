@@ -12,6 +12,7 @@ import {
 } from '../providers/CalendarProvider.js';
 import { calHash, logEvent } from '../lib/diag.js';
 import { isTaskListEvent } from './taskCodec.js';
+import { CONTACTS_SOURCE, type ContactsSource } from './contactBirthdays.js';
 
 /** Days of window end the device may be behind before a calendar is simply listed again. */
 const MAX_GAP_DAYS = 31;
@@ -88,6 +89,8 @@ export interface FeedDeps {
   /** Per calendar, the refusal back-off (kept by the person's calendar service, shared by the poller and every device). */
   health: Map<string, CalendarHealth>;
   nowMs(): number;
+  /** The person's Google contacts and the Birthdays colour their dates take (feature contact-birthdays). */
+  contacts?: { source: ContactsSource; color: string };
 }
 
 /** The events window kept on a device: today minus a year up to today plus a year (end exclusive). */
@@ -127,6 +130,7 @@ export class CalendarChanges {
       events.removed.push(...part.removed.map((id) => ({ calendarId: cal.id, id })));
       events.upserts.push(...part.upserts);
     }
+    await this.addContacts(prev, events, tokens);
     const tasks = await this.read(this.deps.tasksId, prev, false, this.taskSpec());
     if (tasks.token) tokens[this.deps.tasksId] = tasks.token;
     return {
@@ -135,6 +139,25 @@ export class CalendarChanges {
       // a calendar that failed keeps the old window end, so the gap it missed is read next time
       state: { to: prev && (events.failed.length || tasks.failed) ? prev.to : windowOf(this.today).to, tokens },
     };
+  }
+
+  /** The contacts' dates as one more event source, compared by content; when Google cannot answer the device keeps what it holds. */
+  private async addContacts(prev: FeedState | null, events: EventChanges, tokens: Record<string, string>): Promise<void> {
+    const c = this.deps.contacts;
+    if (!c?.source.enabled) return;
+    const held = prev?.tokens[CONTACTS_SOURCE];
+    if (!(await c.source.refresh())) {
+      if (held !== undefined) { events.calendars.push(CONTACTS_SOURCE); tokens[CONTACTS_SOURCE] = held; }
+      return;
+    }
+    const w = windowOf(this.today);
+    const upserts = c.source.events(w.from, w.to, c.color);
+    const token = VERSION_PREFIX + createHash('sha1').update(JSON.stringify(upserts)).digest('base64url');
+    events.calendars.push(CONTACTS_SOURCE);
+    tokens[CONTACTS_SOURCE] = token;
+    if (held === token) return;
+    events.replace.push(CONTACTS_SOURCE);
+    events.upserts.push(...upserts);
   }
 
   private eventSpec(cal: ProviderCalendar): Spec<CalendarEvent> {

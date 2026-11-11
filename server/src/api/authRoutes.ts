@@ -7,7 +7,7 @@ import { parse, pushUnsubscribeSchema } from '../lib/validation.js';
 import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
 import { CHALLENGE_RE } from '../auth/appExchange.js';
-import type { OAuthBackend } from '../auth/oauth.js';
+import { returnTarget, type OAuthBackend } from '../auth/oauth.js';
 import { SESSION_COOKIE } from '../auth/sessions.js';
 import type { AuthEnv } from '../auth/middleware.js';
 
@@ -68,11 +68,13 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     // an app sign-in is bound to the app that started it (RFC 7636 S256): no challenge, no sign-in
     const challenge = c.req.query('challenge');
     if (app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('App sign-in needs a challenge (update the app)');
-    const state = ctx.auth.states.create(app);
+    // the plain sign-in never asks for the Contacts permission; `contacts=1` (the snackbar, the Birthdays settings) does, `to=settings` returns there
+    const contacts = c.req.query('contacts') === '1';
+    const state = ctx.auth.states.create(app, contacts, contacts && c.req.query('to') === 'settings');
     setCookie(c, STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
     if (app) setCookie(c, CHALLENGE_COOKIE, challenge!, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
     logEvent('auth_flow', { step: 'start', app, durationMs: Date.now() - started });
-    return c.redirect(oauth.authUrl(state), 302);
+    return c.redirect(oauth.authUrl(state, contacts), 302);
   });
 
   r.get('/auth/google/callback', async (c) => {
@@ -116,7 +118,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     await ctx.backup.restoreIfEmpty(who.sub);
     const sessionId = ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) });
     // signed in, but Google's token response (the authority, not the callback's scope query) lacks the calendar: say so instead of pretending
-    const target = missing ? '/?calendar=missing' : '/';
+    const target = missing ? '/?calendar=missing' : returnTarget(issued);
     logEvent('auth_flow', { step: 'callback', app: issued.app, subHash: subHash(who.sub), durationMs: Date.now() - started });
     if (issued.app) {
       // this browser must not keep the session: the app's WebView gets it by redeeming the code

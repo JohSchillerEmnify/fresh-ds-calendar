@@ -1726,6 +1726,65 @@ Google has no birthday {string}
 - "the event dialog is read-only": the details view (`event-readonly`) is shown instead of the form; "no save or delete
   button": neither `event-save` nor `event-delete` exists.
 
+## Birthdays from Google Contacts (`@birthdays`, feature contact-birthdays)
+
+```
+the contacts permission is granted
+the contacts permission is not granted
+the Google contacts have a birthday {string} on {date}
+the Google contacts have a birthday {string} on {string} without a year
+the Google contacts have an anniversary {string} on {date}
+the Google contacts have a custom date {string} for {string} on {date}
+the Google contacts of {string} have a birthday {string} on {date}
+the Google contacts no longer have the birthday {string}
+the Google contacts answer with an error
+the calendar {string} has a birthday {string} on {date} linked to the contact {string}
+the event dialog shows the age {int}
+the event dialog shows no age
+the event dialog shows the hint {string}
+the Birthdays settings offer to allow Google Contacts
+the Birthdays settings do not offer to allow Google Contacts
+I allow Google Contacts
+I am told that birthdays from Google Contacts can be shown
+I am no longer told that birthdays from Google Contacts can be shown
+the message reads {string}
+the message has the action {string}
+the event dialog shows the age text {string}
+I allow in the message about Google Contacts
+I dismiss the message about Google Contacts
+I am still signed in
+```
+
+- Google Contacts is the mock's People API (`TEST_MODE`): contacts per person with `names` and `birthdays`/`events` as
+  the real `people.connections.list` returns them (`Date` with `year` 0 or absent for "without a year"; `events` with
+  `type` anniversary or a custom label), each with a resource name `people/c<n>`, and a sync token that "no longer have"
+  (a `metadata.deleted` entry) and "answer with an error" (HTTP 500) act on. The mock follows the documented semantics: a
+  token read answers only changes, `contacts.readonly` is needed (403 without), page size at most 1000.
+  Test endpoints: `POST /api/__test/remote/contacts { owner?, name, birthday?: {year?, month, day}, events?: [...] }`,
+  `DELETE /api/__test/remote/contacts/:resourceName`, `POST /api/__test/remote/contacts-error`.
+- Dates: "on D" is the full date of birth (year, month, day); "on S without a year" takes "MM-DD". "of P" is the person P.
+- "the contacts permission is granted / is not granted": the fake consent of the next sign-in of the person (and the stored
+  token's scope) contains / lacks `contacts.readonly` (`POST /api/__test/oauth/contacts-access { granted }`); it is a Given
+  and applies from the start of the scenario (the double grants it by default, so other scenarios show no offer).
+- "the calendar C has a birthday T on D linked to the contact N": as "linked to a contact", but `birthdayProperties.contact`
+  is the resource name of the mock contact named N (which must exist; the step creates it with the date when missing).
+- "the event dialog shows the age N": `birthday-age` in the details view reads "Turns N" (the age on the day shown; the
+  year of birth comes from the contact); "no age": no `birthday-age`. "shows the hint H": `event-readonly-hint` has the text H.
+- "the Birthdays settings offer to allow Google Contacts": the calendar's settings page shows `settings-contacts-access`
+  with the button `settings-contacts-grant`; "do not offer": neither exists. "I allow Google Contacts": the consent
+  screen of the test double is answered WITH the contacts scope and `settings-contacts-grant` is pressed; the round trip
+  returns to the settings.
+- The message is the persistent snackbar `contacts-offer` (`duration: 0`, like `apk-available`) reading "Show birthdays from your
+  Google Contacts too?", with the action `contacts-offer-allow` ("Allow") and the ✕ `contacts-offer-dismiss`.
+  "I am told ...": the snackbar is visible; "no longer told": it is not visible. "the message has the action Allow":
+  `contacts-offer-allow` is visible. "I allow in the message": the consent screen of the test double is answered WITH the
+  contacts scope and `contacts-offer-allow` is pressed; the round trip returns to the calendar. "I dismiss the message":
+  presses `contacts-offer-dismiss` (a per-person pref, `PATCH /api/prefs` `contactsOfferDismissed`). "I am still signed in":
+  `GET /api/auth/me` answers the person's email and the calendar is shown.
+- "the message reads T": the text of the snackbar `contacts-offer` is T (German with a German browser). "shows the age text T": `birthday-age` has the text T.
+- "the Google contacts have an anniversary N on D" / "a custom date L for N on D": the contact N with an `events` entry of type
+  `anniversary` / the custom label L and that date (full date; the title in the app is N, resp. "L: N").
+
 ## Only own events are editable (`@events-readonly`)
 
 ```
@@ -4292,7 +4351,7 @@ the device is offline
 the sheet says that adding a region needs a connection
 ```
 
-- The last five lines are only used by `@unit` scenarios (proved by `server/test/holidays.test.ts` and `web/test/holiday-regions.test.ts`); e2e skips them.
+- The last five lines are used by `@unit` scenarios (proved by `server/test/holidays.test.ts` and `web/test/holiday-regions.test.ts`; e2e skips them); "the device is offline" is also used by feature contact-birthdays and drops the connection like "the network connection is lost".
 
 - Hooks: the section is `settings-holidays` (a `SettingSection`) listing `settings-row` rows whose `data-setting` is the calendar's name; the
   "Add region" row (`data-setting="Add region"`) opens the sheet `holiday-region-sheet` (an `AdaptiveSheet`) with the search field

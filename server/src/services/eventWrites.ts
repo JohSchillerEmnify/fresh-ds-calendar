@@ -13,6 +13,8 @@ import type { PrefsStore } from './prefsStore.js';
 
 const DAY = 86_400_000;
 const readOnlyBirthday = () => validation('Birthdays are read-only');
+/** A date read from Google Contacts (feature contact-birthdays): it is changed there, never here. */
+const refuseContactDate = (id: string): void => { if (id.startsWith('contact:')) throw readOnlyBirthday(); };
 
 /** What event writes need from {@link CalendarService}: the calendar list, ownership checks and the Google-to-API mapping. */
 export interface EventHost {
@@ -92,6 +94,7 @@ export class EventWrites {
   }
 
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
+    refuseContactDate(id);
     const cur = await this.host.locateKind(id, false);
     if (specialOf(cur)) return this.updateBirthday(cur, input, ifMatch);
     const reason = onlyReminders(input) ? readOnlyReason(cur, await this.host.providerCalendars()) : null;
@@ -140,6 +143,7 @@ export class EventWrites {
   }
 
   async deleteEvent(id: string, ifMatch?: string): Promise<void> {
+    refuseContactDate(id);
     const cur = await this.host.locateKind(id, false);
     if (specialOf(cur)) {
       await this.requireEditableBirthday(cur);

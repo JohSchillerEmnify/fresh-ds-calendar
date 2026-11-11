@@ -23,7 +23,7 @@ import { CalendarPlanScheduler } from './services/calendarPlanScheduler.js';
 import { PushService, RecordingSender, loadVapid, webPushSender } from './services/push.js';
 import { registerServerFilesBackup } from './services/serverFilesBackup.js';
 import { registerSharedListsBackup } from './services/sharedListsBackup.js';
-import { hasDriveScope } from './auth/people.js';
+import { hasContactsScope, hasDriveScope, readUserScope } from './auth/people.js';
 import type { DriveClient } from './providers/DriveClient.js';
 import { MockDrive } from './providers/mock/MockDrive.js';
 import path from 'node:path';
@@ -93,10 +93,15 @@ export interface Ctx {
   close(): void;
 }
 
+/** Whether a person's token has the Contacts scope; the signed-out person has no token (the test double's switch stands in). */
+const contactsGrantedBy = (config: AppConfig, local: () => boolean) => (sub: string) => (): boolean =>
+  (sub === LOCAL_PERSON ? local() : hasContactsScope(readUserScope(config.dataDir, sub)));
+
 export function createContext(config: AppConfig, provider?: CalendarProvider, clock = new Clock(), personProvider?: (sub: string) => CalendarProvider, driveFor?: (sub: string) => DriveClient): Ctx {
   const mock = provider ? (provider instanceof MockGoogleProvider ? provider : null)
-    : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock }) : null;
+    : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock, contactsGranted: () => contactsGranted(LOCAL_PERSON)() }) : null;
   const prov: CalendarProvider = provider ?? mock ?? (() => { throw new Error('Google provider must be passed in (see index.ts)'); })();
+  const contactsGranted = contactsGrantedBy(config, () => ctx.auth.fake?.contactsScope === true);
   const people = new PeopleStore(config.dataDir);
   // the retired server-wide settings and streak become every known person's own, once (ADR 0035)
   splitServerWideFiles(config.dataDir, knownSubs(config.dataDir, people.all().map((p) => p.sub), LOCAL_PERSON),
@@ -129,10 +134,9 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   registerSharedListsBackup(backup, shared, config.dataDir);
   registerServerFilesBackup(backup, { people, shared });
-  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared);
+  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared, contactsGranted(LOCAL_PERSON));
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
-  const mocks = new Map<string, MockGoogleProvider>();
-  const calendars = new Map<string, CalendarService>();
+  const mocks = new Map<string, MockGoogleProvider>(), calendars = new Map<string, CalendarService>();
   const changes = new ChangeBus();
   // a newcomer is offered in everybody's "Share with" at once, not at their next poll
   people.onNew = () => changes.emitAll(people.all().map((p) => p.sub));
@@ -145,7 +149,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys: new WidgetKeyStore(config.dataDir, () => clock.nowMs()), backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
-      if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
+      if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock, contactsGranted: contactsGranted(sub) })));
       return m;
     },
     calendarFor(sub) {
@@ -155,7 +159,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
         // google: one provider per person; mock: one calendar per person; tests with an injected provider share it
         const p = personProvider ? personProvider(sub) : mock ? ctx.mockFor(sub) : null;
         if (!p) return calendar;
-        calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub, shared)));
+        calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub, shared, contactsGranted(sub))));
       }
       return c;
     },

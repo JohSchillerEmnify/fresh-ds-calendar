@@ -31,6 +31,7 @@ import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
 import { usePrefsStore } from '@/stores/prefs';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
+import { useContactsOffer } from '@/features/calendar';
 import { useMotivationStore, useSceneRest } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
@@ -66,6 +67,7 @@ useSceneRest(() => settings.effectiveScene);
 // the person's language choice (also arriving from another device) switches the UI at once, without a reload
 watch(() => labs.language, (pref) => { void applyLanguage(pref); });
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
+if (!route.meta.public) useContactsOffer();
 
 const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
 /** Calendar views and the Tasks view share the shell: top bar, navigation, create button. */

@@ -11,10 +11,10 @@ const router = useRouter();
 const body = ref<HTMLElement | null>(null);
 let stop: Disposer | null = null;
 
-/** Back in the history when the page was reached from inside the app, otherwise up to the parent page. */
+/** Back in the history when the page was reached from inside the app, otherwise up to the parent page (replacing it, so Back never returns to the page that was just left). */
 function back() {
   if (window.history.state?.back) router.back();
-  else void router.push(props.up);
+  else void router.replace(props.up);
 }
 
 /** Rows may appear only after the stores loaded: look a few times before giving up. */

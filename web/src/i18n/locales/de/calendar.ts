@@ -153,6 +153,8 @@ export default {
     readOnly: 'Stammt aus Google Kontakte. Dort kannst du ihn ändern.',
     readOnlyInvitation: 'Einladung von {by}',
     readOnlyCalendar: 'Kalender von {by}',
+    contactHint: 'Diesen Geburtstag änderst du in Google Kontakte.',
+    turns: 'Wird {n}',
     genericError: 'Etwas ist schiefgegangen',
     rollback: '{what} wurde nicht gespeichert. Alles ist wieder wie vorher.',
     fields: {
@@ -233,6 +235,10 @@ export default {
   undo: {
     deleted: 'Gelöscht: {title}',
     undo: 'Rückgängig',
+  },
+  contacts: {
+    offer: 'Auch Geburtstage aus deinen Google Kontakten anzeigen?',
+    allow: 'Erlauben',
   },
   apk: {
     available: 'Neue App-Version',

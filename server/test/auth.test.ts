@@ -185,7 +185,7 @@ describe('calendar permission (granular consent)', () => {
       expect(first.location).toBe('/?calendar=missing');
       expect(first.session).not.toBeNull();
       const token = JSON.parse(fs.readFileSync(userTokenFile(t.dir, mockSub('anna@example.com')), 'utf8'));
-      expect(token.scope).toBe('openid email https://www.googleapis.com/auth/drive.appdata'); // the Drive scope was granted, the calendar one not
+      expect(token.scope).toBe('openid email https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/contacts.readonly'); // the Drive and Contacts scopes were granted, the calendar one not
       const denied = await t.json('GET', items, undefined, { cookie: first.session! });
       expect(denied.status).toBe(403);
       expect(denied.body.error.code).toBe('CALENDAR_PERMISSION_MISSING');

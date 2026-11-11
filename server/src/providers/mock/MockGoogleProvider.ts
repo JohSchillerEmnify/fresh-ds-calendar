@@ -9,8 +9,9 @@ import { isHolidayCalendarId, parseHolidayCalendarId } from '../holidayRegions.j
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError,
   type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
-  type ListEventsResult, type ProviderCalendar, type WriteOptions,
+  type ListEventsResult, type ProviderCalendar, type WriteOptions, type ContactsResult,
 } from '../CalendarProvider.js';
+import { MockContacts } from './MockContacts.js';
 
 /** The name Google gives a holiday calendar in the language of its id. */
 function holidaySummary(id: string): string {
@@ -35,6 +36,8 @@ export interface MockOptions {
   tz: string;
   clock: Clock;
   flushDelayMs?: number;
+  /** Whether the person's token carries `contacts.readonly` (the People API refuses a token without it). */
+  contactsGranted?: () => boolean;
 }
 
 /** Emulates Google Calendar API v3 semantics (ids, etag, updated, sequence, cancelled, extendedProperties). */
@@ -64,6 +67,8 @@ export class MockGoogleProvider implements CalendarProvider {
   private readonly tz: string;
   private readonly clock: Clock;
   private readonly delay: number;
+  /** The person's Google contacts (People API stand-in, memory only). */
+  readonly contacts: MockContacts;
   /** true when the store was loaded from disk and had content */
   readonly loadedFromDisk: boolean;
 
@@ -71,6 +76,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.tz = opts.tz;
     this.clock = opts.clock;
     this.delay = opts.flushDelayMs ?? 200;
+    this.contacts = new MockContacts(opts.contactsGranted ?? (() => false));
     this.file = opts.dataDir ? path.join(opts.dataDir, 'mock-google.json') : null;
     let loaded = false;
     if (this.file && fs.existsSync(this.file)) {
@@ -139,6 +145,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.guard = newGuard();
     this.lookups = 0;
     this.rateLimitNext = null;
+    this.contacts.reset();
     this.scheduleFlush();
   }
   get size(): number {
@@ -187,6 +194,10 @@ export class MockGoogleProvider implements CalendarProvider {
   // ---- CalendarProvider ----
   async ping(): Promise<void> {
     this.check();
+  }
+
+  async listContacts(syncToken?: string): Promise<ContactsResult> {
+    return this.contacts.list(syncToken);
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {

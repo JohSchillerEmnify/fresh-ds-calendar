@@ -10,6 +10,7 @@ import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
 import { planSummary } from '@/components/settings/planSummary';
+import { allowContacts } from '@/features/calendar';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useHolidaysStore } from '@/stores/holidays';
@@ -59,6 +60,11 @@ async function saveDefaults(minutes: number[]) {
         <section class="rem" data-testid="reminders-calendar" :data-calendar-id="cal.id" :data-name="cal.name" :aria-label="cal.name">
           <ReminderEditor :model-value="{ useDefault: false, minutes: cal.defaultReminders ?? [] }" prefix="calendar-default" data-testid="reminders-calendar-list" @update:model-value="saveDefaults($event.minutes)" />
         </section>
+      </SettingRow>
+    </SettingSection>
+    <SettingSection v-if="cal.virtual && cal.contactsPermission === 'missing'" data-testid="settings-contacts-access">
+      <SettingRow id="contactsAccess" wide :label="t('settingsNav.labels.contactsAccess')" :hint="t('settingsNav.labels.contactsAccessHint')">
+        <Button variant="outlined" data-testid="settings-contacts-grant" @click="allowContacts(true)">{{ t('settingsNav.labels.contactsAllow') }}</Button>
       </SettingRow>
     </SettingSection>
     <SettingSection v-if="cal.holiday">

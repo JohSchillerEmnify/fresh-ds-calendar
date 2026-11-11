@@ -151,6 +151,8 @@ export default {
     readOnly: 'Comes from Google Contacts. Change it there.',
     readOnlyInvitation: 'Invitation from {by}',
     readOnlyCalendar: 'Calendar of {by}',
+    contactHint: 'Change this birthday in Google Contacts',
+    turns: 'Turns {n}',
     genericError: 'Something went wrong',
     rollback: '{what} was not saved. It is back as it was.',
     fields: {
@@ -231,6 +233,10 @@ export default {
   undo: {
     deleted: 'Deleted: {title}',
     undo: 'Undo',
+  },
+  contacts: {
+    offer: 'Show birthdays from your Google Contacts too?',
+    allow: 'Allow',
   },
   apk: {
     available: 'New app version',

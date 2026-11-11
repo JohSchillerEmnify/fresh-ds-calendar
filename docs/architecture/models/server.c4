@@ -29,7 +29,7 @@ model {
       description 'Turns a task list into a Google event and back (contract: API.md "Storage in Google")'
     }
     googleProvider = component 'Google provider' {
-      description 'Talks to one person\'s Google Calendar with their token'
+      description 'Talks to one person\'s Google Calendar and, with their permission, Google Contacts (People API, birthdays) with their token'
     }
     holidayCalendars = component 'Holiday calendars' {
       description 'Offers the curated holiday regions whose Google calendar exists (each id checked, kept 24 h) and adds or removes one in the person\'s Google list (ADR 0039)'

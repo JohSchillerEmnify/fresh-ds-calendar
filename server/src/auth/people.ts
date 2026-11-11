@@ -70,6 +70,12 @@ export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar';
 /** True when a space-separated scope string (Google's token response `scope`) includes full calendar access. */
 export const hasCalendarScope = (scope: string | null | undefined): boolean => (scope ?? '').split(/\s+/).includes(CALENDAR_SCOPE);
 
+/** The read-only Contacts scope: contact birthdays (feature contact-birthdays) need it; the plain sign-in never asks for it. */
+export const CONTACTS_SCOPE = 'https://www.googleapis.com/auth/contacts.readonly';
+
+/** True when a space-separated scope string includes read access to the person's contacts. */
+export const hasContactsScope = (scope: string | null | undefined): boolean => (scope ?? '').split(/\s+/).includes(CONTACTS_SCOPE);
+
 /** The scopes Google granted with the stored token; null for tokens stored before the scope was recorded. */
 export function readUserScope(dataDir: string, sub: string): string | null {
   return readTokenFile(userTokenFile(dataDir, sub))?.scope ?? null;

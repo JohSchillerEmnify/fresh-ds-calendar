@@ -79,6 +79,17 @@ export interface ListEventsResult { items: GoogleEvent[]; nextSyncToken?: string
 
 export interface WriteOptions { ifMatch?: string }
 
+/** A date of a contact; `year` is absent when the contact has none (the People API sends year 0 or no year). */
+export interface ContactDate { year?: number; month: number; day: number }
+/** One person of `people.connections.list`, reduced to what the app shows; `deleted` only comes in a sync-token read. */
+export interface GoogleContact {
+  resourceName: string; deleted?: boolean; name?: string;
+  birthday?: ContactDate;
+  /** `events` of the contact: `type` is `anniversary`, `other` or the person's own label. */
+  dates: { type?: string; date: ContactDate }[];
+}
+export interface ContactsResult { items: GoogleContact[]; nextSyncToken?: string }
+
 export interface CalendarProvider {
   readonly name: 'mock' | 'google';
   ping(): Promise<void>;
@@ -119,6 +130,8 @@ export interface CalendarProvider {
   listSyncToken(calendarId: string): Promise<string | undefined>;
   /** The instances of one repeating event (`events.instances`) in `[timeMin, timeMax)`, exceptions applied, cancelled ones left out. */
   listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]>;
+  /** The person's contacts with their dates (People API, every page); with `syncToken` only changes, deleted ones flagged; expired token throws SyncTokenExpiredError. */
+  listContacts(syncToken?: string): Promise<ContactsResult>;
   /** Milliseconds left of a rate-limit cooldown (no Google calls are made meanwhile); 0 or absent when not cooling down. */
   cooldownMs?(): number;
 }

@@ -1,6 +1,6 @@
 /** Sync and network steps (STEPS.md "Sync and network"). */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { setVisibility } from './support/visibility.js';
 import type { World } from './support/world.js';
 
@@ -9,6 +9,12 @@ const FOCUS_DEBOUNCE_MS = 500;
 
 When('the network connection is lost', async function (this: World) {
   // The connection drops after the open page has loaded (its lazy chunks and first fetches), not in the middle of it.
+  if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
+  await this.context.setOffline(true);
+});
+
+/** The same drop of the connection, as a Given of the contact-birthdays offline scenario. */
+Given('the device is offline', async function (this: World) {
   if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
   await this.context.setOffline(true);
 });
