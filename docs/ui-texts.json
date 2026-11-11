@@ -9,7 +9,7 @@
     {"en": "task lists calendar", "de": "Kalender der Aufgabenlisten", "concept": "calendar of the task lists", "neverEn": ["tasks calendar"], "neverDe": []},
     {"en": "demo calendar", "de": "Demokalender", "concept": "calendar with demo events", "neverEn": ["mock calendar", "test calendar"], "neverDe": ["Testkalender"]},
     {"en": "bedtime mode", "de": "Schlafenszeit-Modus", "concept": "bedtime mode", "neverEn": [], "neverDe": ["Bedtime-Modus"]},
-    {"en": "host name", "de": "Host-Name", "concept": "host name, URL, domain", "neverEn": [], "neverDe": []},
+    {"en": "host name", "de": "Host-Name", "concept": "host name, URL, domain", "neverEn": ["server address", "web address"], "neverDe": ["Serveradresse", "Webadresse"]},
     {"en": "went wrong", "de": "schiefgegangen", "concept": "a problem happened", "neverEn": [], "neverDe": ["fehlgeschlagen"]},
     {"en": "left-handed mode", "de": "Linkshänder-Modus", "concept": "left-handed mode", "neverEn": [], "neverDe": []}
   ],

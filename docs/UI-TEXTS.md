@@ -44,7 +44,7 @@ One word per concept. Check the locale files before adding a new term. The table
 | task lists calendar | Kalender der Aufgabenlisten | tasks calendar |
 | demo calendar | Demokalender | mock calendar, test calendar, Testkalender |
 | bedtime mode | Schlafenszeit-Modus | Bedtime-Modus |
-| host name | Host-Name | - |
+| host name | Host-Name | server address, web address, Serveradresse, Webadresse |
 | went wrong | schiefgegangen | fehlgeschlagen |
 | left-handed mode | Linkshänder-Modus | - |
 <!-- glossary:end -->
