@@ -627,7 +627,7 @@
    "web/src/features/tasklists/ExpandedCard.vue": 1,
    "web/src/features/tasklists/InkLine.vue": 2,
    "web/src/features/tasklists/InkTools.vue": 5,
-   "web/src/features/tasklists/TaskListCard.vue": 4,
+   "web/src/features/tasklists/TaskListCard.vue": 2,
    "web/src/features/tasklists/TaskTray.vue": 1,
    "web/src/features/tasklists/TasksCanvas.vue": 1,
    "web/src/features/tasklists/TemplatePill.vue": 2,

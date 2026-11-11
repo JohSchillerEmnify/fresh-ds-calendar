@@ -263,12 +263,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: var(--entry-weight); line-height: 16px; text-overflow: var(--tl-cut, ellipsis);
 }
-/* the lead is the list's first item rendered in the title slot (an actual .it, so its marker and strike match the items
- * shown below); it just fills the row like a title would */
-.it.lead { flex: 1 1 auto; min-width: 0; }
-/* the list's own checkbox leads the row: the first item in the title slot draws no marker of its own */
-.it.lead, .mini .it.lead { padding-left: 0; }
-.it.lead::before { display: none; }
+/* the lead is the list's first item in the title slot (an actual .it, so its strike matches the items below); it fills the
+ * row like a title, and draws no marker: the list's own checkbox leads the row */
+.it.lead, .mini .it.lead { flex: 1 1 auto; min-width: 0; padding-left: 0; }
 .meta { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 /* titleless: no title text, so the count badge keeps the right edge */
 .untitled .meta { margin-left: auto; }
@@ -348,7 +345,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .items { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); }
 .block[data-fit='inline'] .sep { display: inline; }
 .block[data-fit='inline'] .sep.nosep { display: none; }
-.block[data-fit='inline'] .it::before { display: none; }
+.block[data-fit='inline'] .it::before, .it.lead::before { display: none; }
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
@@ -404,8 +401,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    a tall pill keeps wrapping, so a narrow column (the 7-day week) stacks the row's parts instead of cutting them */
 .tl.grown[data-tight='true'] .row { flex-wrap: nowrap; }
 /* a taller pill packs its line at the top with the card's own padding, so growing leaves the title exactly where it was */
-.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; padding-top: 3px; }
-.tl.grown.mini:not(.flat):not([data-tight='true']) .row { padding-top: 1px; }
+.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; padding-top: var(--pill-top, 3px); }
 .tl.grown[data-tight='true'] .title { flex: 1 1 0; min-width: 0; }
 /* a tight pill's count is compact (no capsule padding), so the title keeps as many letters as the column allows */
 .tl.grown[data-tight='true'] .count { padding: 0 2px; }
@@ -445,7 +441,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 }
 
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
-.mini { padding: 1px 2px 2px 3px; }
+.mini { padding: 1px 2px 2px 3px; --pill-top: 1px; }
 .mini .row { gap: 2px; min-height: 14px; }
 .mini .title { font-size: var(--entry-title); line-height: 14px; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
