@@ -472,7 +472,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   A repeating list contributes its instances inside the window.
 - `files`: per-person data, each part present only when its version (a hash of what the app would show) moved since the
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
-  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
+  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `widgetKeys` (`{ keys }` as `GET /api/widget-keys`, never a key itself), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
   (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
@@ -549,6 +549,7 @@ person: every route below lists and changes only the signed-in person's keys, an
 - Errors: **401 `WIDGET_KEY_INVALID`** (missing, malformed or unknown key), **401 `WIDGET_KEY_REVOKED`**, **400** (range as for
   items), **429 `RATE_LIMITED`** with `Retry-After` (at most 30 requests per key per minute; a revoked or unknown key is
   limited per client address too), 503/502 as for items. A good answer sets `lastUsedAt` (written at most once per hour).
+- The key list also travels in `GET /api/changes` as the `widgetKeys` file, so Settings shows it offline (the secret never does).
 - Keys are not part of the person's backup or restore; a lost key is simply created again.
 - Not cached by shared caches (`Cache-Control: no-store`). The script keeps the last answer on the phone.
 

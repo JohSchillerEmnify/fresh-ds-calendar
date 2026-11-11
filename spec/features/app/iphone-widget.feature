@@ -12,9 +12,9 @@ Feature: iPhone widgets through Scriptable
   Every size reads top-down: a big date, the next entry as a large coloured block, the rest of today in small text, a compact
   "Tomorrow" section (medium), and a "+N more" line when things overflow. No size has a time strip: a widget cannot scroll,
   so a full day does not fit.
-  The lock screen has the three accessory families Scriptable supports: inline, circular and rectangular. The widget draws
-  no clock of its own, because iOS shows its clock on the lock screen, and no date line above the circle and the box, because
-  they show it themselves. The circle says "in N min" (time until the next entry starts), never time left.
+  The lock screen has the accessory families inline and rectangular; a circular one is not offered, because iOS redraws widgets only every few minutes and a countdown that lags would annoy. The widget draws
+  no clock of its own, because iOS shows its clock on the lock screen,, and no date line above the box, because
+  it shows it itself. Nothing on the lock screen counts down: it shows start times, which do not go stale.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
 
   Background:
@@ -265,27 +265,15 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget says "Dentist · 09:00"
       And the iPhone widget shows no clock
 
-    # unit: server/test/ios-widget.test.ts:circular says the minutes
+    # unit: server/test/ios-widget.test.ts:circular shows only the next start time
     @unit
-    Scenario: The circular lock-screen widget shows the minutes until the next entry
+    Scenario: A circular lock-screen widget shows the next start time and no countdown
       Given the time is 2026-10-14 08:20
       And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "lock screen circle" size
-      Then the iPhone widget says "in 40 min"
-      And the iPhone widget shows no clock
-
-    # unit: server/test/ios-widget.test.ts:circular says now in the last minute
-    @unit
-    Scenario: The circular widget says now in the last minute and the start time when the next entry is far away
-      Given the time is 2026-10-14 08:59
-      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-      And the widget key "My iPhone" belongs to "jo@example.com"
-      When I look at the iPhone widget in the "lock screen circle" size
-      Then the iPhone widget says "now"
-      Given the time is 2026-10-14 07:30
-      When I look at the iPhone widget in the "lock screen circle" size
       Then the iPhone widget says "09:00"
+      And the iPhone widget shows no clock
 
     # unit: server/test/ios-widget.test.ts:rectangular says what is going on now
     @unit
@@ -295,7 +283,7 @@ Feature: iPhone widgets through Scriptable
       And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "lock screen rectangle" size
-      Then the iPhone widget says "Dentist · 40 min left"
+      Then the iPhone widget says "Dentist · until 10:00"
       And the iPhone widget says "Next: Gym 18:00"
       And the iPhone widget shows no date line above the box
       And the iPhone widget shows no clock

@@ -76,23 +76,18 @@ describe('the widget script: lock screen', () => {
     expect(d.said).toEqual(['Dentist · 09:00']);
   });
 
-  it('circular says the minutes until the next entry starts', async () => {
+  it('circular shows only the next start time, never a countdown, and redraws like the others', async () => {
+    for (const now of [at('08:20'), at('08:59') + 30000, at('07:30')]) {
+      const d = await draw([dentist], 'accessoryCircular', now);
+      expect(d.said).toEqual(['09:00']);
+    }
     const d = await draw([dentist], 'accessoryCircular', at('08:20'));
-    expect(d.said).toEqual(['in 40 min']);
-  });
-
-  it('circular says now in the last minute, the start time beyond an hour, and redraws on the minute', async () => {
-    expect((await draw([dentist], 'accessoryCircular', at('08:59') + 30000)).said).toEqual(['now']);
-    expect((await draw([dentist], 'accessoryCircular', at('07:30'))).said).toEqual(['09:00']);
-    expect((await draw([dentist], 'accessoryCircular', at('08:20') + 15000)).said).toEqual(['in 40 min']);
-    const d = await draw([dentist], 'accessoryCircular', at('08:20') + 15000);
-    expect(d.widget.refreshAfterDate.getTime()).toBe(at('08:21'));
-    expect((await draw([dentist], 'accessoryCircular', at('07:30'))).widget.refreshAfterDate.getTime()).toBe(at('08:00'));
+    expect(d.widget.refreshAfterDate.getTime()).toBe(at('09:00'));
   });
 
   it('rectangular says what is going on now and what is next, with no date line', async () => {
     const d = await draw([dentist, gym], 'accessoryRectangular', at('09:20'));
-    expect(d.said).toEqual(['Dentist · 40 min left', 'Next: Gym 18:00']);
+    expect(d.said).toEqual(['Dentist · until 10:00', 'Next: Gym 18:00']);
     expect(d.said.join(' ')).not.toMatch(/\d{4}|Wed|\b14\b/);
   });
 

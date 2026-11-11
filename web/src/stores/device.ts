@@ -3,6 +3,7 @@ import { computed, ref, shallowRef, watch } from 'vue';
 import { api } from '@/api/client';
 import type { AppConfig, CalendarItem, InkDoc } from '@/api/types';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
+import { useWidgetKeysStore } from '@/stores/widgetKeys';
 import { useCanvasStore } from '@/features/tasklists/canvasStore';
 import { useInkStore } from '@/stores/ink';
 import { useMotivationStore } from '@/features/motivation/store';
@@ -97,6 +98,8 @@ export const useDeviceStore = defineStore('device', () => {
     useThemeStore().fromDevice(file('theme'), file<{ themes: never[] }>('themes')?.themes);
     const templates = file<{ templates: never[] }>('templates');
     if (templates) useTemplatesStore().fromDevice(templates.templates);
+    const widgetKeys = file<{ keys: never[] }>('widgetKeys');
+    if (widgetKeys) useWidgetKeysStore().fromDevice(widgetKeys.keys);
     const canvas = file<{ areas: never[] }>('canvas');
     if (canvas) useCanvasStore().fromDevice(canvas.areas);
     useInkStore().fromDevice(file<InkDoc>('ink'));

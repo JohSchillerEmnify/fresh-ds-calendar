@@ -45,7 +45,7 @@ export function clearDeviceLog(): void { write([]); }
 
 // --- redaction -------------------------------------------------------------------------------------------------------
 /** The fixed words of the API's paths (spec/API.md); any other segment is an id. */
-const ROUTE_WORDS = new Set(('api auth me signout signout-all backup restore health config release-notes calendars changes prefs canvas templates '
+const ROUTE_WORDS = new Set(('api auth me signout signout-all backup restore health config release-notes calendars changes prefs canvas templates widget-keys '
   + 'theme themes reminders tasks-calendar push key subscriptions plan items summary events tasklists ink order share leave people categories '
   + 'shares open all-open archive settings motivation streak checkin diag sync-error demo reset').split(' '));
 

@@ -57,7 +57,7 @@ export class WidgetKeyStore {
   create(sub: string, name: string): WidgetKeyCreated {
     const keys = this.files.read(sub).keys;
     if (keys.filter((k) => !k.revokedAt).length >= MAX_ACTIVE) {
-      throw new ApiException('WIDGET_KEY_LIMIT', 409, `At most ${MAX_ACTIVE} widget keys`, undefined, 'settings.iphoneWidget.limit');
+      throw new ApiException('WIDGET_KEY_LIMIT', 409, `At most ${MAX_ACTIVE} widget keys`, undefined, 'iphoneWidget.limit');
     }
     let id = nanoid(ID_LENGTH);
     while (this.owners.has(id)) id = nanoid(ID_LENGTH);
