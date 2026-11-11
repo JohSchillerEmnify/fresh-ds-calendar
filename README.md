@@ -4,66 +4,72 @@
 
 > Trag ein, trag aus, macht mir nix aus!
 
-A mobile-first Google Calendar clone in Material 3 style, with expandable task lists in the calendar views,
-installable as a PWA, plus an Android shell with home-screen widgets. Self-hosted instance: <https://cal.example.org>.
+Yo. This is a calendar and task-list app that sits on top of your Google Calendar. I made it for people with ADHD, because
+the calendars I tried either showed me a pretty grid and then let me forget everything in it, or made me feel bad about
+every task I didn't finish.
 
-It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default
-(`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `docs/DEPLOYMENT.md` "Going live with Google").
+So here, time is something you can see (a "now" line, how long is left, when the next thing starts), reminders are
+gentle, an unfinished task just moves to today instead of turning red, and the screen can be as calm as you want it.
+Your events stay in Google Calendar. The app adds the parts I was missing, and it does not mind if you open it
+three days late.
 
-> **Vibe-coded.** Most of this code was written by AI agents under one person's direction: spec- and test-driven, reviewed and audited, but not line-by-line reviewed by experienced humans. Use at your own risk.
+## What it does
 
-**Before you run or deploy it, read [`docs/DEVELOPER-GUIDE.md`](docs/DEVELOPER-GUIDE.md)** (disclaimers, what the admin can read, deploy steps, working with or without an AI agent).
+- **Task lists live in the calendar.** Put a to-do list on a day or a time, tick things off right there, start new
+  ones from templates. What you didn't finish carries over to today, no red, no shame.
+- **Time you can see.** What is running or coming up shows the time left or when it starts, and there is a clock view
+  that draws your day as a ring.
+- **Bedtime mode.** Tell it when you want to sleep and it gently reminds you (with a little moon) when
+  it's time to wind down.
+- **Birthdays**, including the ones from your Google Contacts, in their own Birthdays calendar.
+- **Widgets.** Your week on the Android home screen. On iPhone you get home-screen and lock-screen widgets through the
+  free Scriptable app.
+- **Works offline.** Everything you see is kept on your device. Changes you make without a connection are sent when you
+  are back online.
+- **German and English**, light and dark, and a few themes with seasonal scenes. There is also a third language, a
+  German in the voice of Fresh D., the headmaster who tries far too hard to be a rapper. Pick "Coldmirror" in the
+  language setting if you want the app to talk like that. Digga.
 
-Spec-driven: `spec/features/*.feature` is the single source of truth and runs directly as the e2e suite.
+Almost everything can be switched on or off in the settings, and your settings follow you to every device. Yes, there
+are a lot of settings. I regret nothing.
 
-## Stack
+<p align="center"><img src="e2e/snapshots/mobile/clock-running-dark.png" alt="The clock view: the day as a ring, with the running task and the minutes left" width="260"></p>
+<!-- TODO: more phone screenshots (day, week, month) once pictures with demo data exist. -->
 
-- `web/`: Vue 3 PWA (Vite, TypeScript)
-- `server/`: Hono + TypeScript API with static hosting
-- `shared/`: code and schemas shared by web and server
-- `e2e/`: Playwright + playwright-bdd running `spec/features`
-- `android/`: Capacitor shell with native widgets
-- pnpm workspace, Node >= 24.11
+## How to get it
 
-## Run locally
+Honest version: there is no app store listing and no public server. You run your own instance (or use one someone you
+trust runs for you), for example at `https://cal.example.org`. How to set one up is in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-```sh
-pnpm install --ignore-scripts
-pnpm build            # web + server
-pnpm dev:server       # API (mock provider by default)
-pnpm dev:web          # Vite dev server
-pnpm test             # unit tests
-pnpm verify           # tsc + unit + i18n + steps + dedup + lint (the pre-merge gate)
-pnpm e2e              # Playwright suite over spec/features (needs a browser)
-```
+- You need a Google account; the calendar you see is your Google Calendar.
+- **Android:** download the app (APK) from your instance under Settings › Account & app and install it.
+- **iPhone:** open your instance in Safari and use "Add to Home Screen". The widget is set up under
+  Settings › Account & app › iPhone widget and needs the free Scriptable app.
+- **Anything else:** open the instance in a browser. It installs as an app there too.
 
-Key env vars: `PROVIDER=mock|google`, `DATA_DIR`, `SEED`, `TEST_MODE`, `PUBLIC_URL`, `POLL_INTERVAL_MS`, `TZ`.
-Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+## Yes, a bot wrote it (fresh, I know)
 
-## Layout
+All of the code was written by AI agents, under my direction. My job was mostly saying "no, the other thing" a lot.
+It's spec-first and test-first, so I know what it should do and that the tests agree, but no experienced human has
+read it line by line. Use it at your own risk, lol, and don't make it your only copy of anything important.
 
-| Path | Contents |
-|---|---|
-| `BRIEF.md` | Owner brief and fixed technical decisions |
-| `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
-| `docs/architecture/` | LikeC4 architecture model and views |
-| `docs/adrs/` | Architecture decision records |
-| `e2e/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ARCHITECTURE.md` | Pointer: where each former architecture section now lives |
-| `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
-| `spec/ASSUMPTIONS.md` | Pointer: the retired assumptions were triaged on 2026-10-22 |
-| `docs/` | Research, deployment and backlog notes |
-| `e2e/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
+## For developers
 
-## Android app
+Behaviour is written down as Gherkin scenarios in `spec/features/`, and those same files run as the end-to-end tests.
+The code is a Vue 3 web app, a Hono server, shared code and an Android shell. You can try it locally without Google,
+with a mock calendar and demo data.
 
-A Capacitor shell around the calendar server `https://cal.example.org`, plus a weekly home-screen widget
-(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015, 0022). `scripts/android-build.sh` (needs `CAL_DOMAIN` or `CAL_SERVER_URL`, the server is not in the source) builds an unsigned release APK
-in a Docker image (JDK 21 + Android SDK 36) and signs it with your own release keystore, which is kept outside git
-(`*.jks`, `keystore.properties` are ignored). Back the key up: an installed app can only be updated by an APK signed with the same key.
-Native unit tests: `./gradlew testDebugUnitTest` in `android/`.
+- [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md): run it locally, project layout, deploy your own instance
+- [CONTRIBUTING.md](CONTRIBUTING.md): commands, gates, how to contribute
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): settings, Google setup, Android build and signing
+- [AGENTS.md](AGENTS.md): rules for AI coding agents
+- [docs/adrs/](docs/adrs/) (decisions) and [spec/](spec/) (features, REST API)
+- [docs/ADHD-RESEARCH.md](docs/ADHD-RESEARCH.md): the research behind the design
 
-## Contributing and license
+## License
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
-Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).
+Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). Security issues: see
+[SECURITY.md](SECURITY.md).
+
+This is an unofficial fan project. It is not affiliated with or endorsed by coldmirror.
