@@ -16,11 +16,13 @@ changes and the Birthdays settings page offers to allow it. Spec: `spec/features
 2. It shows once when a calendar birthday event is the same contact (resource name) or has the same title and day.
 3. Year known: the details show "Turns N"; no year: no age.
 4. Read-only, with the hint "Change this birthday in Google Contacts". No write to Google.
-5. Only the contact's birthday date; no anniversaries or custom dates.
+5. All dates of a contact: birthday, anniversary (title = name, ring) and other/custom (`<label>: <name>`, no marker).
 6. Device-first: part of the change feed, readable offline (ADR 0023/0025).
 7. Per person: own token, own sync token, own events.
-8. Permission: not asked at sign-in; a button on the Birthdays settings page grants it incrementally; an absent permission or a
-   failing People API never breaks the other birthdays or the calendar.
+8. Permission: not asked at sign-in, nobody is logged out. While missing, a dismissible message in the shell banner place
+   (`ReauthBanner`, testid `contacts-access-banner`) links to `start?contacts=1`; it stops once granted; dismissal is a per-person pref
+   (`contactsOfferDismissed`). The Birthdays settings page offers the same link. An absent permission or a failing People API
+   never breaks the other birthdays or the calendar.
 
 ## Acceptance Criteria
 The scenarios of `contact-birthdays.feature` (one or more per requirement, all `@backlog` until built).
@@ -50,10 +52,22 @@ whose year 0 means "no year"; `text` is deprecated. `Event.type` is a custom str
 `server/src/providers/google/auth.ts` `SCOPES`, `include_granted_scopes: true`, the granted scope is stored with the token
 (`auth/people.ts`); a new scope needs a new consent, which `start?contacts=1` triggers only on request.
 
+## Decisions
+Owner, quoted exactly:
+- Permission: "we log out no one but we send a message "to allow birthdays from contacts to be shown yada yada" with a link one can click to allow it"
+- Other dates: "All dates"
+- Age: "In details only"
+- Earlier: "the contact bds should also be visible." and, on the Birthdays calendar, "ok, but it's only a virtual cal right?" (confirmed: it exists only in the app).
+- The Google OAuth app is in Testing mode, so `contacts.readonly` needs no verification (stated by the owner side; no question left).
+
 ## Assumptions and open questions
-1. Opt-in button, not asked at sign-in (ADR 0043).
-2. Only the birthday date counts; anniversaries and custom dates do not show.
-3. Age is shown only in the details ("Turns N"), not on the chip; calendar birthdays show none today.
-4. Dedupe by resource name, else same title (case-insensitive) and day; the calendar event wins.
-5. Contacts with no display name are skipped.
-6. `contacts.readonly` is a sensitive scope: Google app verification may be needed (open, owner).
+Assumptions:
+1. The message reuses the shell banner place (`ReauthBanner.vue`: "sign in again" and "grant calendar access" win while they show), so no new notice mechanism.
+2. The message is dismissed for good, per person (a pref, also across devices); a later grant stays possible from the Birthdays calendar's settings page (assumption: the owner only asked for the message).
+3. The message shows when signed in, the calendar works and the permission is missing; it stops once granted.
+4. Anniversary: titled and marked like a calendar anniversary (the name, the ring). Custom date: "<label>: <name>", no marker. Other without label: the name, no marker (a guess).
+5. Age only for birthdays with a year, in the details ("Turns N"); anniversaries and other dates show none.
+6. Dedupe by resource name and same kind, else same title (case-insensitive) and day; the calendar event wins.
+7. Contacts without a display name are skipped.
+8. The hint "Change this birthday in Google Contacts" is also used for anniversaries and custom dates (wording is a draft; other locales not drafted).
+Open: none beyond the draft wording and the "other date" title.

@@ -1734,7 +1734,7 @@ the contacts permission is not granted
 the Google contacts have a birthday {string} on {date}
 the Google contacts have a birthday {string} on {string} without a year
 the Google contacts have an anniversary {string} on {date}
-the Google contacts have a custom date {string} on {date}
+the Google contacts have a custom date {string} for {string} on {date}
 the Google contacts of {string} have a birthday {string} on {date}
 the Google contacts no longer have the birthday {string}
 the Google contacts answer with an error
@@ -1745,7 +1745,12 @@ the event dialog shows the hint {string}
 the Birthdays settings offer to allow Google Contacts
 the Birthdays settings do not offer to allow Google Contacts
 I allow Google Contacts
-no error is shown
+I am told that birthdays from Google Contacts can be shown
+I am no longer told that birthdays from Google Contacts can be shown
+the message has a link to allow it
+I follow the link of the message about Google Contacts
+I dismiss the message about Google Contacts
+I am still signed in
 ```
 
 - Google Contacts is the mock's People API (`TEST_MODE`): contacts per person with `names` and `birthdays`/`events` as
@@ -1767,7 +1772,15 @@ no error is shown
   with the button `settings-contacts-grant`; "do not offer": neither exists. "I allow Google Contacts": the consent
   screen of the test double is answered WITH the contacts scope and `settings-contacts-grant` is pressed; the round trip
   returns to the settings.
-- "no error is shown": neither `calendar-access-banner` nor an error toast / sync-error banner is visible.
+- The message is the `contacts-access-banner` in the shell banner place (`ReauthBanner`, after "sign in again" and "grant
+  calendar access", which win while they show), with the link button `contacts-access-grant` and `contacts-access-dismiss`.
+  "I am told ...": the banner is visible and its text mentions Google Contacts; "no longer told": it is not visible.
+  "the message has a link to allow it": `contacts-access-grant` is visible. "I follow the link": the consent screen of the
+  test double is answered WITH the contacts scope and `contacts-access-grant` is pressed; the round trip returns to the
+  calendar. "I dismiss the message": presses `contacts-access-dismiss` (a per-person pref, `PATCH /api/prefs`
+  `contactsOfferDismissed`). "I am still signed in": `GET /api/auth/me` answers the person's email and the calendar is shown.
+- "the Google contacts have an anniversary N on D" / "a custom date L for N on D": the contact N with an `events` entry of type
+  `anniversary` / the custom label L and that date (full date; the title in the app is N, resp. "L: N").
 
 ## Only own events are editable (`@events-readonly`)
 

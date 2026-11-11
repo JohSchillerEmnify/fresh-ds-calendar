@@ -94,7 +94,7 @@ interface CalendarEvent {
   special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
   readOnly?: true;         // not in a writable calendar (Google role reader or freeBusyReader; reason `calendar`, "Calendar of …"), or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not writable; PATCH/DELETE answer 400
   readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string } | { kind: 'contact' };  // with readOnly: "Invitation from <by>" / "Calendar of <by>"; `contact`: a birthday from Google Contacts (the app shows "Change this birthday in Google Contacts"); absent for the contacts Birthdays calendar
-  contactBirthday?: { resourceName: string; birthYear?: number };  // only on a birthday read from Google Contacts (ADR 0043): the People API resource name (`people/c123`); `birthYear` only when the contact has a year (the app shows "Turns N", N = year of the shown day - birthYear), never for a birthday without a year
+  contactBirthday?: { resourceName: string; birthYear?: number };  // only on a date read from Google Contacts (ADR 0043): the People API resource name (`people/c123`); `birthYear` only when the contact has a year (the app shows "Turns N", N = year of the shown day - birthYear), never for a birthday without a year
   dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
   updated: DateTime;
@@ -628,15 +628,18 @@ are made on the server, like a calendar birthday:
 - Source: People API `people.connections.list` for `people/me`, `personFields=names,birthdays,events`, `pageSize=1000`, all
   pages, `requestSyncToken=true`. The server keeps the `nextSyncToken` per person and asks only for changes after the first
   full read (deleted contacts come back with `metadata.deleted`; the token expires after 7 days: the error reason
-  `EXPIRED_SYNC_TOKEN` is answered with a full read). Only the contact's `birthdays` entry with a `date` counts (the
-  deprecated free-text `text` and `events` of type anniversary / custom or any other label do not show). The contact's
-  display name is the title.
-- A birthday with a year gives `contactBirthday.birthYear`; one with year 0 or none repeats every year and has none. 29 February
+  `EXPIRED_SYNC_TOKEN` is answered with a full read). Every dated entry counts: `birthdays` (with a `date`; the
+  deprecated free-text `text` alone does not) and `events` (`type` anniversary, or a custom label, or `other`). A contact without a
+  display name is skipped. Titles: a birthday and an anniversary are the contact's display name (an anniversary is marked
+  like a calendar anniversary: `special: 'anniversary'`, the ring); a custom date is `<label>: <name>` and an `other` one is
+  `<name>`, both without `special` (no marker).
+- A birthday with a year gives `contactBirthday.birthYear` (only birthdays: anniversaries and other dates have none, so no age);
+  every date repeats every year, also one with year 0 or none. 29 February
   falls on the last day of February in years without one, as for calendar birthdays.
-- Events: all-day, `calendarId: 'birthdays'`, `special: 'birthday'`, `readOnly: true`, `readOnlyReason: { kind: 'contact' }`,
+- Events: all-day, `calendarId: 'birthdays'`, `special: 'birthday'` (`'anniversary'` for an anniversary; absent for other dates), `readOnly: true`, `readOnlyReason: { kind: 'contact' }`,
   `id` = `contact:<resourceName>:<YYYY-MM-DD>` (one per year inside the window, like a repeating series), the calendar's
   colour. `PATCH` and `DELETE` answer `400 VALIDATION_ERROR` ("Birthdays are read-only"), as for the old contacts calendar.
-- One birthday shows once: a contact birthday is dropped when a calendar birthday event has `birthdayProperties.contact` equal
+- One birthday shows once: a contact date is dropped when a calendar birthday event of the same kind has `birthdayProperties.contact` equal
   to the contact's resource name, else the same title (case-insensitive) on the same day. Contacts with the same name on
   different days both show. The calendar event wins (it is the editable copy).
 - Failure is never a sign-in or calendar failure: when the People API answers an error or the scope is missing (403), the
@@ -645,10 +648,15 @@ are made on the server, like a calendar birthday:
   of a contact (renamed, date changed, deleted) shows with the next sync. `calendars` carries `contactsPermission`, so
   granting it changes the answer; the first answer after granting is a full one for `birthdays`.
 - Per person: the sync token and the events belong to the person's own token (`users/<sub>/`); nothing is shared.
-- The scope is not asked at sign-in: `GET /api/auth/google/start?contacts=1` (also while signed in) adds
-  `https://www.googleapis.com/auth/contacts.readonly` to the scopes, with `include_granted_scopes=true`, so the grant adds to
-  the old ones; the callback returns to `/?settings=birthdays-contacts` (the Birthdays settings page). A person who leaves
-  Google's checkbox unticked stays at `contactsPermission: 'missing'` and nothing else changes.
+- The scope is not asked at sign-in and nobody is signed out: while `contactsPermission` is `missing` the app shows the banner
+  `contacts-access-banner` (the shell's banner place, with `ReauthBanner`'s other two notices winning while they show) with a
+  link to `GET /api/auth/google/start?contacts=1` (also while signed in), which adds
+  `https://www.googleapis.com/auth/contacts.readonly` to the scopes with `include_granted_scopes=true`, so the grant adds to
+  the old ones; the callback returns to `/` (with `&to=settings` to `/?settings=birthdays-contacts`, the Birthdays settings
+  page, which offers the same link when the banner was dismissed). The banner stops when the permission is granted, and can be
+  dismissed: `prefs.contactsOfferDismissed` (boolean, per person, default `false`, any other value `400` field
+  `contactsOfferDismissed`); it is not shown again, also on other devices. A person who leaves Google's checkbox unticked
+  stays at `contactsPermission: 'missing'` and nothing else changes.
 
 ### Task lists
 
@@ -1248,7 +1256,7 @@ TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it unti
 |---|---|---|
 | `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar + `https://www.googleapis.com/auth/drive.appdata`, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
 | `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (feature drive-backup), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid, forged or expired `state` (the state is stateless: `<payload>.<HMAC>` with a 10 minute expiry, in the `cal_oauth_state` cookie) and when Google refuses the code (no error object is logged). |
-| `GET` | `/api/auth/google/start?contacts=1` | Like the plain start, plus the scope `https://www.googleapis.com/auth/contacts.readonly` (feature contact-birthdays): the Birthdays settings page offers it. Works signed in or out; the callback returns to `/?settings=birthdays-contacts`. The plain start never asks for it. |
+| `GET` | `/api/auth/google/start?contacts=1` | Like the plain start, plus the scope `https://www.googleapis.com/auth/contacts.readonly` (feature contact-birthdays): the Birthdays settings page offers it. Works signed in or out; the callback returns to `/`, or with `to=settings` to `/?settings=birthdays-contacts`. The plain start never asks for it; the banner and the Birthdays settings page link here. |
 | `GET` | `/api/auth/google/start` (while signed in) | Works with an existing session too (re-grant); the URL carries `include_granted_scopes=true`, so a newly granted scope adds to the old ones. |
 | `GET` | `/api/auth/google/start?app=1&challenge=<c>` | The Android app's flow (Google refuses OAuth in a WebView, so the app opens this URL in the system browser). Same as without `app`, but the `state` remembers the flag, and `challenge` (required: base64url, no padding, of the SHA-256 of a random verifier the app keeps, RFC 7636 S256; else **400**, so an old APK cannot start a sign-in) travels with the browser in the short-lived `cal_app_challenge` cookie and is stored with the code. On a successful callback the response is a **302** (no `cal_session` cookie, `Cache-Control: no-store`) to `intent://auth?code=<code>#Intent;scheme=lan.mordor.calendar;package=lan.mordor.calendar;S.browser_fallback_url=<URL-encoded /api/auth/app-open?code=<code>>;end`, which Chrome turns into the deep link `lan.mordor.calendar://auth?code=<code>`; when it cannot launch the app it goes to the fallback page. `<code>` is random (128 bit), single-use, valid 60 s, bound to the session just created and to the challenge; a not-allowed address still ends in 302 `/signin?error=private` with no code. Only `app=1` selects this; the browser flow is unchanged. |
 | `GET` | `/api/auth/app-open?code` | Public. The fallback of the intent redirect: **200 HTML** with the visible link `#open-app` (`lan.mordor.calendar://auth?code=<code>`) and a script launch; viewing it does not use the code up. An unknown, used or expired code answers 400 (the "expired" page). `Cache-Control: no-store`. |
