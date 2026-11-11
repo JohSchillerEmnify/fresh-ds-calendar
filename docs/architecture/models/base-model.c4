@@ -48,7 +48,7 @@ model {
       description 'Native Android home-screen widgets (week, day and clock) that draw the current days'
     }
     iosWidget = app 'iPhone widget' {
-      description 'A Scriptable script on the iPhone that draws today and the week with a per-device read key and keeps its last answer'
+      description 'A Scriptable script on the iPhone that draws today, today and tomorrow, the week as a time grid and the lock screen with a per-device read key, in the person\'s language, and keeps its last answer'
     }
     androidApp = app 'Android app' {
       description 'The Capacitor shell that shows the chosen server\'s web app and carries the native plugins'

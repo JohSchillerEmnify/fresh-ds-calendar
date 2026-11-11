@@ -8,10 +8,12 @@ Feature: iPhone widgets through Scriptable
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
-  The home screen has the Day view (small), today and tomorrow (medium) and the Week (large); the size picks the view.
-  Every size reads top-down: a big date, the next entry as a large coloured block, the rest of today in small text, a compact
-  "Tomorrow" section (medium), and a "+N more" line when things overflow. No size has a time strip: a widget cannot scroll,
-  so a full day does not fit.
+  The home screen has today (small), today and tomorrow side by side (medium) and the Week as a time grid (large); the size
+  picks the view. Small and medium share one row style: a compact bold header ("WED 14"; "TODAY · WED 14" and
+  "TOMORROW · THU 15" on medium, with a thin divider), an all-day band, one row per entry in its calendar colour with the
+  start in bold and then the title, and "+N more" when it overflows. There is no big date and no time strip there: a
+  widget cannot scroll, so a full day does not fit. Large draws the days across the top, an all-day band, an hour scale and
+  a block per entry placed by its start and as tall as it lasts, with a red line for now.
   The lock screen has the accessory families inline and rectangular; the circular one shows the next start time (the default) or, if the person chooses it in Settings, a live countdown that iOS updates by itself and that may lag a few minutes behind. The widget draws
   no clock of its own, because iOS shows its clock on the lock screen,, and no date line above the box, because
   it shows it itself. Inline and rectangular show start times and titles only, which do not go stale.
@@ -23,20 +25,17 @@ Feature: iPhone widgets through Scriptable
 
   Rule: A person sets the widget up from Settings in a few taps
 
-    @backlog
     Scenario: A widget key is created for this phone and the installer is ready to copy
       When I open the iPhone widget settings
       And I create a widget key named "My iPhone"
       Then the settings show the widget key "My iPhone"
       And the new widget key is shown once with the buttons "Copy installer" and "Open Scriptable"
 
-    @backlog
     Scenario: The setup offers a link to get Scriptable
       When I open the iPhone widget settings
       And I create a widget key named "My iPhone"
       Then the setup offers a link to get Scriptable
 
-    @backlog
     Scenario: The setup is a guide of seven steps
       When I open the iPhone widget settings
       And I create a widget key named "My iPhone"
@@ -50,19 +49,27 @@ Feature: iPhone widgets through Scriptable
       And the setup guide step 7 says "Tap the new widget, then Script › Calendar." and has no hint
       And the setup says "The installer only works for this iPhone and is shown only once."
 
-    @backlog
+    Scenario: The setup guide is in German
+      Given the browser language is "de-DE"
+      When I open the iPhone widget settings
+      And I create a widget key named "Mein iPhone"
+      Then the setup says "Dein Kalender auf dem Home-Bildschirm und dem Sperrbildschirm deines iPhones."
+      And the setup guide step 1 says "Installiere die kostenlose App Scriptable:" and expects "Danach kommst du hierher zurück."
+      And the setup guide step 2 says "Installer kopieren" and has no hint
+      And the setup guide step 5 says "Tippe unten rechts auf ▶. Wenn „Installiert“ erscheint, schließe Scriptable." and has no hint
+      And the setup guide step 6 says "Halte auf dem Home-Bildschirm eine freie Stelle gedrückt. Tippe auf „Bearbeiten › Widget hinzufügen“, suche nach Scriptable, wähle eine Größe und tippe auf „Widget hinzufügen“." and has no hint
+      And the setup says "Der Installer funktioniert nur für dieses iPhone und wird nur einmal angezeigt."
+
     Scenario: Copying the installer is confirmed on the button
       Given I created a widget key named "My iPhone"
       When I copy the widget installer
       Then the button "Copy installer" now says "Copied ✓"
 
-    @backlog
     Scenario: The settings say when the widget is connected
       Given I created a widget key named "My iPhone"
       When the iPhone widget refreshes with the key "My iPhone"
       Then the setup guide shows "Widget connected ✓" for the widget key "My iPhone"
 
-    @backlog
     Scenario: The copied installer has the key and the server URL filled in
       Given I created a widget key named "My iPhone"
       When I copy the widget installer
@@ -133,7 +140,6 @@ Feature: iPhone widgets through Scriptable
       Then the widget script on the phone is still version 1
       And the iPhone widget shows today as before
 
-    @backlog
     Scenario: The lock screen circle can show the start time or a countdown
       When I open the iPhone widget settings
       Then the lock screen circle is set to "Start time"
@@ -141,7 +147,6 @@ Feature: iPhone widgets through Scriptable
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
 
-    @backlog
     Scenario: The key is not shown again later
       Given I created a widget key named "My iPhone"
       When I open the iPhone widget settings again
@@ -150,7 +155,6 @@ Feature: iPhone widgets through Scriptable
 
   Rule: Keys are listed, revocable and one person's only
 
-    @backlog
     Scenario: The list shows the device name and the last use
       Given the widget key "My iPhone" was last used on 2026-10-13 at 18:30
       And the widget key "Old phone" was never used
@@ -221,47 +225,97 @@ Feature: iPhone widgets through Scriptable
       When the iPhone widget refreshes with the key "My iPhone"
       Then the iPhone widget does not show the event "Yoga"
 
-    # unit: server/test/ios-widget.test.ts:the small widget shows the Day view
+    # unit: server/test/ios-widget.test.ts:draws its texts in German
     @unit
-    Scenario: The small widget shows the Day view
+    Scenario: The widget speaks German when the app language is German
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the app language is chosen as "de"
+      When I look at the iPhone widget in the "medium" size
+      Then the iPhone widget shows "HEUTE · MI 14"
+      And the iPhone widget shows "MORGEN · DO 15"
+
+    # unit: server/test/ios-widget.test.ts:follows the iPhone when the app language is auto
+    @unit
+    Scenario: With the app language on automatic the widget follows the iPhone
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the app language is chosen as "auto"
+      When I look at the iPhone widget in the "small" size on an iPhone set to "de-DE"
+      Then the iPhone widget shows "MI 14"
+
+    # unit: server/test/widget-keys.test.ts:carries the app language
+    @unit
+    Scenario: The widget data carries the app language
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      And the app language is chosen as "de"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the app language "de"
+
+    # unit: server/test/ios-widget.test.ts:the small widget shows today in one compact header
+    @unit
+    Scenario: The small widget shows today
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "small" size
-      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
-      And the iPhone widget shows the date 2026-10-14
+      Then the iPhone widget shows "WED 14"
+      And the iPhone widget shows the entry "Dentist" with its start "09:00"
 
     # unit: server/test/ios-widget.test.ts:the medium widget shows today and tomorrow
     @unit
-    Scenario: The medium widget shows today and tomorrow
+    Scenario: The medium widget shows today and tomorrow as two identical columns
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "medium" size
-      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
-      And the iPhone widget shows the date 2026-10-14
-      And the iPhone widget shows "Tomorrow"
-      And the iPhone widget shows the event "Gym"
+      Then the iPhone widget shows "TODAY · WED 14"
+      And the iPhone widget shows the entry "Dentist" with its start "09:00"
+      And the iPhone widget shows "TOMORROW · THU 15"
+      And the iPhone widget shows the entry "Gym" with its start "18:00"
 
     # unit: server/test/ios-widget.test.ts:says how many more entries do not fit
     @unit
     Scenario: The widget says how many more entries do not fit
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-      And the calendar contains 6 more events on 2026-10-14 after 10:00
+      And the calendar contains 8 more events on 2026-10-14 after 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "small" size
-      Then the iPhone widget shows the event "Dentist" from 09:00 to 10:00
-      And the iPhone widget shows "+5 more"
+      Then the iPhone widget shows the entry "Dentist" with its start "09:00"
+      And the iPhone widget shows "+3 more"
 
-    # unit: server/test/ios-widget.test.ts:shows the week of the Monday
+    # unit: server/test/ios-widget.test.ts:the week grid places
     @unit
-    Scenario: The large widget shows the Week view
+    Scenario: The large widget shows the Week as a time grid
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
       And the calendar contains an all-day event "Holiday" on 2026-10-14
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the week of 2026-10-12 with the event "Dentist" on 2026-10-14
-      And the iPhone widget shows the event "Dentist" with its start time "09:00" on its own line above the title
-      And the iPhone widget shows "all day"
+      And the iPhone widget places the event "Dentist" in the week grid from 09:00 to 10:00
+      And the iPhone widget shows "Holiday" in the all-day band
+      And the iPhone widget shows the hours from 09:00 to 19:00
+
+    # unit: server/test/ios-widget.test.ts:the week grid draws the red now-line
+    @unit
+    Scenario: The week grid has a red line for now in today's column
+      Given the time is 2026-10-14 09:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget draws a red now-line at 09:20 in today's column
+
+    # unit: server/test/ios-widget.test.ts:the week hours follow the Android rule
+    @unit
+    Scenario: The week grid shows all timed entries within hours picked like the Android week widget
+      Given the time is 2026-10-14 08:00
+      And the calendar contains an event "Early" on 2026-10-14 from 06:00 to 07:00
+      And the calendar contains an event "Late" on 2026-10-14 from 19:00 to 20:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget shows the hours from 06:00 to 20:00
+      And the iPhone widget places the event "Late" in the week grid from 19:00 to 20:00
 
     # unit: server/test/ios-widget.test.ts:inline says the next entry
     @unit
@@ -335,7 +389,7 @@ Feature: iPhone widgets through Scriptable
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "lock screen rectangle" size
       Then the iPhone widget says "Dentist · until 10:00"
-      And the iPhone widget says "Next: Gym 18:00"
+      And the iPhone widget says "After: Gym 18:00"
       And the iPhone widget shows no date line above the box
       And the iPhone widget shows no clock
 

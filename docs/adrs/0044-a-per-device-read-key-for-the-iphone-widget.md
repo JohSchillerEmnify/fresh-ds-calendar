@@ -21,6 +21,17 @@ Status: proposed (issue #95; number 0044 because 0043 is taken on `feat/93-conta
   script) and keeps its last answer in local files for offline. The key may sit in Scriptable's storage even with iCloud
   sync on (owner decision).
 
+- A key opens two routes, `GET /api/widget/data` and `GET /api/widget/script` (same errors, same rate limit); the data answer
+  carries the person's `language` and `widgetCircle` prefs, so the script speaks the app's language (German first, `auto`
+  follows the iPhone, anything else English) and draws the lock-screen circle as start time (default) or countdown. The
+  setting is per person and reaches the widget with its next refresh; the whole answer is cached on the phone.
+- Sizes: small today, medium today and tomorrow (the same coloured rows), large the week as a time grid, lock screen inline,
+  circular and rectangular. The week grid's hours come from one rule in `shared/weekHours.js`, a port of the Android week
+  widget's `WeekLayout.hourRange`; the script carries a copy that a test keeps equal (the script is served alone).
+- The key list is a per-person file `widgetKeys` of the device store (it travels in `GET /api/changes`, never the secret),
+  so Settings shows it offline; creating and removing need the server.
+- Rate limiting uses the `rate-limiter-flexible` library (in-memory, per key and per client for wrong keys).
+
 ## Alternatives weighed
 - **The Google sign-in or the session cookie in the script**: Scriptable cannot sign in with Google (Google refuses embedded
   browsers), and a session is a full account key (write access, all routes). A leaked widget script would be a leaked account.

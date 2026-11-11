@@ -12,6 +12,7 @@
     "./limits": { "types": "./limits.d.ts", "default": "./limits.js" },
     "./prefs": { "types": "./prefs.d.ts", "default": "./prefs.js" },
     "./widget-installer": { "types": "./widgetInstaller.d.ts", "default": "./widgetInstaller.js" },
+    "./week-hours": { "types": "./weekHours.d.ts", "default": "./weekHours.js" },
     "./zone": { "types": "./zone.d.ts", "default": "./zone.js" },
     "./theme.schema.json": "./theme.schema.json"
   }

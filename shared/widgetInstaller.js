@@ -1,20 +1,21 @@
 /**
  * The tiny installer a person pastes into Scriptable once (ADR 0044): it keeps the key and the server URL in the
  * Keychain, downloads the widget script and saves it as the Scriptable script "Calendar". Plain JavaScript text, so it
- * runs in Scriptable; its words follow the iPhone's language.
+ * runs in Scriptable; its words follow the app language it was made with (`auto`: the iPhone's), German or English.
  */
 export const WIDGET_SCRIPT_NAME = 'Calendar';
 export const SCRIPTABLE_APP_STORE_URL = 'https://apps.apple.com/app/id1405459188';
 export const SCRIPTABLE_ADD_URL = 'scriptable:///add';
 
 /** The installer text with the key and the server URL filled in (nothing else is left to fill in). */
-export function widgetInstaller(serverUrl, key) {
+export function widgetInstaller(serverUrl, key, language = 'auto') {
   return `// Calendar widget installer
 // Tap the play button at the bottom right. Nothing to change in this text.
 const SERVER_URL = ${JSON.stringify(serverUrl.replace(/\/+$/, ''))};
 const KEY = ${JSON.stringify(key)};
 const NAME = ${JSON.stringify(WIDGET_SCRIPT_NAME)};
-const de = String(Device.language()).toLowerCase().startsWith('de');
+const LANGUAGE = ${JSON.stringify(language)};
+const de = [LANGUAGE, Device.language()].map((c) => String(c || '').toLowerCase()).find((c) => c.startsWith('de') || c.startsWith('en'))?.startsWith('de') === true;
 const T = de ? {
   done: 'Installiert',
   invalid: 'Dieses Widget ist ungültig. Füge es in den Einstellungen der App neu hinzu.',

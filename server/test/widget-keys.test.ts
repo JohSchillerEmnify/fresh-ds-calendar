@@ -92,6 +92,14 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await t.json('PATCH', '/api/prefs', { widgetCircle: 'soon' }, as(jo))).status).toBe(400);
   });
 
+  it('carries the app language of the key\'s person, auto by default', async () => {
+    const key = await mint(jo);
+    expect((await data(key.key)).body.language).toBe('auto');
+    await t.json('PATCH', '/api/prefs', { language: 'de' }, as(jo));
+    expect((await data(key.key)).body.language).toBe('de');
+    expect((await data((await mint(ann)).key)).body.language).toBe('auto');
+  });
+
   it('refuses an unknown or malformed key and a session without a key', async () => {
     const key = await mint(jo);
     for (const h of [bearer('cwk_AAAAAAAA_' + 'A'.repeat(43)), bearer('nonsense'), {}, as(jo), bearer(key.key.slice(0, -1) + (key.key.endsWith('A') ? 'B' : 'A'))]) {

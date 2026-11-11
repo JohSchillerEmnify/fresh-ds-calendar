@@ -1,5 +1,8 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { widgetInstaller } from '@calendar/shared/widget-installer';
+import { hourRange } from '@calendar/shared/week-hours';
 import { fakeScriptable, runScript, WIDGET_SOURCE, type Net, type Options } from './scriptable-fake.js';
 
 const BASE = 'https://cal.example.test';
@@ -27,46 +30,162 @@ async function draw(items: unknown[], family: string, now: number, o: Options = 
 }
 
 describe('the widget script: Day view', () => {
-  it('the small widget shows the Day view with the date and the next entry as a block', async () => {
+  it('the small widget shows today in one compact header and rows in calendar colours', async () => {
     const d = await draw([dentist], 'small', at('08:00'));
-    expect(d.said).toEqual(expect.arrayContaining(['14', 'Wed', 'Dentist', '09:00 – 10:00']));
+    expect(d.said).toEqual(['WED 14', '09:00', 'Dentist']);
     expect(d.f.widget.completed).toBe(true);
-    expect(d.said.join(' ')).not.toMatch(/Tomorrow/);
   });
 
-  it('the medium widget shows today and tomorrow, with no time strip', async () => {
+  it('the medium widget shows today and tomorrow as two identical columns, with no time strip', async () => {
     const tomorrow = ev('Gym', '15 18:00', '15 19:00');
     const d = await draw([dentist, tomorrow], 'medium', at('08:00'));
-    expect(d.said).toEqual(expect.arrayContaining(['14', 'Dentist', '09:00 – 10:00', 'Tomorrow', '18:00 Gym']));
+    expect(d.said).toEqual(['TODAY · WED 14', '09:00', 'Dentist', 'TOMORROW · THU 15', '18:00', 'Gym']);
+    expect(d.f.texts.filter((t) => t.text === '09:00' || t.text === '18:00').every((t) => t.bold)).toBe(true);
     expect(d.f.texts.some((t) => t.where === 'canvas')).toBe(false);
   });
 
-  it('says how many more entries do not fit', async () => {
-    const more = [10, 11, 12, 13, 14, 15].map((h) => ev(`More ${h}`, T14(`${h}:00`), T14(`${h}:30`)));
-    const d = await draw([dentist, ...more], 'small', at('08:00'));
-    expect(d.said).toEqual(expect.arrayContaining(['Dentist', 'then More 10', '+5 more']));
+  it('puts all-day entries of a medium column in a band and says how many more rows do not fit', async () => {
+    const many = [10, 11, 12, 13, 14].map((h) => ev(`More ${h}`, T14(`${h}:00`), T14(`${h}:30`)));
+    const d = await draw([allDay('Holiday', '2026-10-14'), dentist, ...many], 'medium', at('08:00'));
+    expect(d.said).toEqual(expect.arrayContaining(['Holiday', 'Dentist', 'More 10', 'More 11', '+3 more']));
+    expect(d.said).not.toContain('More 12');
   });
 
-  it('colours the next entry with its calendar colour and leaves ended entries out', async () => {
+  it('says how many more entries do not fit', async () => {
+    const more = [10, 11, 12, 13, 14, 15, 16, 17].map((h) => ev(`More ${h}`, T14(`${h}:00`), T14(`${h}:30`)));
+    const d = await draw([dentist, ...more], 'small', at('08:00'));
+    expect(d.said).toEqual(expect.arrayContaining(['Dentist', 'More 10', 'More 14', '+3 more']));
+    expect(d.said).not.toContain('More 15');
+  });
+
+  it('leaves entries that are over out and keeps their calendar colour on the rest', async () => {
     const d = await draw([dentist, gym], 'small', at('11:00'));
-    expect(d.said).toContain('Gym');
-    expect(d.said).not.toContain('Dentist');
+    expect(d.said).toEqual(['WED 14', '18:00', 'Gym']);
+  });
+
+  it('says nothing is planned on an empty day', async () => {
+    expect((await draw([], 'small', at('08:00'))).said).toEqual(['WED 14', 'Nothing planned']);
   });
 
   it('follows the iPhone language', async () => {
     const d = await draw([dentist, ev('Gym', '15 18:00', '15 19:00')], 'medium', at('08:00'), { language: 'de' });
-    expect(d.said).toEqual(expect.arrayContaining(['Mi', 'Morgen']));
+    expect(d.said).toEqual(expect.arrayContaining(['HEUTE · MI 14', 'MORGEN · DO 15']));
+  });
+});
+
+describe('the widget script: German', () => {
+  const de = (o: Options = {}, over: object = {}) => ({ o: { language: 'en', ...o }, over: { language: 'de', ...over } });
+
+  it('draws its texts in German when the app language is German, whatever the iPhone speaks', async () => {
+    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
+    const { o, over } = de();
+    const medium = await draw([dentist, tomorrow, allDay('Feiertag', '2026-10-14')], 'medium', at('08:00'), o, over);
+    expect(medium.said).toEqual(expect.arrayContaining(['HEUTE · MI 14', 'MORGEN · DO 15', '09:00', '18:00']));
+    const small = await draw([dentist, ...[10, 11, 12, 13, 14, 15, 16].map((h) => ev(`M${h}`, T14(`${h}:00`), T14(`${h}:30`)))], 'small', at('08:00'), o, over);
+    expect(small.said).toContain('+2 weitere');
+    expect((await draw([dentist, gym], 'accessoryRectangular', at('09:20'), o, over)).said).toEqual(['Dentist · bis 10:00', 'Danach: Gym 18:00']);
+    expect((await draw([], 'small', at('08:00'), o, over)).said).toEqual(['MI 14', 'Nichts geplant']);
+  });
+
+  it('follows the iPhone when the app language is auto, and reads the fun German variants as German', async () => {
+    expect((await draw([dentist], 'small', at('08:00'), { language: 'de-DE' }, { language: 'auto' })).said[0]).toBe('MI 14');
+    expect((await draw([dentist], 'small', at('08:00'), { language: 'en-GB' }, { language: 'auto' })).said[0]).toBe('WED 14');
+    expect((await draw([dentist], 'small', at('08:00'), { language: 'en' }, { language: 'de-x-mainfr' })).said[0]).toBe('MI 14');
+    expect((await draw([dentist], 'small', at('08:00'), { language: 'fr' }, { language: 'auto' })).said[0]).toBe('WED 14');
+  });
+
+  it('says the stale note, the countdown and every refusal in German', async () => {
+    const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00', language: 'de' }), savedAt: at('06:00') }) };
+    expect((await draw([], 'medium', at('08:00'), { net: undefined, files: cache })).said).toContain('Stand 06:00');
+    const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
+    expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toContain('Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.');
+    expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.']);
+    expect((await draw([], 'medium', at('08:00'), { keychain: {}, language: 'de' })).said).toEqual(['Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.']);
+    const circle = await draw([dentist], 'accessoryCircular', at('08:20'), { language: 'en' }, { language: 'de', widgetCircle: 'countdown' });
+    expect(circle.said).toContain('in');
   });
 });
 
 describe('the widget script: Week view', () => {
-  it('shows the week of the Monday with the start time in bold above the title and "all day"', async () => {
-    const d = await draw([dentist, allDay('Holiday', '2026-10-14')], 'large', at('08:00'));
-    const canvas = d.f.texts.filter((t) => t.where === 'canvas');
-    expect(canvas.map((t) => t.text)).toEqual(expect.arrayContaining(['M 12', 'W 14', 'S 18', '09:00', 'Dentist', 'all day', 'Holiday']));
-    expect(canvas.find((t) => t.text === '09:00')!.bold).toBe(true);
-    expect(canvas.map((t) => t.text).indexOf('09:00')).toBeLessThan(canvas.map((t) => t.text).indexOf('Dentist'));
+  const grid = (items: unknown[], now = '08:00') => {
+    const f = fakeScriptable();
+    return runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true }).then(({ exports: api }) => {
+      const entries = (items as any[]).map(api.entryOf);
+      const nowMin = Number(now.slice(0, 2)) * 60 + Number(now.slice(3));
+      return api.weekGrid(entries, '2026-10-14', nowMin, 0, 338, 354);
+    });
+  };
+
+  it('the week grid places an entry by its start and as tall as it lasts, in the week of the Monday', async () => {
+    const d = await draw([dentist, gym, allDay('Holiday', '2026-10-14')], 'large', at('08:00'));
+    const g = await grid([dentist, gym, allDay('Holiday', '2026-10-14')]);
+    expect([g.first, g.last]).toEqual([9, 19]);
+    const col = g.cols[2];
+    expect(col.date).toBe('2026-10-14');
+    const dent = col.blocks.find((b: any) => b.e.title === 'Dentist');
+    expect(dent.y).toBeCloseTo(g.yOf(9 * 60));
+    expect(dent.h).toBeCloseTo(g.hourH - 1);
+    expect(col.blocks.find((b: any) => b.e.title === 'Gym').y).toBeCloseTo(g.yOf(18 * 60));
+    expect(g.cols.map((c: any) => c.date)).toEqual(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
+    const canvas = d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
+    expect(canvas).toEqual(expect.arrayContaining(['M 12', 'W 14', 'S 18', '09:00 Dentist', '18:00 Gym', 'Holiday', '09', '18']));
+    const holiday = d.f.texts.find((t) => t.text === 'Holiday')!;
+    expect(holiday.rect!.y).toBeLessThan(g.top);
     expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-19');
+  });
+
+  it('the week grid draws the red now-line in today\'s column only', async () => {
+    const d = await draw([ev('Dentist', T14('09:00'), T14('10:00'))], 'large', at('09:20'));
+    const g = await grid([ev('Dentist', T14('09:00'), T14('10:00'))], '09:20');
+    const lines = d.f.rects.filter((r) => r.color === '#d93025');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.x).toBeCloseTo(g.cols[2].x);
+    expect(lines[0]!.y + 0.75).toBeCloseTo(g.yOf(9 * 60 + 20));
+    expect(lines[0]!.w).toBeCloseTo(g.colW);
+  });
+
+  it('the week hours follow the Android rule and show every timed entry', async () => {
+    const early = ev('Early', T14('06:00'), T14('07:00'));
+    const late = ev('Late', T14('19:00'), T14('20:00'));
+    const g = await grid([early, late]);
+    expect([g.first, g.last]).toEqual([6, 20]);
+    expect(g.cols[2].blocks.map((b: any) => b.e.title)).toEqual(['Early', 'Late']);
+    const d = await draw([early, late], 'large', at('08:00'));
+    expect(d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text)).toEqual(expect.arrayContaining(['06:00 Early', '19:00 Late']));
+  });
+
+  it('lays overlapping entries side by side and a short one as tall as the minimum length', async () => {
+    const a = ev('A', T14('09:00'), T14('10:00'));
+    const b = ev('B', T14('09:30'), T14('10:30'));
+    const g = await grid([a, b]);
+    const [x, y] = g.cols[2].blocks;
+    expect(x.w).toBeCloseTo(y.w);
+    expect(x.x).not.toBeCloseTo(y.x);
+    const f = fakeScriptable();
+    const { exports: api } = await runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true });
+    const short = api.weekGrid([api.entryOf(ev('Short', T14('09:00'), T14('09:05')))], '2026-10-14', 0, 30, 338, 354);
+    expect(short.cols[2].blocks[0].h).toBeCloseTo(short.hourH * 0.5 - 1);
+  });
+});
+
+describe('the week hour rule (the Android WeekLayoutTest cases)', () => {
+  const week = (...m: number[]) => m.reduce<{ start: number; end: number }[]>((l, v, i) => (i % 2 ? l : [...l, { start: v, end: m[i + 1]! }]), []);
+  it('fits the earliest start and latest end', () => { expect(hourRange(week(9 * 60 + 15, 10 * 60, 16 * 60, 16 * 60 + 30))).toEqual([9, 17]); });
+  it('rounds the end up', () => { expect(hourRange(week(8 * 60, 9 * 60, 13 * 60, 14 * 60 + 1))).toEqual([8, 15]); });
+  it('has a minimum span of six hours', () => {
+    const r = hourRange(week(12 * 60, 13 * 60));
+    expect(r[1] - r[0]).toBe(6);
+    expect(r[0] <= 12 && r[1] >= 13).toBe(true);
+  });
+  it('stays within the day', () => {
+    expect(hourRange(week(23 * 60, 24 * 60))).toEqual([18, 24]);
+    expect(hourRange(week(0, 60))[0]).toBe(0);
+  });
+  it('shows 08 to 18 for an empty week', () => { expect(hourRange([])).toEqual([8, 18]); });
+  it('is the same function in the script and in shared/', () => {
+    const text = fs.readFileSync(fileURLToPath(new URL('../../shared/weekHours.js', import.meta.url)), 'utf8');
+    const fn = text.slice(text.indexOf('function hourRange')).trim();
+    expect(WIDGET_SOURCE).toContain(fn);
   });
 });
 
@@ -112,8 +231,14 @@ describe('the widget script: lock screen', () => {
 
   it('rectangular says what is going on now and what is next, with no date line', async () => {
     const d = await draw([dentist, gym], 'accessoryRectangular', at('09:20'));
-    expect(d.said).toEqual(['Dentist · until 10:00', 'Next: Gym 18:00']);
+    expect(d.said).toEqual(['Dentist · until 10:00', 'After: Gym 18:00']);
     expect(d.said.join(' ')).not.toMatch(/\d{4}|Wed|\b14\b/);
+  });
+
+  it('rectangular names the next entry first when nothing is running, then the one after it', async () => {
+    const d = await draw([dentist, gym], 'accessoryRectangular', at('08:00'));
+    expect(d.said).toEqual(['Dentist · 09:00', 'After: Gym 18:00']);
+    expect((await draw([dentist, gym], 'accessoryRectangular', at('08:00'), { language: 'de' })).said[1]).toBe('Danach: Gym 18:00');
   });
 
   it('shows no clock on any lock-screen size', async () => {
@@ -261,6 +386,18 @@ describe('the installer', () => {
     f.globals.Request = class { headers = {}; response = null; constructor(readonly url: string) {} async loadString() { throw new Error('The request timed out.'); } };
     await runScript(widgetInstaller(BASE, KEY), f);
     expect(f.alerts.map((a) => a.message)).toEqual(['The calendar is not reachable. Try again in a few minutes.']);
+  });
+
+  it('speaks German when the app language is German, even on an English iPhone', async () => {
+    const f = fakeScriptable({ net: () => ({ status: 200, body: script }), language: 'en' });
+    await runScript(widgetInstaller(BASE, KEY, 'de'), f);
+    expect(f.alerts[0]!.message).toBe('Installiert');
+    const g = fakeScriptable({ net: () => ({ status: 200, body: script }), language: 'de' });
+    await runScript(widgetInstaller(BASE, KEY, 'auto'), g);
+    expect(g.alerts[0]!.message).toBe('Installiert');
+    const h = fakeScriptable({ net: () => ({ status: 401, body: '{}' }), language: 'fr' });
+    await runScript(widgetInstaller(BASE, KEY, 'auto'), h);
+    expect(h.alerts[0]!.message).toBe('This widget is not valid. Add it again in Settings.');
   });
 
   it('speaks German on a German iPhone', async () => {

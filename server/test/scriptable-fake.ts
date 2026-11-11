@@ -19,7 +19,8 @@ export interface Options {
 }
 
 export interface Fakes {
-  texts: { text: string; bold: boolean; where: string; relative?: boolean }[];
+  texts: { text: string; bold: boolean; where: string; relative?: boolean; rect?: { x: number; y: number; w: number; h: number } }[];
+  rects: { x: number; y: number; w: number; h: number; color: string }[];
   alerts: { title: string; message: string }[];
   files: Map<string, string>;
   keychain: Map<string, string>;
@@ -33,6 +34,7 @@ export function fakeScriptable(o: Options = {}): Fakes {
   const keychain = new Map(Object.entries(o.keychain ?? {}));
   const texts: Fakes['texts'] = [];
   const alerts: Fakes['alerts'] = [];
+  const rects: Fakes['rects'] = [];
   const requests: Fakes['requests'] = [];
   const widget: Fakes['widget'] = { set: null, presented: null, completed: false };
 
@@ -69,9 +71,10 @@ export function fakeScriptable(o: Options = {}): Fakes {
     size?: Size; private bold = false;
     setFont(f: { bold: boolean }) { this.bold = f.bold; }
     setTextColor() { /* no-op */ }
-    setFillColor() { /* no-op */ }
-    fillRect() { /* no-op */ }
-    drawTextInRect(text: string) { texts.push({ text, bold: this.bold, where: 'canvas' }); }
+    private fill = '';
+    setFillColor(c: Color | { light: Color }) { this.fill = 'hex' in c ? c.hex : 'dynamic'; }
+    fillRect(r: Rect) { rects.push({ x: r.x, y: r.y, w: r.w, h: r.h, color: this.fill }); }
+    drawTextInRect(text: string, r: Rect) { texts.push({ text, bold: this.bold, where: 'canvas', rect: { x: r.x, y: r.y, w: r.w, h: r.h } }); }
     getImage() { return {}; }
   }
   class Request {
@@ -106,7 +109,7 @@ export function fakeScriptable(o: Options = {}): Fakes {
     Script: { name: () => o.scriptName ?? 'Calendar', setWidget: (w: unknown) => { widget.set = w; }, complete: () => { widget.completed = true; } },
     config: { runsInWidget: o.runsInWidget ?? true, widgetFamily: o.widgetFamily ?? 'medium' },
   };
-  return { texts, alerts, files, keychain, requests, widget, globals };
+  return { texts, rects, alerts, files, keychain, requests, widget, globals };
 }
 
 const AsyncFunction = Object.getPrototypeOf(async () => undefined).constructor as new (...a: string[]) => (...v: unknown[]) => Promise<unknown>;

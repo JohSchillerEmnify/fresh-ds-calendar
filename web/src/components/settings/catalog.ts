@@ -98,6 +98,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('account', 'account', 'signOutAll', 'settings.account.signOutAll.label', { hint: 'settings.account.signOutAll.hint' }),
   e('account', undefined, 'backup', 'backup.label', { hint: 'backup.hint', synonyms: 'settingsNav.synonyms.backup' }),
   e('account', undefined, 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
+  e('account', undefined, 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label'),
   e('account', 'app', 'errorLog', 'deviceLog.row.label', { hint: 'deviceLog.row.hint', synonyms: 'settingsNav.synonyms.errorLog' }),
   e('account', 'app', 'credits', 'settings.account.credits.label', { hint: 'settings.account.credits.hint' }),

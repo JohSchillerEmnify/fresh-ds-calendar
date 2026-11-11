@@ -1,6 +1,6 @@
 // calendar-widget version=1
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
-// Small = the day, medium = today and tomorrow, large = the week; the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
+// Small = today, medium = today and tomorrow (the same rows), large = the week as a time grid; the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
 const VERSION = 1;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
@@ -12,14 +12,14 @@ const SIZES = { small: [158, 158], medium: [338, 158], large: [338, 354] };
 
 const TEXTS = {
   en: {
-    tomorrow: 'Tomorrow', allDay: 'all day', more: (n) => `+${n} more`, then: 'then', next: 'Next', nothing: 'Nothing planned',
+    today: 'TODAY', tomorrow: 'TOMORROW', allDay: 'all day', more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
     until: 'until', now: 'now', inWord: 'in',
     from: (t) => `Data from ${t}`, noData: 'No data yet. Open the widget once with a connection.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
-    tomorrow: 'Morgen', allDay: 'ganztägig', more: (n) => `+${n} weitere`, then: 'danach', next: 'Als Nächstes', nothing: 'Nichts geplant',
+    today: 'HEUTE', tomorrow: 'MORGEN', allDay: 'ganztägig', more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
     until: 'bis', now: 'jetzt', inWord: 'in',
     from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Öffne das Widget einmal mit Internetverbindung.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
@@ -66,28 +66,6 @@ function entriesOn(entries, date) {
   return entries.filter((e) => e.startDate <= date && date <= e.endDate).sort(byStart);
 }
 
-/** What the start of an entry reads on `date`: its time, or "all day" for an all-day or continuing entry. */
-function startLabel(e, date, T) {
-  return e.allDay || e.startDate < date ? T.allDay : e.startTime;
-}
-
-function rangeLabel(e) {
-  return e.allDay ? '' : `${e.startTime} – ${e.endTime}`;
-}
-
-/** The rest of today that is not over yet, timed entries first; the first one is the next entry. */
-function dayModel(entries, nowMs, today) {
-  const remaining = entriesOn(entries, today).filter((e) => e.allDay || e.endMs > nowMs).sort((a, b) => (a.allDay === b.allDay ? byStart(a, b) : a.allDay ? 1 : -1));
-  return { today, next: remaining[0] || null, rest: remaining.slice(1), tomorrow: entriesOn(entries, addDays(today, 1)) };
-}
-
-/** How many lines of the rest of today and of tomorrow fit; `more` counts what is left out. */
-function planLines(model, restMax, tomorrowMax) {
-  const rest = model.rest.slice(0, restMax);
-  const tomorrow = model.tomorrow.slice(0, tomorrowMax);
-  return { rest, tomorrow, more: model.rest.length - rest.length + (tomorrowMax ? model.tomorrow.length - tomorrow.length : 0) };
-}
-
 /** The next entry that has not started yet and the one running now, over the whole loaded range. */
 function nowAndNext(entries, nowMs) {
   const timed = entries.filter((e) => !e.allDay).sort(byStart);
@@ -123,101 +101,201 @@ function weekdayName(date, lang, style) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString(lang, { weekday: style, timeZone: 'UTC' });
 }
 
-function monthName(date, lang) {
-  return new Date(`${date}T12:00:00Z`).toLocaleDateString(lang, { month: 'long', timeZone: 'UTC' });
-}
+const dayName = (date, lang) => `${weekdayName(date, lang, 'short').replace(/\.$/, '').toUpperCase()} ${Number(date.slice(8))}`;
 
-/** The big date: day number, weekday and month. */
-function addDate(parent, date, lang, wide) {
+/** One day: a compact bold header, the all-day band, one coloured row per entry ("<start> <title>") and "+N more". */
+function dayColumn(parent, header, headerColor, entries, T, dim, maxRows) {
   const col = parent.addStack();
   col.layoutVertically();
-  addLine(col, String(Number(date.slice(8))), wide ? 40 : 30, { bold: true });
-  addLine(col, weekdayName(date, lang, 'short'), 13, { bold: true, color: dyn('#b3261e', '#f2b8b5') });
-  if (wide) addLine(col, monthName(date, lang), 12);
+  col.spacing = 2;
+  addLine(col, header, 12, { bold: true, color: headerColor });
+  const bands = entries.filter((e) => e.allDay);
+  const timed = entries.filter((e) => !e.allDay);
+  const band = bands.length ? col.addStack() : null;
+  if (band) {
+    band.layoutVertically();
+    band.setPadding(1, 4, 1, 4);
+    band.cornerRadius = 4;
+    band.backgroundColor = dyn('#e8e8ee', '#2c2c32');
+    bands.slice(0, 1).forEach((e) => addLine(band, e.title, 10));
+  }
+  if (!entries.length) addLine(col, T.nothing, 10);
+  const room = maxRows - (band ? 1 : 0);
+  timed.slice(0, room).forEach((e) => {
+    const row = col.addStack();
+    row.layoutHorizontally();
+    row.setPadding(2, 4, 2, 4);
+    row.cornerRadius = 4;
+    const color = dim ? GREY : e.color;
+    row.backgroundColor = new Color(color);
+    const ink = new Color(dim ? '#ffffff' : textColor(color));
+    addLine(row, e.startTime, 10, { bold: true, color: ink });
+    row.addSpacer(4);
+    addLine(row, e.title, 10, { color: ink });
+  });
+  const more = timed.length - room + Math.max(0, bands.length - 1);
+  if (more > 0) addLine(col, T.more(more), 10);
+  return col;
 }
 
-/** The next entry as a large block in its calendar's colour. */
-function addNextBlock(parent, e, today, T, dim) {
-  const block = parent.addStack();
-  block.layoutVertically();
-  block.setPadding(6, 8, 6, 8);
-  block.cornerRadius = 10;
-  const color = dim ? GREY : e.color;
-  block.backgroundColor = new Color(color);
-  const ink = new Color(dim ? '#ffffff' : textColor(color));
-  addLine(block, e.title, 15, { bold: true, color: ink, lines: 2 });
-  addLine(block, e.allDay ? T.allDay : rangeLabel(e), 12, { color: ink });
-}
+/** What is still to come today: entries that have not ended and the all-day ones. */
+const remainingToday = (entries, today, nowMs) => entriesOn(entries, today).filter((e) => e.allDay || e.endMs > nowMs);
 
-function addSmallLine(parent, e, date, T, dim) {
-  addLine(parent, `${startLabel(e, date, T)} ${e.title}`, 11, dim ? { color: new Color(GREY) } : {});
-}
+const red = () => dyn('#b3261e', '#f2b8b5');
 
-function dayWidget(model, family, lang, T, dim) {
+/** The small widget: today only, in the same rows as the medium columns. */
+function smallWidget(entries, nowMs, today, lang, T, dim) {
   const w = new ListWidget();
   w.setPadding(10, 10, 10, 10);
-  const medium = family === 'medium';
-  const lines = planLines(model, medium ? 2 : 1, medium ? 2 : 0);
-  const body = medium ? w.addStack() : w;
-  if (medium) body.layoutHorizontally();
-  addDate(body, model.today, lang, medium);
-  if (medium) body.addSpacer(10);
-  const col = medium ? body.addStack() : w;
-  if (medium) col.layoutVertically();
-  if (model.next) addNextBlock(col, model.next, model.today, T, dim);
-  else addLine(col, T.nothing, 13);
-  if (!medium && lines.rest.length) addLine(col, `${T.then} ${lines.rest[0].title}`, 11);
-  else lines.rest.forEach((e) => addSmallLine(col, e, model.today, T, dim));
-  if (lines.tomorrow.length) {
-    addLine(col, T.tomorrow, 11, { bold: true, color: dyn('#b3261e', '#f2b8b5') });
-    lines.tomorrow.forEach((e) => addSmallLine(col, e, addDays(model.today, 1), T, dim));
-  }
-  if (lines.more) addLine(col, T.more(lines.more), 11);
+  dayColumn(w, dayName(today, lang), red(), remainingToday(entries, today, nowMs), T, dim, 6);
   return w;
 }
 
-const WEEK_ROWS = 12;
+/** The medium widget: today and tomorrow as two identical columns with a thin divider. */
+function mediumWidget(entries, nowMs, today, lang, T, dim) {
+  const w = new ListWidget();
+  w.setPadding(10, 10, 10, 10);
+  const body = w.addStack();
+  body.layoutHorizontally();
+  const tomorrow = addDays(today, 1);
+  dayColumn(body, `${T.today} · ${dayName(today, lang)}`, red(), remainingToday(entries, today, nowMs), T, dim, 4);
+  body.addSpacer(8);
+  const rule = body.addStack();
+  rule.size = new Size(1, 0);
+  rule.backgroundColor = dyn('#d8d8de', '#3a3a40');
+  body.addSpacer(8);
+  dayColumn(body, `${T.tomorrow} · ${dayName(tomorrow, lang)}`, new Color(GREY), entriesOn(entries, tomorrow), T, dim, 4);
+  return w;
+}
 
-/** The week in seven columns; each entry has its start time in bold above the title. */
-function weekWidget(entries, today, lang, T, dim) {
+const WEEK = { gutter: 20, head: 16, chip: 11, maxChips: 2 };
+
+/** One entry's part on one day, in minutes since that day's midnight (a shorter entry counts as `minLen` long). */
+function segmentOn(e, date, minLen) {
+  const s = e.startDate === date ? Number(e.startTime.slice(0, 2)) * 60 + Number(e.startTime.slice(3)) : 0;
+  const end = e.endDate === date ? Number(e.endTime.slice(0, 2)) * 60 + Number(e.endTime.slice(3)) : 1440;
+  return { e, start: s, end: Math.min(1440, Math.max(end, s + Math.max(minLen || 0, 1))) };
+}
+
+/** The hours the grid shows: the same rule as the Android week widget (a copy of shared/weekHours.js, kept equal by a test). */
+function hourRange(segments) {
+  const defaultFrom = 8, defaultTo = 18, minSpan = 6;
+  if (!segments.length) return [defaultFrom, defaultTo];
+  let first = Math.max(0, Math.floor(Math.min(...segments.map((g) => g.start)) / 60));
+  let last = Math.min(24, Math.ceil(Math.max(...segments.map((g) => Math.max(g.end, g.start + 1))) / 60));
+  while (last - first < minSpan) {
+    if (last < 24) last++;
+    if (last - first < minSpan && first > 0) first--;
+  }
+  return [first, last];
+}
+
+/** Side-by-side lanes for the overlapping blocks of one day. */
+function lanes(day) {
+  const sorted = [...day].sort((a, b) => a.start - b.start || b.end - a.end);
+  let cluster = [];
+  let clusterEnd = 0;
+  const flush = () => {
+    const n = Math.max(1, ...cluster.map((g) => g.lane + 1));
+    cluster.forEach((g) => { g.lanes = n; });
+    cluster = [];
+  };
+  for (const g of sorted) {
+    if (cluster.length && g.start >= clusterEnd) flush();
+    const taken = cluster.filter((x) => x.end > g.start).map((x) => x.lane);
+    g.lane = 0;
+    while (taken.includes(g.lane)) g.lane++;
+    cluster.push(g);
+    clusterEnd = Math.max(clusterEnd, g.end);
+  }
+  flush();
+  return sorted;
+}
+
+/**
+ * The week as a time grid (like the Android week widget): seven day columns, an all-day band, an hour scale and a block
+ * per timed entry placed by its start and as tall as it lasts. Pure geometry in points; drawing follows it.
+ */
+function weekGrid(entries, today, nowMin, minLen, W, H) {
+  const start = weekStart(today);
+  const colW = (W - WEEK.gutter) / 7;
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  const segs = days.map((date) => entriesOn(entries, date).filter((e) => !e.allDay).map((e) => segmentOn(e, date, minLen)));
+  const [first, last] = hourRange(segs.flat());
+  const chips = days.map((date) => entriesOn(entries, date).filter((e) => e.allDay));
+  const rows = Math.min(WEEK.maxChips, Math.max(0, ...chips.map((c) => c.length)));
+  const top = WEEK.head + 2 + rows * WEEK.chip + (rows ? 2 : 0);
+  const hourH = (H - 2 - top) / (last - first);
+  const yOf = (min) => top + ((min - first * 60) / 60) * hourH;
+  const cols = days.map((date, i) => {
+    const x = WEEK.gutter + i * colW;
+    const blocks = [];
+    for (const g of lanes(segs[i])) {
+      const s = g.start;
+      const en = g.end;
+      const w = (colW - 2) / g.lanes;
+      blocks.push({ e: g.e, label: `${g.e.startDate === date ? g.e.startTime : ''} ${g.e.title}`.trim(), x: x + 1 + g.lane * w, y: yOf(s), w: w - 1, h: Math.max(8, yOf(en) - yOf(s) - 1) });
+    }
+    const shown = chips[i].slice(0, WEEK.maxChips);
+    return { date, x, today: date === today, blocks, chips: shown, moreChips: chips[i].length - shown.length };
+  });
+  const nowLine = nowMin >= first * 60 && nowMin <= last * 60 ? { y: yOf(nowMin), col: cols.findIndex((c) => c.today) } : null;
+  return { first, last, hourH, top, colW, cols, nowLine, yOf };
+}
+
+function weekWidget(entries, today, nowMin, minLen, lang, T, dim) {
   const [W, H] = SIZES.large;
+  const g = weekGrid(entries, today, nowMin, minLen, W, H);
   const ctx = new DrawContext();
   ctx.size = new Size(W, H);
   ctx.opaque = false;
   ctx.respectScreenScale = true;
-  const colW = W / 7;
-  const start = weekStart(today);
-  for (let i = 0; i < 7; i++) {
-    const date = addDays(start, i);
-    const x = i * colW;
-    ctx.setTextColor(date === today ? new Color('#b3261e') : dyn('#1b1b1f', '#f2f0f4'));
-    ctx.setFont(Font.boldSystemFont(11));
-    ctx.drawTextInRect(`${weekdayName(date, lang, 'narrow')} ${Number(date.slice(8))}`, new Rect(x + 2, 2, colW - 4, 16));
-    const day = entriesOn(entries, date);
-    let y = 22;
-    for (const e of day.slice(0, WEEK_ROWS)) {
-      const color = dim ? GREY : e.color;
-      if (y + 34 > H) break;
-      ctx.setFillColor(new Color(color));
-      ctx.fillRect(new Rect(x + 1, y, colW - 2, 32));
-      ctx.setTextColor(new Color(dim ? '#ffffff' : textColor(color)));
-      ctx.setFont(Font.boldSystemFont(9));
-      ctx.drawTextInRect(startLabel(e, date, T), new Rect(x + 3, y + 1, colW - 6, 11));
-      ctx.setFont(Font.systemFont(9));
-      ctx.drawTextInRect(e.title, new Rect(x + 3, y + 12, colW - 6, 20));
-      y += 34;
+  const ink = dyn('#1b1b1f', '#f2f0f4');
+  const faint = dyn('#d8d8de', '#3a3a40');
+  const text = (s, x, y, w, h, size, bold, color) => {
+    ctx.setFont(bold ? Font.boldSystemFont(size) : Font.systemFont(size));
+    ctx.setTextColor(color);
+    ctx.drawTextInRect(s, new Rect(x, y, w, h));
+  };
+  const step = g.hourH < 18 ? 2 : 1;
+  for (let h = g.first; h < g.last; h++) {
+    const y = g.yOf(h * 60);
+    ctx.setFillColor(faint);
+    ctx.fillRect(new Rect(WEEK.gutter, y, W - WEEK.gutter, 0.5));
+    if ((h - g.first) % step === 0) text(pad2(h), 0, y - 1, WEEK.gutter - 3, 10, 8, false, new Color(GREY));
+  }
+  for (const c of g.cols) {
+    if (c.today) {
+      ctx.setFillColor(new Color('#b3261e'));
+      ctx.fillRect(new Rect(c.x + 1, 0, g.colW - 2, WEEK.head));
     }
-    if (day.length > WEEK_ROWS || y + 34 > H) {
-      ctx.setTextColor(dyn('#1b1b1f', '#f2f0f4'));
-      ctx.drawTextInRect(T.more(Math.max(1, day.length - Math.floor((H - 22) / 34))), new Rect(x + 2, H - 14, colW - 4, 12));
+    text(`${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`, c.x + 2, 2, g.colW - 4, WEEK.head - 2, 10, true, c.today ? new Color('#ffffff') : ink);
+    c.chips.forEach((e, k) => {
+      const color = dim ? GREY : e.color;
+      ctx.setFillColor(new Color(color));
+      ctx.fillRect(new Rect(c.x + 1, WEEK.head + 2 + k * WEEK.chip, g.colW - 2, WEEK.chip - 1));
+      text(e.title, c.x + 2, WEEK.head + 2 + k * WEEK.chip, g.colW - 4, WEEK.chip - 1, 8, false, new Color(dim ? '#ffffff' : textColor(color)));
+    });
+    if (c.moreChips > 0) text(T.more(c.moreChips), c.x + 2, WEEK.head + 2 + WEEK.maxChips * WEEK.chip - 1, g.colW - 4, 9, 7, false, ink);
+    for (const b of c.blocks) {
+      const color = dim ? GREY : b.e.color;
+      ctx.setFillColor(new Color(color));
+      ctx.fillRect(new Rect(b.x, b.y, b.w, b.h));
+      text(b.label, b.x + 1, b.y, b.w - 2, b.h, 8, false, new Color(dim ? '#ffffff' : textColor(color)));
     }
   }
+  if (g.nowLine && g.nowLine.col >= 0) {
+    ctx.setFillColor(new Color('#d93025'));
+    ctx.fillRect(new Rect(g.cols[g.nowLine.col].x, g.nowLine.y - 0.75, g.colW, 1.5));
+  }
   const w = new ListWidget();
-  w.setPadding(8, 6, 4, 6);
+  w.setPadding(6, 6, 4, 6);
   const img = w.addImage(ctx.getImage());
-  img.imageSize = new Size(W - 12, H - 12);
+  img.imageSize = new Size(W - 12, H - 10);
   return w;
 }
+
+const pad2 = (n) => String(n).padStart(2, '0');
 
 /**
  * The circle: the next start time, or with the "countdown" setting a live countdown (WidgetDate's relative style, which
@@ -253,9 +331,14 @@ function lockWidget(family, entries, nowMs, T, circle) {
     w.addAccessoryWidgetBackground = true;
     addCircle(w, circle, next, nowMs, T);
   } else {
+    // the first line is the running entry or else the next one; the second is the one after it
+    const upcoming = entries.filter((e) => !e.allDay && e.startMs > nowMs).sort(byStart);
+    const first = now ? null : upcoming[0];
+    const after = now ? upcoming[0] : upcoming[1];
     if (now) addLine(w, `${now.title} · ${T.until} ${now.endTime}`, 13, { bold: true });
-    if (next) addLine(w, `${T.next}: ${next.title} ${next.startTime}`, 12);
-    else if (!now) addLine(w, T.nothing, 13, { bold: true });
+    else if (first) addLine(w, `${first.title} · ${first.startTime}`, 13, { bold: true });
+    else addLine(w, T.nothing, 13, { bold: true });
+    if (after) addLine(w, `${T.after}: ${after.title} ${after.startTime}`, 12);
   }
   return w;
 }
@@ -339,8 +422,14 @@ function rangeFor(family, deviceDate) {
   return family === 'large' ? [weekStart(deviceDate), addDays(weekStart(deviceDate), 7)] : [addDays(deviceDate, -1), addDays(deviceDate, 7)];
 }
 
-function language() {
-  return String(Device.language()).toLowerCase().startsWith('de') ? 'de' : 'en';
+/** German or English: the app's language setting, else the iPhone's; the fun German variants read as German. */
+function pickLanguage(setting) {
+  for (const code of [setting, Device.language()]) {
+    const c = String(code || '').toLowerCase();
+    if (c.startsWith('de')) return 'de';
+    if (c.startsWith('en')) return 'en';
+  }
+  return 'en';
 }
 
 /** Builds the widget for a size from one answer; `note` is the stale or refusal text, `dim` greys the picture. */
@@ -350,15 +439,15 @@ function buildWidget(family, data, nowMs, lang, T) {
   const entries = data.items.map(entryOf).filter(Boolean);
   let w;
   if (family.startsWith('accessory')) w = lockWidget(family, entries, nowMs, T, data.widgetCircle);
-  else if (family === 'large' || family === 'extraLarge') w = weekWidget(entries, today, lang, T, false);
-  else w = dayWidget(dayModel(entries, nowMs, today), family === 'medium' ? 'medium' : 'small', lang, T, false);
+  else if (family === 'large' || family === 'extraLarge') w = weekWidget(entries, today, localNow(nowMs, offset).minutes, data.minEventMinutes, lang, T, false);
+  else if (family === 'medium') w = mediumWidget(entries, nowMs, today, lang, T, false);
+  else w = smallWidget(entries, nowMs, today, lang, T, false);
   w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset, family === 'accessoryCircular' ? data.widgetCircle : null));
-  return { w, today, entries, offset };
+  return { w, today, entries, offset, data };
 }
 
 async function run() {
-  const lang = language();
-  const T = TEXTS[lang];
+  const T0 = TEXTS[pickLanguage()];
   const family = config.widgetFamily || 'medium';
   const finish = (w) => {
     if (config.runsInWidget) Script.setWidget(w);
@@ -366,7 +455,7 @@ async function run() {
     else (family === 'small' ? w.presentSmall() : family === 'large' ? w.presentLarge() : w.presentMedium());
     Script.complete();
   };
-  if (!Keychain.contains(KEY_ID) || !Keychain.contains(URL_ID)) return finish(messageWidget(T.setup));
+  if (!Keychain.contains(KEY_ID) || !Keychain.contains(URL_ID)) return finish(messageWidget(T0.setup));
   const base = Keychain.get(URL_ID);
   const key = Keychain.get(KEY_ID);
   const nowMs = api.now();
@@ -378,7 +467,9 @@ async function run() {
     await updateScript(base, key, got.data.scriptVersion);
   }
   const data = got.data || (cached && cached.data);
-  if (!data) return finish(messageWidget(got.fail === 'offline' ? T.noData : T[got.fail]));
+  if (!data) return finish(messageWidget(got.fail === 'offline' ? T0.noData : T0[got.fail]));
+  const lang = pickLanguage(data.language);
+  const T = TEXTS[lang];
   const dim = got.fail === 'revoked' || got.fail === 'invalid';
   const built = buildWidget(family, data, nowMs, lang, T);
   let w = built.w;
@@ -394,15 +485,15 @@ async function run() {
 function withNote(family, built, lang, T, dim, note) {
   const { w, today, entries } = built;
   if (family.startsWith('accessory')) return dim ? messageWidget(note) : w;
-  const again = (family === 'large' || family === 'extraLarge') ? weekWidget(entries, today, lang, T, dim)
-    : dayWidget(dayModel(entries, api.now(), today), family === 'medium' ? 'medium' : 'small', lang, T, dim);
+  const again = (family === 'large' || family === 'extraLarge') ? weekWidget(entries, today, localNow(api.now(), built.offset).minutes, built.data.minEventMinutes, lang, T, dim)
+    : family === 'medium' ? mediumWidget(entries, api.now(), today, lang, T, dim) : smallWidget(entries, api.now(), today, lang, T, dim);
   addLine(again, note, 10, { color: dim ? new Color('#b3261e') : new Color(GREY), lines: 2 });
   again.refreshAfterDate = w.refreshAfterDate;
   return again;
 }
 
 const api = {
-  now: () => Date.now(), VERSION, TEXTS, entryOf, dayModel, planLines, nowAndNext, nextRedraw, localNow, weekStart, addDays, buildWidget, fetchData, updateScript, run,
+  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, hourRange, nextRedraw, localNow, weekStart, addDays, buildWidget, fetchData, updateScript, run,
 };
 module.exports = api;
 if (typeof CALENDAR_WIDGET_TEST === 'undefined') await run();

@@ -3623,9 +3623,11 @@ I look at the iPhone widget in the {string} size
 I tap the iPhone widget
 the iPhone widget shows the event {string}
 the iPhone widget does not show the event {string}
-the iPhone widget shows the event {string} from {time} to {time}
-the iPhone widget shows the date {date}
-the iPhone widget shows the event {string} with its start time {string} on its own line above the title
+the iPhone widget shows the entry {string} with its start {string}
+the iPhone widget places the event {string} in the week grid from {time} to {time}
+the iPhone widget shows {string} in the all-day band
+the iPhone widget shows the hours from {time} to {time}
+the iPhone widget draws a red now-line at {time} in today's column
 the iPhone widget shows no date line above the box
 the iPhone widget shows the week of {date} with the event {string} on {date}
 the iPhone widget shows {string}
@@ -3635,6 +3637,9 @@ the iPhone widget says nothing about its age
 the iPhone widget shows no clock
 the iPhone widget counts down live to {time}
 the lock screen circle is chosen as {string}
+the app language is chosen as {string}
+I look at the iPhone widget in the {string} size on an iPhone set to {string}
+the widget data carries the app language {string}
 the widget data carries the lock screen circle {string}
 the lock screen circle is set to {string}
 the lock screen circle row says {string}
@@ -3656,7 +3661,9 @@ the iPhone widget asks to be redrawn at {time}
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
 - "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
+- The widget and the installer speak the person's app language (`prefs.language`, sent in the widget data and into the installer), `auto` follows the iPhone, the fun German variants read as German, anything else English; German is the primary language: every widget, guide, setting and error text is written in German first. iOS and Scriptable menu names in the German guide ("Bearbeiten › Widget hinzufügen", "Einsetzen") are unverified until a real iPhone is checked.
 - Lock-screen sizes are the string {string} "lock screen inline", "lock screen circle", "lock screen rectangle" = `accessoryInline`, `accessoryCircular`, `accessoryRectangular` (iOS 16+). The circle is not offered (no countdown that lags); it only appears in the scenario that pins that it shows a start time.
 - The installer and the script run in Scriptable: their unit tests (`ios/widget/test`) use fake `Request`, `FileManager` and `Keychain`; a download is written with `FileManager.writeString` into `documentsDirectory()` only after its first line parses as `// calendar-widget version=<n>` with `n` newer than the running one.
 - Everything that starts "I look at the iPhone widget" or "the iPhone widget …" is proven on the server side (the widget
