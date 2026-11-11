@@ -400,8 +400,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* a tight pill is one flex line: the title shrinks and ellipsises instead of dropping below the icon where the pill would hide it;
    a tall pill keeps wrapping, so a narrow column (the 7-day week) stacks the row's parts instead of cutting them */
 .tl.grown[data-tight='true'] .row { flex-wrap: nowrap; }
-/* a taller pill packs its line at the top with the card's own padding, so growing leaves the title exactly where it was */
-.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; padding-top: var(--pill-top, 3px); }
+/* a taller pill packs its line at the top with the card's own padding, so growing leaves the title exactly where it was;
+   it grows past its time block when the stacked parts need it, never cutting the title */
+.tl.grown:not(.flat):not([data-tight='true']) .row { flex-wrap: wrap; align-content: flex-start; height: auto; min-height: var(--min-h, 0px); padding-top: var(--pill-top, 3px); }
 .tl.grown[data-tight='true'] .title { flex: 1 1 0; min-width: 0; }
 /* a tight pill's count is compact (no capsule padding), so the title keeps as many letters as the column allows */
 .tl.grown[data-tight='true'] .count { padding: 0 2px; }
