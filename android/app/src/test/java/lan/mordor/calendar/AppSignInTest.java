@@ -30,6 +30,9 @@ public class AppSignInTest {
     public void theSignInStartOfTheChosenServerOpensInTheBrowserWithAppFlag() {
         assertEquals(BASE + "/api/auth/google/start?app=1&challenge=" + CHALLENGE, AppSignIn.browserUrl(BASE, BASE + "/api/auth/google/start", CHALLENGE));
         assertEquals(BASE + "/api/auth/google/start?app=1&challenge=" + CHALLENGE, AppSignIn.browserUrl(BASE, BASE + "/api/auth/google/start?x=1", CHALLENGE));
+        assertEquals(BASE + "/api/auth/google/start?app=1&challenge=" + CHALLENGE + "&contacts=1&to=settings", AppSignIn.browserUrl(BASE, BASE + "/api/auth/google/start?contacts=1&x=1&to=settings", CHALLENGE));
+        assertEquals(BASE + "/api/auth/google/start?app=1&challenge=" + CHALLENGE + "&contacts=1", AppSignIn.browserUrl(BASE, BASE + "/api/auth/google/start?contacts=1", CHALLENGE));
+        assertEquals(BASE + "/api/auth/google/start?app=1&challenge=" + CHALLENGE, AppSignIn.browserUrl(BASE, BASE + "/api/auth/google/start?to=settings", CHALLENGE));
     }
 
     @Test

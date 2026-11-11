@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { nextTick } from 'vue';
+import { nextTick, ref } from 'vue';
 import type { Calendar } from '@/api/types';
 import { useContactsOffer } from '@/features/calendar/contactsOffer';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -11,7 +11,9 @@ const birthdays = (contactsPermission: 'granted' | 'missing'): Calendar => ({
   id: 'birthdays', name: 'Birthdays', color: '#9fc6e7', primary: false, writable: false, defaultReminders: [], virtual: true, hidden: false, contactsPermission,
 });
 
-beforeEach(() => { setActivePinia(createPinia()); });
+const path = ref('/month/2026-10');
+vi.mock('vue-router', () => ({ useRoute: () => ({ get path() { return path.value; } }) }));
+beforeEach(() => { setActivePinia(createPinia()); path.value = '/month/2026-10'; });
 
 function setup(permission: 'granted' | 'missing') {
   const cals = useCalendarsStore();
@@ -69,5 +71,16 @@ describe('the Google Contacts offer', () => {
     useContactsOffer();
     await nextTick();
     expect(offer(ui)).toEqual([]);
+  });
+
+  it('is hidden while the Birthdays settings page is open, which offers Allow itself, and comes back after', async () => {
+    const { ui } = setup('missing');
+    await nextTick();
+    path.value = '/settings/calendars/birthdays';
+    await nextTick();
+    expect(offer(ui)).toEqual([]);
+    path.value = '/settings/calendars';
+    await nextTick();
+    expect(offer(ui)).toHaveLength(1);
   });
 });

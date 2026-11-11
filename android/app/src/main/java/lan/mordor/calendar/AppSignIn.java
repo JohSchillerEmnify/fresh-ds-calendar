@@ -59,7 +59,18 @@ public final class AppSignIn {
             return null;
         }
         if (!(base + START_PATH).equals(base(u) + u.getRawPath())) return null;
-        return base + START_PATH + "?app=1&challenge=" + challenge;
+        return base + START_PATH + "?app=1&challenge=" + challenge + contactsQuery(u.getRawQuery());
+    }
+
+    /** Keeps the Contacts request ({@code contacts=1}, and {@code to=settings} with it) of a start URL; every other parameter is dropped. */
+    private static String contactsQuery(String query) {
+        if (query == null) return "";
+        boolean contacts = false, settings = false;
+        for (String p : query.split("&")) {
+            contacts |= p.equals("contacts=1");
+            settings |= p.equals("to=settings");
+        }
+        return contacts ? "&contacts=1" + (settings ? "&to=settings" : "") : "";
     }
 
     /**

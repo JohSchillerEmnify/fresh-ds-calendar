@@ -184,6 +184,15 @@ Feature: Birthdays from Google Contacts
     And I open the month view for 2026-10
     Then I see the event "Anna" on 2026-10-14
 
+  Scenario: The message steps aside on the Birthdays settings page, which offers Allow itself
+    Given the contacts permission is not granted
+    When I open the month view for 2026-10
+    And I open the settings
+    And I open the settings group "Calendars"
+    And I open the calendar "Birthdays" in the settings
+    Then the Birthdays settings offer to allow Google Contacts
+    And I am no longer told that birthdays from Google Contacts can be shown
+
   Scenario: With the permission there is no message and no offer
     When I open the month view for 2026-10
     Then I am no longer told that birthdays from Google Contacts can be shown

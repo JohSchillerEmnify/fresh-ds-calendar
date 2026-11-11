@@ -131,7 +131,8 @@ Then('the message has the action {string}', async function (this: World, label: 
 });
 
 Then('I am no longer told that birthdays from Google Contacts can be shown', async function (this: World) {
-  await this.settled();
+  // on a settings page there is no calendar view to wait for
+  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.settled();
   await expect(this.page.locator(tid('contacts-offer'))).toHaveCount(0);
 });
 
