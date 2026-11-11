@@ -26,7 +26,8 @@ section "Working rules"; everything there binds you. This file adds how a track 
 - Run tests with `nice -n 10` and at most 4 Vitest workers; no repeat or stress loops.
 
 ## Gates
-- `pnpm --silent verify` must print `verify: OK` before you report. Run it once, at the end.
+- `pnpm --silent verify` must print `verify: OK` before you report. A `feat`/`fix` branch also adds one or two plain, user-facing
+  English bullets under today's `## YYYY-MM-DD` in `CHANGELOG.md` (test, tooling and spec-only: none); verify enforces it. Run it once, at the end.
 - e2e only targeted: `pnpm run build:e2e`, then `E2E_SKIP_BUILD=1 e2e-locked --grep "<exact scenario names>"` (add
   `--project=mobile` and `--project=desktop` as needed, `--workers=1`). `pnpm e2e:affected` suggests the grep. Never
   the whole suite, never `@perf`, never a bare `--update-snapshots`. Each run blocks the shared machine: run a set once,

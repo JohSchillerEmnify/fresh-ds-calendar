@@ -43,5 +43,5 @@ Terse output on purpose (one line on success, only failures otherwise); every co
 
 ## Commits and PRs
 
-Use conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`). Fill in the PR template.
+Use conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`). A branch with a `feat` or `fix` commit also adds user-facing bullets under today's date in `CHANGELOG.md` (the in-app "What's new"); `pnpm verify` enforces it. Fill in the PR template.
 Report security issues privately, see `SECURITY.md`.
