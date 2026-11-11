@@ -49,8 +49,8 @@ trust runs for you), for example at `https://cal.example.org`. How to set one up
 
 ## Yes, a bot wrote it (fresh, I know)
 
-All of the code was written by AI agents, under my direction. I mostly say "no, the other thing" a lot. It's spec-first and test-first, so I know what it should
-do and that the tests agree, but no experienced human has read it line by line. Use it at your own risk, lol, and
+All of the code was written by AI agents, under my direction. My job was mostly saying "no, the other thing"
+a lot. It's spec-first and test-first, so I know what it should do and that the tests agree, but no experienced human has read it line by line. Use it at your own risk, lol, and
 don't make it your only copy of anything important.
 
 ## For developers
