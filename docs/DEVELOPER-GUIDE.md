@@ -61,6 +61,28 @@ pnpm dev:web      # opens the web app
 The mock provider imitates Google Calendar in a local JSON file, so you can click through everything without an
 account.
 
+Other commands: `pnpm test` (unit tests), `pnpm verify` (the pre-merge gate), `pnpm e2e` (Playwright over
+`spec/features`, needs a browser), `pnpm -F @calendar/web tokens` (theme tokens). `PROVIDER=mock` is the default;
+`PROVIDER=google` needs your own OAuth credentials (`DEPLOYMENT.md` "Going live with Google"). All settings are listed
+in `DEPLOYMENT.md`.
+
+Where things live:
+
+| Path | Contents |
+|---|---|
+| `web/`, `server/`, `shared/` | Vue 3 PWA (Vite), Hono API with static hosting, code shared by both; pnpm workspace, Node >= 24.11 |
+| `android/` | Capacitor shell with native widgets (views `androidApp` and `widget`, ADRs 0012-0015, 0022) |
+| `e2e/`, `e2e/STEPS.md` | Playwright + playwright-bdd running `spec/features`; every step phrase, the contract for `e2e/steps/` |
+| `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
+| `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
+| `docs/architecture/`, `docs/adrs/` | LikeC4 model and views; architecture decision records |
+| `BRIEF.md` | Owner brief and fixed technical decisions |
+| `docs/` | Research, deployment and backlog notes |
+
+Android: `scripts/android-build.sh` (needs `CAL_DOMAIN` or `CAL_SERVER_URL`) builds the APK in Docker and signs it with
+your own keystore kept outside git; see `DEPLOYMENT.md` → Android app. Native unit tests: `./gradlew testDebugUnitTest`
+in `android/`.
+
 ## 3. Deploy your own instance
 
 What you need:
