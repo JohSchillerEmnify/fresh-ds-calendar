@@ -301,7 +301,23 @@ export type ErrorCode =
   | 'NO_BACKUP'
   | 'BACKUP_FAILED'
   | 'RATE_LIMITED'
+  | 'WIDGET_KEY_LIMIT'
+  | 'WIDGET_KEY_INVALID'
+  | 'WIDGET_KEY_REVOKED'
   | 'INTERNAL';
+
+/** One iPhone widget key as the Settings list shows it (the key itself only in {@link WidgetKeyCreated}). */
+export interface WidgetKey {
+  id: string;
+  name: string;
+  createdAt: DateTime;
+  lastUsedAt: DateTime | null;
+}
+
+/** The answer of `POST /api/widget-keys`: the only time the key itself is shown. */
+export interface WidgetKeyCreated extends WidgetKey {
+  key: string;
+}
 
 export interface ApiError {
   error: { code: ErrorCode; message: string; key?: string; details?: { field?: string; issue?: string }[] };

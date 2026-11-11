@@ -7,6 +7,7 @@ import { InkStore } from './services/inkStore.js';
 import { InkService } from './services/inkService.js';
 import { IdempotencyStore } from './services/idempotencyStore.js';
 import { TemplateStore } from './services/templateStore.js';
+import { WidgetKeyStore } from './services/widgetKeys.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
 import { knownSubs, splitServerWideFiles } from './services/personSplit.js';
@@ -48,6 +49,8 @@ export interface Ctx {
   inks: InkService;
   idempotency: IdempotencyStore;
   templates: TemplateStore;
+  /** Per-device read keys of the iPhone widget (ADR 0044). */
+  widgetKeys: WidgetKeyStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
   /** Every successful write of the API is reported here (ADR 0025); the live "changed" publisher listens. */
@@ -105,6 +108,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const ink = new InkStore(config.dataDir);
   const idempotency = new IdempotencyStore(config.dataDir);
   const templates = new TemplateStore(config.dataDir);
+  const widgetKeys = new WidgetKeyStore(config.dataDir, () => clock.nowMs(), (m) => console.warn(m));
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
   const auth = new AuthState(config, () => clock.real());
@@ -139,7 +143,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys, backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
