@@ -8,6 +8,20 @@
 
 ## 2026-11-10
 - Settings › Calendars › Holidays: add the public holidays of a country (in German or English, public holidays only or with observances) and remove them again.
+- Settings › Calendars › Holidays can now also add the holidays of a single region.
+- Pick an event's place on a map, or start from your current location.
+- A new app icon, and more icon sets to choose from in Settings: Solar, Phosphor and Pixel. Settings › Account & app lists the credits of the icon sets and libraries used.
+- Settings › Account & app has a "Check for updates" button next to the version.
+- Task lists: a grown list card collapses by tapping anywhere on its pill, several can be grown at once, a list with one line works like a single task with its own checkbox, and the cards fade out where text is cut instead of ending abruptly.
+- On a phone, task list cards with a title show their items in rows below the title, and a block one line tall fades out instead of ending in an ellipsis.
+- On desktop, the open tasks panel can be made wider or narrower by dragging its edge; it is remembered for you. On a narrow window the open tasks row moves into the bottom bar.
+- The "Time left" switch of the Approaching card works again and is off by default.
+- Fixed: a reminder that was already shown does not come back when you open the app again.
+- Fixed: a notice that stays on screen no longer covers the last row, and a grown list keeps its title visible under the bottom bar.
+- Fixed: one calendar that cannot be read no longer stops the others from loading, and a server restart no longer looks like a Google outage.
+- Fixed: the sync failed icon appears exactly 5 minutes after the last successful sync.
+- Fixed: in the approach bar an entry no longer covers another entry's block.
+- Updates of the app now install without a visible pause.
 
 ## 2026-11-09
 - An event's map has two buttons under it: open the place in Google Maps or on OpenStreetMap.
