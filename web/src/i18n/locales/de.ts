@@ -165,7 +165,7 @@ export default {
       signedIn: 'Mit Google angemeldet',
       signOut: 'Abmelden',
       signOutAll: { label: 'Überall abmelden', hint: 'Beendet die Anmeldung auf allen Geräten, auch auf diesem', button: 'Überall abmelden' },
-      calendarAccess: { label: 'Kalenderzugriff', hint: 'Setz auf der Google-Seite das Häkchen beim Kalender – sonst lässt sich dein Kalender nicht laden.', grant: 'Kalenderzugriff erlauben' },
+      calendarAccess: { label: 'Kalenderzugriff', hint: 'Setz das Häkchen beim Kalender, wenn Google beim Anmelden nach den Berechtigungen fragt – sonst lässt sich dein Kalender nicht laden.', grant: 'Kalenderzugriff erlauben' },
       resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Demokalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
       update: { check: 'Nach Updates suchen', checking: 'Suche läuft…', current: 'Das ist die neueste Version.', ready: 'Eine neue Version ist bereit.', load: 'Jetzt laden', apk: 'Eine neue App-Version ist bereit.', failed: 'Die Suche hat nicht geklappt. Versuche es später noch einmal.' },
       version: 'Version {version}',

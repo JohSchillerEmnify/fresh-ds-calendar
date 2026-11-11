@@ -171,7 +171,7 @@ export default {
       signedIn: 'Signed in with Google',
       signOut: 'Sign out',
       signOutAll: { label: 'Sign out everywhere', hint: 'Ends the sign-in on every device, including this one', button: 'Sign out everywhere' },
-      calendarAccess: { label: 'Calendar access', hint: 'On Google\'s screen, tick the calendar box. Without it your calendar can\'t be loaded.', grant: 'Grant calendar access' },
+      calendarAccess: { label: 'Calendar access', hint: 'Tick the calendar box when Google asks for permissions as you sign in, or your calendar can\'t be loaded.', grant: 'Grant calendar access' },
       resetDemo: { label: 'Reset demo data', hint: 'Replaces the demo calendar with fresh demo events', button: 'Reset', done: 'Demo data restored', failed: 'Could not reset demo data' },
       update: { check: 'Check for updates', checking: 'Checking…', current: 'This is the newest version.', ready: 'A new version is ready.', load: 'Load it now', apk: 'A new app version is ready.', failed: 'Could not check. Try again later.' },
       version: 'Version {version}',
