@@ -62,7 +62,7 @@ export default {
     signIn: 'Anmelden',
   },
   calendarAccess: {
-    message: 'Der Zugriff auf Google Kalender wurde nicht erlaubt, deshalb kann dein Kalender nicht geladen werden. Melde dich noch einmal an und setze auf Googles Bildschirm den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
+    message: 'Du hast den Zugriff auf Google Kalender nicht erlaubt, deshalb lässt sich dein Kalender nicht laden. Melde dich noch einmal an und setz auf der Google-Seite das Häkchen bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
     grant: 'Kalenderzugriff erlauben',
   },
   install: {
