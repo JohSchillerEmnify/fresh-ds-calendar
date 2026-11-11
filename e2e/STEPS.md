@@ -1747,8 +1747,8 @@ the Birthdays settings do not offer to allow Google Contacts
 I allow Google Contacts
 I am told that birthdays from Google Contacts can be shown
 I am no longer told that birthdays from Google Contacts can be shown
-the message has a link to allow it
-I follow the link of the message about Google Contacts
+the message has the action "Allow"
+I allow in the message about Google Contacts
 I dismiss the message about Google Contacts
 I am still signed in
 ```
@@ -1772,13 +1772,13 @@ I am still signed in
   with the button `settings-contacts-grant`; "do not offer": neither exists. "I allow Google Contacts": the consent
   screen of the test double is answered WITH the contacts scope and `settings-contacts-grant` is pressed; the round trip
   returns to the settings.
-- The message is the `contacts-access-banner` in the shell banner place (`ReauthBanner`, after "sign in again" and "grant
-  calendar access", which win while they show), with the link button `contacts-access-grant` and `contacts-access-dismiss`.
-  "I am told ...": the banner is visible and its text mentions Google Contacts; "no longer told": it is not visible.
-  "the message has a link to allow it": `contacts-access-grant` is visible. "I follow the link": the consent screen of the
-  test double is answered WITH the contacts scope and `contacts-access-grant` is pressed; the round trip returns to the
-  calendar. "I dismiss the message": presses `contacts-access-dismiss` (a per-person pref, `PATCH /api/prefs`
-  `contactsOfferDismissed`). "I am still signed in": `GET /api/auth/me` answers the person's email and the calendar is shown.
+- The message is the persistent snackbar `contacts-offer` (`duration: 0`, like `apk-available`) reading "Show birthdays from your
+  Google Contacts too?", with the action `contacts-offer-allow` ("Allow") and the ✕ `contacts-offer-dismiss`.
+  "I am told ...": the snackbar is visible; "no longer told": it is not visible. "the message has the action Allow":
+  `contacts-offer-allow` is visible. "I allow in the message": the consent screen of the test double is answered WITH the
+  contacts scope and `contacts-offer-allow` is pressed; the round trip returns to the calendar. "I dismiss the message":
+  presses `contacts-offer-dismiss` (a per-person pref, `PATCH /api/prefs` `contactsOfferDismissed`). "I am still signed in":
+  `GET /api/auth/me` answers the person's email and the calendar is shown.
 - "the Google contacts have an anniversary N on D" / "a custom date L for N on D": the contact N with an `events` entry of type
   `anniversary` / the custom label L and that date (full date; the title in the app is N, resp. "L: N").
 

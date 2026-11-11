@@ -7,7 +7,7 @@ Status: proposed (issue 93, owner decisions recorded in its requirements file)
 The app reads the birthdays of the person's Google contacts through the People API (`people.connections.list`,
 `personFields=names,birthdays,events`, sync token) and adds them to the virtual Birthdays calendar (ADR 0038) as read-only
 events. This is a second Google source next to the Calendar API. It needs the scope `contacts.readonly`, which the plain
-sign-in does not ask for: an in-app banner (dismissible) and the Birthdays settings page link to it (`/api/auth/google/start?contacts=1`, incremental
+sign-in does not ask for: an in-app snackbar that stays until tapped (dismissible for good) and the Birthdays settings page link to it (`/api/auth/google/start?contacts=1`, incremental
 grant with `include_granted_scopes`); nobody is signed out. Without it nothing changes. The contact birthday is dropped when a calendar birthday event is
 the same person (same `birthdayProperties.contact` resource name, else the same title on the same day). Birthdays, anniversaries and other dates of a contact all show (owner decision). The app never writes to Contacts; the Birthdays calendar stays app-only.
 

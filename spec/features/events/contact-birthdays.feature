@@ -4,9 +4,9 @@ Feature: Birthdays from Google Contacts
   calendar (feature birthdays), in its colour and behind its switch, like the birthdays that come as calendar events.
   Google's Calendar API only passes on some of them, so the app also reads the person's contacts, once the person has
   allowed it ("see your contacts", read-only). Nobody is signed out for this: while the permission is missing, the app
-  shows a message in the banner place at the top (the one for "sign in again" and "grant calendar access") that says
-  birthdays from Google Contacts can be shown once access is allowed, with a link that asks Google for it. The message
-  can be dismissed (kept per person), and stops showing once access is granted. The Birthdays calendar's settings offer
+  shows the app's standard snackbar, which stays until tapped (like the new-app-version hint), with the text "Show
+  birthdays from your Google Contacts too?", the action "Allow" (asks Google for it) and ✕ (not now, for good, on every device
+  of the person). It stops showing once access is granted. The Birthdays calendar's settings offer
   the same link later. Without the permission the app works as before.
   A contact date is read-only in the app: it is changed in Google Contacts. One that Google also sends as a calendar
   birthday event shows once (the calendar event wins). Everything is per person and is kept on the device like all other
@@ -167,22 +167,22 @@ Feature: Birthdays from Google Contacts
     And the Birthdays calendar has a birthday "Carl" on 2026-10-16
     When I open the month view for 2026-10
     Then I am told that birthdays from Google Contacts can be shown
-    And the message has a link to allow it
+    And the message has the action "Allow"
     And I see the event "Carl" on 2026-10-16
     And I do not see the event "Anna" on 2026-10-14
     And I am still signed in
 
   @backlog
-  Scenario: Following the link in the message brings the contact birthdays in
+  Scenario: Allowing in the message brings the contact birthdays in
     Given the contacts permission is not granted
     And the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the month view for 2026-10
-    And I follow the link of the message about Google Contacts
+    And I allow in the message about Google Contacts
     Then I see the event "Anna" on 2026-10-14
     And I am no longer told that birthdays from Google Contacts can be shown
 
   @backlog
-  Scenario: The message can be dismissed and stays away
+  Scenario: The message can be dismissed with the cross and stays away
     Given the contacts permission is not granted
     When I open the month view for 2026-10
     And I dismiss the message about Google Contacts
@@ -191,7 +191,7 @@ Feature: Birthdays from Google Contacts
     Then I am no longer told that birthdays from Google Contacts can be shown
 
   @backlog
-  Scenario: After dismissing the message the Birthdays settings still offer the link
+  Scenario: After dismissing the message the Birthdays settings still offer to allow
     Given the contacts permission is not granted
     And the Google contacts have a birthday "Anna" on 1990-10-14
     When I open the month view for 2026-10
