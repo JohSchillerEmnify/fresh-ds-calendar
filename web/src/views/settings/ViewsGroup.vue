@@ -92,6 +92,5 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
 </template>
 
 <style scoped>
-.track { flex: 0 1 260px; }
 .track :deep(.lab), .track :deep(.val) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style>

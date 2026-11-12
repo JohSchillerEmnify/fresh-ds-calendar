@@ -3855,11 +3855,16 @@ the fixed hours in view read {string}
 I set the fixed hours in view to {int}
 the fixed hours in view are chosen as {int}
 the hours slider is not shown
+I swipe down with a finger starting on the fixed hours slider
+I drag the fixed hours slider sideways with a finger
+the page has scrolled past the fixed hours slider
+the fixed hours in view are no longer {string}
+the slider {string} spans the width of its setting row
 the widget settings have no style choice for the List widget
 ```
 
 - The settings steps run in the browser suite: the Widgets page has the Android section's `settings-widget-hours`
-  ("Automatic" or "Fixed"; pref `androidWidgetHoursMode`, default fixed) and, while Fixed, the slider `settings-widget-hours-slider` (4 to 24, pref `androidWidgetHours`, default 16; its value text reads "N hours"; "I set the fixed hours in view to N" moves it with the arrow keys and waits for the saved PATCH) and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android; pref
+  (finger steps: the slider is centred first, the swipe is a CDP touch from a quarter along the slider, 160 px downwards, and "scrolled past" = the slider's top moved down by more than 20 px; the drag moves a finger from 40 % to 85 % of the slider's width; "spans the width of its setting row" = the slider's box is within 24 px of the row's inner width and starts at the row's left padding edge) ("Automatic" or "Fixed"; pref `androidWidgetHoursMode`, default fixed) and, while Fixed, the slider `settings-widget-hours-slider` (4 to 24, pref `androidWidgetHours`, default 16; its value text reads "N hours"; "I set the fixed hours in view to N" moves it with the arrow keys and waits for the saved PATCH) and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android; pref
   `widgetTimelineDays`). The old `settings-scrolling-style` row is gone ("the widget settings have no style choice for the List widget" checks it is absent); the
   stored `androidWidgetStyle` pref stays readable but nothing uses it. A person who never chose `widgetTimelineDays` gets the older `androidWidgetDays` (default 3) through `timelineDays` in `shared/prefs.js`.
 - Every other step here runs on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or

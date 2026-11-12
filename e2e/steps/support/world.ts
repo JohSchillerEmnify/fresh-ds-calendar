@@ -93,6 +93,7 @@ export class World {
   slowDownUntil = 0;
   /** Epoch ms the app clock currently shows (set by "the time is ... and the clock is running"). */
   clockNowMs?: number;
+  sliderTopBefore?: number;
 
   // Results remembered between steps.
   /** A pointer/touch press kept down by "I pick up ..."; released by "I release ...". */
