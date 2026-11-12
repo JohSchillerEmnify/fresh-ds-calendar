@@ -3,6 +3,7 @@ package lan.mordor.calendar.widget;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -24,7 +25,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-/** The Multi-day widget follows the time: its refresh icon redraws it and a periodic tick moves its now line and opening row on (feature scrolling-widget). */
+/** The Multi-day widget follows the time: its refresh icon and a periodic tick redraw its now line where the list is; it opens anew only when placed and on a new day (feature scrolling-widget). */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class MultiDayRefreshTest {
@@ -53,22 +54,35 @@ public class MultiDayRefreshTest {
     }
 
     @Test
-    public void aRefreshTapWithUnchangedDataPushesTheMultiDayWidgetAgain() {
-        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, false, true, LocalDate.now(), LocalTime.now()));
-        boolean before = new WidgetStore(ctx).altLayout(id);
+    public void aRefreshTapRedrawsTheShownListWithoutOpeningItAfresh() {
+        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, true, true, LocalDate.now(), LocalTime.now(), true));
+        WidgetStore store = new WidgetStore(ctx);
+        boolean layout = store.altLayout(id);
+        LocalTime opened = store.opening(id, LocalDate.now());
+        android.view.View shown = shadowOf(manager).getViewFor(id);
         new WidgetActionReceiver().onReceive(ctx, new Intent(WidgetActionReceiver.ACTION_REFRESH));
-        assertNotEquals("pushed anew", before, new WidgetStore(ctx).altLayout(id));
+        assertEquals("same layout: the launcher reapplies it and the list stays where it is", layout, store.altLayout(id));
+        assertEquals(opened, store.opening(id, LocalDate.now()));
+        assertSame(shown, shadowOf(manager).getViewFor(id));
     }
 
     @Test
-    public void theTickPushesTheMultiDayWidgetOnceTheOpeningQuarterHourMovedOn() {
-        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, false, true, TODAY, LocalTime.of(10, 0)));
-        ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 10));
-        boolean sameQuarter = new WidgetStore(ctx).altLayout(id);
-        ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 5));
-        assertEquals("not pushed within the quarter hour", sameQuarter, new WidgetStore(ctx).altLayout(id));
-        ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 30));
-        assertNotEquals("pushed 30 minutes later", sameQuarter, new WidgetStore(ctx).altLayout(id));
+    public void theTickRedrawsOnceTheQuarterHourMovedOnAndKeepsThePlace() {
+        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, true, true, TODAY, LocalTime.of(10, 0), true));
+        boolean layout = new WidgetStore(ctx).altLayout(id);
+        assertFalse("not pushed within the quarter hour", ScrollWidgetProvider.render(ctx, manager, id, false, true, TODAY, LocalTime.of(10, 5)));
+        assertTrue("pushed 30 minutes later: the time line moves on", ScrollWidgetProvider.render(ctx, manager, id, false, true, TODAY, LocalTime.of(10, 30)));
+        assertEquals("in the same layout", layout, new WidgetStore(ctx).altLayout(id));
+        assertEquals("cut into rows at the time it opened", LocalTime.of(10, 0), new WidgetStore(ctx).opening(id, TODAY));
+    }
+
+    @Test
+    public void aNewDayOpensAtHalfAnHourBeforeNowAgain() {
+        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, true, true, TODAY, LocalTime.of(22, 0), true));
+        boolean layout = new WidgetStore(ctx).altLayout(id);
+        assertTrue(ScrollWidgetProvider.render(ctx, manager, id, false, true, TODAY.plusDays(1), LocalTime.of(7, 0)));
+        assertNotEquals("the other layout: built afresh", layout, new WidgetStore(ctx).altLayout(id));
+        assertEquals(LocalTime.of(7, 0), new WidgetStore(ctx).opening(id, TODAY.plusDays(1)));
     }
 
     @Test

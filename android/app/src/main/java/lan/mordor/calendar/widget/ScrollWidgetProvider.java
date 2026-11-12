@@ -41,7 +41,7 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-        for (int id : ids) render(context, manager, id, true, timeline());
+        for (int id : ids) render(context, manager, id, true, timeline(), LocalDate.now(), LocalTime.now(), true); // placed, or the system may have lost the views
         ClockWidgetProvider.scheduleTicks(context);
         WeekWidgetProvider.enqueueFetch(context);
     }
@@ -100,6 +100,11 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
 
     /** The Timeline also changes with the time: its key holds the quarter hour of now minus 30 minutes, where its list opens. */
     static boolean render(Context context, AppWidgetManager manager, int widgetId, boolean force, boolean timeline, LocalDate today, LocalTime now) {
+        return render(context, manager, widgetId, force, timeline, today, now, false);
+    }
+
+    /** {@code recentre}: the Timeline opens at half an hour before now again (see {@link #push}). */
+    static boolean render(Context context, AppWidgetManager manager, int widgetId, boolean force, boolean timeline, LocalDate today, LocalTime now, boolean recentre) {
         Bundle options = manager.getAppWidgetOptions(widgetId);
         WidgetStore store = new WidgetStore(context);
         Configuration config = context.getResources().getConfiguration();
@@ -109,7 +114,7 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
             if (!force && key.equals(LAST.get(widgetId))) return false;
             LAST.put(widgetId, key);
         }
-        if (!push(context, manager::updateAppWidget, widgetId, options, timeline, today, now)) {
+        if (!push(context, manager::updateAppWidget, widgetId, options, timeline, today, now, recentre)) {
             synchronized (LAST) {
                 LAST.remove(widgetId); // not shown: the next render tries again
             }
@@ -119,15 +124,22 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
     }
 
     /**
-     * Hands one instance to the system. The Multi-day widget's scroll only lands from the list's top, so each of its updates takes the
-     * other copy of the layout: the launcher then builds the list afresh (RemoteViews.canRecycleView) instead of scrolling on from
-     * where it was, which took the list back to 00:00.
+     * Hands one instance to the system. The Multi-day widget's scroll is a smooth scroll (RemoteViews.setScrollPosition) that only lands
+     * from the list's top, so opening at half an hour before now takes the other copy of the layout: the launcher builds the list afresh
+     * (RemoteViews.canRecycleView) and visibly scrolls down from 00:00. That happens only when it is placed ({@code recentre}) and on a
+     * new day; every other update reapplies the same layout without a scroll, cut into rows at the same time, so the list stays where it is.
      */
-    static boolean push(Context context, BitmapBudget.Updater out, int widgetId, Bundle options, boolean timeline, LocalDate today, LocalTime now) {
+    static boolean push(Context context, BitmapBudget.Updater out, int widgetId, Bundle options, boolean timeline, LocalDate today, LocalTime now, boolean recentre) {
         WidgetStore store = new WidgetStore(context);
-        boolean alt = timeline && !store.altLayout(widgetId);
-        if (!BitmapBudget.push(context, out, widgetId, () -> ScrollWidgetRenderer.build(context, widgetId, options, today, now, timeline, alt))) return false;
-        if (timeline) store.setAltLayout(widgetId, alt);
+        LocalTime opened = timeline ? store.opening(widgetId, today) : null;
+        boolean open = timeline && (recentre || opened == null);
+        boolean alt = open != store.altLayout(widgetId) && timeline;
+        LocalTime opening = open || opened == null ? now : opened;
+        if (!BitmapBudget.push(context, out, widgetId, () -> ScrollWidgetRenderer.build(context, widgetId, options, today, opening, now, timeline, alt, open))) return false;
+        if (open) {
+            store.setAltLayout(widgetId, alt);
+            store.setOpening(widgetId, today, now);
+        }
         return true;
     }
 }

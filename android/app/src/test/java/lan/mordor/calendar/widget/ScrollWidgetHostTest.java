@@ -1,6 +1,8 @@
 package lan.mordor.calendar.widget;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -44,12 +46,13 @@ public class ScrollWidgetHostTest {
     private final Context ctx = ApplicationProvider.getApplicationContext();
     private Activity activity;
     private AppWidgetHostView host;
+    private JSONObject s;
 
     @Before
     public void setUp() throws Exception {
         JSONArray days = new JSONArray();
         for (int i = 0; i < 16; i++) days.put(new JSONObject().put("date", LocalDate.of(2026, 10, 12).plusDays(i).toString()).put("events", new JSONArray()));
-        JSONObject s = new JSONObject().put("v", 1).put("generatedAt", "x").put("language", "en").put("dark", false).put("weekStart", "2026-10-12").put("days", days)
+        s = new JSONObject().put("v", 1).put("generatedAt", "x").put("language", "en").put("dark", false).put("weekStart", "2026-10-12").put("days", days)
                 .put("tasklists", new JSONArray()).put("minEventMinutes", 0).put("weekSideBySide", 2).put("scrollStyle", "timeline").put("scrollDays", 3);
         WidgetStore store = new WidgetStore(ctx);
         store.clearAll();
@@ -88,8 +91,14 @@ public class ScrollWidgetHostTest {
         shown = rv;
     }
 
+    /** A push that places the list with half an hour before now at the top: a placed widget or a new day. */
     private void update() {
-        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, NOW));
+        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, NOW, true));
+    }
+
+    /** Any other push: a refresh, a tick, new data. */
+    private void refresh(LocalTime now) {
+        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, now, false));
     }
 
     /** Lets the host lay out and the list's scroller run to its end. */
@@ -135,14 +144,42 @@ public class ScrollWidgetHostTest {
     }
 
     @Test
-    public void anUpdateAfterTheUserScrolledShowsHalfAnHourBeforeNowAgainNotTheTop() {
+    public void aRefreshKeepsThePlaceTheUserScrolledToAndNeverShowsTheTop() throws Exception {
+        new WidgetStore(ctx).saveSnapshot(s.put("scrollHours", 8).toString()); // 8 hours: the list's second row (from 14:50) can reach its top
         update();
         settle();
-        list().scrollListBy(px(60));
+        for (int dp : new int[] {100, 100, 100, 60}) { // to about 15:15, in the second row (from 14:50), short of the list's end
+            list().scrollListBy(px(dp)); // one call moves at most the list's height
+            settle();
+        }
+        assertEquals("scrolled into the second row", 1, list().getFirstVisiblePosition());
         settle();
-        update();
+        ListView before = list();
+        double place = scrolledDp();
+        android.graphics.Bitmap firstRow = slice(0);
+        boolean[] top = {false};
+        before.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(android.widget.AbsListView view, int state) {}
+
+            @Override
+            public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
+                if (first == 0 && view.getChildCount() > 0 && view.getChildAt(0).getTop() >= 0) top[0] = true;
+            }
+        });
+        refresh(NOW.plusMinutes(40));
         settle();
-        assertEquals(wantedDp(), scrolledDp(), 1.0);
+        assertSame("the shown list is updated, not built afresh", before, list());
+        assertFalse("the list never passes its top", top[0]);
+        assertEquals(place, scrolledDp(), 1.0);
+        assertFalse("the time line moved on", firstRow.sameAs(slice(0)));
+    }
+
+    /** The picture of one list row as the host shows it. */
+    private android.graphics.Bitmap slice(int row) {
+        View v = list().getAdapter().getView(row, null, list());
+        android.widget.ImageView img = v.findViewById(R.id.slice);
+        return ((android.graphics.drawable.BitmapDrawable) img.getDrawable()).getBitmap();
     }
 
     @Test

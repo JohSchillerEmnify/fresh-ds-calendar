@@ -283,13 +283,22 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When I place the Multi-day widget at 07:20 with 16 hours in view
       Then the widget scrolls so that 06:50 is at the top
 
-    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:anUpdateAfterTheUserScrolledShowsHalfAnHourBeforeNowAgainNotTheTop
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshKeepsThePlaceTheUserScrolledToAndNeverShowsTheTop
     @unit
-    Scenario: An update shows half an hour before now again and never throws the list back to 00:00
-      Given the Multi-day widget shows 06:50 at the top at 07:20 with 16 hours in view
-      And I scroll the widget down a little
-      When the app hands the widget its copy
-      Then the widget scrolls so that 06:50 is at the top
+    Scenario: A refresh redraws the widget where it is, without scrolling to the top and back
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 8 hours in view
+      And I scroll the widget down to 15:15
+      When the widget refreshes at 08:00
+      Then the widget still shows 15:15 at the top
+      And the widget never showed 00:00 in between
+      And the time line is at 08:00
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/MultiDayRefreshTest.java:aNewDayOpensAtHalfAnHourBeforeNowAgain
+    @unit
+    Scenario: On a new day the Multi-day widget opens at half an hour before now again
+      Given the Multi-day widget was placed at 22:00
+      When the widget refreshes the next day at 07:00
+      Then the widget scrolls so that 06:30 is at the top
 
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRebuiltLauncherOpensTheKeptViewsAtTheSamePlace
     @unit

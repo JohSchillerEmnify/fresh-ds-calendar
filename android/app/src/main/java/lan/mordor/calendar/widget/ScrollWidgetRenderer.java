@@ -96,14 +96,16 @@ final class ScrollWidgetRenderer {
     }
 
     static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now, boolean timeline) {
-        return build(context, widgetId, options, today, now, timeline, false);
+        return build(context, widgetId, options, today, now, now, timeline, false, true);
     }
 
     /**
      * The widget with its list: the rows themselves on Android 12 and newer, the {@link ScrollWidgetService} on older ones. {@code alt}
      * picks the copy of the layout, so that a launcher builds the views afresh instead of reapplying them (see ScrollWidgetProvider#push).
+     * The Timeline is cut into rows for the time {@code opening} it was placed at; its now line is drawn at {@code now}; {@code scroll}
+     * adds the scroll to the opening row.
      */
-    static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now, boolean timeline, boolean alt) {
+    static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime opening, LocalTime now, boolean timeline, boolean alt, boolean scroll) {
         Model m = load(context, today);
         RemoteViews rv = new RemoteViews(context.getPackageName(), alt ? R.layout.widget_scroll_alt : R.layout.widget_scroll);
         rv.setInt(R.id.bg, "setColorFilter", m.theme.surface);
@@ -113,7 +115,7 @@ final class ScrollWidgetRenderer {
         if (m.nothingYet) return message(rv, m.str.openOnce(), WidgetRenderer.openApp(context, "/day/" + today));
         if (m.signIn && m.data == null) return message(rv, m.str.signInAgain(), WidgetRenderer.openApp(context, "/day/" + today));
 
-        List<RemoteViews> items = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? items(context, m, options, today, now, timeline) : null;
+        List<RemoteViews> items = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? items(context, m, options, today, opening, now, timeline) : null;
         if (timeline) {
             rv.setViewVisibility(R.id.head, View.VISIBLE);
             for (int i = 0; i < DAY_NAMES.length; i++) {
@@ -133,7 +135,7 @@ final class ScrollWidgetRenderer {
             if (ScrollRows.agenda(m.data, today, m.str, false).isEmpty()) return message(rv, m.str.nothingPlanned(), WidgetRenderer.openApp(context, "/day/" + today));
         }
         rv.setPendingIntentTemplate(R.id.list, template(context));
-        int row = timeline && m.data != null ? plan(context, m, options, today, now).scrollRow : -1;
+        int row = scroll && timeline && m.data != null ? plan(context, m, options, today, opening).scrollRow : -1;
         if (items != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // a freshly built list has no rows yet and ignores a scroll; an adapter whose data then changes defers it to its first layout
             if (row >= 0) rv.setRemoteAdapter(R.id.list, new RemoteViews.RemoteCollectionItems.Builder().setViewTypeCount(3).build());
@@ -164,12 +166,16 @@ final class ScrollWidgetRenderer {
 
     /** The list's rows, top to bottom: Agenda rows, or the Timeline's picture slices. */
     static List<RemoteViews> items(Context context, Model m, Bundle options, LocalDate today, LocalTime now, boolean timeline) {
+        return items(context, m, options, today, now, now, timeline);
+    }
+
+    private static List<RemoteViews> items(Context context, Model m, Bundle options, LocalDate today, LocalTime opening, LocalTime now, boolean timeline) {
         List<RemoteViews> items = new ArrayList<>();
         if (m.data == null) return items;
         String pkg = context.getPackageName();
         if (timeline) {
             DisplayMetrics dm = context.getResources().getDisplayMetrics();
-            TimelineRows.Plan plan = plan(context, m, options, today, now);
+            TimelineRows.Plan plan = plan(context, m, options, today, opening);
             float widthDp = WidgetRenderer.widthDp(context, options);
             float scale = WeekLayout.bitmapScale(widthDp, plan.totalDp(), dm.density, BitmapBudget.pixels(context));
             for (Bitmap slice : TimelineRows.slices(m.data, plan, m.theme, m.str, today, now.getHour() * 60 + now.getMinute(), Math.max(1, Math.round(widthDp * scale)), scale, m.choice.textScale())) {
