@@ -120,6 +120,8 @@ export const PREFS = {
   widgetCircle: oneOf(['time', 'countdown'], 'time', 'widgetCircle must be time or countdown'),
   androidWidgetStyle: oneOf(['agenda', 'timeline'], 'agenda', 'androidWidgetStyle must be agenda or timeline'),
   androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
+  widgetLayout: oneOf(['standard', 'timeline'], 'standard', 'widgetLayout must be standard or timeline'),
+  widgetTimelineDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'widgetTimelineDays must be 1 to 7'),
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),

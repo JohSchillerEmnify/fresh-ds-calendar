@@ -14,6 +14,8 @@ export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export type WidgetCircle = 'time' | 'countdown';
 export type AndroidWidgetStyle = 'agenda' | 'timeline';
+export type WidgetLayout = 'standard' | 'timeline';
+export type WidgetTimelineDays = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 /** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
 export type HeaderLayout = 'auto' | 'two-rows' | 'one-row';
 /** How the Tasks view groups its lists (feature tasks-view). */
@@ -141,6 +143,10 @@ export interface Prefs {
   androidWidgetStyle: AndroidWidgetStyle;
   /** The days the Android Timeline widget shows as columns, 1 to 7 (default 3). */
   androidWidgetDays: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  /** The iPhone widget's medium and large layout: the standard views or the Timeline (feature iphone-widget). */
+  widgetLayout: WidgetLayout;
+  /** How many days the iPhone widget's Timeline shows from today, 1 to 7 (default 3). */
+  widgetTimelineDays: WidgetTimelineDays;
   /** What the top bar shows of the streak: off (the default), flame or plant. */
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
