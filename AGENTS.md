@@ -155,7 +155,11 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   commit-msg hook and the `gh` guard refuse personal words. — The repo is public.
 - **Work in your own worktree and branch** (`../calendar-wt/<name>`), never in the main checkout or another
   worktree. Commits on your own branch are allowed and expected, small and conventional; stage named files only.
-  Pushing, merging and deploying happen only when asked. — Strays in a shared checkout got swept into commits.
+  Build agents never push, merge or deploy; the coordinating session does. — Strays in a shared checkout got swept into commits.
+- **Ship when the owner says ship; never park.** "Ship"/"deploy" or night-shift mode means: merge and deploy every
+  ready track and build every agreed one, without asking again. "Don't ship" means don't. Hold a track only when you
+  are unsure or it needs a behaviour change nobody agreed on, and say so at once. — Parked tracks sat for whole nights
+  about five times because this rule lived only in notes while this file said "only when asked".
 - **Clean up behind you.** After a merge remove the worktree folder and the branch; leave no debug folders, copies or
   logs next to the repository. — Leftovers pile up and stale refs can carry unscrubbed history.
 - **ADR numbers.** Take the highest existing number plus one, checked against `main` right before committing, and add
@@ -183,9 +187,9 @@ rules fill gaps only. Where they differ:
 |---|---|---|
 | Requirements | A `REQUIREMENTS.md` before every task | Behaviour lives in `spec/features/**/*.feature`; `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md` holds assumptions and plan for **features** only; a small fix skips it |
 | System design | `.system_design/SYSTEM_DESIGN.md` and a `steps/` folder | The LikeC4 model (`docs/architecture/`), ADRs (`docs/adrs/`) and `spec/API.md`; no `.system_design/` folder unless one is added on purpose |
-| Commits | Never commit on your own initiative | Commit on your own branch, small and conventional; push, merge and deploy only when asked |
+| Commits | Never commit on your own initiative | Commit on your own branch, small and conventional; ship (merge + deploy) when the owner says ship and always in night-shift mode, never park |
 | Tracker | Jira or Confluence | GitHub issues; branch `<type>/<N>-<slug>`, `Fixes #N` |
-| Confirm requirements first | Ask before implementing | Same: the spec gate stops after the scenarios while a human is available; with none (unattended run) build through and record assumptions for review |
+| Confirm requirements first | Ask before implementing | Same: the spec gate stops after the scenarios while a human is available; with none (unattended run, night shift) build through, merge and deploy, and record assumptions for review |
 | Reviews | Repeat until no findings | One pass, a second only for a blocking finding |
 | Docstrings | A docstring on every function, comment blocks per logical block | TypeScript here: a one-line *why* comment where needed; the comment gate fails blocks over 3 lines, dates and quotes |
 | Debugging | Falsify hypotheses | Same, and the reproducing test comes first |
