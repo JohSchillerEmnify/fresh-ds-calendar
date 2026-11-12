@@ -64,11 +64,6 @@ views {
     include prod.**
   }
 
-  deployment view home {
-    title 'Home server demo'
-    include home.**
-  }
-
   dynamic view loadRange {
     title 'Loading the visible range'
 

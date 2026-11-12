@@ -5,7 +5,7 @@
 
 ## Context
 
-The door board (a renderer on the home server) needs a read-only slice of one person's calendar: the open items
+The door board (a renderer on another machine) needs a read-only slice of one person's calendar: the open items
 of door-tagged task lists and today's events. Every other reader of the API is a person with a browser session
 (Google sign-in). The board has no browser and no person at the keyboard; the calendar knows several people.
 
@@ -14,7 +14,7 @@ of door-tagged task lists and today's events. Every other reader of the API is a
 A machine client authenticates with a **bearer key of its own**, not a person's session: at least 32 random
 bytes, compared in constant time, missing or wrong → refused as unauthenticated with no data. The key is
 **bound to one person** by configuration next to it (`DOOR_API_TOKEN` and `DOOR_PERSON` in the server's
-environment on the VPS; on the home server a mode-600 file the renderer mounts). Neither value lives in a repo.
+environment on the VPS; elsewhere a mode-600 file the renderer mounts). Neither value lives in a repo.
 The endpoint answers titles and times only, nothing a person did not already see on the door.
 
 ## Alternatives

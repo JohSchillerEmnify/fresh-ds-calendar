@@ -12,7 +12,7 @@ pnpm e2e                       # from the repo root: build, start TEST_MODE serv
 pnpm e2e --project=mobile      # extra args go to playwright
 pnpm e2e --grep @year
 E2E_BASE_URL=http://localhost:3000 bash e2e/run.sh   # use an already running TEST_MODE server (no build/start)
-bash e2e/run.sh --smoke        # @smoke only, against a deployment (its defaults still name the old home server; set E2E_BASE_URL and E2E_HOST_IP)
+bash e2e/run.sh --smoke        # @smoke only, against a deployment (set E2E_BASE_URL)
 pnpm -F @calendar/e2e steps    # every STEPS.md expression implemented? (exit 1 on a difference)
 pnpm -F @calendar/e2e check    # bddgen (fails on undefined steps) + tsc
 ```
@@ -20,7 +20,7 @@ pnpm -F @calendar/e2e check    # bddgen (fails on undefined steps) + tsc
 `run.sh` builds the app, starts `TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR=<tmp>` bound to 127.0.0.1 on a free
 port (with `--expose-gc`), runs `bddgen && playwright test` in docker with `--network host`, writes the HTML report to
 `e2e/playwright-report/`, JSON to `e2e/results.json`, the server log to `e2e/server.log`, and stops the server.
-Env: `E2E_SPEC_DIR`, `E2E_SKIP_BUILD=1`, `E2E_SKIP_INSTALL=1`, `E2E_HOST_IP`, `E2E_SOFT_TEST_API=1` (diagnostics: a
+Env: `E2E_SPEC_DIR`, `E2E_SKIP_BUILD=1`, `E2E_SKIP_INSTALL=1`, `E2E_SOFT_TEST_API=1` (diagnostics: a
 failing test-endpoint setup call warns instead of failing). Fallback if the 1.64.1 image is missing: pull
 `v1.63.0-noble` and pin both `@playwright/test` and the image to 1.63.0.
 

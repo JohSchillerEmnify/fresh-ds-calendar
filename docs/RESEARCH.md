@@ -5,7 +5,7 @@ and automated leak and performance testing. Owner priorities: low server RAM/CPU
 battery and RAM, no memory leaks, current Android look (Material 3 Expressive), installable on iOS and Android.
 
 Versions come from the npm registry, Docker Hub and nodejs.org on 2026-10-12. Numbers marked **measured** were
-measured on the home server (4 cores, Linux 5.15) with the exact versions given. Treat them as relative, not absolute.
+measured on a machine (4 cores, Linux 5.15) with the exact versions given. Treat them as relative, not absolute.
 
 > Status: this is the research behind the stack of 2026-10-12. The "Decision" was carried out; the "Migration" steps are
 > done. The versions, size budgets (`web/.size-limit.json`) and container limits (`deploy/`) in the repository are
@@ -77,7 +77,7 @@ The Google client choice affects memory more than the runtime choice does: `goog
 | `node:22-alpine` | 60.7 MB |
 | `oven/bun:1.4.3-alpine` | 47.4 MB |
 | `oven/bun:1.4.3-distroless` | 48.9 MB |
-| `gcr.io/distroless/nodejs24-debian13` | exists; not measured. It has no shell, which makes debugging on a home server harder. |
+| `gcr.io/distroless/nodejs24-debian13` | exists; not measured. It has no shell, which makes debugging harder. |
 
 ### Compatibility and maturity
 
@@ -245,7 +245,7 @@ The current list does not require a service worker. Ship one anyway for the offl
 | Storage | A Home Screen web app has the **same quota** as in the browser, up to 60% of disk per origin. Eviction happens on quota or storage pressure, or after inactivity. `navigator.storage.persist()` is granted by heuristics, including being a Home Screen web app ([WebKit storage policy](https://webkit.org/blog/14403/updates-to-storage-policy/)). The 7-day ITP script-storage cap counts *days of use of the web app itself*, not Safari ([WebKit](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/)). |
 | Push | Web Push only for Home Screen apps (iOS 16.4+). Declarative Web Push (iOS 18.4+) needs no service worker ([WebKit](https://webkit.org/?p=16535)). Permission must come from a user gesture. Not needed for v1. |
 | Background | No Background Sync and no Periodic Sync. Sync on `visibilitychange`, `focus` and `online` instead. |
-| Secure context | HTTPS is needed for the service worker and install on both platforms. `http://cal.mordor.local` is not enough; this is an owner action, as the BRIEF says. |
+| Secure context | HTTPS is needed for the service worker and install on both platforms. plain HTTP is not enough. |
 
 Design implication: Google stays the only source of truth, so eviction only costs a re-fetch. Call
 `navigator.storage.persist()` after install anyway.

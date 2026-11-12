@@ -28,16 +28,4 @@ deployment {
 
     phone -> vps.caddy 'calls over HTTPS'
   }
-
-  environment home 'Home server' {
-    homeHost = node 'Home server' {
-      description 'LAN-only demo instance with the mock provider, started by scripts/deploy.sh; previews run beside it'
-      technology 'Docker Compose, Traefik'
-      homeApp = node 'App container' {
-        description 'Same image as production on the mock provider, no sign-in; data in a bind-mounted data directory and /diag for heap snapshots'
-        instanceOf calendar.server
-        instanceOf calendar.web
-      }
-    }
-  }
 }

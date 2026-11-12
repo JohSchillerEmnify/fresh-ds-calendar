@@ -24,7 +24,7 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
   redirect). So the first build used a **mock Google backend**; the real adapter sits behind the same interface and is
   chosen by `PROVIDER=mock|google` (the mock is still used for development and tests).
 - Mobile-first responsive UI, installable PWA (manifest + icons). Must also work on desktop.
-- Deployed behind a reverse proxy (originally a home server, now a VPS; see the note above).
+- Deployed behind a reverse proxy (a VPS; see the note above).
 
 ## Fixed technical decisions
 - Monorepo with `shared/` (code used by web and server) next to the folders below:
