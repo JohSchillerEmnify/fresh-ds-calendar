@@ -1,7 +1,9 @@
 # Known failures
 
-## performance.feature (@perf, mobile)
-- "The app scores well in a phone performance audit": 85-86 under heavy machine load (needs >= 90); passed earlier on
-  a quieter machine. Re-run when the host is idle.
-- "The server stays small when idle": rss 80.4-84 MB vs < 80 MB. Bare node is 40 MB, hono + @hono/node-server about
-  20 MB, router/first request about 10 MB. Borderline, host dependent.
+## Heavy-load timing (issue #13)
+- Two day-view edge-turn scenarios and the iPhone "quick swipe that starts on an event still scrolls the day" fail
+  only when the test machine is heavily loaded: the app reacts on time, the test about 60-100 ms late. Re-run when the
+  machine is idle.
+
+The `@perf` scenarios (phone performance audit, idle server size) have no open known failure; their limits are in
+`spec/features/app/performance.feature`.
