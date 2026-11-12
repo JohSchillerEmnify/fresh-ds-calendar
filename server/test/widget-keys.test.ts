@@ -104,6 +104,14 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await data(other.key)).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: 3 });
   });
 
+  it('carries the timeline hours of the key\'s person, automatic by default', async () => {
+    const key = await mint(jo);
+    expect((await data(key.key)).body.widgetTimelineHours).toEqual({ mode: 'auto', from: '08:00', to: '20:00' });
+    await t.json('PATCH', '/api/prefs', { widgetTimelineHours: { mode: 'fixed', from: '07:00', to: '19:00' } }, as(jo));
+    expect((await data(key.key)).body.widgetTimelineHours).toEqual({ mode: 'fixed', from: '07:00', to: '19:00' });
+    expect((await data((await mint(ann)).key)).body.widgetTimelineHours.mode).toBe('auto');
+  });
+
   it('carries the timeline text size of the key\'s person, 110 by default', async () => {
     const key = await mint(jo);
     expect((await data(key.key)).body.widgetTimelineTextSize).toBe(110);

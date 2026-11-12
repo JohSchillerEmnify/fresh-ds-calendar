@@ -200,3 +200,33 @@ When('I set the timeline text size to {int}', async function (this: World, perce
   expect((await saved).status(), 'prefs saved').toBe(200);
   await expect(slider).toHaveValue(String(percent));
 });
+
+Then('the iPhone Timeline hours are set to {string}', async function (this: World, label: string) {
+  const c = await settingControl(this, 'settings-widget-range');
+  await expect.poll(async () => selectedLabel(c)).toBe(label);
+});
+
+When('I set the iPhone Timeline hours to {string}', async function (this: World, label: string) {
+  const control = await settingControl(this, 'settings-widget-range');
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await chooseOption(control, label);
+  expect((await saved).status(), 'prefs saved').toBe(200);
+});
+
+Then('the iPhone Timeline range is not shown', async function (this: World) {
+  await settingControl(this, 'settings-widget-range');
+  await expect(this.page.getByTestId('settings-widget-range-from')).toHaveCount(0);
+});
+
+When('I set the iPhone Timeline range from {time} to {time}', async function (this: World, from: string, to: string) {
+  for (const [id, value] of [['from', from], ['to', to]]) {
+    const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+    await this.page.getByTestId(`settings-widget-range-${id}`).fill(value);
+    expect((await saved).status(), 'prefs saved').toBe(200);
+  }
+});
+
+Then('the iPhone Timeline range reads from {time} to {time}', async function (this: World, from: string, to: string) {
+  await expect(this.page.getByTestId('settings-widget-range-from')).toHaveValue(from);
+  await expect(this.page.getByTestId('settings-widget-range-to')).toHaveValue(to);
+});

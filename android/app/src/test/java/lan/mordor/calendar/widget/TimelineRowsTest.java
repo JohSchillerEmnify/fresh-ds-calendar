@@ -71,6 +71,22 @@ public class TimelineRowsTest {
     }
 
     @Test
+    public void automaticFitsTheHoursOfTheDaysShownAndOpensAtTheirStart() throws Exception {
+        WeekData d = data(ev("Dentist", "2026-10-14", "09:00", "10:00"), ev("Dinner", "2026-10-15", "18:00", "21:30"), ev("Far", "2026-10-17", "23:00", "23:30"));
+        TimelineRows.Plan plan = plan(d, 2, ScrollRows.AUTO_HOURS, 380, T1410);
+        int[] range = WeekLayout.hourRange(java.util.List.of(d.days.get(2), d.days.get(3)));
+        assertArrayEquals(new int[] {9, 22}, range);
+        assertEquals("the hours of the entries fill the list below the day names", 380 - TimelineRows.HEAD_DP, plan.hourDp * 13, 0.5);
+        assertEquals("the list opens at the first of them", 9 * 60, plan.startMin);
+        assertEquals(0, plan.firstHour);
+        assertEquals("the rest of the day is a scroll away", 24, plan.lastHour);
+        TimelineRows.Plan wide = plan(d, 4, ScrollRows.AUTO_HOURS, 380, T1410);
+        assertEquals("a later day widens the hours", 380 - TimelineRows.HEAD_DP, wide.hourDp * 15, 0.5);
+        TimelineRows.Plan empty = plan(data(), 3, ScrollRows.AUTO_HOURS, 380, T1410);
+        assertEquals("no entries: the default 8 to 18", 380 - TimelineRows.HEAD_DP, empty.hourDp * 10, 0.5);
+    }
+
+    @Test
     public void holdsTheWholeDayAndFitsTheChosenHours() throws Exception {
         WeekData d = data(ev("Early", "2026-10-14", "06:00", "07:00"));
         for (int hours : new int[] {8, 12, 16, 24}) {

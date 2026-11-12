@@ -160,7 +160,7 @@ export default {
     },
     widgets: {
       android: { label: 'Widgets für den Home-Bildschirm', hint: 'Ist die Android-App installiert, halte den Home-Bildschirm gedrückt, tippe auf „Widgets“ und wähle den Kalender für die Woche, den Tag, die Uhr, die Liste oder mehrere Tage.' },
-      scroll: { label: 'Stunden im Blick', hint: 'Wie viele Stunden des Tages das Widget „Mehrere Tage“ ohne Scrollen zeigt.', days: 'Tage in der Zeitleiste' },
+      scroll: { label: 'Stunden im Blick', hint: 'Bei „Automatisch“ richten sich die Stunden nach den Terminen der angezeigten Tage, für den Rest scrollst du. Bei „Fest“ legst du selbst fest, wie viele Stunden sichtbar sind.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Tage in der Zeitleiste' },
       timeline: { hint: 'Wie viele Tage die Zeitleiste ab heute zeigt.' },
       textSize: { label: 'Schriftgröße in der Zeitleiste', hint: 'Größer ist leichter zu lesen; dafür passt weniger Text in schmale Spalten.' },
     },

@@ -15,13 +15,16 @@ final class ScrollRows {
     /** Today and the 13 days after it. */
     static final int DAYS = 14;
     static final int DEFAULT_TIMELINE_DAYS = 3, MAX_TIMELINE_DAYS = 7, DEFAULT_HOURS = 16, DEFAULT_TEXT_PERCENT = 110;
-    private static final int[] HOURS = {8, 12, 16, 24};
+    /** The hours in view when the person chose Automatic: the hours fit the entries of the days shown (see {@link TimelineRows#plan}). */
+    static final int AUTO_HOURS = 0;
+    static final int MIN_HOURS = 4, MAX_HOURS = 24;
 
     private ScrollRows() {}
 
     /** The person's choice for the Multi-day widget: its number of days and the hours in view. */
     static final class Choice {
         final int days;
+        /** The hours in view, 4 to 24, or {@link #AUTO_HOURS}. */
         final int hours;
         /** The size of the widget's texts in percent, 90 to 150 in steps of 5. */
         final int textPercent;
@@ -37,15 +40,14 @@ final class ScrollRows {
         }
     }
 
-    /** The choice in the snapshot ({@code scrollDays}, {@code scrollHours}, {@code scrollTextPercent}); a missing or unknown value means 3 days, 16 hours and 110 %. */
+    /** The choice in the snapshot ({@code scrollDays}, {@code scrollHours} with {@code scrollHoursMode} fixed or auto, {@code scrollTextPercent}); a missing or unknown value means 3 days, 16 fixed hours and 110 %. */
     static Choice choice(JSONObject snapshot) {
         if (snapshot == null) return new Choice(DEFAULT_TIMELINE_DAYS, DEFAULT_HOURS, DEFAULT_TEXT_PERCENT);
         int days = snapshot.optInt("scrollDays", DEFAULT_TIMELINE_DAYS), hours = snapshot.optInt("scrollHours", DEFAULT_HOURS);
-        boolean known = false;
-        for (int h : HOURS) known |= h == hours;
+        boolean known = hours >= MIN_HOURS && hours <= MAX_HOURS;
         int pct = snapshot.optInt("scrollTextPercent", DEFAULT_TEXT_PERCENT);
         boolean pctOk = pct >= 90 && pct <= 150 && pct % 5 == 0;
-        return new Choice(days >= 1 && days <= MAX_TIMELINE_DAYS ? days : DEFAULT_TIMELINE_DAYS, known ? hours : DEFAULT_HOURS, pctOk ? pct : DEFAULT_TEXT_PERCENT);
+        return new Choice(days >= 1 && days <= MAX_TIMELINE_DAYS ? days : DEFAULT_TIMELINE_DAYS, "auto".equals(snapshot.optString("scrollHoursMode", "fixed")) ? AUTO_HOURS : known ? hours : DEFAULT_HOURS, pctOk ? pct : DEFAULT_TEXT_PERCENT);
     }
 
     /** One line of the Agenda: a day header or an entry. */

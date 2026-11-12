@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /** Settings group Widgets (docs/settings-tree.md): one section per platform (the iPhone widget, the Android home-screen widgets) and one for the Timeline's day count and text size both use. */
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { timelineDays } from '@calendar/shared/prefs';
-import type { AndroidWidgetHours, WidgetTimelineDays } from '@/api/types';
+import type { AndroidWidgetHoursMode, WidgetTimelineDays } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import Slider from '@/components/m3/Slider.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
@@ -19,7 +19,10 @@ import { usePrefsStore } from '@/stores/prefs';
 const showApk = !isIos();
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
-const hourOptions = [8, 12, 16, 24].map((n) => ({ value: String(n), label: String(n), testid: `settings-widget-hours-${n}` }));
+const hourOptions = computed(() => (['auto', 'fixed'] as const).map((v) => ({ value: v, label: t(`settings.widgets.scroll.${v}`), testid: `settings-widget-hours-${v}` })));
+const liveHours = ref(prefs.androidWidgetHours);
+watch(() => prefs.androidWidgetHours, (n) => { liveHours.value = n; });
+const hoursText = (n: number) => t('settings.widgets.scroll.hoursValue', { n });
 const liveSize = ref(prefs.widgetTimelineTextSize);
 watch(() => prefs.widgetTimelineTextSize, (n) => { liveSize.value = n; });
 const sizeText = (n: number) => `${n} %`;
@@ -34,7 +37,10 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
       <Button v-if="showApk" variant="tonal" data-testid="settings-android-widgets" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button>
     </SettingRow>
     <SettingRow id="androidWidgetHours" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
-      <SegmentedButton connected :model-value="String(prefs.androidWidgetHours)" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHours: Number($event) as AndroidWidgetHours })" />
+      <SegmentedButton connected :model-value="prefs.androidWidgetHoursMode" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHoursMode: $event as AndroidWidgetHoursMode })" />
+    </SettingRow>
+    <SettingRow v-if="prefs.androidWidgetHoursMode === 'fixed'" id="androidWidgetHoursFixed" wide :label="t('settings.widgets.scroll.fixed')">
+      <Slider class="track" :model-value="liveHours" :min="4" :max="24" :step="1" :label="t('settings.widgets.scroll.fixed')" :value-text="hoursText(liveHours)" testid="settings-widget-hours-slider" @update:model-value="liveHours = $event" @commit="savePrefs({ androidWidgetHours: $event })" />
     </SettingRow>
   </SettingSection>
 

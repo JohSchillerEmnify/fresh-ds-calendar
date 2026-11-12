@@ -54,6 +54,7 @@ export interface WidgetSnapshot {
   /** The Multi-day widget's number of days (1 to 7) and the hours it fits into its height (Settings › Widgets). */
   scrollDays: number;
   scrollHours: number;
+  scrollHoursMode: 'auto' | 'fixed';
   /** Text size of the Multi-day widget in percent. */
   scrollTextPercent: number;
 }
@@ -75,6 +76,7 @@ export interface SnapshotInput {
   categoriesOn?: boolean;
   /** The "Hours in view" setting of the Multi-day widget (default 16). */
   androidWidgetHours?: number;
+  androidWidgetHoursMode?: 'auto' | 'fixed';
   /** The shared Timeline day count (default 3). */
   timelineDays?: number;
   /** The shared Timeline text size in percent (default 110). */
@@ -112,5 +114,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: listColor(l, input.categoriesOn ?? true) }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollDays: input.timelineDays ?? 3, scrollHours: input.androidWidgetHours ?? 16, scrollTextPercent: input.timelineTextSize ?? 110 };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollDays: input.timelineDays ?? 3, scrollHours: input.androidWidgetHours ?? 16, scrollHoursMode: input.androidWidgetHoursMode ?? 'fixed', scrollTextPercent: input.timelineTextSize ?? 110 };
 }

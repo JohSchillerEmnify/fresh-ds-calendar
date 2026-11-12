@@ -65,7 +65,9 @@ describe('buildWidgetSnapshot', () => {
     const s = buildWidgetSnapshot({ items: [far], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), androidWidgetHours: 8, timelineDays: 5 });
     expect(s.days[15].events.map((e) => e.title)).toEqual(['Far']);
     expect([s.scrollDays, s.scrollHours]).toEqual([5, 8]);
-    expect([build([]).scrollDays, build([]).scrollHours]).toEqual([3, 16]);
+    expect([build([]).scrollDays, build([]).scrollHours, build([]).scrollHoursMode]).toEqual([3, 16, 'fixed']);
+    const auto = buildWidgetSnapshot({ items: [], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), androidWidgetHours: 7, androidWidgetHoursMode: 'auto' });
+    expect([auto.scrollHours, auto.scrollHoursMode]).toEqual([7, 'auto']);
   });
 
   it('carries the timeline text size, 110 by default', () => {

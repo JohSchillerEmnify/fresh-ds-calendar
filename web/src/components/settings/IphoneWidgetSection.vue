@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /** The iPhone widget section of Settings › Widgets (feature iphone-widget): the devices with a widget key, add and remove. */
 import { computed, onMounted, ref } from 'vue';
-import type { WidgetCircle, WidgetKey, WidgetLayout } from '@/api/types';
+import type { TimelineHours, WidgetCircle, WidgetKey, WidgetLayout } from '@/api/types';
+import TextField from '@/components/m3/TextField.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Button from '@/components/m3/Button.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
@@ -24,6 +25,8 @@ const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
 const circleOptions = computed(() => (['time', 'countdown'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.circle.${v}`), testid: `settings-widget-circle-${v}` })));
 const layoutOptions = computed(() => (['standard', 'timeline'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.layout.${v}`), testid: `settings-widget-layout-${v}` })));
+const hoursOptions = computed(() => (['auto', 'fixed'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.hours.${v}`), testid: `settings-widget-range-${v}` })));
+const saveHours = (patch: Partial<TimelineHours>) => savePrefs({ widgetTimelineHours: patch as TimelineHours });
 const adding = ref(false);
 const removing = ref<WidgetKey | null>(null);
 
@@ -69,11 +72,20 @@ async function remove() {
       <template #sub><span class="sub" data-testid="settings-widget-layout-hint">{{ t('iphoneWidget.layout.hint') }}</span></template>
       <SegmentedButton connected :model-value="prefs.widgetLayout" :options="layoutOptions" :label="t('iphoneWidget.layout.label')" data-testid="settings-widget-layout" @update:model-value="savePrefs({ widgetLayout: $event as WidgetLayout })" />
     </SettingRow>
+    <SettingRow id="widgetTimelineHours" wide :label="t('iphoneWidget.hours.label')">
+      <template #sub><span class="sub" data-testid="settings-widget-range-hint">{{ t('iphoneWidget.hours.hint') }}</span></template>
+      <SegmentedButton connected :model-value="prefs.widgetTimelineHours.mode" :options="hoursOptions" :label="t('iphoneWidget.hours.label')" data-testid="settings-widget-range" @update:model-value="saveHours({ mode: $event as TimelineHours['mode'] })" />
+    </SettingRow>
+    <div v-if="prefs.widgetTimelineHours.mode === 'fixed'" class="range">
+      <TextField :model-value="prefs.widgetTimelineHours.from" type="time" :label="t('iphoneWidget.hours.from')" data-testid="settings-widget-range-from" @update:model-value="$event && saveHours({ from: $event })" />
+      <TextField :model-value="prefs.widgetTimelineHours.to" type="time" :label="t('iphoneWidget.hours.to')" data-testid="settings-widget-range-to" @update:model-value="$event && saveHours({ to: $event })" />
+    </div>
   </SettingSection>
   <IphoneWidgetSheet v-if="adding" @close="adding = false" />
   <ConfirmDialog :open="removing !== null" :title="t('iphoneWidget.removeTitle', { name: removing?.name ?? '' })" :message="t('iphoneWidget.removeMessage')" :ok-label="t('iphoneWidget.remove')" @ok="remove" @cancel="removing = null" />
 </template>
 
 <style scoped>
+.range { display: flex; gap: 12px; padding: 0 16px 12px; }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>
