@@ -18,7 +18,7 @@ import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
 import type { HolidayRegion, HolidayVariant, WidgetKey, WidgetKeyCreated } from '@calendar/shared/api';
 import { ApiError, type RequestSeen } from './apiError';
-import { errorFacts, logDevice, routeOf } from '@/lib/deviceLog';
+import { errorFacts, logDevice, routeOf, type LogEntry } from '@/lib/deviceLog';
 
 // ApiError lives in apiError.ts; callers keep importing it from here
 export { ApiError } from './apiError';
@@ -37,6 +37,9 @@ export interface SyncErrorBeacon {
   /** Seconds since the error, set when the beacon could not be sent at once. */
   ageSec?: number;
 }
+
+/** `POST /api/diag/device-log` body: the log's entries as the device holds them, without the `sent` mark. */
+export interface DeviceLogUpload { app: string; exportedAt: string; entries: Array<Omit<LogEntry, 'sent'>> }
 
 export interface RequestOptions {
   signal?: AbortSignal;
@@ -415,6 +418,11 @@ export class ApiClient {
   /** Tells the server the sync error banner is showing (API.md "Diagnostics"); it only logs it. */
   diagSyncError(b: SyncErrorBeacon, o?: RequestOptions) {
     return this.request<void>('POST', '/api/diag/sync-error', b, o);
+  }
+
+  /** Sends the device's error log (API.md "Diagnostics"); the server keeps the person's last few. */
+  diagDeviceLog(b: DeviceLogUpload, o?: RequestOptions) {
+    return this.request<void>('POST', '/api/diag/device-log', b, o);
   }
 
   // --- demo data (mock provider only; endpoint not yet in API.md, see web/README.md) --------

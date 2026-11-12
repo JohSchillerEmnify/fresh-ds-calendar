@@ -117,8 +117,8 @@ Feature: An error log on this device that I can send
     Then the error log is copied and I am told so
 
   # Native crashes never reach the web app's own handlers: the Android app writes them to a file before the process dies.
-  # unit: android/app/src/test/java/org/example/calendar/CrashRecorderTest.java:records the exception class and frames of a crash without its message
-  @unit @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/crash/CrashRecorderTest.java:recordsTheExceptionClassAndFramesOfACrashWithoutItsMessage
+  @unit
   Scenario: A crash of the Android app is recorded without its message text
     Given the Android app crashes with "java.lang.IllegalStateException" and the message "Dentist Meyer"
     When the Android app is started again
@@ -126,8 +126,8 @@ Feature: An error log on this device that I can send
     Then the error log has an entry "crash java.lang.IllegalStateException"
     And the error log does not contain "Dentist"
 
-  # unit: android/app/src/test/java/org/example/calendar/ExitReasonReaderTest.java:reports crashes and ANRs since the last start once
-  @unit @backlog
+  # unit: android/app/src/test/java/lan/mordor/calendar/crash/ExitReasonReaderTest.java:reportsCrashesAndANRsSinceTheLastStartOnce
+  @unit
   Scenario: An app-not-responding or native crash that Android reports is in the error log once
     Given Android 11 reports that the app stopped with an ANR and a native crash since the last start
     When the Android app is started twice
@@ -136,7 +136,12 @@ Feature: An error log on this device that I can send
     And the error log has an entry "crash CRASH_NATIVE"
     And the error log holds each of them once
 
-  @backlog
+  Scenario: A crash record from the Android app is a crash entry in the error log
+    Given the Android app recorded a crash "java.lang.IllegalStateException" with the message "Dentist Meyer" before this start
+    When I open the error log in the settings
+    Then the error log has an entry "crash java.lang.IllegalStateException"
+    And the error log does not contain "Dentist"
+
   Scenario: Send to server uploads the log and says so
     Given this device's error log holds:
       | at               | message                  |
@@ -147,22 +152,67 @@ Feature: An error log on this device that I can send
     Then I am told the error log was sent
     And the server holds 1 error log upload for me with 2 entries
 
-  @backlog
   Scenario: Send to server offline says it could not be sent and keeps the log
     Given this device's error log holds:
       | at               | message             |
       | 2026-10-12 08:01 | Error: sync stopped |
-    And this device is offline
     When I open the error log in the settings
+    And this device is offline
     And I send the error log to the server
     Then I am told the error log could not be sent
-    And the error log shows "Error: sync stopped"
+    And the error log has an entry "Error: sync stopped"
 
   # unit: server/test/diag-device-log.test.ts:keeps the last 5 uploads per person, refuses over 256 KB and rate-limits
-  @unit @backlog
+  @unit
   Scenario: The server keeps a few uploads per person and refuses oversized or too frequent ones
     Given "jo@example.com" and "anna@example.com" may use the calendar
     When "jo@example.com" sends 7 error logs
     Then the server holds 5 error log uploads for "jo@example.com" and none for "anna@example.com"
     And an error log over 256 KB is refused
     And a second upload within a minute is refused
+
+  Scenario: Sending reports automatically is off by default and nothing is sent
+    Given this device's error log holds:
+      | at               | message             |
+      | 2026-10-12 08:01 | Error: sync stopped |
+    When I open the error log in the settings
+    Then sending reports automatically is off
+    And the server holds no error log upload
+
+  Scenario: Switching automatic sending on sends the new entries
+    Given this device's error log holds:
+      | at               | message             |
+      | 2026-10-12 08:01 | Error: sync stopped |
+    And the Android app recorded a crash "java.lang.IllegalStateException" with the message "Dentist Meyer" before this start
+    When I open the error log in the settings
+    And I switch sending reports automatically on
+    Then the server holds 1 error log upload for me with 2 entries
+    And the stored upload does not contain "Dentist"
+
+  # The server's one-a-minute limit would hide a second upload in a browser run; the unit test counts the calls.
+  # unit: web/test/device-log-upload.test.ts:sends nothing while the pref is off, and only entries the server does not have yet when on
+  @unit
+  Scenario: Automatic sending sends each entry once and stops when it is switched off
+    Given sending reports automatically is on and the server has the log
+    When a new error is logged
+    And the app starts
+    Then only the new entry is sent
+    When sending reports automatically is off and another error is logged
+    And the app starts
+    Then nothing is sent
+
+  @visual
+  Scenario Outline: The error log page with Send to server and the automatic switch looks right in the <scheme> theme
+    Given this device's error log holds:
+      | at               | message                  |
+      | 2026-10-12 08:01 | Error: sync stopped      |
+      | 2026-10-12 08:05 | Error: worker not loaded |
+    And the Android app recorded a crash "java.lang.IllegalStateException" with the message "Dentist Meyer" before this start
+    And the device prefers a <scheme> color scheme
+    When I open the error log in the settings
+    Then the "error log page" still looks like "error-log-send-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |

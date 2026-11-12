@@ -23,6 +23,7 @@ function region(w: World, name: string): Locator {
     case 'template save sheet': return w.byTestId('template-save-dialog');
     case 'templates page': return w.byTestId('templates-page');
     case 'settings page': return w.byTestId('settings-view');
+    case 'error log page': return w.byTestId('device-log-page');
     case 'theme page': return w.byTestId('theme-view');
     case 'map picker': return w.byTestId('map-picker');
     case 'event dialog': return w.byTestId('event-dialog');

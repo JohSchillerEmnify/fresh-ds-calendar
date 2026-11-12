@@ -103,3 +103,58 @@ Then('the shared error log is a text file with {int} entries', async function (t
   expect([file.type, file.name]).toEqual(['text/plain', expect.stringMatching(/^calendar-error-log-\d{4}-\d{2}-\d{2}\.txt$/)]);
   expect(JSON.parse(file.text).entries).toHaveLength(n);
 });
+
+// --- sending to the server and crash records (feature device-log) -------------------------------------------------
+interface Upload { sub: string; entries: Array<{ kind: string; summary: string }> }
+const uploads = async (w: World): Promise<Upload[]> => (await w.api.get<{ uploads: Upload[] }>('/api/__test/diag-uploads')).uploads;
+
+Given('the Android app recorded a crash {string} with the message {string} before this start', async function (this: World, exception: string, message: string) {
+  // the plugin hands a record over once: a reload finds none; the message is there to prove the app drops it
+  await this.context.addInitScript(([cls, msg]) => {
+    const w = window as unknown as { Capacitor?: unknown };
+    w.Capacitor = { Plugins: { CrashReports: { take: async () => {
+      if (sessionStorage.getItem('crashTaken')) return { records: [] };
+      sessionStorage.setItem('crashTaken', '1');
+      return { records: [{ source: 'java', exception: cls, message: msg, frames: ['lan.mordor.calendar.widget.WeekFetcher.fetch(WeekFetcher.java:50)'], thread: 'main', app: '1.1.9', android: 35, time: new Date('2026-10-12T08:10:00').getTime() }] };
+    } } } };
+  }, [exception, message] as const);
+});
+
+When('this device is offline', async function (this: World) {
+  await this.context.setOffline(true);
+});
+
+When('I send the error log to the server', async function (this: World) {
+  await this.page.getByTestId('device-log-send').click();
+});
+
+Then('I am told the error log was sent', async function (this: World) {
+  await expect(this.page.getByTestId('device-log-send-status')).toHaveText('Sent to the server');
+});
+
+Then('I am told the error log could not be sent', async function (this: World) {
+  await expect(this.page.getByTestId('device-log-send-status')).toContainText('Could not be sent');
+});
+
+Then('the server holds {int} error log upload for me with {int} entries', async function (this: World, n: number, entries: number) {
+  await expect.poll(async () => (await uploads(this)).length).toBe(n);
+  expect((await uploads(this))[0]!.entries).toHaveLength(entries);
+});
+
+Then('the server holds no error log upload', async function (this: World) {
+  // the app has started and the pref is read: a send would have happened by now
+  await this.page.waitForLoadState('networkidle').catch(() => undefined);
+  expect(await uploads(this)).toHaveLength(0);
+});
+
+Then('the stored upload does not contain {string}', async function (this: World, text: string) {
+  expect(JSON.stringify(await uploads(this))).not.toContain(text);
+});
+
+Then('sending reports automatically is off', async function (this: World) {
+  await expect(this.page.getByTestId('device-log-auto')).not.toBeChecked();
+});
+
+When('I switch sending reports automatically on', async function (this: World) {
+  await this.page.getByTestId('device-log-auto').click();
+});

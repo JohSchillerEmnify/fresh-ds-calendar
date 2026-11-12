@@ -3279,7 +3279,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
@@ -4377,6 +4377,17 @@ the Android app is started again
 Android 11 reports that the app stopped with an ANR and a native crash since the last start
 the Android app is started twice
 the error log holds each of them once
+the Android app recorded a crash {string} with the message {string} before this start
+sending reports automatically is off
+the server holds no error log upload
+I switch sending reports automatically on
+the stored upload does not contain {string}
+sending reports automatically is on and the server has the log
+a new error is logged
+the app starts
+only the new entry is sent
+sending reports automatically is off and another error is logged
+nothing is sent
 I send the error log to the server
 I am told the error log was sent
 I am told the error log could not be sent
@@ -4398,8 +4409,11 @@ a second upload within a minute is refused
 - "this device's error log holds:" writes the table into the log's storage (`localStorage` key `calendar.deviceLog`)
   before the app loads, as `error` entries with that time (local) and message `Name: text` split into name and text.
 - "I clear the error log": `device-log-clear`. "is empty": no `device-log-entry` and `device-log-empty` is shown.
-- Send (`@backlog` until built): "I send the error log to the server" clicks `device-log-send`; the confirmation or
-  failure shows in `device-log-send-status`. The crash and upload-limit steps belong to `@unit` scenarios (Android and
+- "I send the error log to the server" clicks `device-log-send`; the confirmation or failure shows in
+  `device-log-send-status`. "the server holds N error log upload(s) for me with M entries" and "the stored upload does not
+  contain X" read the test hook `GET /api/__test/diag-uploads`. The automatic sending switch is `device-log-auto`. "the Android app
+  recorded a crash X with the message Y before this start" gives `window.Capacitor.Plugins.CrashReports` a `take()` that answers
+  one record once (with the message in it, which the app must not keep). The crash and upload-limit steps belong to `@unit` scenarios (Android and
   server tests); they are listed so the contract is complete.
 - "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
   "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the

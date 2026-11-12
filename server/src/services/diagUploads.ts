@@ -15,6 +15,17 @@ export class DiagUploadStore {
       () => ({ version: 1, uploads: [] }), (m) => log(`diag uploads: ${m}`));
   }
 
+  /** Last accepted upload per person; kept in memory, so a restart only ever lets one more through. */
+  private readonly last = new Map<string, number>();
+
+  /** Whether the person may upload now (at most one per `everyMs`); a yes counts as an upload. */
+  allow(sub: string, now: number, everyMs: number): boolean {
+    for (const [k, t] of this.last) if (now - t >= everyMs) this.last.delete(k);
+    if (this.last.has(sub)) return false;
+    this.last.set(sub, now);
+    return true;
+  }
+
   /** The person's kept uploads, oldest first. */
   list(sub: string): DiagUpload[] {
     return this.files.read(sub).uploads;
@@ -26,6 +37,7 @@ export class DiagUploadStore {
   }
 
   reset(): void {
+    this.last.clear();
     this.files.reset();
   }
 }

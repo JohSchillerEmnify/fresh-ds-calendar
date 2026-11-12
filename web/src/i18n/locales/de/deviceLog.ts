@@ -2,10 +2,14 @@
 export default {
   row: { label: 'Fehlerprotokoll', hint: 'Fehler auf diesem Gerät, die du schicken kannst, wenn etwas schiefgeht' },
   title: 'Fehlerprotokoll',
-  hint: 'Die neuesten Fehler stehen oben. Das Protokoll enthält keine Titel, Texte oder E-Mail-Adressen und bleibt auf diesem Gerät, bis du es teilst.',
+  hint: 'Die neuesten Fehler stehen oben. Das Protokoll enthält keine Titel, Texte oder E-Mail-Adressen und bleibt auf diesem Gerät, bis du es sendest oder teilst.',
   share: 'Teilen',
   copy: 'Kopieren',
   download: 'Herunterladen',
+  send: 'An den Server senden',
+  sent: 'An den Server gesendet',
+  sendNotSent: 'Konnte nicht gesendet werden. Das Protokoll bleibt auf diesem Gerät.',
+  auto: { label: 'Fehler- und Absturzberichte automatisch senden', hint: 'Schickt neue Einträge dieses Protokolls an den Server. Sie enthalten nie Titel, Texte oder E-Mail-Adressen. Aus, bis du es einschaltest.' },
   clear: 'Leeren',
   empty: 'Auf diesem Gerät wurden keine Fehler protokolliert.',
   copied: 'Fehlerprotokoll kopiert',
@@ -13,5 +17,5 @@ export default {
   sendCopied: 'Teilen hat nicht geklappt, deshalb wurde das Fehlerprotokoll kopiert',
   sendFailed: 'Fehlerprotokoll konnte weder geteilt noch kopiert werden',
   standalone: 'installiert',
-  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung' },
+  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung', crash: 'Absturz' },
 };

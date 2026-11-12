@@ -1111,6 +1111,29 @@ interface SyncErrorBeacon {
 At most one beacon per client (session) per minute: a second one → `429 RATE_LIMITED`. The web app ignores every
 failure of this call.
 
+### Diagnostics (`POST /api/diag/device-log`) → 204
+
+The device's error log (feature device-log, ADR 0045), sent by the Settings › Error log button or by the pref
+`sendReportsAuto`. The server keeps the person's **last 5** uploads in `users/<sub>/device-log-uploads.json` (never in
+Google) and logs one line `client_device_log` (`subHash`, `entries`, `crashes`, `app`), no entry text. Needs a session while
+sign-in is on. Body at most 256 KB (more → `413`); unknown fields, unknown kinds or wrong types → `400`:
+
+```ts
+interface DeviceLogUpload {
+  app: string;            // at most 32 characters
+  exportedAt?: string;
+  entries: Array<{       // at most 500
+    at: string; kind: 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision' | 'crash';
+    summary: string;      // at most 400 characters
+    app: string; platform: 'ios' | 'android' | 'desktop'; standalone: boolean; native: boolean;
+    data: Record<string, string | number | boolean>;   // at most 30 fields, texts at most 400 characters
+  }>;
+}
+```
+
+At most one upload per person per minute: a second one → `429 RATE_LIMITED`. Test mode: `GET /api/__test/diag-uploads` lists
+every person's kept uploads.
+
 ### Plugins (ADR 0004)
 
 Optional integrations mount under `/api/<name>` only while the deployment enables them; a disabled plugin's paths are
@@ -1226,7 +1249,7 @@ Meanwhile:
 | 403 | `DRIVE_PERMISSION_REQUIRED` (token without the Drive scope); owner-only action on a shared list by one of its members |
 | 404 | unknown id / route (also a shared list the person is not a member of); test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |
-| 429 | `POST /api/diag/sync-error` called twice within a minute by the same client |
+| 429 | `POST /api/diag/sync-error` called twice within a minute by the same client; `POST /api/diag/device-log` twice within a minute by the same person |
 | 502 | provider error; `BACKUP_FAILED` |
 | 503 | provider unavailable (outage, network, auth) |
 

@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-11-12
+- Settings › Error log: a new "Send to server" button sends the log, so a problem can be looked into. A new switch, off until you turn it on, sends error and crash reports by itself; they never contain titles or texts.
+- Android: a crash or a freeze of the app is now written to the error log the next time you open it.
 - Android: a new scrolling "List" home screen widget shows the next 14 days, either as an Agenda or as a Timeline with the days side by side and the hours running down; choose the style in Settings › Widgets › Android and the number of days (1 to 7) under Timeline (iPhone and Android).
 - iPhone widget: a new Timeline layout shows the next days side by side, starting today, with the hours running top to bottom. Choose the layout in Settings › Widgets › iPhone; the number of days (1 to 7) is one setting under Timeline (iPhone and Android) that the Android Timeline shares.
 - Settings has a new group, Widgets, with an iPhone section (moved here from Account & app) and an Android section that explains how to add the home screen widgets.

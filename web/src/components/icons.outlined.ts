@@ -21,6 +21,7 @@ import ChevronRightO from '~icons/material-symbols/chevron-right';
 import MenuO from '~icons/material-symbols/menu';
 import CloseO from '~icons/material-symbols/close';
 import CloudOffO from '~icons/material-symbols/cloud-off';
+import CloudUploadO from '~icons/material-symbols/cloud-upload';
 import DeleteOutlineO from '~icons/material-symbols/delete-outline';
 import DownloadO from '~icons/material-symbols/download';
 import DrawO from '~icons/material-symbols/draw';
@@ -77,6 +78,7 @@ export default {
   ChevronRight: ChevronRightO,
   Menu: MenuO,
   Close: CloseO,
+  CloudUpload: CloudUploadO,
   CloudOff: CloudOffO,
   DeleteOutline: DeleteOutlineO,
   Download: DownloadO,

@@ -49,7 +49,6 @@ export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
   const r = new Hono<AuthEnv>();
   /** Last accepted beacon per client (session id, or "local" while sign-in is off). */
   const last = new Map<string, number>();
-  const lastLog = new Map<string, number>();
 
   r.post(
     '/diag/sync-error',
@@ -84,10 +83,8 @@ export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
       }
       const b = parse(logSchema, raw);
       const now = ctx.clock.real();
-      for (const [k, t] of lastLog) if (now - t >= BEACON_EVERY_MS) lastLog.delete(k);
       const sub = c.get('person')?.sub ?? LOCAL_PERSON;
-      if (lastLog.has(sub)) throw new ApiException('RATE_LIMITED', 429, 'At most one error log per minute');
-      lastLog.set(sub, now);
+      if (!ctx.diagUploads.allow(sub, now, BEACON_EVERY_MS)) throw new ApiException('RATE_LIMITED', 429, 'At most one error log per minute');
       ctx.diagUploads.add(sub, { receivedAt: new Date(now).toISOString(), app: b.app, entries: b.entries });
       logEvent('client_device_log', { subHash: subHash(sub), entries: b.entries.length, crashes: b.entries.filter((e) => e.kind === 'crash').length, app: b.app });
       return c.body(null, 204);
