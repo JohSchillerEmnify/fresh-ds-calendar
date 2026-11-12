@@ -103,6 +103,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('widgets', 'timeline', 'widgetTimelineTextSize', 'settings.widgets.textSize.label', { hint: 'settings.widgets.textSize.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'iphone', 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('widgets', 'iphone', 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
+  e('widgets', 'iphone', 'widgetTimelineHours', 'iphoneWidget.hours.label', { hint: 'iphoneWidget.hours.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('widgets', 'iphone', 'widgetLayout', 'iphoneWidget.layout.label', { hint: 'iphoneWidget.layout.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label'),
   e('account', 'app', 'errorLog', 'deviceLog.row.label', { hint: 'deviceLog.row.hint', synonyms: 'settingsNav.synonyms.errorLog' }),

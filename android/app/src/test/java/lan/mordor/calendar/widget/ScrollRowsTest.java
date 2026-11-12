@@ -99,13 +99,22 @@ public class ScrollRowsTest {
         assertEquals(3, ScrollRows.choice(null).days);
         assertEquals(16, ScrollRows.choice(null).hours);
         assertEquals(16, ScrollRows.choice(new JSONObject("{}")).hours);
-        ScrollRows.Choice odd = ScrollRows.choice(new JSONObject("{\"scrollHours\":10,\"scrollDays\":9}"));
+        ScrollRows.Choice odd = ScrollRows.choice(new JSONObject("{\"scrollHours\":25,\"scrollDays\":9}"));
+        assertEquals(16, ScrollRows.choice(new JSONObject("{\"scrollHours\":3}")).hours);
         assertEquals(3, odd.days);
         assertEquals(16, odd.hours);
         ScrollRows.Choice set = ScrollRows.choice(new JSONObject("{\"scrollHours\":8,\"scrollDays\":5}"));
         assertEquals(5, set.days);
         assertEquals(8, set.hours);
-        for (int h : new int[] {8, 12, 16, 24}) assertEquals(h, ScrollRows.choice(new JSONObject("{\"scrollHours\":" + h + "}")).hours);
+        for (int h : new int[] {4, 7, 8, 12, 16, 24}) assertEquals(h, ScrollRows.choice(new JSONObject("{\"scrollHours\":" + h + "}")).hours);
+    }
+
+    @Test
+    public void automaticHoursComeFromTheSnapshotAndFixedIsTheDefault() throws Exception {
+        assertEquals(ScrollRows.AUTO_HOURS, ScrollRows.choice(new JSONObject("{\"scrollHours\":8,\"scrollHoursMode\":\"auto\"}")).hours);
+        assertEquals(8, ScrollRows.choice(new JSONObject("{\"scrollHours\":8,\"scrollHoursMode\":\"fixed\"}")).hours);
+        assertEquals(8, ScrollRows.choice(new JSONObject("{\"scrollHours\":8}")).hours);
+        assertEquals(16, ScrollRows.choice(new JSONObject("{\"scrollHoursMode\":\"sideways\"}")).hours);
     }
 
     @Test

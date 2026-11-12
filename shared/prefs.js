@@ -10,6 +10,8 @@ export const DEFAULT_BEDTIME = {
   enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00',
   sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30,
 };
+/** The iPhone Timeline's hours: fitted to the appointments (`auto`, the default) or the fixed range from `from` to `to`. */
+export const DEFAULT_TIMELINE_HOURS = { mode: 'auto', from: '08:00', to: '20:00' };
 /** The notification preference of a new person: everything but the morning overview. */
 export const DEFAULT_NOTIFY = { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' };
 
@@ -17,6 +19,8 @@ const TASKS_WHEN = ['all', 'nodate', 'dated', 'overdue', 'today', 'tomorrow', 'w
 const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 const ok = (value) => ({ value });
 
+/** A whole number from `lo` to `hi`. */
+const range1 = (lo, hi, dflt, message) => ({ default: dflt, parse: (v) => (Number.isInteger(v) && v >= lo && v <= hi ? ok(v) : { error: message }) });
 /** A boolean switch. */
 const bool = (dflt) => ({ default: dflt, parse: (v, key) => (typeof v === 'boolean' ? ok(v) : { error: `${key} must be a boolean` }) });
 /** One of a fixed list of values. `message` replaces the default `Invalid <key>`. */
@@ -81,6 +85,7 @@ const parseBedtime = fields('bedtime', {
   bedtime: HHMM, wake: HHMM, weekendBedtime: HHMM, weekendWake: HHMM,
   sleepMinutes: range(60, 960), leadMinutes: range(0, 480), reminderMinutes: range(0, 240),
 });
+const parseTimelineHours = fields('widgetTimelineHours', { mode: ['auto or fixed', (v) => v === 'auto' || v === 'fixed'], from: HHMM, to: HHMM });
 const parseNotify = fields('notify', { bedtime: BOOLEAN, events: BOOLEAN, tasklists: BOOLEAN, morning: BOOLEAN, morningTime: HHMM });
 
 /** Every preference: `default` and `parse(raw, key)` answering `{ value }` or `{ error }` (a 400's message); `merge` ones are objects merged over the current value. In `GET /api/prefs` order. */
@@ -120,11 +125,13 @@ export const PREFS = {
   weekSideBySide: oneOf([1, 2, 3], 2, 'weekSideBySide must be 1, 2 or 3'),
   widgetCircle: oneOf(['time', 'countdown'], 'time', 'widgetCircle must be time or countdown'),
   androidWidgetStyle: oneOf(['agenda', 'timeline'], 'agenda', 'androidWidgetStyle must be agenda or timeline'),
-  androidWidgetHours: oneOf([8, 12, 16, 24], 16, 'androidWidgetHours must be 8, 12, 16 or 24'),
+  androidWidgetHours: range1(4, 24, 16, 'androidWidgetHours must be a whole number from 4 to 24'),
+  androidWidgetHoursMode: oneOf(['auto', 'fixed'], 'fixed', 'androidWidgetHoursMode must be auto or fixed'),
   androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
   widgetLayout: oneOf(['standard', 'timeline'], 'standard', 'widgetLayout must be standard or timeline'),
   // null = never chosen: the day count then follows the older Android choice (see timelineDays)
   widgetTimelineDays: { default: null, parse: (v) => (v === null || (Number.isInteger(v) && v >= 1 && v <= 7) ? ok(v) : { error: 'widgetTimelineDays must be 1 to 7' }) },
+  widgetTimelineHours: { default: DEFAULT_TIMELINE_HOURS, merge: true, parse: parseTimelineHours },
   widgetTimelineTextSize: { default: 110, parse: (v) => (Number.isInteger(v) && v >= 90 && v <= 150 && v % 5 === 0 ? ok(v) : { error: 'widgetTimelineTextSize must be 90 to 150 in steps of 5' }) },
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),

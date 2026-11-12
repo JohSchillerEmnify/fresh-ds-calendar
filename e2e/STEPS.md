@@ -3719,6 +3719,18 @@ the earlier Android day count was {int}
 the Android widget snapshot carries {int} timeline days
 the timeline text size is chosen as {int}
 the iPhone widget draws the timeline texts at {int} %
+the iPhone Timeline range is chosen from {time} to {time}
+the widget data carries automatic Timeline hours
+the widget data carries the fixed Timeline range from {time} to {time}
+the iPhone Timeline draws a fixed range from {time} to {time}
+the Timeline shows the hours from {time} to {time}
+the day {date} has the marker {string} at the bottom and {string} at the top
+the day {date} has the marker {string} at the bottom
+the day {date} has no marker at the top
+{string} starts at {time} in the Timeline
+no day has a marker
+setting the iPhone Timeline range to a start of {string} is refused
+setting the iPhone Timeline range to an end of {string} is refused
 the widget data carries a timeline text size of {int} %
 the Android widget snapshot carries a timeline text size of {int} %
 setting the timeline text size to {int} is refused
@@ -3730,6 +3742,11 @@ the iPhone widget layout is set to {string}
 I set the iPhone widget layout to {string}
 the timeline days are set to {string}
 I set the timeline days to {string}
+the iPhone Timeline hours are set to {string}
+I set the iPhone Timeline hours to {string}
+the iPhone Timeline range is not shown
+I set the iPhone Timeline range from {time} to {time}
+the iPhone Timeline range reads from {time} to {time}
 the timeline text size is set to {string}
 I set the timeline text size to {int}
 the iPhone widget keeps no calendar data
@@ -3750,6 +3767,7 @@ the iPhone widget asks to be redrawn at {time}
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
 - Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `weekGrid` for D and the N-1 days after it (the same geometry as the week); the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-layout` (iPhone section) and `settings-widget-days` (the Timeline section, always shown).
+- iPhone Timeline hours: pref `widgetTimelineHours` `{ mode: 'auto'|'fixed', from, to }` (default auto, 08:00 to 20:00 kept for when Fixed is chosen), set through `PATCH /api/prefs` (a partial object is merged); Settings controls `settings-widget-range` (Automatic / Fixed range) and, while fixed, the time fields `settings-widget-range-from` and `settings-widget-range-to`. The script's `timelineGrid(..., hours)` takes the fixed whole hours (start rounded down, end rounded up; an end not after the start counts as automatic) and gives each column `above` and `below` markers (`{ label }`) for entries wholly outside it.
 - Timeline text size: pref `widgetTimelineTextSize` (percent, 90 to 150 in steps of 5, default 110) set through `PATCH /api/prefs`; the Settings control is the slider `settings-timeline-text-size` in the Timeline section ("set to" reads its value text, e.g. "110 %"; "I set ... to N" moves it and waits for the saved PATCH). The iPhone script scales its fonts, header, chip and gutter sizes by it (`textScale` in the grid) and still fits the hours to the height; the data route and the Android snapshot (`scrollTextPercent`) carry the number.
 - Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
 - "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
@@ -3785,6 +3803,18 @@ it shows the Agenda
 I look at a {int} dp tall Multi-day widget with {int} hours in view
 the widget holds the hours from {time} to {time}
 about {int} hours fit into its height
+I look at a {int} dp tall Multi-day widget with automatic hours in view for {int} days
+I look at a {int} dp tall Multi-day widget with automatic hours in view for {int} days on an empty calendar
+about {int} hours, from {time} to {time}, fit into its height
+the app's copy has the hours mode {string} and {int} hours
+the app's copy has {int} hours and no hours mode
+the Multi-day widget uses automatic hours in view
+the Multi-day widget is chosen with automatic hours in view
+I look at the Multi-day widget with automatic hours and with {int} hours in view
+each picture shows its own hours from the top to the bottom of the columns
+the person stored {int} hours in view for the Multi-day widget before Automatic existed
+the person's hours in view are still {int} and fixed
+setting the hours in view to {int} is refused
 I look at the Multi-day widget at {time} with {int} hours in view
 the widget scrolls so that {time} is at the top
 I place the Multi-day widget at {time} with {int} hours in view
@@ -3821,11 +3851,15 @@ I look at the week widget, the day widget and the clock widget
 they are still drawn as one picture each and do not scroll
 the hours in view are set to {string}
 I set the hours in view to {string}
+the fixed hours in view read {string}
+I set the fixed hours in view to {int}
+the fixed hours in view are chosen as {int}
+the hours slider is not shown
 the widget settings have no style choice for the List widget
 ```
 
 - The settings steps run in the browser suite: the Widgets page has the Android section's `settings-widget-hours`
-  ("8", "12", "16", "24"; pref `androidWidgetHours`, default 16) and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android; pref
+  ("Automatic" or "Fixed"; pref `androidWidgetHoursMode`, default fixed) and, while Fixed, the slider `settings-widget-hours-slider` (4 to 24, pref `androidWidgetHours`, default 16; its value text reads "N hours"; "I set the fixed hours in view to N" moves it with the arrow keys and waits for the saved PATCH) and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android; pref
   `widgetTimelineDays`). The old `settings-scrolling-style` row is gone ("the widget settings have no style choice for the List widget" checks it is absent); the
   stored `androidWidgetStyle` pref stays readable but nothing uses it. A person who never chose `widgetTimelineDays` gets the older `androidWidgetDays` (default 3) through `timelineDays` in `shared/prefs.js`.
 - Every other step here runs on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or

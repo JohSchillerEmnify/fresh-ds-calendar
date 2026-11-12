@@ -3,8 +3,10 @@ Feature: Scrolling phone widgets (List and Multi-day)
   Two Android home-screen widgets that scroll, both in the widget picker. "List" (Agenda) shows today and the coming days
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
   hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Days in the Timeline"
-  setting). The Multi-day widget fits about 16 hours into its height and opens with half an hour before now at the top;
-  the person can choose 8, 12, 16 or 24 hours in view in Settings > Widgets > Android, and the size of its texts (90 % to 150 %,
+  setting). The Multi-day widget opens with half an hour before now at the top. Its hours in view are "Automatic" (the hours
+  fit the appointments of the days shown, by the same rule as the week grid, and the person scrolls for the rest of the day)
+  or "Fixed" (a free choice of 4 to 24 hours that fit into its height, 16 by default), in Settings > Widgets > Android; a
+  number of hours chosen earlier stays, and a person who never chose keeps Fixed with 16 hours. The size of its texts (90 % to 150 %,
   110 % by default) in the shared Timeline section. Widgets cannot be pinched, so the
   setting is the way to zoom. A List widget placed before the split that showed the Timeline is a List now; the person
   adds a Multi-day widget from the picker. The week, day and clock widgets stay exactly as they are. Like them both are
@@ -20,19 +22,37 @@ Feature: Scrolling phone widgets (List and Multi-day)
 
   Rule: The Android section of the Widgets settings chooses the hours in view; the days are the shared Timeline setting
 
-    Scenario: The Multi-day widget starts with 16 hours in view and three days
+    Scenario: The Multi-day widget starts with 16 fixed hours in view and three days
       When I open the settings
       And I open the settings group "Widgets"
-      Then the hours in view are set to "16"
+      Then the hours in view are set to "Fixed"
+      And the fixed hours in view read "16 hours"
       And the timeline days are set to "3"
 
     Scenario: The hours in view and the number of days can be changed
       When I open the settings
       And I open the settings group "Widgets"
-      And I set the hours in view to "8"
+      And I set the fixed hours in view to 8
       And I set the timeline days to "5"
-      Then the hours in view are set to "8"
+      Then the fixed hours in view read "8 hours"
       And the timeline days are set to "5"
+
+    Scenario: Automatic hides the hours slider and keeps the number of fixed hours
+      Given the fixed hours in view are chosen as 8
+      When I open the settings
+      And I open the settings group "Widgets"
+      And I set the hours in view to "Automatic"
+      Then the hours slider is not shown
+      When I set the hours in view to "Fixed"
+      Then the fixed hours in view read "8 hours"
+
+    @visual @mobile
+    Scenario: The Android section with the fixed hours slider looks right in the dark theme
+      Given the device prefers a dark color scheme
+      When I open the settings
+      And I open the settings group "Widgets"
+      And I set the fixed hours in view to 12
+      Then the "settings page" still looks like "settings-android-hours-dark"
 
     Scenario: The List widget has no style choice any more
       When I open the settings
@@ -170,6 +190,50 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When I look at the scrolling widget in the "Timeline" style
       Then the scrolling widget draws "Yoga" in the column "Thu 15 Oct" from 07:00 to 08:00
 
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:automaticFitsTheHoursOfTheDaysShownAndOpensAtTheirStart
+    @unit
+    Scenario: With Automatic the hours fit the appointments of the days shown and the rest is a scroll away
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Dinner" on 2026-10-15 from 18:00 to 21:30
+      When I look at a 380 dp tall Multi-day widget with automatic hours in view for 2 days
+      Then the widget holds the hours from 00:00 to 24:00
+      And about 13 hours, from 09:00 to 22:00, fit into its height
+      And the widget scrolls so that 09:00 is at the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:automaticFitsTheHoursOfTheDaysShownAndOpensAtTheirStart
+    @unit
+    Scenario: With Automatic a later day widens the hours and no entries mean 08:00 to 18:00
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Late" on 2026-10-17 from 23:00 to 23:30
+      When I look at a 380 dp tall Multi-day widget with automatic hours in view for 4 days
+      Then about 15 hours, from 09:00 to 24:00, fit into its height
+      When I look at a 380 dp tall Multi-day widget with automatic hours in view for 3 days on an empty calendar
+      Then about 10 hours, from 08:00 to 18:00, fit into its height
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:automaticHoursComeFromTheSnapshotAndFixedIsTheDefault
+    @unit
+    Scenario: The app's copy carries Automatic or Fixed and anything but Automatic means Fixed
+      Given the app's copy has the hours mode "auto" and 8 hours
+      Then the Multi-day widget uses automatic hours in view
+      Given the app's copy has the hours mode "fixed" and 8 hours
+      Then the Multi-day widget shows 3 days and 8 hours in view
+      Given the app's copy has 8 hours and no hours mode
+      Then the Multi-day widget shows 3 days and 8 hours in view
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetPictureTest.java:drawsTheWidget
+    @unit
+    Scenario: The Multi-day widget is drawn with Automatic and with 7 fixed hours
+      When I look at the Multi-day widget with automatic hours and with 7 hours in view
+      Then each picture shows its own hours from the top to the bottom of the columns
+
+    # unit: server/test/prefs.test.ts:keeps a stored hour count of the Android widget
+    @unit
+    Scenario: A stored number of hours is kept, any whole number from 4 to 24 is accepted and nothing else
+      Given the person stored 8 hours in view for the Multi-day widget before Automatic existed
+      Then the person's hours in view are still 8 and fixed
+      And setting the hours in view to 3 is refused
+      And setting the hours in view to 25 is refused
+
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:holdsTheWholeDayAndFitsTheChosenHours
     @unit
     Scenario Outline: The Multi-day widget holds the whole day and fits the chosen hours into its height
@@ -232,6 +296,13 @@ Feature: Scrolling phone widgets (List and Multi-day)
       Then each picture shows the hours from the top to the bottom of the columns with its own row height
 
   Rule: What the widget shows follows the app
+
+    # unit: web/test/widget-snapshot.test.ts:carries the next 14 days, the hours in view and the number of days
+    @unit
+    Scenario: The hours mode reaches the widget
+      Given the Multi-day widget is chosen with automatic hours in view
+      When the app hands the widget its copy
+      Then the Multi-day widget uses automatic hours in view
 
     # unit: web/test/widget-snapshot.test.ts:carries the next 14 days, the hours in view and the number of days
     @unit

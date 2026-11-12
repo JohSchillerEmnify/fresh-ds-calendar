@@ -26,6 +26,11 @@ Feature: iPhone widgets through Scriptable
   count chosen earlier for the Android widget carries over until one is chosen there. The same section holds the
   "Text size in the Timeline": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
   Timeline and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
+  The iPhone section also holds "Hours in the Timeline": "Automatic" (the default, the hours fit the entries of the days
+  shown) or "Fixed range" with a start ("From") and an end ("To"). An entry outside a fixed range is not dropped: it
+  gets a small marker at the edge of its day, "▾ Cinema 19:00" at the bottom or "▴ Run 06:00" at the top (the nearest
+  one, with "+1" for each further one); an entry that reaches into the range is drawn clipped to it. A stored choice is never
+  overwritten, and the Android Multi-day widget has its own choice (Automatic or Fixed hours).
 
   Background:
     Given the calendar is empty
@@ -184,6 +189,13 @@ Feature: iPhone widgets through Scriptable
       And I set the iPhone widget layout to "Timeline"
       And I set the timeline days to "2"
       Then the "settings page" still looks like "settings-iphone-timeline-dark"
+
+    @visual @mobile
+    Scenario: The iPhone section with a fixed Timeline range looks right in the light theme
+      When I open the iPhone widget settings
+      And I set the iPhone Timeline hours to "Fixed range"
+      And I set the iPhone Timeline range from 07:00 to 21:00
+      Then the "settings page" still looks like "settings-iphone-range-light"
 
     Scenario: The key is not shown again later
       Given I created a widget key named "My iPhone"
@@ -553,6 +565,60 @@ Feature: iPhone widgets through Scriptable
     Scenario: A number of timeline days outside 1 to 7 is refused
       Then setting the timeline days to 0 is refused
       And setting the timeline days to 8 is refused
+
+    Scenario: The iPhone Timeline hours are Automatic until a fixed range is chosen
+      When I open the iPhone widget settings
+      Then the iPhone Timeline hours are set to "Automatic"
+      And the iPhone Timeline range is not shown
+      When I set the iPhone Timeline hours to "Fixed range"
+      And I set the iPhone Timeline range from 07:00 to 21:00
+      Then the iPhone Timeline hours are set to "Fixed range"
+      And the iPhone Timeline range reads from 07:00 to 21:00
+
+    # unit: server/test/widget-keys.test.ts:carries the timeline hours
+    @unit
+    Scenario: The widget data carries the Timeline hours of the key's person
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries automatic Timeline hours
+      Given the iPhone Timeline range is chosen from 07:00 to 19:00
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the fixed Timeline range from 07:00 to 19:00
+
+    # unit: server/test/ios-widget.test.ts:a fixed range sets the hours
+    @unit
+    Scenario: A fixed range sets the hours and an entry outside it is marked at the edge of its day
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Cinema" on 2026-10-14 from 19:00 to 21:00
+      And the calendar contains an event "Run" on 2026-10-14 from 06:00 to 07:00
+      When the iPhone Timeline draws a fixed range from 08:00 to 12:00
+      Then the Timeline shows the hours from 08:00 to 12:00
+      And the day 2026-10-14 has the marker "▾ Cinema 19:00" at the bottom and "▴ Run 06:00" at the top
+
+    # unit: server/test/ios-widget.test.ts:an entry that reaches into the fixed range
+    @unit
+    Scenario: An entry that reaches into the fixed range is clipped to it, several outside count as +1
+      Given the calendar contains an event "Long" on 2026-10-14 from 07:00 to 09:30
+      And the calendar contains an event "A" on 2026-10-14 from 20:00 to 21:00
+      And the calendar contains an event "B" on 2026-10-14 from 22:00 to 23:00
+      When the iPhone Timeline draws a fixed range from 08:00 to 18:00
+      Then "Long" starts at 08:00 in the Timeline
+      And the day 2026-10-14 has no marker at the top
+      And the day 2026-10-14 has the marker "▾ A 20:00 +1" at the bottom
+
+    # unit: server/test/ios-widget.test.ts:automatic, a missing or an unusable range
+    @unit
+    Scenario: Automatic, a missing or an unusable range keeps the hours that fit the entries
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      When the iPhone Timeline draws a fixed range from 12:00 to 08:00
+      Then the Timeline shows the hours from 09:00 to 19:00
+      And no day has a marker
+
+    # unit: server/test/prefs.test.ts:keeps a stored hour count of the Android widget
+    @unit
+    Scenario: A Timeline range is stored per person and a wrong one is refused
+      Then setting the iPhone Timeline range to a start of "8:00" is refused
+      And setting the iPhone Timeline range to an end of "24:00" is refused
 
     # unit: server/test/ios-widget.test.ts:rectangular says what is going on now
     @unit

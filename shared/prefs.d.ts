@@ -13,7 +13,9 @@ export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 /** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export type WidgetCircle = 'time' | 'countdown';
-export type AndroidWidgetHours = 8 | 12 | 16 | 24;
+export type AndroidWidgetHoursMode = 'auto' | 'fixed';
+/** The iPhone Timeline's hours: `auto` fits the appointments, `fixed` shows `from` to `to`. */
+export interface TimelineHours { mode: 'auto' | 'fixed'; from: string; to: string }
 export type AndroidWidgetStyle = 'agenda' | 'timeline';
 export type WidgetLayout = 'standard' | 'timeline';
 export type WidgetTimelineDays = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -144,14 +146,18 @@ export interface Prefs {
   widgetCircle: WidgetCircle;
   /** Not used any more: the List and the Multi-day widget are two widgets now. Still stored and readable. */
   androidWidgetStyle: AndroidWidgetStyle;
-  /** How many hours of the day the Android Multi-day widget fits into its height: 8, 12, 16 (default) or 24 (feature scrolling-widget). */
-  androidWidgetHours: AndroidWidgetHours;
+  /** How many hours of the day the Android Multi-day widget fits into its height, 4 to 24 (default 16), when `androidWidgetHoursMode` is `fixed` (feature scrolling-widget). */
+  androidWidgetHours: number;
+  /** The Android Multi-day widget's hours: `fixed` (the default, `androidWidgetHours` of them) or `auto` (the hours of the appointments shown, scrolling for the rest). */
+  androidWidgetHoursMode: AndroidWidgetHoursMode;
   /** The days the Android Timeline widget shows as columns, 1 to 7 (default 3). */
   androidWidgetDays: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   /** The iPhone widget's medium and large layout: the standard views or the Timeline (feature iphone-widget). */
   widgetLayout: WidgetLayout;
   /** How many days the Timeline of the iPhone and the Android widget shows, 1 to 7; null until chosen (then `androidWidgetDays`, else 3; see `timelineDays`). */
   widgetTimelineDays: WidgetTimelineDays | null;
+  /** The iPhone Timeline's hours: `auto` (the default) or a fixed range with appointments outside it marked at the edge (feature iphone-widget). */
+  widgetTimelineHours: TimelineHours;
   /** The text size of the iPhone Timeline and the Android Multi-day widget in percent, 90 to 150 in steps of 5 (default 110). */
   widgetTimelineTextSize: number;
   /** What the top bar shows of the streak: off (the default), flame or plant. */

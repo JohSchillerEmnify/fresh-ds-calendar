@@ -88,6 +88,8 @@ final class TimelineRows {
     /**
      * The {@code days} columns from {@code today}. An hour is as tall as the list below the day names divided by {@code hours}, so that
      * many hours fit; the list opens {@link #LEAD_MINUTES} before {@code now} at the top, but at the latest {@code hours} before 24:00.
+     * With {@link ScrollRows#AUTO_HOURS} the hours are those of {@link WeekLayout#hourRange} for the days shown: they fit the height and
+     * the list opens at the first of them (the rest of the day is a scroll away).
      *
      * @param heightDp the widget's height
      * @param textScale the text size as a factor (1 = 100 %)
@@ -103,11 +105,18 @@ final class TimelineRows {
             shown.add(day);
             columns.add(new Column(date, str.agendaDay(date), str.columnName(date), i == 0, day.items));
         }
+        int lo = 0, hi = DAY_MINUTES;
+        if (hours == ScrollRows.AUTO_HOURS) {
+            int[] range = WeekLayout.hourRange(shown);
+            lo = range[0] * 60;
+            hi = range[1] * 60;
+            hours = range[1] - range[0];
+        }
         float hourDp = Math.max(MIN_HOUR_DP, (heightDp - headDp(textScale)) / hours);
         float bandDp = WeekCanvas.columnsBandHeight(shown, new int[] {0, 24}, hourDp, textScale);
         // the top minute is half an hour before now, but the list never scrolls past 24:00: late in the day it shows the day's last hours
         int padMinutes = Math.round(WeekCanvas.PAD / hourDp * 60); // the picture ends 4 dp below 24:00
-        int start = hours >= 24 ? 0 : Math.max(0, Math.min(now.getHour() * 60 + now.getMinute() - LEAD_MINUTES, DAY_MINUTES + padMinutes - hours * 60));
+        int start = hours >= 24 ? 0 : Math.max(lo, Math.min(now.getHour() * 60 + now.getMinute() - LEAD_MINUTES, hi + (hi == DAY_MINUTES ? padMinutes : 0) - hours * 60));
         int end = start + hours * 60;
         // The list opens at its first row, which ends where the opening view ends, so it reaches below the list: scrolling to a row that is
         // partly visible takes one step that puts the row's bottom at the list's bottom (AbsListView.PositionScroller.scrollToVisible),

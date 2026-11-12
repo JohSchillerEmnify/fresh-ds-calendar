@@ -14,7 +14,7 @@ const gym = ev('Gym', T14('18:00'), T14('19:00'), '#188038');
 const allDay = (title: string, date: string) => ({ ...ev(title, T14('00:00'), T14('00:00')), allDay: true, start: date, end: date.replace(/\d\d$/, (d) => String(Number(d) + 1)) });
 const at = (h: string, day = '14') => Date.parse(`2026-10-${day}T${h}:00+02:00`);
 
-const SCRIPT_3 = '// calendar-widget version=4\nconst x = 1;\n// calendar-widget end\n';
+const SCRIPT_3 = '// calendar-widget version=5\nconst x = 1;\n// calendar-widget end\n';
 const answer = (items: unknown[], over: object = {}) => ({
   generatedAt: '2026-10-14T08:00:00+02:00', today: '2026-10-14', scriptVersion: 1, items, minEventMinutes: 0, weekSideBySide: false, taskCategories: false, ...over });
 const ok = (body: unknown): { status: number; body: string } => ({ status: 200, body: JSON.stringify(body) });
@@ -215,6 +215,44 @@ describe('the widget script: Timeline', () => {
     const g = api.timelineGrid([api.entryOf(dentist)], '2026-10-14', 480, 0, 338, 158, 3, 1.5);
     expect(g.top + (g.last - g.first) * g.hourH).toBeLessThanOrEqual(158 - 2 + 0.01);
     expect(g.hourH).toBeGreaterThan(8);
+  });
+
+  const fixed = (from: string, to: string) => ({ mode: 'fixed', from, to });
+  const timelineAt = async (items: unknown[], hours: unknown) => {
+    const { exports: api } = await runScript(WIDGET_SOURCE, fakeScriptable(), { CALENDAR_WIDGET_TEST: true });
+    return api.timelineGrid((items as any[]).map(api.entryOf), '2026-10-14', 480, 0, 338, 354, 3, 1.1, hours);
+  };
+
+  it('a fixed range sets the hours and puts entries outside it as a marker at the edge of their day', async () => {
+    const cinema = ev('Cinema', T14('19:00'), T14('21:00'));
+    const early = ev('Run', T14('06:00'), T14('07:00'));
+    const g = await timelineAt([dentist, early, cinema], fixed('08:00', '12:00'));
+    expect([g.first, g.last]).toEqual([8, 12]);
+    expect(g.cols[0].blocks.map((b: any) => b.e.title)).toEqual(['Dentist']);
+    expect(g.cols[0].below.label).toBe('\u25BE Cinema 19:00');
+    expect(g.cols[0].above.label).toBe('\u25B4 Run 06:00');
+    expect(g.cols[1].below).toBeNull();
+    const d = await draw([dentist, early, cinema], 'large', at('08:00'), {}, { ...over(3), widgetTimelineHours: fixed('08:00', '12:00') });
+    expect(canvas(d)).toEqual(expect.arrayContaining(['\u25BE Cinema 19:00', '\u25B4 Run 06:00', '09:00 Dentist']));
+  });
+
+  it('an entry that reaches into the fixed range is clipped to it and gets no marker; several outside count as +n', async () => {
+    const long = ev('Long', T14('07:00'), T14('09:30'));
+    const a = ev('A', T14('20:00'), T14('21:00'));
+    const b = ev('B', T14('22:00'), T14('23:00'));
+    const g = await timelineAt([long, a, b], fixed('08:00', '18:00'));
+    expect(g.cols[0].blocks[0].y).toBeCloseTo(g.yOf(8 * 60));
+    expect(g.cols[0].above).toBeNull();
+    expect(g.cols[0].below.label).toBe('\u25BE A 20:00 +1');
+  });
+
+  it('automatic, a missing or an unusable range keeps the hours that fit the entries', async () => {
+    for (const h of [undefined, { mode: 'auto', from: '08:00', to: '12:00' }, fixed('12:00', '08:00'), fixed('8', '12:00'), fixed('08:00', '08:00')]) {
+      const g = await timelineAt([dentist, gym], h);
+      expect([g.first, g.last], JSON.stringify(h)).toEqual([9, 19]);
+      expect(g.cols[0].below).toBeNull();
+    }
+    expect((await timelineAt([dentist], fixed('08:00', '12:30'))).last).toBe(13);
   });
 
   it('the timeline hours follow the days shown only', async () => {
@@ -433,26 +471,26 @@ describe('the widget script: one cache for every size', () => {
 
 describe('the widget script: updates itself', () => {
   it('saves a newer script and keeps drawing today as before', async () => {
-    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 4 });
-    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=4\n/);
+    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 5 });
+    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=5\n/);
     expect(d.said).toContain('Dentist');
   });
 
   it('keeps the old script when the download breaks off', async () => {
-    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 4 })); };
+    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 5 })); };
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
     expect(d.said).toContain('Dentist');
   });
 
   it('does not save a truncated download that lacks the end marker', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=4\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 4 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=5\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 5 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
 
   it('does not save a download whose first line is not a newer version', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 4 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 5 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
@@ -462,7 +500,7 @@ describe('the widget script: updates itself', () => {
   });
 
   it('has the version its first line names', () => {
-    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=3');
+    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=4');
     expect(WIDGET_SOURCE).not.toMatch(/cwk_|@example/);
   });
 });

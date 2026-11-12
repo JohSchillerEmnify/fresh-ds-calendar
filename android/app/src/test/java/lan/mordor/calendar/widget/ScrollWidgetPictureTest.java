@@ -54,7 +54,7 @@ public class ScrollWidgetPictureTest {
         add(days, 8, "Flight to Berlin", false, "06:15", "08:00", "#d50000");
         JSONArray tasks = new JSONArray().put(new JSONObject().put("title", "Groceries").put("done", 1).put("total", 3).put("color", "#0b8043"));
         return new JSONObject().put("v", 1).put("generatedAt", "x").put("language", "en").put("dark", dark).put("weekStart", "2026-10-12").put("days", days)
-                .put("tasklists", tasks).put("minEventMinutes", 0).put("weekSideBySide", 2).put("scrollTextPercent", percent).put("scrollHours", hours).put("scrollDays", n).toString();
+                .put("tasklists", tasks).put("minEventMinutes", 0).put("weekSideBySide", 2).put("scrollTextPercent", percent).put("scrollHours", hours == 0 ? 16 : hours).put("scrollHoursMode", hours == 0 ? "auto" : "fixed").put("scrollDays", n).toString();
     }
 
     /** Draws the widget into build/widget-pictures; returns the size in px of the first day name. */
@@ -121,6 +121,9 @@ public class ScrollWidgetPictureTest {
         shoot(false, true, 3, 8, 300, 380, LocalTime.of(14, 10), "multiday-8h-1410.png");
         shoot(false, true, 7, 12, 300, 380, t, "multiday-7days-12h.png");
         shoot(false, true, 1, 16, 200, 300, t, "multiday-1day.png");
+        shoot(false, true, 3, ScrollRows.AUTO_HOURS, 300, 380, t, "multiday-auto-light.png");
+        shoot(true, true, 3, ScrollRows.AUTO_HOURS, 300, 380, t, "multiday-auto-dark.png");
+        shoot(false, true, 3, 7, 300, 380, t, "multiday-7h-light.png");
     }
 
     @Test
