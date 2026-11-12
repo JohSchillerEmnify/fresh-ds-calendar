@@ -25,6 +25,8 @@
         <item name="android:maxLines">2</item>
         <item name="android:textSize">10sp</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:background">@drawable/scroll_today</item>
+        <item name="android:backgroundTint">@android:color/transparent</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
