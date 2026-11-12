@@ -93,7 +93,7 @@ public class DayWidgetProvider extends AppWidgetProvider {
         }
         boolean signIn = WidgetStore.AUTH_SIGN_IN.equals(store.auth());
         String footer = signIn ? str.signInAgain() : data == null ? ""
-                : str.updated() + ": " + DateTimeFormatter.ofPattern("HH:mm").format(LocalTime.ofInstant(Instant.ofEpochMilli(data.timeMillis), ZoneId.systemDefault()));
+                : str.updated() + ": " + DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(data.timeMillis).atZone(ZoneId.systemDefault()).toLocalTime());
 
         DisplayMetrics dm = context.getResources().getDisplayMetrics();
         float widthDp = WidgetRenderer.widthDp(context, options), heightDp = WidgetRenderer.heightDp(context, options);

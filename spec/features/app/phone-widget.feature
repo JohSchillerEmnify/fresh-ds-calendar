@@ -40,6 +40,14 @@ Feature: Phone widgets
     When I look at the day widget
     Then the day widget shows the event "Dentist" from 09:00 to 10:00
 
+  # unit: android/app/src/androidTest/java/lan/mordor/calendar/widget/WidgetSmokeTest.java:everyWidgetKindSurvivesBeingPlacedAndUpdated
+  @unit
+  Scenario: Widgets on the home screen do not crash the app
+    Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When every widget kind is placed on the home screen of a real Android system
+    And the app's screen is closed and the widgets are updated for two minutes
+    Then the app has not crashed
+
   # unit: android/app/src/test/java/lan/mordor/calendar/widget/ClockLayoutTest.java:saysWhatIsRunningOrNextInTheAppsWords
   @unit
   Scenario: The clock widget says what is going on now

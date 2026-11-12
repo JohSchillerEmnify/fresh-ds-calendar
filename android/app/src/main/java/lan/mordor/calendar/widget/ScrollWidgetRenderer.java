@@ -121,7 +121,7 @@ final class ScrollWidgetRenderer {
             if (ScrollRows.agenda(m.data, today, m.str, false).isEmpty()) return message(rv, m.str.nothingPlanned(), WidgetRenderer.openApp(context, "/day/" + today));
         }
         rv.setPendingIntentTemplate(R.id.list, template(context));
-        if (items != null) {
+        if (items != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(3);
             for (int i = 0; i < items.size(); i++) b.addItem(i, items.get(i));
             rv.setRemoteAdapter(R.id.list, b.build());

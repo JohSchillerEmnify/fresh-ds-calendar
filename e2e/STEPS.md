@@ -3611,6 +3611,9 @@ I look at the day widget
 the day widget shows the event {string} from {time} to {time}
 I look at the clock widget
 the clock widget says {string}
+every widget kind is placed on the home screen of a real Android system
+the app's screen is closed and the widgets are updated for two minutes
+the app has not crashed
 ```
 
 - "counts down to D T": the scheduled native reminder carries that start (`setWhen` + a counting-down chronometer).
@@ -3623,6 +3626,9 @@ the clock widget says {string}
   morningTime: T } }`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
+- "every widget kind is placed ..." runs in the emulator job (`WidgetSmokeTest`, androidTest, API 28 and 34): app started, each provider
+  the manifest declares bound to a host, updated, then the screen closed and the clock broadcasts and the background fetch sent.
+  "the app has not crashed": no FATAL EXCEPTION, no "has died" of the app in the device log.
 
 ## iPhone widgets (`@iphone-widget`, Scriptable)
 

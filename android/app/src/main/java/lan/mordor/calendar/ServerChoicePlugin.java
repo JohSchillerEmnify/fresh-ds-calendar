@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.net.Uri;
 import androidx.browser.customtabs.CustomTabsIntent;
 import com.getcapacitor.JSObject;
@@ -29,7 +30,7 @@ public class ServerChoicePlugin extends Plugin {
     public void appVersion(PluginCall call) {
         try {
             PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
-            call.resolve(new JSObject().put("versionCode", (int) info.getLongVersionCode()));
+            call.resolve(new JSObject().put("versionCode", Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? (int) info.getLongVersionCode() : info.versionCode));
         } catch (PackageManager.NameNotFoundException e) {
             call.reject("version unknown");
         }

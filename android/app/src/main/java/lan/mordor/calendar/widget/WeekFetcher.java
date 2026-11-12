@@ -106,8 +106,9 @@ final class WeekFetcher {
 
     private static String read(InputStream in) throws java.io.IOException {
         try (in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            in.transferTo(out);
-            return out.toString(StandardCharsets.UTF_8);
+            byte[] buf = new byte[8192];
+            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            return out.toString(StandardCharsets.UTF_8.name());
         }
     }
 }

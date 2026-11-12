@@ -91,7 +91,7 @@ final class WidgetRenderer {
         if (signIn) {
             footer = str.signInAgain();
         } else {
-            String time = data == null ? "" : DateTimeFormatter.ofPattern("HH:mm").format(LocalTime.ofInstant(Instant.ofEpochMilli(data.timeMillis), ZoneId.systemDefault()));
+            String time = data == null ? "" : DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(data.timeMillis).atZone(ZoneId.systemDefault()).toLocalTime());
             footer = data == null ? "" : str.updated() + ": " + time;
         }
 
