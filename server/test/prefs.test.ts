@@ -245,7 +245,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the iPhone widget layout (standard) and the timeline days (3) per person; timeline days 1 to 7 only', async () => {
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: null });
     expect((await t.json('PATCH', '/api/prefs', { widgetLayout: 'timeline', widgetTimelineDays: 7 })).body).toMatchObject({ widgetLayout: 'timeline', widgetTimelineDays: 7 });
-    for (const bad of [0, 8, '3', null]) expect((await t.json('PATCH', '/api/prefs', { widgetTimelineDays: bad })).status, JSON.stringify(bad)).toBe(400);
+    for (const bad of [0, 8, '3']) expect((await t.json('PATCH', '/api/prefs', { widgetTimelineDays: bad })).status, JSON.stringify(bad)).toBe(400);
     expect((await t.json('PATCH', '/api/prefs', { widgetLayout: 'week' })).status).toBe(400);
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ widgetLayout: 'timeline', widgetTimelineDays: 7 });
   });

@@ -122,7 +122,7 @@ export const PREFS = {
   androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
   widgetLayout: oneOf(['standard', 'timeline'], 'standard', 'widgetLayout must be standard or timeline'),
   // null = never chosen: the day count then follows the older Android choice (see timelineDays)
-  widgetTimelineDays: { default: null, parse: (v) => (Number.isInteger(v) && v >= 1 && v <= 7 ? ok(v) : { error: 'widgetTimelineDays must be 1 to 7' }) },
+  widgetTimelineDays: { default: null, parse: (v) => (v === null || (Number.isInteger(v) && v >= 1 && v <= 7) ? ok(v) : { error: 'widgetTimelineDays must be 1 to 7' }) },
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
