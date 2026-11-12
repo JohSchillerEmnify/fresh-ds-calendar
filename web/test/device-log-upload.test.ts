@@ -56,13 +56,27 @@ describe('automatic sending', () => {
 });
 
 describe('crash records', () => {
-  it('become crash entries with class and frames and without any message', () => {
-    const e = crashEntry({ source: 'java', exception: 'java.lang.IllegalStateException', message: 'Dentist Meyer', causes: ['java.lang.RuntimeException'],
+  it('become crash entries with class and frames and no free text in them', () => {
+    // a message comes only from the recorder, which keeps only those Android wrote (CrashRecorderTest)
+    const e = crashEntry({ source: 'java', exception: 'java.lang.IllegalStateException', causes: ['java.lang.RuntimeException', 'Dentist Meyer'],
       frames: ['lan.mordor.calendar.widget.WeekFetcher.fetch(WeekFetcher.java:50)', 'Dentist Meyer at 10:00'], thread: 'main', app: '1.1.9', android: 35, time: 1_760_000_000_000 } as never)!;
     expect(e.kind).toBe('crash');
     expect(e.summary).toBe('crash java.lang.IllegalStateException');
     expect(e.data.frames).toBe('lan.mordor.calendar.widget.WeekFetcher.fetch(WeekFetcher.java:50)');
     expect(JSON.stringify(e)).not.toContain('Dentist');
+  });
+
+  it('keep the reason and frames the Android system wrote, each field under the upload limit', () => {
+    const e = crashEntry({ source: 'java', exception: 'java.lang.RuntimeException', message: 'Unable to start receiver', causes: ['java.lang.IllegalArgumentException'],
+      causeDetails: [{ exception: 'java.lang.IllegalArgumentException', message: 'RemoteViews for widget update exceeds maximum bitmap memory usage (used: 2, max: 1)',
+        frames: ['android.os.Parcel.readException(Parcel.java:3300)', 'lan.mordor.calendar.widget.ScrollWidgetProvider.render(ScrollWidgetProvider.java:94)', 'free text here'] },
+      { exception: 'android.os.RemoteException', frames: Array.from({ length: 400 }, (_, i) => `a.B.c(B.java:${i})`) }],
+      frames: [], time: 1_760_000_000_000 } as never)!;
+    expect(e.data.message).toBe('Unable to start receiver');
+    expect(e.data.causeTrace).toContain('java.lang.IllegalArgumentException: RemoteViews for widget update exceeds maximum bitmap memory usage (used: 2, max: 1)');
+    expect(e.data.causeTrace).toContain('  lan.mordor.calendar.widget.ScrollWidgetProvider.render(ScrollWidgetProvider.java:94)');
+    expect(e.data.causeTrace).not.toContain('free text');
+    for (const v of Object.values(e.data)) expect(String(v).length).toBeLessThan(4000);
   });
 
   it('are taken from the app plugin into the log, newest last', async () => {

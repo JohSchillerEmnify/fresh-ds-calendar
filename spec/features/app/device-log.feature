@@ -126,6 +126,15 @@ Feature: An error log on this device that I can send
     Then the error log has an entry "crash java.lang.IllegalStateException"
     And the error log does not contain "Dentist"
 
+  # The system's own reason (written by Android, never by the app) is what tells why the system refused a call.
+  # unit: android/app/src/test/java/lan/mordor/calendar/crash/CrashRecorderTest.java:keepsTheMessageAndFramesOfCausesTheFrameworkThrew
+  @unit
+  Scenario: A crash the Android system causes keeps the system's reason
+    Given the Android system refuses a widget update with the reason "RemoteViews for widget update exceeds maximum bitmap memory usage"
+    When the Android app is started again
+    And I open the error log in the settings
+    Then the error log shows "exceeds maximum bitmap memory usage"
+
   # unit: android/app/src/test/java/lan/mordor/calendar/crash/ExitReasonReaderTest.java:reportsCrashesAndANRsSinceTheLastStartOnce
   @unit
   Scenario: An app-not-responding or native crash that Android reports is in the error log once

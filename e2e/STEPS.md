@@ -3612,6 +3612,9 @@ the day widget shows the event {string} from {time} to {time}
 I look at the clock widget
 the clock widget says {string}
 every widget kind is placed on the home screen of a real Android system
+the phone started at a lower screen resolution than it uses now
+every widget kind is placed on the home screen as large as the screen
+every widget shows its picture
 the app's screen is closed and the widgets are updated for two minutes
 the app has not crashed
 ```
@@ -4395,6 +4398,7 @@ the shared error log is a text file with {int} entries
 the app cannot open its share sheet
 the error log is copied and I am told so
 the Android app crashes with {string} and the message {string}
+the Android system refuses a widget update with the reason {string}
 the Android app is started again
 Android 11 reports that the app stopped with an ANR and a native crash since the last start
 the Android app is started twice

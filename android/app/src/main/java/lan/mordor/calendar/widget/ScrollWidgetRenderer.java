@@ -159,7 +159,7 @@ final class ScrollWidgetRenderer {
             DisplayMetrics dm = context.getResources().getDisplayMetrics();
             TimelineRows.Plan plan = plan(context, m, options, today, now);
             float widthDp = WidgetRenderer.widthDp(context, options);
-            float scale = WeekLayout.bitmapScale(widthDp, plan.totalDp(), dm.density, (long) dm.widthPixels * dm.heightPixels);
+            float scale = WeekLayout.bitmapScale(widthDp, plan.totalDp(), dm.density, BitmapBudget.pixels(context));
             for (Bitmap slice : TimelineRows.slices(m.data, plan, m.theme, m.str, today, now.getHour() * 60 + now.getMinute(), Math.max(1, Math.round(widthDp * scale)), scale)) {
                 RemoteViews row = new RemoteViews(pkg, R.layout.scroll_timeline_row);
                 row.setImageViewBitmap(R.id.slice, slice);

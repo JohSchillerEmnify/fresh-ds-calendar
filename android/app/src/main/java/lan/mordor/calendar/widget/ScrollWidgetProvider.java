@@ -91,7 +91,11 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
             if (!force && key.equals(LAST.get(widgetId))) return;
             LAST.put(widgetId, key);
         }
-        manager.updateAppWidget(widgetId, ScrollWidgetRenderer.build(context, widgetId, options, LocalDate.now(), LocalTime.now(), timeline));
+        if (!BitmapBudget.push(context, manager, widgetId, () -> ScrollWidgetRenderer.build(context, widgetId, options, LocalDate.now(), LocalTime.now(), timeline))) {
+            synchronized (LAST) {
+                LAST.remove(widgetId); // not shown: the next render tries again
+            }
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) manager.notifyAppWidgetViewDataChanged(widgetId, R.id.list);
     }
 }

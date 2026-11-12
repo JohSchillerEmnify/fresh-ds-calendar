@@ -36,6 +36,50 @@ public class CrashRecorderTest {
     }
 
     @Test
+    public void keepsTheMessageAndFramesOfCausesTheFrameworkThrew() throws Exception {
+        // what Parcel.readException hands an app when the system refuses a call: the system's exception plus its stack as a cause
+        IllegalArgumentException refused = new IllegalArgumentException("RemoteViews for widget update exceeds maximum bitmap memory usage (used: 20000000, max: 15552000)");
+        refused.setStackTrace(new StackTraceElement[] {new StackTraceElement("android.os.Parcel", "createExceptionOrNull", "Parcel.java", 3300),
+                new StackTraceElement("android.appwidget.AppWidgetManager", "updateAppWidget", "AppWidgetManager.java", 600),
+                new StackTraceElement("lan.mordor.calendar.widget.ScrollWidgetProvider", "render", "ScrollWidgetProvider.java", 94)});
+        android.os.RemoteException remote = new android.os.RemoteException("Remote stack trace:\n\tat com.android.server.appwidget.AppWidgetServiceImpl.updateAppWidgetInstanceLocked(AppWidgetServiceImpl.java:2854)");
+        remote.setStackTrace(new StackTraceElement[0]);
+        refused.initCause(remote);
+        RuntimeException top = new RuntimeException("Unable to start receiver lan.mordor.calendar.widget.ScrollWidgetProvider: " + refused, refused);
+        top.setStackTrace(new StackTraceElement[] {new StackTraceElement("android.app.ActivityThread", "handleReceiver", "ActivityThread.java", 5410)});
+
+        JSONObject r = CrashRecorder.describe(top, "main", "1.1.9", 37, 1L);
+        assertTrue(r.getString("message").startsWith("Unable to start receiver"));
+        JSONArray details = r.getJSONArray("causeDetails");
+        JSONObject iae = details.getJSONObject(0);
+        assertEquals("java.lang.IllegalArgumentException", iae.getString("exception"));
+        assertTrue(iae.getString("message").contains("exceeds maximum bitmap memory usage (used: 20000000, max: 15552000)"));
+        assertEquals("lan.mordor.calendar.widget.ScrollWidgetProvider.render(ScrollWidgetProvider.java:94)", iae.getJSONArray("frames").getString(2));
+        assertTrue(details.getJSONObject(1).getString("message").contains("AppWidgetServiceImpl.updateAppWidgetInstanceLocked"));
+        assertEquals("java.lang.IllegalArgumentException", r.getJSONArray("causes").getString(0));
+    }
+
+    @Test
+    public void dropsTheMessageOfOurOwnExceptionsAndCutsLongMessages() throws Exception {
+        IllegalStateException ours = new IllegalStateException("Dentist Meyer");
+        RuntimeException framework = new RuntimeException("x".repeat(1000), ours);
+        framework.setStackTrace(new StackTraceElement[] {new StackTraceElement("android.app.ActivityThread", "handleReceiver", "ActivityThread.java", 1)});
+        JSONObject r = CrashRecorder.describe(framework, "main", "1.1.9", 37, 1L);
+        assertFalse(r.toString().contains("Dentist"));
+        assertEquals(CrashRecorder.MAX_MESSAGE, r.getString("message").length());
+        JSONObject cause = r.getJSONArray("causeDetails").getJSONObject(0);
+        assertFalse(cause.has("message"));
+        NumberFormatException parse = new NumberFormatException("For input string: \"Dentist\"");
+        parse.setStackTrace(new StackTraceElement[] {new StackTraceElement("java.lang.Long", "parseLong", "Long.java", 1)});
+        RuntimeException wrapped = new RuntimeException("wrapped", parse);
+        wrapped.setStackTrace(new StackTraceElement[] {new StackTraceElement("java.lang.Thread", "run", "Thread.java", 1)});
+        String json = CrashRecorder.describe(wrapped, "main", "1.1.9", 37, 1L).toString();
+        assertFalse("a message java.* wrote can quote a title", json.contains("Dentist"));
+        assertFalse(json.contains("wrapped"));
+        assertTrue(cause.getJSONArray("frames").getString(0).contains("CrashRecorderTest.dropsTheMessage"));
+    }
+
+    @Test
     public void theInstalledHandlerWritesTheRecordThenCallsThePreviousHandler() throws Exception {
         Thread.UncaughtExceptionHandler before = Thread.getDefaultUncaughtExceptionHandler();
         Throwable[] seen = new Throwable[1];

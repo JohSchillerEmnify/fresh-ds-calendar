@@ -53,7 +53,11 @@ final class WidgetRenderer {
             if (!force && key.equals(LAST.get(widgetId))) return;
             LAST.put(widgetId, key);
         }
-        manager.updateAppWidget(widgetId, build(context, options, LocalDate.now()));
+        if (!BitmapBudget.push(context, manager, widgetId, () -> build(context, options, LocalDate.now()))) {
+            synchronized (LAST) {
+                LAST.remove(widgetId); // not shown: the next render tries again
+            }
+        }
     }
 
     static RemoteViews build(Context context, Bundle options, LocalDate today) {
@@ -95,10 +99,10 @@ final class WidgetRenderer {
             footer = data == null ? "" : str.updated() + ": " + time;
         }
 
-        // the bitmap is drawn at the widget's real size, never above one screen of pixels (the RemoteViews memory limit is 1.5 screens)
+        // the bitmap is drawn at the widget's real size, never above one screen of pixels nor the system's limit (BitmapBudget)
         DisplayMetrics dm = context.getResources().getDisplayMetrics();
         float widthDp = widthDp(context, options), heightDp = heightDp(context, options);
-        float scale = WeekLayout.bitmapScale(widthDp, heightDp, dm.density, (long) dm.widthPixels * dm.heightPixels);
+        float scale = WeekLayout.bitmapScale(widthDp, heightDp, dm.density, BitmapBudget.pixels(context));
         LocalTime now = LocalTime.now();
         Bitmap bmp = WeekCanvas.draw(data, theme, str, monday, today, now.getHour() * 60 + now.getMinute(), footer, signIn,
                 Math.max(1, Math.round(widthDp * scale)), Math.max(1, Math.round(heightDp * scale)), scale);

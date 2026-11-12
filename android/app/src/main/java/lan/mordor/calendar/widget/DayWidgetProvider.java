@@ -66,7 +66,8 @@ public class DayWidgetProvider extends AppWidgetProvider {
     }
 
     static void render(Context context, AppWidgetManager manager, int widgetId) {
-        manager.updateAppWidget(widgetId, build(context, manager.getAppWidgetOptions(widgetId), LocalDate.now(), LocalTime.now()));
+        Bundle options = manager.getAppWidgetOptions(widgetId);
+        BitmapBudget.push(context, manager, widgetId, () -> build(context, options, LocalDate.now(), LocalTime.now()));
     }
 
     static RemoteViews build(Context context, Bundle options, LocalDate today, LocalTime now) {
@@ -97,7 +98,7 @@ public class DayWidgetProvider extends AppWidgetProvider {
 
         DisplayMetrics dm = context.getResources().getDisplayMetrics();
         float widthDp = WidgetRenderer.widthDp(context, options), heightDp = WidgetRenderer.heightDp(context, options);
-        float scale = WeekLayout.bitmapScale(widthDp, heightDp, dm.density, (long) dm.widthPixels * dm.heightPixels);
+        float scale = WeekLayout.bitmapScale(widthDp, heightDp, dm.density, BitmapBudget.pixels(context));
         Bitmap bmp = WeekCanvas.drawDay(data, theme, str, monday, today, today, now.getHour() * 60 + now.getMinute(), footer, signIn,
                 Math.max(1, Math.round(widthDp * scale)), Math.max(1, Math.round(heightDp * scale)), scale);
         rv.setImageViewBitmap(R.id.canvas, bmp);
