@@ -1,8 +1,9 @@
 # Changelog
 
 ## 2026-11-12
-- Fixed: the app no longer keeps stopping on Android when a large home screen widget needs more picture memory than the phone allows (for example after the screen resolution was changed); the widget is drawn slightly less sharp instead.
+- Fixed: the app no longer keeps stopping on Android when a large home screen widget needs more picture memory than the phone allows; the widget is drawn slightly less sharp instead.
 - Android: a crash record in the error log now also says the reason Android gave, so such a problem can be found faster.
+- The Android app now needs Android 12 or newer; older phones keep the version they have.
 - Fixed: sending the error log to the server works again when the log holds an Android crash.
 - Settings › Error log: a new "Send to server" button sends the log, so a problem can be looked into. A new switch, off until you turn it on, sends error and crash reports by itself; they never contain titles or texts.
 - Android: a crash or a freeze of the app is now written to the error log the next time you open it.
