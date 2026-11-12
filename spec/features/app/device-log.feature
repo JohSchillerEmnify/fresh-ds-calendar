@@ -115,3 +115,54 @@ Feature: An error log on this device that I can send
     When I open the error log in the settings
     And I share the error log
     Then the error log is copied and I am told so
+
+  # Native crashes never reach the web app's own handlers: the Android app writes them to a file before the process dies.
+  # unit: android/app/src/test/java/org/example/calendar/CrashRecorderTest.java:records the exception class and frames of a crash without its message
+  @unit @backlog
+  Scenario: A crash of the Android app is recorded without its message text
+    Given the Android app crashes with "java.lang.IllegalStateException" and the message "Dentist Meyer"
+    When the Android app is started again
+    And I open the error log in the settings
+    Then the error log has an entry "crash java.lang.IllegalStateException"
+    And the error log does not contain "Dentist"
+
+  # unit: android/app/src/test/java/org/example/calendar/ExitReasonReaderTest.java:reports crashes and ANRs since the last start once
+  @unit @backlog
+  Scenario: An app-not-responding or native crash that Android reports is in the error log once
+    Given Android 11 reports that the app stopped with an ANR and a native crash since the last start
+    When the Android app is started twice
+    And I open the error log in the settings
+    Then the error log has an entry "crash ANR"
+    And the error log has an entry "crash CRASH_NATIVE"
+    And the error log holds each of them once
+
+  @backlog
+  Scenario: Send to server uploads the log and says so
+    Given this device's error log holds:
+      | at               | message                  |
+      | 2026-10-12 08:01 | Error: sync stopped      |
+      | 2026-10-12 08:05 | Error: worker not loaded |
+    When I open the error log in the settings
+    And I send the error log to the server
+    Then I am told the error log was sent
+    And the server holds 1 error log upload for me with 2 entries
+
+  @backlog
+  Scenario: Send to server offline says it could not be sent and keeps the log
+    Given this device's error log holds:
+      | at               | message             |
+      | 2026-10-12 08:01 | Error: sync stopped |
+    And this device is offline
+    When I open the error log in the settings
+    And I send the error log to the server
+    Then I am told the error log could not be sent
+    And the error log shows "Error: sync stopped"
+
+  # unit: server/test/diag-device-log.test.ts:keeps the last 5 uploads per person, refuses over 256 KB and rate-limits
+  @unit @backlog
+  Scenario: The server keeps a few uploads per person and refuses oversized or too frequent ones
+    Given "jo@example.com" and "anna@example.com" may use the calendar
+    When "jo@example.com" sends 7 error logs
+    Then the server holds 5 error log uploads for "jo@example.com" and none for "anna@example.com"
+    And an error log over 256 KB is refused
+    And a second upload within a minute is refused

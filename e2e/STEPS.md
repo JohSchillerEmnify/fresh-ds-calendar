@@ -4372,6 +4372,20 @@ I share the error log with the share sheet
 the shared error log is a text file with {int} entries
 the app cannot open its share sheet
 the error log is copied and I am told so
+the Android app crashes with {string} and the message {string}
+the Android app is started again
+Android 11 reports that the app stopped with an ANR and a native crash since the last start
+the Android app is started twice
+the error log holds each of them once
+I send the error log to the server
+I am told the error log was sent
+I am told the error log could not be sent
+the server holds {int} error log upload for me with {int} entries
+this device is offline
+{string} sends {int} error logs
+the server holds {int} error log uploads for {string} and none for {string}
+an error log over 256 KB is refused
+a second upload within a minute is refused
 ```
 
 - The page is `/settings/error-log` (`device-log-page`), opened from the Settings row `settings-error-log` (Account &
@@ -4384,6 +4398,9 @@ the error log is copied and I am told so
 - "this device's error log holds:" writes the table into the log's storage (`localStorage` key `calendar.deviceLog`)
   before the app loads, as `error` entries with that time (local) and message `Name: text` split into name and text.
 - "I clear the error log": `device-log-clear`. "is empty": no `device-log-entry` and `device-log-empty` is shown.
+- Send (`@backlog` until built): "I send the error log to the server" clicks `device-log-send`; the confirmation or
+  failure shows in `device-log-send-status`. The crash and upload-limit steps belong to `@unit` scenarios (Android and
+  server tests); they are listed so the contract is complete.
 - "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
   "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
   downloaded error log holds N entries": the downloaded file is JSON with N `entries`.
