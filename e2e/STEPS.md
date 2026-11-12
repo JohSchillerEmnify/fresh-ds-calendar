@@ -1015,6 +1015,7 @@ the settings page shows the setting {string}
 the settings page does not show the setting {string}
 I turn off {string} in the settings
 I open the calendar {string} in the settings
+the calendar {string} in the settings shows the colour {string}
 the settings show the plan {string} for the calendar {string}
 I choose {string} for {string} in the settings
 {string} is chosen for {string} in the settings
@@ -2431,6 +2432,8 @@ I turn on {string} in the settings
 - The task lists calendar's settings page is opened like a calendar's: `I open the calendar "Task lists calendar" in the
   settings`. Its Color row is the one of `@id:calendar-colours` (same steps; the save is `PATCH /api/calendar-colors/tasks-calendar`
   here), and "Google lists the calendar {string} with the palette colour N" also finds a calendar by its Google summary.
+- "the calendar X in the settings shows the colour C": the colour dot (`::before`) of X's row in the Calendars group has
+  background colour C.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.

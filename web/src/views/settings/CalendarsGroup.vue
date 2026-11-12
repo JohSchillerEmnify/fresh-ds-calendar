@@ -7,11 +7,15 @@ import SettingSection from '@/components/settings/SettingSection.vue';
 import { planSummary } from '@/components/settings/planSummary';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
+import { useDeviceStore } from '@/stores/device';
 
 const cals = useCalendarsStore();
 const others = computed(() => cals.list.filter((c) => !c.holiday));
 const holidays = computed(() => cals.list.filter((c) => c.holiday));
 const picking = ref(false);
+const device = useDeviceStore();
+// the task lists calendar is no list entry; its colour comes with the device sync
+const tasksColor = computed(() => device.file<{ color: string }>('tasksCalendarColor')?.color);
 onMounted(() => { void cals.load().catch(() => undefined); });
 </script>
 
@@ -21,7 +25,7 @@ onMounted(() => { void cals.load().catch(() => undefined); });
       v-for="c in others" :id="`calendar:${c.id}`" :key="c.id" :to="`/settings/calendars/${encodeURIComponent(c.id)}`" :label="c.name"
       :hint="c.hidden ? t('settingsNav.calendar.hidden') : planSummary(c.id)" class="cal" :style="{ '--cal': c.color }"
     />
-    <SettingRow id="tasksCalendar" to="/settings/calendars/tasks-calendar" :label="t('settingsNav.labels.tasksCalendar')" :hint="t('settingsNav.labels.tasksCalendarHint')" />
+    <SettingRow id="tasksCalendar" to="/settings/calendars/tasks-calendar" :label="t('settingsNav.labels.tasksCalendar')" :hint="t('settingsNav.labels.tasksCalendarHint')" class="cal" :style="{ '--cal': tasksColor }" />
   </SettingSection>
   <SettingSection :title="t('settingsNav.holidays.title')" data-testid="settings-holidays">
     <SettingRow
