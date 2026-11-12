@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -120,7 +121,7 @@ final class ScrollWidgetRenderer {
                 rv.setTextViewText(DAY_NAMES[i], m.str.columnName(d));
                 rv.setContentDescription(DAY_NAMES[i], m.str.agendaDay(d));
                 rv.setTextColor(DAY_NAMES[i], i == 0 ? m.theme.onPrimary : m.theme.onSurfaceVariant);
-                rv.setInt(DAY_NAMES[i], "setBackgroundColor", i == 0 ? m.theme.primary : 0);
+                rv.setColorStateList(DAY_NAMES[i], "setBackgroundTintList", ColorStateList.valueOf(i == 0 ? m.theme.primary : 0));
                 rv.setOnClickPendingIntent(DAY_NAMES[i], WidgetRenderer.openApp(context, "/day/" + d));
             }
         } else {
