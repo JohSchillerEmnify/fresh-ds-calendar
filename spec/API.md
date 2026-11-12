@@ -1126,7 +1126,7 @@ interface DeviceLogUpload {
     at: string; kind: 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision' | 'crash';
     summary: string;      // at most 400 characters
     app: string; platform: 'ios' | 'android' | 'desktop'; standalone: boolean; native: boolean;
-    data: Record<string, string | number | boolean>;   // at most 30 fields, texts at most 400 characters
+    data: Record<string, string | number | boolean>;   // at most 30 fields, texts at most 4000 characters (a crash keeps its stack lines in one text)
   }>;
 }
 ```

@@ -31,7 +31,7 @@ const logSchema = v.strictObject({
     platform: v.picklist(['ios', 'android', 'desktop'], 'platform must be ios, android or desktop'),
     standalone: v.boolean('standalone must be true or false'),
     native: v.boolean('native must be true or false'),
-    data: v.pipe(v.record(text(40, 'data key'), v.union([text(400, 'data value'), v.number('data value must be text, a number or true/false'), v.boolean('data value must be text, a number or true/false')])), v.maxEntries(30, 'data has too many fields')),
+    data: v.pipe(v.record(text(40, 'data key'), v.union([text(4000, 'data value'), v.number('data value must be text, a number or true/false'), v.boolean('data value must be text, a number or true/false')])), v.maxEntries(30, 'data has too many fields')),
   })), v.maxLength(500, 'at most 500 entries')),
 });
 

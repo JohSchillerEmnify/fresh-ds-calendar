@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-12
+- Fixed: sending the error log to the server works again when the log holds an Android crash.
 - Settings › Error log: a new "Send to server" button sends the log, so a problem can be looked into. A new switch, off until you turn it on, sends error and crash reports by itself; they never contain titles or texts.
 - Android: a crash or a freeze of the app is now written to the error log the next time you open it.
 - Android: two new scrolling home screen widgets. "List" shows the next 14 days as an agenda; "Multi-day" shows the next days side by side with the hours running down. The number of days (1 to 7) is set under Timeline (iPhone and Android).
