@@ -34,6 +34,17 @@ Feature: Phone widgets
     When the app syncs
     Then the phone widget is not redrawn
 
+  # Android takes at most 6 bytes per pixel of the screen it measured at start-up for one widget's pictures; after a change of the
+  # screen resolution the app's screen is larger and a full picture is refused.
+  # unit: android/app/src/test/java/lan/mordor/calendar/widget/BitmapBudgetTest.java:everyWidgetIsTakenWithinTheLimitTheRefusalNames
+  @unit
+  Scenario: A widget as large as the screen does not crash the app after the screen resolution was changed
+    Given the phone started at a lower screen resolution than it uses now
+    And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When every widget kind is placed on the home screen as large as the screen
+    Then the app has not crashed
+    And every widget shows its picture
+
   @backlog
   Scenario: The day widget shows today
     Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00

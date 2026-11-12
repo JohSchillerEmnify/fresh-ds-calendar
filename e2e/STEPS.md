@@ -3612,6 +3612,9 @@ the day widget shows the event {string} from {time} to {time}
 I look at the clock widget
 the clock widget says {string}
 every widget kind is placed on the home screen of a real Android system
+the phone started at a lower screen resolution than it uses now
+every widget kind is placed on the home screen as large as the screen
+every widget shows its picture
 the app's screen is closed and the widgets are updated for two minutes
 the app has not crashed
 ```

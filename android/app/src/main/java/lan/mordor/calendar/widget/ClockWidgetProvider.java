@@ -75,7 +75,8 @@ public class ClockWidgetProvider extends AppWidgetProvider {
     }
 
     static void render(Context context, AppWidgetManager manager, int widgetId) {
-        manager.updateAppWidget(widgetId, build(context, manager.getAppWidgetOptions(widgetId), LocalDate.now(), LocalTime.now()));
+        Bundle options = manager.getAppWidgetOptions(widgetId);
+        BitmapBudget.push(context, manager, widgetId, () -> build(context, options, LocalDate.now(), LocalTime.now()));
     }
 
     static RemoteViews build(Context context, Bundle options, LocalDate today, LocalTime now) {
@@ -94,7 +95,7 @@ public class ClockWidgetProvider extends AppWidgetProvider {
 
         DisplayMetrics dm = context.getResources().getDisplayMetrics();
         int sideDp = Math.max(60, Math.min(dim(context, options, true), dim(context, options, false)) - 8);
-        int sidePx = Math.min(Math.round(sideDp * dm.density), Math.min(dm.widthPixels, dm.heightPixels));
+        int sidePx = (int) Math.min(Math.round(sideDp * dm.density), Math.min(Math.min(dm.widthPixels, dm.heightPixels), (long) Math.sqrt(BitmapBudget.pixels(context))));
         Bitmap bmp = ClockCanvas.draw(items, theme, str, now.getHour() * 60 + now.getMinute(), sidePx, dm.density);
         rv.setImageViewBitmap(R.id.canvas, bmp);
         rv.setTextColor(R.id.time, theme.onSurface);

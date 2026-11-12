@@ -20,7 +20,7 @@ interface CrashPlugin { take(): Promise<{ records?: CrashRecord[] }> }
 
 const plugin = (): CrashPlugin | undefined => (window as unknown as { Capacitor?: { Plugins?: { CrashReports?: CrashPlugin } } }).Capacitor?.Plugins?.CrashReports;
 
-/** Every text is checked against the shape of code (class names, frames, version numbers): a crash entry never carries free text. */
+/** Every text is checked against the shape of code (class names, frames, version numbers); the only free text is a reason Android wrote (CrashRecorder). */
 const CLASS = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/;
 const FRAME = /^[\w$.<>]+(\([\w$.]+(:\d+)?\)|\(Native Method\)|\(Unknown Source\))?$/;
 const THREAD = /^[\w$.:#-]{1,40}$/;
