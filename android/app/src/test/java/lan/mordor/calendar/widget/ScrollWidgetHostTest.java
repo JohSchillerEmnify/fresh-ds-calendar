@@ -122,7 +122,7 @@ public class ScrollWidgetHostTest {
     /** The dp of the minute that should be at the top: half an hour before now, below the band and the picture's top padding. */
     private double wantedDp() {
         ScrollWidgetRenderer.Model m = ScrollWidgetRenderer.load(ctx, TODAY);
-        TimelineRows.Plan plan = TimelineRows.plan(m.data, TODAY, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(ctx, size()), NOW);
+        TimelineRows.Plan plan = TimelineRows.plan(m.data, TODAY, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(ctx, size()), NOW, m.choice.textScale());
         assertEquals("half an hour before now", 6 * 60 + 50, plan.startMin);
         return plan.bandDp + WeekCanvas.PAD + plan.startMin / 60f * plan.hourDp;
     }

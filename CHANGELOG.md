@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-11-12
+- New: Settings › Widgets › Timeline has a "Text size in the Timeline" slider from 90 % to 150 % (110 % to start with). It makes the text bigger or smaller in the Multi-day widget on Android and in the Timeline of the iPhone widget.
+- iPhone widget: the script updates itself to the new version; the Timeline texts are a little larger now, as chosen in Settings.
 - Fixed: in the Multi-day widget, the marker behind today's day name now has rounded corners, like in the week widget.
 - Fixed: a task list without a title now shows its first item as its name on the Android widgets, as it does in the app, instead of an empty or placeholder text.
 - Fixed: the Multi-day widget on Android now really opens with half an hour before now at the top, and an update no longer throws it back to midnight.

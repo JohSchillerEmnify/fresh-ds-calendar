@@ -185,3 +185,18 @@ When('I set the timeline days to {string}', async function (this: World, label: 
   expect((await saved).status(), 'prefs saved').toBe(200);
 });
 
+
+Then('the timeline text size is set to {string}', async function (this: World, text: string) {
+  await settingControl(this, 'settings-timeline-text-size');
+  await expect(this.page.getByTestId('settings-timeline-text-size-value').first()).toHaveText(text);
+});
+
+When('I set the timeline text size to {int}', async function (this: World, percent: number) {
+  const slider = await settingControl(this, 'settings-timeline-text-size');
+  const from = Number(await slider.inputValue());
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await slider.focus();
+  for (let i = 0; i < Math.abs(percent - from) / 5; i++) await slider.press(percent > from ? 'ArrowRight' : 'ArrowLeft');
+  expect((await saved).status(), 'prefs saved').toBe(200);
+  await expect(slider).toHaveValue(String(percent));
+});

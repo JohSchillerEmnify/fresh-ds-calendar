@@ -100,6 +100,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('widgets', 'android', 'androidWidgets', 'settings.widgets.android.label', { hint: 'settings.widgets.android.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'android', 'androidWidgetHours', 'settings.widgets.scroll.label', { hint: 'settings.widgets.scroll.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'timeline', 'widgetTimelineDays', 'settings.widgets.scroll.days', { hint: 'settings.widgets.timeline.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
+  e('widgets', 'timeline', 'widgetTimelineTextSize', 'settings.widgets.textSize.label', { hint: 'settings.widgets.textSize.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'iphone', 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('widgets', 'iphone', 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('widgets', 'iphone', 'widgetLayout', 'iphoneWidget.layout.label', { hint: 'iphoneWidget.layout.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),

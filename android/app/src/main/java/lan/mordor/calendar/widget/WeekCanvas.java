@@ -35,6 +35,8 @@ final class WeekCanvas {
     private final Canvas c;
     /** The hours the grid spans when the caller fixes them (the Multi-day widget draws the whole day); null = fitted to the entries. */
     private int[] fixedHours;
+    /** Factor on every text size and text row height (the Multi-day widget's text size setting; 1 elsewhere). */
+    private float ts = 1;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
@@ -77,11 +79,11 @@ final class WeekCanvas {
     }
 
     /** The height in dp of the all-day band the scrolling Timeline draws for {@code days} (0 when none of them has an untimed entry). */
-    static float columnsBandHeight(List<WeekData.Day> days, int[] range, float hourDp) {
+    static float columnsBandHeight(List<WeekData.Day> days, int[] range, float hourDp, float ts) {
         int chips = 0;
         for (WeekData.Day d : days) chips = Math.max(chips, untimed(d).size());
-        int rows = Math.min(chips, bandCap((range[1] - range[0]) * hourDp));
-        return rows > 0 ? rows * (CHIP + 1) + 2 : 0;
+        int rows = Math.min(chips, bandCap((range[1] - range[0]) * hourDp, ts));
+        return rows > 0 ? rows * (CHIP * ts + 1) + 2 : 0;
     }
 
     /**
@@ -90,18 +92,19 @@ final class WeekCanvas {
      * The widget cuts the picture into rows.
      */
     static Bitmap drawColumns(WeekData data, WidgetTheme theme, WidgetStrings str, int offset, int n, LocalDate today, int minutesNow, int widthPx,
-            int[] range, float hourDp, float scale) {
+            int[] range, float hourDp, float scale, float textScale) {
         float w = widthPx / scale;
-        float h = PAD + columnsBandHeight(data.days.subList(offset, offset + n), range, hourDp) + (range[1] - range[0]) * hourDp + PAD;
+        float h = PAD + columnsBandHeight(data.days.subList(offset, offset + n), range, hourDp, textScale) + (range[1] - range[0]) * hourDp + PAD;
         Bitmap bmp = Bitmap.createBitmap(widthPx, Math.max(1, Math.round(h * scale)), Bitmap.Config.ARGB_8888);
         WeekCanvas canvas = new WeekCanvas(new Canvas(bmp), theme, scale);
         canvas.fixedHours = range;
+        canvas.ts = textScale;
         canvas.paint(data, str, data.weekStart, offset, n, "", today, minutesNow, "", false, w, h, hourDp);
         return bmp;
     }
 
-    private static int bandCap(float bandAndGridDp) {
-        return Math.max(1, (int) (bandAndGridDp * BAND_SHARE / (CHIP + 1)));
+    private static int bandCap(float bandAndGridDp, float ts) {
+        return Math.max(1, (int) (bandAndGridDp * BAND_SHARE / (CHIP * ts + 1)));
     }
 
     /** Paints {@code n} days starting at {@code offset} days after {@code monday} (7 from 0: the week; 1: a day). */
@@ -135,21 +138,22 @@ final class WeekCanvas {
         for (WeekData.Bar b : bars) lanes = Math.max(lanes, b.lane + 1);
         for (WeekData.Day d : days) chips = Math.max(chips, untimed(d).size());
         int[] hours = fixedHours != null ? fixedHours : data == null ? new int[] {WeekLayout.DEFAULT_START_HOUR, WeekLayout.DEFAULT_END_HOUR} : WeekLayout.hourRange(days);
-        int cap = bandCap(bare ? (hours[1] - hours[0]) * bareHourDp : gridBottom - bandTop);
+        float chip = CHIP * ts;
+        int cap = bandCap(bare ? (hours[1] - hours[0]) * bareHourDp : gridBottom - bandTop, ts);
         int barRows = Math.min(lanes, cap), chipRows = Math.min(chips, cap - barRows);
-        float bandH = (barRows + chipRows) * (CHIP + 1) + ((barRows + chipRows) > 0 ? 2 : 0);
+        float bandH = (barRows + chipRows) * (chip + 1) + ((barRows + chipRows) > 0 ? 2 : 0);
         if (data != null) {
-            for (WeekData.Bar b : bars) if (b.lane < barRows) drawBar(b, x0, colW, bandTop + b.lane * (CHIP + 1));
+            for (WeekData.Bar b : bars) if (b.lane < barRows) drawBar(b, x0, colW, bandTop + b.lane * (chip + 1));
             for (int i = 0; i < n; i++) {
                 List<WeekData.Item> top = untimed(days.get(i));
                 int shown = top.size() > chipRows ? chipRows - 1 : top.size();
                 for (int j = 0; j < Math.max(0, shown); j++) {
-                    float y = bandTop + (barRows + j) * (CHIP + 1);
-                    drawItem(new RectF(x0 + i * colW + 1, y, x0 + (i + 1) * colW - 1, y + CHIP), top.get(j), false, false, false);
+                    float y = bandTop + (barRows + j) * (chip + 1);
+                    drawItem(new RectF(x0 + i * colW + 1, y, x0 + (i + 1) * colW - 1, y + chip), top.get(j), false, false, false);
                 }
                 if (top.size() > chipRows && chipRows > 0) {
-                    float y = bandTop + (barRows + chipRows - 1) * (CHIP + 1);
-                    label("+" + (top.size() - shown), x0 + i * colW + 3, y, colW - 4, CHIP, 8, th.onSurfaceVariant, false, Layout.Alignment.ALIGN_NORMAL, true);
+                    float y = bandTop + (barRows + chipRows - 1) * (chip + 1);
+                    label("+" + (top.size() - shown), x0 + i * colW + 3, y, colW - 4, chip, 8, th.onSurfaceVariant, false, Layout.Alignment.ALIGN_NORMAL, true);
                 }
             }
         }
@@ -166,7 +170,7 @@ final class WeekCanvas {
         for (int hr = first; hr < last; hr++) {
             float y = gridTop + (hr - first) * hh;
             if (hr > first) line(x0, y, w - PAD, y, th.outlineVariant, 0.5f);
-            if ((hr - first) % step == 0) label(String.format("%02d", hr), PAD, y - (hr == first ? 0 : 4.5f), GUTTER - 2, 9, 7, th.onSurfaceVariant, false, Layout.Alignment.ALIGN_OPPOSITE, false);
+            if ((hr - first) % step == 0) label(String.format("%02d", hr), PAD, y - (hr == first ? 0 : 4.5f), GUTTER - 2, 9 * ts, 7, th.onSurfaceVariant, false, Layout.Alignment.ALIGN_OPPOSITE, false);
         }
         for (int i = 0; i <= n; i++) line(x0 + i * colW, gridTop, x0 + i * colW, gridBottom, th.outlineVariant, 0.5f);
 
@@ -176,7 +180,7 @@ final class WeekCanvas {
         if (data != null) {
             for (int i = 0; i < n; i++) {
                 boolean isToday = days.get(i).date.equals(today);
-                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK / hh * 60), data.minEventMinutes, data.weekSideBySide, WeekLayout.titleRowMinutes(TITLE_ROW, hh));
+                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK * ts / hh * 60), data.minEventMinutes, data.weekSideBySide, WeekLayout.titleRowMinutes(TITLE_ROW * ts, hh));
                 placed.sort((a, b) -> Integer.compare(a.level, b.level));
                 for (WeekLayout.Placed p : placed) {
                     float cx = x0 + i * colW, bw = colW / p.cols;
@@ -215,10 +219,10 @@ final class WeekCanvas {
     }
 
     private void drawBar(WeekData.Bar b, float x0, float colW, float y) {
-        RectF r = new RectF(x0 + b.startCol * colW + 1, y, x0 + (b.endCol + 1) * colW - 1, y + CHIP);
+        RectF r = new RectF(x0 + b.startCol * colW + 1, y, x0 + (b.endCol + 1) * colW - 1, y + CHIP * ts);
         int color = WidgetTheme.color(b.color, th.primary);
         entry(r, color, b.continuedFromPrev, b.continuesToNext, false);
-        label(b.title, r.left + 3, r.top, r.width() - 4, CHIP, 8.5f, textOn(color), false, Layout.Alignment.ALIGN_NORMAL, true);
+        label(b.title, r.left + 3, r.top, r.width() - 4, CHIP * ts, 8.5f, textOn(color), false, Layout.Alignment.ALIGN_NORMAL, true);
     }
 
     /**
@@ -238,25 +242,25 @@ final class WeekCanvas {
             boolean count = it.total > 0 && r.width() >= 40;
             float cw = count ? 14 : 0;
             // an untitled list's lead stands in for the title only where its items are not listed below (as in the app)
-            boolean listed = it.title.trim().isEmpty() && block && !it.openItems.isEmpty() && r.top + 11.5f + 9 <= r.bottom && r.width() >= 30;
-            label(listed ? "" : it.label().isEmpty() ? "·" : it.label(), tx, r.top + 0.5f, r.right - tx - cw - 1, 10, 8.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
-            if (count) label(it.done + "/" + it.total, r.right - cw - 1, r.top + 1, cw, 10, 7, fg, false, Layout.Alignment.ALIGN_OPPOSITE, true);
-            float y = r.top + 11.5f;
+            boolean listed = it.title.trim().isEmpty() && block && !it.openItems.isEmpty() && r.top + (11.5f + 9) * ts <= r.bottom && r.width() >= 30;
+            label(listed ? "" : it.label().isEmpty() ? "·" : it.label(), tx, r.top + 0.5f, r.right - tx - cw - 1, 10 * ts, 8.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
+            if (count) label(it.done + "/" + it.total, r.right - cw - 1, r.top + 1, cw, 10 * ts, 7, fg, false, Layout.Alignment.ALIGN_OPPOSITE, true);
+            float y = r.top + 11.5f * ts;
             for (String name : it.openItems) {
-                if (!block || y + 9 > r.bottom || r.width() < 30) break;
+                if (!block || y + 9 * ts > r.bottom || r.width() < 30) break;
                 stroke(new RectF(r.left + pad + 0.5f, y + 2.5f, r.left + pad + 4, y + 6), fg, 0.7f);
-                label(name, r.left + pad + 6, y, r.right - r.left - pad - 7, 9, 7.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
-                y += 9;
+                label(name, r.left + pad + 6, y, r.right - r.left - pad - 7, 9 * ts, 7.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
+                y += 9 * ts;
             }
         } else {
-            int lines = (int) ((r.height() - 2) / 10);
+            int lines = (int) ((r.height() - 2) / (10 * ts));
             boolean time = block && lines >= 2 && r.width() >= 40 && it.startMin >= 0;
             int titleLines = Math.max(1, block ? lines - (time ? 1 : 0) : 1);
             // with a time line under it the title keeps to its own line(s) at the top, so the two never overlap
-            float titleH = time ? Math.max(10, r.height() - 1 - 10) : r.height() - 1;
-            if (time && titleLines == 1) titleH = 10;
+            float titleH = time ? Math.max(10 * ts, r.height() - 1 - 10 * ts) : r.height() - 1;
+            if (time && titleLines == 1) titleH = 10 * ts;
             float used = label(it.title.isEmpty() ? "·" : it.title, r.left + pad, r.top + 0.5f, w, titleH, 8.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, titleLines == 1);
-            if (time) label(WeekData.hhmm(it.startMin) + "–" + WeekData.hhmm(it.endMin), r.left + pad, r.top + 0.5f + Math.max(used, 10), w, 9, 7, withAlpha(fg, 0.85f), false, Layout.Alignment.ALIGN_NORMAL, true);
+            if (time) label(WeekData.hhmm(it.startMin) + "–" + WeekData.hhmm(it.endMin), r.left + pad, r.top + 0.5f + Math.max(used, 10 * ts), w, 9 * ts, 7, withAlpha(fg, 0.85f), false, Layout.Alignment.ALIGN_NORMAL, true);
         }
         if (past) c.restore();
     }
@@ -336,10 +340,10 @@ final class WeekCanvas {
      */
     private float label(String t, float x, float y, float w, float h, float sizeDp, int color, boolean bold, Layout.Alignment align, boolean oneLine) {
         if (w <= 2 || h <= 2) return 0;
-        text.setTextSize(sizeDp * s);
+        text.setTextSize(sizeDp * ts * s);
         text.setColor(color);
         text.setTypeface(bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
-        int maxLines = oneLine ? 1 : Math.max(1, (int) (h / (sizeDp * 1.2f)));
+        int maxLines = oneLine ? 1 : Math.max(1, (int) (h / (sizeDp * ts * 1.2f)));
         StaticLayout l = StaticLayout.Builder.obtain(t, 0, t.length(), text, Math.max(1, Math.round(w * s)))
                 .setAlignment(align).setMaxLines(maxLines).setEllipsize(TextUtils.TruncateAt.END).setIncludePad(false).build();
         float lh = l.getHeight() / s;

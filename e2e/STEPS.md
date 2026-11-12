@@ -3717,6 +3717,11 @@ the iPhone widget layout is chosen as {string}
 the timeline days are chosen as {int}
 the earlier Android day count was {int}
 the Android widget snapshot carries {int} timeline days
+the timeline text size is chosen as {int}
+the iPhone widget draws the timeline texts at {int} %
+the widget data carries a timeline text size of {int} %
+the Android widget snapshot carries a timeline text size of {int} %
+setting the timeline text size to {int} is refused
 the widget data carries the iPhone widget layout {string} and {int} timeline days
 setting the timeline days to {int} is refused
 the iPhone widget shows the timeline of {int} days from {date}
@@ -3725,6 +3730,8 @@ the iPhone widget layout is set to {string}
 I set the iPhone widget layout to {string}
 the timeline days are set to {string}
 I set the timeline days to {string}
+the timeline text size is set to {string}
+I set the timeline text size to {int}
 the iPhone widget keeps no calendar data
 the iPhone widget opens the app at the day view of {date}
 the iPhone widget asks to be redrawn at {time}
@@ -3743,6 +3750,7 @@ the iPhone widget asks to be redrawn at {time}
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
 - Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `weekGrid` for D and the N-1 days after it (the same geometry as the week); the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-layout` (iPhone section) and `settings-widget-days` (the Timeline section, always shown).
+- Timeline text size: pref `widgetTimelineTextSize` (percent, 90 to 150 in steps of 5, default 110) set through `PATCH /api/prefs`; the Settings control is the slider `settings-timeline-text-size` in the Timeline section ("set to" reads its value text, e.g. "110 %"; "I set ... to N" moves it and waits for the saved PATCH). The iPhone script scales its fonts, header, chip and gutter sizes by it (`textScale` in the grid) and still fits the hours to the height; the data route and the Android snapshot (`scrollTextPercent`) carry the number.
 - Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
 - "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
 - The widget and the installer speak the person's app language (`prefs.language`, sent in the widget data and into the installer), `auto` follows the iPhone, the fun German variants read as German, anything else English; German is the primary language: every widget, guide, setting and error text is written in German first. iOS and Scriptable menu names in the German guide ("Bearbeiten › Widget hinzufügen", "Einsetzen") are unverified until a real iPhone is checked.
@@ -3793,6 +3801,10 @@ the Multi-day widget shows {int} days and {int} hours in view
 I look at the Multi-day widget
 the app hands the widget its copy
 the app's copy has no choice for the scrolling widget
+the app's copy has no text size for the Timeline
+the app's copy has a Timeline text size of {int} %
+the Multi-day widget texts are drawn at {int} %
+its day names and entry titles are drawn smaller than at 150 %
 I tap the entry {string} in the scrolling widget
 I tap the day header {string} in the scrolling widget
 I tap the Timeline day {string} in the scrolling widget

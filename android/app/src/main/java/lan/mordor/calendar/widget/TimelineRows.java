@@ -16,6 +16,11 @@ import java.util.List;
 final class TimelineRows {
     /** The height in dp the day names and the widget's padding take away from the list. */
     static final float HEAD_DP = 38;
+
+    /** The list's top padding in dp: the day names take two lines of text, which grow with the text size. */
+    static float headDp(float textScale) {
+        return HEAD_DP + Math.max(0, 24 * textScale - 28);
+    }
     /** The Timeline opens with this many minutes before now at the top. */
     static final int LEAD_MINUTES = 30;
     private static final int DAY_MINUTES = 24 * 60;
@@ -85,8 +90,9 @@ final class TimelineRows {
      * many hours fit; the list opens {@link #LEAD_MINUTES} before {@code now} at the top, but at the latest {@code hours} before 24:00.
      *
      * @param heightDp the widget's height
+     * @param textScale the text size as a factor (1 = 100 %)
      */
-    static Plan plan(WeekData data, LocalDate today, int days, WidgetStrings str, int hours, float heightDp, LocalTime now) {
+    static Plan plan(WeekData data, LocalDate today, int days, WidgetStrings str, int hours, float heightDp, LocalTime now, float textScale) {
         int offset = (int) ChronoUnit.DAYS.between(data.weekStart, today);
         List<Column> columns = new ArrayList<>();
         List<WeekData.Day> shown = new ArrayList<>();
@@ -97,8 +103,8 @@ final class TimelineRows {
             shown.add(day);
             columns.add(new Column(date, str.agendaDay(date), str.columnName(date), i == 0, day.items));
         }
-        float hourDp = Math.max(MIN_HOUR_DP, (heightDp - HEAD_DP) / hours);
-        float bandDp = WeekCanvas.columnsBandHeight(shown, new int[] {0, 24}, hourDp);
+        float hourDp = Math.max(MIN_HOUR_DP, (heightDp - headDp(textScale)) / hours);
+        float bandDp = WeekCanvas.columnsBandHeight(shown, new int[] {0, 24}, hourDp, textScale);
         // the top minute is half an hour before now, but the list never scrolls past 24:00: late in the day it shows the day's last hours
         int padMinutes = Math.round(WeekCanvas.PAD / hourDp * 60); // the picture ends 4 dp below 24:00
         int start = hours >= 24 ? 0 : Math.max(0, Math.min(now.getHour() * 60 + now.getMinute() - LEAD_MINUTES, DAY_MINUTES + padMinutes - hours * 60));
@@ -111,8 +117,8 @@ final class TimelineRows {
     }
 
     /** The picture cut into list rows, top to bottom; {@code scale} is pixels per dp, {@code widthPx} the picture's width. */
-    static List<Bitmap> slices(WeekData data, Plan plan, WidgetTheme theme, WidgetStrings str, LocalDate today, int minutesNow, int widthPx, float scale) {
-        Bitmap all = WeekCanvas.drawColumns(data, theme, str, plan.offset, plan.columns.size(), today, minutesNow, widthPx, new int[] {plan.firstHour, plan.lastHour}, plan.hourDp, scale);
+    static List<Bitmap> slices(WeekData data, Plan plan, WidgetTheme theme, WidgetStrings str, LocalDate today, int minutesNow, int widthPx, float scale, float textScale) {
+        Bitmap all = WeekCanvas.drawColumns(data, theme, str, plan.offset, plan.columns.size(), today, minutesNow, widthPx, new int[] {plan.firstHour, plan.lastHour}, plan.hourDp, scale, textScale);
         List<Bitmap> rows = new ArrayList<>();
         float gridTop = WeekCanvas.PAD + plan.bandDp;
         int top = 0;

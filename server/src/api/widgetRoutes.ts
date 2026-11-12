@@ -79,7 +79,7 @@ export function widgetRoutes(ctx: Ctx): Hono {
     const p = ctx.prefs.labsPrefs(sub);
     return c.json({
       generatedAt: formatInZone(now, ctx.config.tz), today: localDateOf(now, ctx.config.tz), scriptVersion: readWidgetScript(ctx.config.widgetScriptPath).version,
-      items, minEventMinutes: p.minEventMinutes, weekSideBySide: p.weekSideBySide, taskCategories: p.taskCategories, widgetCircle: p.widgetCircle, widgetLayout: p.widgetLayout, widgetTimelineDays: timelineDays(p), language: p.language,
+      items, minEventMinutes: p.minEventMinutes, weekSideBySide: p.weekSideBySide, taskCategories: p.taskCategories, widgetCircle: p.widgetCircle, widgetLayout: p.widgetLayout, widgetTimelineDays: timelineDays(p), widgetTimelineTextSize: p.widgetTimelineTextSize, language: p.language,
     });
   });
   // the typed variable of this router is its own business

@@ -22,7 +22,7 @@ export interface Options {
 }
 
 export interface Fakes {
-  texts: { text: string; bold: boolean; where: string; relative?: boolean; rect?: { x: number; y: number; w: number; h: number } }[];
+  texts: { text: string; bold: boolean; size?: number; where: string; relative?: boolean; rect?: { x: number; y: number; w: number; h: number } }[];
   rects: { x: number; y: number; w: number; h: number; color: string }[];
   alerts: { title: string; message: string }[];
   files: Map<string, string>;
@@ -71,13 +71,13 @@ export function fakeScriptable(o: Options = {}): Fakes {
   }
   class ListWidget extends Node { constructor() { super('widget'); } }
   class DrawContext {
-    size?: Size; private bold = false;
-    setFont(f: { bold: boolean }) { this.bold = f.bold; }
+    size?: Size; private bold = false; private fontSize = 0;
+    setFont(f: { bold: boolean; size: number }) { this.bold = f.bold; this.fontSize = f.size; }
     setTextColor() { /* no-op */ }
     private fill = '';
     setFillColor(c: Color | { light: Color }) { this.fill = 'hex' in c ? c.hex : 'dynamic'; }
     fillRect(r: Rect) { rects.push({ x: r.x, y: r.y, w: r.w, h: r.h, color: this.fill }); }
-    drawTextInRect(text: string, r: Rect) { texts.push({ text, bold: this.bold, where: 'canvas', rect: { x: r.x, y: r.y, w: r.w, h: r.h } }); }
+    drawTextInRect(text: string, r: Rect) { texts.push({ text, bold: this.bold, size: this.fontSize, where: 'canvas', rect: { x: r.x, y: r.y, w: r.w, h: r.h } }); }
     getImage() { return {}; }
   }
   class Request {
