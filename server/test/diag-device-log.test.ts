@@ -60,6 +60,14 @@ describe('POST /api/diag/device-log', () => {
     expect(await uploads()).toHaveLength(0);
   });
 
+  it('accepts a log holding an Android crash with its stack lines', async () => {
+    const frame = 'android.app.ActivityThread.handleReceiver(ActivityThread.java:5410)';
+    const crash = { ...entry('crash java.lang.RuntimeException', 'crash'), data: { exception: 'java.lang.RuntimeException', source: 'java', thread: 'main', android: 37, causes: 'java.lang.IllegalArgumentException, android.os.RemoteException', frames: Array(15).fill(frame).join('\n') } };
+    expect(crash.data.frames.length).toBeGreaterThan(400);
+    expect((await send(jo, log(entry('a'), crash))).status).toBe(204);
+    expect((await uploads())[0].entries[1].data.frames).toBe(crash.data.frames);
+  });
+
   it('writes one log line with counts and a pseudonym, never entry text or the e-mail address', async () => {
     now += 61_000;
     await send(jo, log(entry('Dentist Meyer secret'), entry('crash java.lang.IllegalStateException', 'crash')));
