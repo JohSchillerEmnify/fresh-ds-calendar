@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same widget as widget_scroll under a second layout id: a launcher reapplies views only to a view of the same layout, so
+     switching between the two makes it build the Multi-day list afresh, where its opening scroll lands (ScrollWidgetProvider#push). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <include layout="@layout/widget_scroll" />
+</FrameLayout>

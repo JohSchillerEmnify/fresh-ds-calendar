@@ -161,6 +161,27 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When I look at the Multi-day widget at 14:10 with 8 hours in view
       Then the widget scrolls so that 13:40 is at the top
 
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aPlacedWidgetOpensWithHalfAnHourBeforeNowAtTheTop
+    @unit
+    Scenario: A Multi-day widget placed on the home screen opens with half an hour before now at the top
+      When I place the Multi-day widget at 07:20 with 16 hours in view
+      Then the widget scrolls so that 06:50 is at the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:anUpdateAfterTheUserScrolledShowsHalfAnHourBeforeNowAgainNotTheTop
+    @unit
+    Scenario: An update shows half an hour before now again and never throws the list back to 00:00
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 16 hours in view
+      And I scroll the widget down a little
+      When the app hands the widget its copy
+      Then the widget scrolls so that 06:50 is at the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRebuiltLauncherOpensTheKeptViewsAtTheSamePlace
+    @unit
+    Scenario: A home screen that builds the widget again shows half an hour before now
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 16 hours in view
+      When the home screen builds the widget again
+      Then the widget scrolls so that 06:50 is at the top
+
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:lateInTheDayTheLastHoursShowAndTheListNeverScrollsPast24
     @unit
     Scenario: Late in the day the widget shows the last hours and never scrolls past 24:00
