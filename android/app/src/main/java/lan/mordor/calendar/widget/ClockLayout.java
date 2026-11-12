@@ -79,7 +79,7 @@ final class ClockLayout {
     }
 
     static String title(WeekData.Item i, WidgetStrings str) {
-        String t = i.title == null || i.title.trim().isEmpty() ? str.untitled() : i.title.trim();
+        String t = i.label() == null || i.label().trim().isEmpty() ? str.untitled() : i.label().trim();
         return i.taskList ? t + " " + i.done + "/" + i.total : t;
     }
 

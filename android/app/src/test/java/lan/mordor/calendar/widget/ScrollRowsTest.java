@@ -43,6 +43,13 @@ public class ScrollRowsTest {
     }
 
     @Test
+    public void agendaNamesAnUntitledTaskListByItsFirstItem() throws Exception {
+        String list = "{\"kind\":\"tasklist\",\"id\":\"u\",\"title\":\"\",\"date\":\"2026-10-14\",\"time\":null,\"doneCount\":0,\"totalCount\":1,\"color\":\"#0b8043\","
+                + "\"items\":[{\"title\":\"Milk\",\"done\":false}]}";
+        assertEquals("#Wed 14 Oct|Milk[0/1]|", titles(ScrollRows.agenda(data(TODAY, list), TODAY, EN, false)));
+    }
+
+    @Test
     public void agendaShowsAllDayFirstAndSkipsEmptyDays() throws Exception {
         List<ScrollRows.Row> rows = ScrollRows.agenda(data(TODAY, ev("Dentist", "2026-10-14", "09:00", "10:00"), allDay("Holiday", "2026-10-14", "2026-10-15")), TODAY, EN, false);
         assertEquals("#Wed 14 Oct|Holiday@All day|Dentist@09:00|", titles(rows));
