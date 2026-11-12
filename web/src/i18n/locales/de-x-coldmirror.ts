@@ -162,9 +162,9 @@ export default {
     },
     widgets: {
       android: { label: 'Widgets für den Home-Bildschirm, yo', hint: 'Android-App drauf, dann Home-Bildschirm gedrückt halten, „Widgets“ antippen und den Kalender für Woche, Tag, Uhr, Liste oder mehrere Tage wählen, Digga.' },
-      scroll: { label: 'Stunden im Blick, yo', hint: 'Bei „Automatisch“ richten sich die Stunden nach den Terminen der angezeigten Tage, für den Rest scrollst du, Digga. Bei „Fest“ legst du selbst fest, wie viele Stunden sichtbar sind.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Tage in der Zeitleiste, yo' },
-      timeline: { hint: 'Wie viele Tage die Zeitleiste ab heute zeigt, Digga.' },
-      textSize: { label: 'Schriftgröße in der Zeitleiste', hint: 'Größer ist leichter zu lesen, Digga; dafür passt weniger Text in schmale Spalten.' },
+      scroll: { label: 'Stunden im Blick, yo', hint: 'Bei „Automatisch“ richten sich die Stunden nach den Terminen der angezeigten Tage, für den Rest scrollst du, Digga. Bei „Fest“ legst du selbst fest, wie viele Stunden sichtbar sind.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Anzahl der Tage, yo' },
+      timeline: { hint: 'Wie viele Tage „Mehrere Tage“ ab heute zeigt, Digga.' },
+      textSize: { label: 'Schriftgröße', hint: 'Größer ist leichter zu lesen, Digga; dafür passt weniger Text in schmale Spalten.' },
     },
     labs: {
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen, yo', hint: 'Die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf den Screen passen, Digga', split: 'Tage in der oberen Zeile, yo' },
