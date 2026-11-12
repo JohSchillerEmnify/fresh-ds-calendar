@@ -2,16 +2,15 @@
 # Run the Gherkin e2e suite (spec/features) in the Playwright docker image.
 #
 #   e2e/run.sh [playwright args...]          build app, start a TEST_MODE server on a free port, run everything
-#   e2e/run.sh --smoke [playwright args...]  @smoke scenarios against the deployment (default http://cal.mordor.local)
+#   e2e/run.sh --smoke [playwright args...]  @smoke scenarios against the deployment in E2E_BASE_URL (required)
 #   E2E_BASE_URL=http://localhost:3000 e2e/run.sh [args]   use an already running TEST_MODE server (no build/start)
 #
 # Env: E2E_BASE_URL, E2E_SPEC_DIR (spec folder relative to e2e/), E2E_SKIP_BUILD=1, E2E_SKIP_INSTALL=1,
 #      E2E_SOFT_TEST_API=1 (diagnostics only: setup test-endpoint failures warn instead of fail),
-#      E2E_HOST_IP (address cal.mordor.local resolves to in smoke mode, default 192.168.1.38).
 # The HTML report lands in e2e/playwright-report, JSON results in e2e/results.json,
 # the server log in e2e/server.log.
 set -euo pipefail
-# Heavy: wait for the machine-wide heavy lock and run at the lowest priority (pihole/immich share this box).
+# Heavy: wait for the machine-wide heavy lock and run at the lowest priority (other jobs share this machine).
 if [ -z "${CI_LOWPRIO:-}" ]; then exec "$(dirname "$0")/../scripts/lowprio.sh" "$0" "$@"; fi
 
 E2E_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -86,8 +85,8 @@ DOCKER_ARGS=(--rm --init --cpus=1.5 --memory=1536m --memory-swap=1536m --ipc=hos
 PW_ARGS=("$@")
 
 if [ "$SMOKE" = 1 ]; then
-  export E2E_BASE_URL="${E2E_BASE_URL:-http://cal.mordor.local}"
-  DOCKER_ARGS+=(--add-host "cal.mordor.local:${E2E_HOST_IP:-192.168.1.38}")
+  : "${E2E_BASE_URL:?set E2E_BASE_URL to the deployment to smoke-test}"
+  export E2E_BASE_URL
   PW_ARGS=(--grep @smoke "${PW_ARGS[@]}")
 elif [ -z "${E2E_BASE_URL:-}" ]; then
   build_app
