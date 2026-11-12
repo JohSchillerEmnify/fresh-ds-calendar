@@ -102,10 +102,13 @@ public class TimelineRowsTest {
         WeekData d = data(ev("Early", "2026-10-14", "06:00", "07:00"));
         TimelineRows.Plan mid = plan(d, 3, 8, 380, LocalTime.of(10, 20));
         assertEquals(9 * 60 + 50, mid.startMin);
-        // one row from the top to the end of the opening view, one after it; the list scrolls to the first
-        assertArrayEquals(new int[] {0, 9 * 60 + 50 + 8 * 60, 24 * 60}, mid.marks);
-        assertEquals(0, mid.scrollRow);
-        assertEquals(-1, plan(d, 3, 16, 380, LocalTime.of(0, 20)).scrollRow);
+        // the hours before, the opening view as one row, the hours after; the list scrolls to the opening view
+        assertArrayEquals(new int[] {0, 9 * 60 + 50, 9 * 60 + 50 + 8 * 60, 24 * 60}, mid.marks);
+        assertEquals(1, mid.scrollRow);
+        TimelineRows.Plan night = plan(d, 3, 16, 380, LocalTime.of(0, 20));
+        assertEquals("just after midnight the opening view is the first row", 0, night.scrollRow);
+        assertEquals("as tall as the list with the band and the top padding", 16 * night.hourDp,
+                WeekCanvas.PAD + night.bandDp + night.marks[1] / 60f * night.hourDp, night.hourDp / 60);
     }
 
     @Test
@@ -114,8 +117,8 @@ public class TimelineRowsTest {
         for (LocalTime now : new LocalTime[] {LocalTime.of(14, 10), LocalTime.of(21, 30), LocalTime.of(23, 50)}) {
             TimelineRows.Plan plan = plan(d, 3, 16, 380, now);
             assertEquals("the top minute is 24:00 minus 16 hours at the latest", Math.min(now.getHour() * 60 + now.getMinute() - 30, 8 * 60 + Math.round(4 / plan.hourDp * 60)), plan.startMin);
-            assertEquals("one row to the end of the day", 1, plan.rowCount());
-            assertEquals(0, plan.scrollRow);
+            assertEquals("the hours before and the opening view to the end of the day", 2, plan.rowCount());
+            assertEquals(1, plan.scrollRow);
         }
     }
 

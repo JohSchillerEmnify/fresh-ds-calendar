@@ -74,15 +74,6 @@ final class WidgetStore {
         return prefs.getString("auth", AUTH_OK);
     }
 
-    /** Whether the widget instance last got the other copy of its layout (ScrollWidgetProvider#push). */
-    boolean altLayout(int widgetId) {
-        return prefs.getBoolean("altLayout" + widgetId, false);
-    }
-
-    void setAltLayout(int widgetId, boolean alt) {
-        prefs.edit().putBoolean("altLayout" + widgetId, alt).apply();
-    }
-
     /** The week the fetched data is for, or null. */
     static LocalDate weekOf(JSONObject week) {
         try {
