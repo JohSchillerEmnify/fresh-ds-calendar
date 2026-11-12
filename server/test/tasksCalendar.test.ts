@@ -84,9 +84,9 @@ describe('task lists through the API', () => {
     expect(created.body.calendarId).toBe(tasks.id);
     expect((await t.json('GET', '/api/__test/remote/events?calendarId=primary')).body.items).toHaveLength(0);
     // its own entry in the list, for its settings page: flagged `tasks`, no place to create events in
-    const list = (await t.json('GET', '/api/calendars')).body.calendars;
-    expect(list.map((c: any) => c.name)).toEqual(['Personal', 'Work', 'Birthdays', TASKS_CALENDAR_SUMMARY]);
-    expect(list.find((c: any) => c.id === tasks.id)).toMatchObject({ tasks: true, writable: false, hidden: false });
+    const list = (await t.json('GET', '/api/calendars')).body.calendars as Array<{ id: string; name: string }>;
+    expect(list.map((c) => c.name)).toEqual(['Personal', 'Work', 'Birthdays', TASKS_CALENDAR_SUMMARY]);
+    expect(list.find((c) => c.id === tasks.id)).toMatchObject({ tasks: true, writable: false, hidden: false });
     expect((await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items.map((i: any) => i.title)).toEqual(['Groceries']);
   });
 
@@ -94,8 +94,8 @@ describe('task lists through the API', () => {
     const { id } = (await t.json('GET', '/api/__test/tasks-calendar')).body;
     const res = await t.json('PATCH', `/api/calendars/${id}`, { hidden: true });
     expect(res.body).toMatchObject({ id, tasks: true, hidden: true });
-    expect((await t.json('GET', '/api/calendars')).body.calendars.find((c: any) => c.id === id).hidden).toBe(true);
-    expect((await t.json('GET', '/api/__test/remote/calendars')).body.calendars.find((c: any) => c.id === id)).toMatchObject({ hidden: true });
+    expect((await t.json('GET', '/api/calendars')).body.calendars.find((c: { id: string }) => c.id === id).hidden).toBe(true);
+    expect((await t.json('GET', '/api/__test/remote/calendars')).body.calendars.find((c: { id: string }) => c.id === id)).toMatchObject({ hidden: true });
     expect((await t.json('PATCH', `/api/calendars/${id}`, { defaultReminders: [10] })).status).toBe(400);
   });
 
