@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Public instance on a VPS. Run from the laptop clone:
+# Public instance on a VPS. Run from a clone of the repository:
 #   scripts/vps.sh harden   deploy user + key, SSH keys only, no root login, fail2ban (first run: keep another session open)
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
