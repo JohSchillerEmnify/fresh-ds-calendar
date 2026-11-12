@@ -44,10 +44,10 @@ section "Working rules"; everything there binds you. This file adds how a track 
 ## Approach
 1. **Spec first.** Gherkin in `spec/features/<domain>/`, steps in `e2e/STEPS.md`, `python3 e2e/scripts/check-steps.py`
    at 0 problems. Requirements and assumptions go in `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md`.
-2. **Spec gate.** For a feature, when a human is available: commit the scenarios, then STOP and report the full
-   scenario text plus a numbered list of assumptions and open questions. Build only after the answer is forwarded to
-   you. A bug fix that an existing scenario covers may proceed. With no human (unattended run) build through and
-   record the assumptions.
+2. **Build through.** The coordinator clears the spec gate with the owner (decisions, mockups) before briefing you,
+   so write the scenarios and then build, test and report in one go; list the assumptions in the report. Stop after
+   the scenarios only when the brief says "spec only", or when a behaviour change is genuinely undecided — then report
+   that one point and still build the rest.
 3. **Test first.** Red test, smallest code to green, then refactor. A bug gets a reproducing test, and the root cause
    is found by settling every plausible hypothesis with evidence, never by patching on a guess.
 4. **Size the process to the change.** A fix with a known cause takes the short path, aiming at about ten minutes:
