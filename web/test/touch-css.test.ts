@@ -42,4 +42,14 @@ describe('touch CSS', () => {
     }
     expect(bad).toEqual([]);
   });
+
+  it("no pressed state changes a control's corner radius", () => {
+    const bad: string[] = [];
+    for (const f of files(src)) {
+      readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+        if (/:active[^{]*\{[^}]*border-radius/.test(line)) bad.push(`${relative(src, f)}:${i + 1}`);
+      });
+    }
+    expect(bad).toEqual([]);
+  });
 });

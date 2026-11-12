@@ -96,6 +96,15 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       Then the lint gate fails and names that component
       And a button element inside "web/src/components/m3" passes the lint gate
 
+  Rule: A pressed button keeps its shape
+
+    @unit
+    # unit: web/test/touch-css.test.ts:no pressed state changes a control's corner radius
+    Scenario: Pressing a button, icon button, chip or the + button never changes its corners
+      Given the style rules of the Material 3 components
+      When a control is pressed
+      Then its corner radius stays as it was
+
   Rule: Theme corners shape events and cards only
 
     @mobile
