@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../android"
 log="${1:-build/emulator-logcat.txt}"
 mkdir -p "$(dirname "$log")"
 adb logcat -c
-./gradlew --no-daemon connectedDebugAndroidTest
+./gradlew --no-daemon :app:connectedDebugAndroidTest
 status=$?
 adb logcat -d > "$log"
 # other processes (Play services on the emulator image) may crash; only the app's own crash counts
