@@ -8,6 +8,7 @@ import { InkService } from './services/inkService.js';
 import { IdempotencyStore } from './services/idempotencyStore.js';
 import { TemplateStore } from './services/templateStore.js';
 import { WidgetKeyStore } from './services/widgetKeys.js';
+import { DiagUploadStore } from './services/diagUploads.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
 import { knownSubs, splitServerWideFiles } from './services/personSplit.js';
@@ -51,6 +52,8 @@ export interface Ctx {
   templates: TemplateStore;
   /** Per-device read keys of the iPhone widget (ADR 0044). */
   widgetKeys: WidgetKeyStore;
+  /** Error logs people sent from their devices (ADR 0045). */
+  diagUploads: DiagUploadStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
   /** Every successful write of the API is reported here (ADR 0025); the live "changed" publisher listens. */
@@ -146,7 +149,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys: new WidgetKeyStore(config.dataDir, () => clock.nowMs()), backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, ink, inks: inkService, idempotency, templates, widgetKeys: new WidgetKeyStore(config.dataDir, () => clock.nowMs()), diagUploads: new DiagUploadStore(config.dataDir), backup, push, planScheduler: new CalendarPlanScheduler({ dataDir: config.dataDir, clock, tz: config.tz, prefs, changes }), pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock, contactsGranted: contactsGranted(sub) })));

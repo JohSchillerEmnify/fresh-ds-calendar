@@ -10,9 +10,9 @@ export const DEVICE_LOG_KEY = 'calendar.deviceLog';
 export const MAX_ENTRIES = 500;
 const MAX_TEXT = 300;
 /** The build version (as `pwa/update` reads it; not imported: the API client imports this module). */
-const runningVersion = (): string => document.documentElement.dataset.appVersion ?? __APP_VERSION__;
+export const runningVersion = (): string => document.documentElement.dataset.appVersion ?? __APP_VERSION__;
 
-export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision';
+export type LogKind = 'error' | 'api' | 'outbox' | 'sw' | 'sync' | 'trace' | 'decision' | 'crash';
 export type LogData = Record<string, string | number | boolean | undefined>;
 
 export interface LogEntry {
@@ -24,6 +24,8 @@ export interface LogEntry {
   standalone: boolean;
   native: boolean;
   data: LogData;
+  /** The server has this entry (a send or the automatic sending took it); never part of what is sent. */
+  sent?: true;
 }
 
 /** Oldest first; the page shows them reversed. */
@@ -47,7 +49,7 @@ export function clearDeviceLog(): void { write([]); }
 /** The fixed words of the API's paths (spec/API.md); any other segment is an id. */
 const ROUTE_WORDS = new Set(('api auth me signout signout-all backup restore health config release-notes calendars changes prefs canvas templates widget-keys '
   + 'theme themes reminders tasks-calendar push key subscriptions plan items summary events tasklists ink order share leave people categories '
-  + 'shares open all-open archive settings motivation streak checkin diag sync-error demo reset').split(' '));
+  + 'shares open all-open archive settings motivation streak checkin diag sync-error device-log demo reset').split(' '));
 
 /** An API path as its route template: ids become `:id`, the query goes. */
 export function routeOf(path: string): string {
@@ -80,7 +82,7 @@ export function errorFacts(e: unknown): { errorName: string; errorMessage: strin
 }
 
 // --- writing ---------------------------------------------------------------------------------------------------------
-function platform(): Pick<LogEntry, 'platform' | 'standalone' | 'native'> {
+export function platform(): Pick<LogEntry, 'platform' | 'standalone' | 'native'> {
   try {
     const ua = navigator.userAgent;
     return {
@@ -101,6 +103,7 @@ function summarize(kind: LogKind, d: LogData): string {
     case 'outbox': return join(`${d.op} ${d.decision}`, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
     case 'sync': return join('sync', d.task as string, d.status as number, d.code as string, err);
     case 'decision': return join(d.what as string, d.decision as string, d.method as string, d.route as string, d.status as number, d.code as string, !d.status && err);
+    case 'crash': return join('crash', d.exception as string);
     case 'trace': return join(d.step as string, d.detail as string);
     case 'sw': return join('service worker', d.step as string, err);
     default: return d.name ? `${d.prefix ? `${d.prefix} ` : ''}${d.name}: ${d.message ?? ''}` : String(d.message ?? '');
@@ -115,6 +118,17 @@ export function logDevice(kind: LogKind, data: LogData): void {
     const entry: LogEntry = { at: new Date().toISOString(), kind, summary: scrub(summarize(kind, clean)), app: runningVersion(), ...platform(), data: clean };
     write([...deviceLog.value, entry].slice(-MAX_ENTRIES));
   } catch { /* the log must never break the app */ }
+}
+
+/** Adds entries made elsewhere (native crash records); the log stays in time order and capped. */
+export function addEntries(entries: LogEntry[]): void {
+  if (!entries.length) return;
+  write([...deviceLog.value, ...entries].sort((a, b) => a.at.localeCompare(b.at)).slice(-MAX_ENTRIES));
+}
+
+/** Marks the given entries (by identity) as held by the server. */
+export function markSent(sent: ReadonlySet<LogEntry>): void {
+  write(deviceLog.value.map((e) => (sent.has(e) ? { ...e, sent: true as const } : e)));
 }
 
 /** Logs errors nobody caught and promise rejections nobody handled. Returns the uninstall function. */

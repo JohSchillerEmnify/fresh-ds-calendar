@@ -22,6 +22,7 @@ import { checkReleaseNotes } from './pwa/releaseNotes';
 import { registerBuiltinExtensions } from './extensions/builtin';
 import { installMotion } from './motion';
 import { installDeviceLog } from './lib/deviceLog';
+import { startDeviceReports } from './lib/deviceLogUpload';
 import './styles.css';
 import './theme/theme.css';
 
@@ -67,6 +68,7 @@ async function bootstrap() {
   app.mount('#app');
   void registerServiceWorker();
   pushWidget();
+  startDeviceReports();
   // on start (later syncs check again through checkVersion); a browser never shows the hint
   void checkApk(clock.config.apk);
   void checkReleaseNotes();

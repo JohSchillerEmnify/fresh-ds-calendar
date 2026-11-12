@@ -117,6 +117,8 @@ export interface Prefs {
   taskOpen: TaskOpen;
   /** Several task list cards may be grown at once (default) or only one: growing another collapses the previous. */
   growSeveral: boolean;
+  /** Send the device's error and crash log to the server by itself (feature device-log); off until the person turns it on. */
+  sendReportsAuto: boolean;
   /** The Tasks view's filter, shared by Open, Canvas and Archive (feature tasks-filter). */
   tasksFilter: TasksFilter;
   /** The UI language: `auto` (device language) or a fixed one (feature language). */

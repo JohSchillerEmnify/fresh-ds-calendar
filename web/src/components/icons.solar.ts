@@ -21,6 +21,7 @@ import ChevronRightS from '~icons/solar/alt-arrow-right-bold-duotone';
 import MenuS from '~icons/solar/hamburger-menu-bold-duotone';
 import CloseS from '~icons/solar/close-bold-duotone';
 import CloudOffS from '~icons/solar/cloud-cross-bold-duotone';
+import CloudUploadS from '~icons/solar/cloud-upload-bold-duotone';
 import DeleteOutlineS from '~icons/solar/trash-bin-2-bold-duotone';
 import DownloadS from '~icons/solar/download-bold-duotone';
 import DrawS from '~icons/solar/pen-new-round-bold-duotone';
@@ -74,6 +75,7 @@ export default {
   ChevronRight: ChevronRightS,
   Menu: MenuS,
   Close: CloseS,
+  CloudUpload: CloudUploadS,
   CloudOff: CloudOffS,
   DeleteOutline: DeleteOutlineS,
   Download: DownloadS,

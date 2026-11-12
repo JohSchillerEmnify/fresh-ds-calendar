@@ -24,6 +24,7 @@
   "allow": [
     {"key": "iphoneWidget.guide.s7", "rule": "implementation-word", "why": "Script › Calendar is Scriptable's own menu text; it must match what the user sees"},
     {"key": "iphoneWidget.layout.standard", "rule": "same-as-en", "why": "Standard is the normal German word"},
+    {"key": "deviceLog.kind.crash", "rule": "same-as-en", "why": "Owner: developer text in the error log stays English"},
     {"key": "iphoneWidget.circle.countdown", "rule": "same-as-en", "why": "Countdown is the normal German word"},
     {"key": "settingsNav.groups.widgets.title", "rule": "same-as-en", "why": "Widgets is the normal German word"},
     {"key": "settingsNav.sub.android", "rule": "same-as-en", "why": "platform name"},

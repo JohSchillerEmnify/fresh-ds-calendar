@@ -2,10 +2,14 @@
 export default {
   row: { label: 'Error log', hint: 'Errors on this device that you can send when something goes wrong' },
   title: 'Error log',
-  hint: 'Newest errors first. The log contains no titles, texts or e-mail addresses and stays on this device until you share it.',
+  hint: 'Newest errors first. The log contains no titles, texts or e-mail addresses and stays on this device until you send or share it.',
   share: 'Share',
   copy: 'Copy',
   download: 'Download',
+  send: 'Send to server',
+  sent: 'Sent to the server',
+  sendNotSent: 'Could not be sent. The log stays on this device.',
+  auto: { label: 'Send error and crash reports automatically', hint: 'Sends new entries of this log to the server. They never contain titles, texts or e-mail addresses. Off until you turn it on.' },
   clear: 'Clear',
   empty: 'No errors logged on this device.',
   copied: 'Error log copied',
@@ -13,5 +17,5 @@ export default {
   sendCopied: 'Could not share it, so the error log was copied',
   sendFailed: 'Could not share or copy the error log',
   standalone: 'installed',
-  kind: { error: 'Error', api: 'Request', outbox: 'Change', sw: 'Update', sync: 'Sync', trace: 'Step', decision: 'Decision' },
+  kind: { error: 'Error', api: 'Request', outbox: 'Change', sw: 'Update', sync: 'Sync', trace: 'Step', decision: 'Decision', crash: 'Crash' },
 };

@@ -21,6 +21,7 @@ import ChevronRightP from '~icons/pixelarticons/chevron-right';
 import MenuP from '~icons/pixelarticons/menu';
 import CloseP from '~icons/pixelarticons/close';
 import CloudOffP from '~icons/pixelarticons/cellular-signal-off';
+import CloudUploadP from '~icons/pixelarticons/upload';
 import DeleteOutlineP from '~icons/pixelarticons/trash';
 import DownloadP from '~icons/pixelarticons/download';
 import DrawP from '~icons/pixelarticons/brush';
@@ -74,6 +75,7 @@ export default {
   ChevronRight: ChevronRightP,
   Menu: MenuP,
   Close: CloseP,
+  CloudUpload: CloudUploadP,
   CloudOff: CloudOffP,
   DeleteOutline: DeleteOutlineP,
   Download: DownloadP,

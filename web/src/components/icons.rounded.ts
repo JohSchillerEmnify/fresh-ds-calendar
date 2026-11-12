@@ -21,6 +21,7 @@ import ChevronRightR from '~icons/material-symbols/chevron-right-rounded';
 import MenuR from '~icons/material-symbols/menu-rounded';
 import CloseR from '~icons/material-symbols/close-rounded';
 import CloudOffR from '~icons/material-symbols/cloud-off-rounded';
+import CloudUploadR from '~icons/material-symbols/cloud-upload-rounded';
 import DeleteOutlineR from '~icons/material-symbols/delete-outline-rounded';
 import DownloadR from '~icons/material-symbols/download-rounded';
 import DrawR from '~icons/material-symbols/draw-rounded';
@@ -77,6 +78,7 @@ export default {
   ChevronRight: ChevronRightR,
   Menu: MenuR,
   Close: CloseR,
+  CloudUpload: CloudUploadR,
   CloudOff: CloudOffR,
   DeleteOutline: DeleteOutlineR,
   Download: DownloadR,

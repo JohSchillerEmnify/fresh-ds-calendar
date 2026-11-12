@@ -21,6 +21,7 @@ import ChevronRightP from '~icons/ph/caret-right-duotone';
 import MenuP from '~icons/ph/list-duotone';
 import CloseP from '~icons/ph/x';
 import CloudOffP from '~icons/ph/cloud-slash-duotone';
+import CloudUploadP from '~icons/ph/cloud-arrow-up-duotone';
 import DeleteOutlineP from '~icons/ph/trash-duotone';
 import DownloadP from '~icons/ph/download-duotone';
 import DrawP from '~icons/ph/pen-nib-duotone';
@@ -75,6 +76,7 @@ export default {
   ChevronRight: ChevronRightP,
   Menu: MenuP,
   Close: CloseP,
+  CloudUpload: CloudUploadP,
   CloudOff: CloudOffP,
   DeleteOutline: DeleteOutlineP,
   Download: DownloadP,

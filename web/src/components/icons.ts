@@ -59,6 +59,7 @@ export const IconChevronRight = appIcon('IconChevronRight', 'ChevronRight');
 export const IconMenu = appIcon('IconMenu', 'Menu');
 export const IconClose = appIcon('IconClose', 'Close');
 export const IconCloudOff = appIcon('IconCloudOff', 'CloudOff');
+export const IconCloudUpload = appIcon('IconCloudUpload', 'CloudUpload');
 export const IconDeleteOutline = appIcon('IconDeleteOutline', 'DeleteOutline');
 export const IconDownload = appIcon('IconDownload', 'Download');
 export const IconDraw = appIcon('IconDraw', 'Draw');

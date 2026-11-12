@@ -21,6 +21,7 @@ import ChevronRightS from '~icons/material-symbols/chevron-right-sharp';
 import MenuS from '~icons/material-symbols/menu-sharp';
 import CloseS from '~icons/material-symbols/close-sharp';
 import CloudOffS from '~icons/material-symbols/cloud-off-sharp';
+import CloudUploadS from '~icons/material-symbols/cloud-upload-sharp';
 import DeleteOutlineS from '~icons/material-symbols/delete-outline-sharp';
 import DownloadS from '~icons/material-symbols/download-sharp';
 import DrawS from '~icons/material-symbols/draw-sharp';
@@ -77,6 +78,7 @@ export default {
   ChevronRight: ChevronRightS,
   Menu: MenuS,
   Close: CloseS,
+  CloudUpload: CloudUploadS,
   CloudOff: CloudOffS,
   DeleteOutline: DeleteOutlineS,
   Download: DownloadS,

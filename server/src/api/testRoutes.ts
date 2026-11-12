@@ -4,7 +4,7 @@ import { placeTestRoutes } from './testPlaces.js';
 import type { Ctx } from '../context.js';
 import { ApiException, notFound, validation } from '../lib/errors.js';
 import fs from 'node:fs';
-import { mockSub, parseEmails, userDir } from '../auth/people.js';
+import { listUserSubs, mockSub, parseEmails, userDir } from '../auth/people.js';
 import { returnTarget } from '../auth/oauth.js';
 import { forgetVerifiedHolidays } from '../services/holidays.js';
 import type { HolidayVariant } from '@calendar/shared/api';
@@ -49,6 +49,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.ink.reset();
     ctx.templates.reset();
     ctx.widgetKeys.reset();
+    ctx.diagUploads.reset();
     ctx.idempotency.reset();
     ctx.people.reset();
     ctx.shared.reset();
@@ -189,6 +190,9 @@ export function testRoutes(ctx: Ctx): Hono {
     calendarOf(b.owner).invalidate();
     return c.json(cal, 201);
   });
+
+  // Every person's kept error log uploads (feature device-log).
+  t.get('/diag-uploads', (c) => c.json({ uploads: listUserSubs(ctx.config.dataDir).flatMap((sub) => ctx.diagUploads.list(sub).map((u) => ({ sub, ...u }))) }));
 
   // The raw calendar list of one account, hidden entries included.
   // How many change lookups the server made against the mock Google since reset (live sync).
