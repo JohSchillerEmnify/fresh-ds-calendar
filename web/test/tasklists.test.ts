@@ -67,12 +67,13 @@ beforeEach(() => { document.body.innerHTML = ''; celebrate.mockClear(); });
 // the support cat comes by at random (about 1 in 10); tests that want it force it, all others must never roll it
 beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0.99); });
 // The outbox engine reaches the items store through a module-wide port, so a change still being sent when a test ends would
-// act on the next test's store (a refused PATCH re-reads and hides the list 'G'): every test waits for its outbox to drain.
+// act on the next test's store (a refused PATCH re-reads and hides the list 'G'): every test waits for its outbox to drain,
+// and the wait is long because a loaded CI machine can take seconds for a send that takes milliseconds here.
 afterEach(async () => {
   wrapper?.unmount();
   wrapper = null;
   const outbox = useOutboxStore();
-  await vi.waitFor(() => expect(outbox.count).toBe(0), { timeout: 2000 }).catch(() => undefined);
+  await vi.waitFor(() => expect(outbox.count).toBe(0), { timeout: 9000 }).catch(() => undefined);
   await flushPromises();
   vi.restoreAllMocks();
 });
