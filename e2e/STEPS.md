@@ -4142,6 +4142,9 @@ a component outside {string} contains a raw button element
 the lint gate runs
 the lint gate fails and names that component
 a button element inside {string} passes the lint gate
+the style rules of the Material 3 components
+a control is pressed
+its corners change smoothly and only a little, and never look square
 the theme is {string}
 the bottom bar, the top bar and every button are drawn with fully round corners
 the bottom bar size is set to {string}

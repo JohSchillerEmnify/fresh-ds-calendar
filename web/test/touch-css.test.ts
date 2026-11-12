@@ -42,4 +42,22 @@ describe('touch CSS', () => {
     }
     expect(bad).toEqual([]);
   });
+
+  it('a pressed control squishes slightly and never turns square: the radius change is animated and stays medium or rounder', () => {
+    const bad: string[] = [];
+    for (const f of files(src)) {
+      const text = readFileSync(f, 'utf8');
+      text.split('\n').forEach((line, i) => {
+        const m = /^(\S+?):active[^{]*\{[^}]*border-radius:\s*([^;}]+)/.exec(line.trim());
+        if (!m) return;
+        // a base radius of 9999px makes the animation snap at its very end, which reads as a flash
+        const base = new RegExp(`^\\${m[1]} \\{[^\\n]*border-radius: var\\(--md-sys-shape-corner-full\\)`, 'm').test(text) || new RegExp(`^\\${m[1]} \\{\\s*$[^}]*border-radius: var\\(--md-sys-shape-corner-full\\)`, 'm').test(text);
+        if (base) { bad.push(`${relative(src, f)}:${i + 1} (base radius is full)`); return; }
+        const rounded = /shape-corner-(medium|large|extra-large|full)\)$/.test(m[2].trim());
+        const animated = /transition:[^;]*border-radius/.test(text);
+        if (!rounded || !animated) bad.push(`${relative(src, f)}:${i + 1}`);
+      });
+    }
+    expect(bad).toEqual([]);
+  });
 });

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-12
+- Fixed: buttons no longer flash square when you tap them; they squish a little and stay rounded.
 - Fixed: the refresh button on the Android widgets now redraws them, and the Multi-day widget moves its now line and opening time on by itself every quarter of an hour.
 - Android: Settings › Widgets › Android › Hours in view now offers "Automatic", which fits the hours to your appointments of the days shown (scroll for the rest), or "Fixed" with any number of hours from 4 to 24. Your earlier choice stays as it was.
 - iPhone widget: the Timeline can show a fixed time range ("Hours in the Timeline" in Settings › Widgets). Appointments outside the range get a small marker at the top or bottom of their day instead of disappearing. "Automatic" stays the default.
