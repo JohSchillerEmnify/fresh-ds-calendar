@@ -3761,11 +3761,23 @@ the scrolling widget shows the entry {string} without a time
 the scrolling widget draws {int} day columns, from {string} to {string}
 the scrolling widget draws the hours from the top to the bottom of the columns
 the scrolling widget draws {string} in the column {string} from {time} to {time}
-the scrolling widget shows fewer hours than it holds and scrolls to the others
-the scrolling widget style is chosen as {string} with {int} days
+I open the Android widget picker
+the picker offers the widgets {string} and {string} next to the week, day and clock widgets
+a List widget was placed while the app's copy chose the {string} style
+it shows the Agenda
+I look at a {int} dp tall Multi-day widget with {int} hours in view
+the widget holds the hours from {time} to {time}
+about {int} hours fit into its height
+I look at the Multi-day widget at {time} with {int} hours in view
+the widget scrolls so that {time} is at the top
+the widget does not scroll
+I look at the Multi-day widget with {int}, {int} and {int} hours in view
+each picture shows the hours from the top to the bottom of the columns with its own row height
+the Multi-day widget is chosen with {int} days and {int} hours in view
+the Multi-day widget shows {int} days and {int} hours in view
+I look at the Multi-day widget
 the app hands the widget its copy
 the app's copy has no choice for the scrolling widget
-the scrolling widget shows the {string} style with {int} days
 I tap the entry {string} in the scrolling widget
 I tap the day header {string} in the scrolling widget
 I tap the Timeline day {string} in the scrolling widget
@@ -3780,13 +3792,15 @@ the app's theme is dark
 the scrolling widget uses the dark theme colours
 I look at the week widget, the day widget and the clock widget
 they are still drawn as one picture each and do not scroll
-the scrolling widget style is set to {string}
-I set the scrolling widget style to {string}
+the hours in view are set to {string}
+I set the hours in view to {string}
+the widget settings have no style choice for the List widget
 ```
 
-- The settings steps run in the browser suite: the Widgets page has two segmented controls, `settings-scrolling-style`
-  ("Agenda" / "Timeline") and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android); they save `androidWidgetStyle`
-  and `widgetTimelineDays`. A person who never chose `widgetTimelineDays` gets the older `androidWidgetDays` (default 3) through `timelineDays` in `shared/prefs.js`.
+- The settings steps run in the browser suite: the Widgets page has the Android section's `settings-widget-hours`
+  ("8", "12", "16", "24"; pref `androidWidgetHours`, default 16) and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android; pref
+  `widgetTimelineDays`). The old `settings-scrolling-style` row is gone ("the widget settings have no style choice for the List widget" checks it is absent); the
+  stored `androidWidgetStyle` pref stays readable but nothing uses it. A person who never chose `widgetTimelineDays` gets the older `androidWidgetDays` (default 3) through `timelineDays` in `shared/prefs.js`.
 - Every other step here runs on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or
   a device prove them (`@unit`). "{string} style" is "Agenda" or "Timeline"; the Timeline shows 3 days unless the step says
   otherwise. Day headers use the widget's date wording ("Wed 14 Oct"). "the calendar contains N events on D" are N ordinary

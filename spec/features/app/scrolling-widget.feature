@@ -1,37 +1,62 @@
 @scrolling-widget @id:scrolling-widget
-Feature: Scrolling phone widget
-  A new Android home-screen widget that scrolls. In Settings › Widgets › Android the person chooses what it shows:
-  the "Agenda" (today and the coming days under day headers, one text row per entry) or the "Timeline" (the next days
-  as columns side by side, the hours running top to bottom, scrolled with a finger; 1 to 7 days, 3 by default). The
-  week, day and clock widgets stay exactly as they are. Like them it is native, reads with the app's sign-in and keeps
-  showing the app's last copy when the server cannot be reached. The choice is per person, kept in the app and handed
-  to the widget with the rest of its copy; there is no separate screen when a widget is placed. The widget scenarios
-  are proven by its own Android unit tests or on a device; the settings scenarios run in the browser suite.
+Feature: Scrolling phone widgets (List and Multi-day)
+  Two Android home-screen widgets that scroll, both in the widget picker. "List" (Agenda) shows today and the coming days
+  under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
+  hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Days in the Timeline"
+  setting). The Multi-day widget fits about 16 hours into its height and opens with half an hour before now at the top;
+  the person can choose 8, 12, 16 or 24 hours in view in Settings > Widgets > Android. Widgets cannot be pinched, so the
+  setting is the way to zoom. A List widget placed before the split that showed the Timeline is a List now; the person
+  adds a Multi-day widget from the picker. The week, day and clock widgets stay exactly as they are. Like them both are
+  native, read with the app's sign-in and keep showing the app's last copy when the server cannot be reached. The choice
+  is per person, kept in the app and handed to the widget with the rest of its copy; there is no separate screen when a
+  widget is placed. The widget scenarios are proven by their own Android unit tests or on a device; the settings scenarios
+  run in the browser suite. In the scenarios below the "Agenda" style is the List widget and the "Timeline" style is the
+  Multi-day widget.
 
   Background:
     Given the calendar is empty
     And today is 2026-10-14
 
-  Rule: The Android section of the Widgets settings chooses the style; the days are the shared Timeline setting
+  Rule: The Android section of the Widgets settings chooses the hours in view; the days are the shared Timeline setting
 
-    Scenario: The scrolling widget starts as an Agenda with a three-day Timeline
+    Scenario: The Multi-day widget starts with 16 hours in view and three days
       When I open the settings
       And I open the settings group "Widgets"
-      Then the scrolling widget style is set to "Agenda"
+      Then the hours in view are set to "16"
       And the timeline days are set to "3"
 
-    Scenario: The style and the number of days can be changed
+    Scenario: The hours in view and the number of days can be changed
       When I open the settings
       And I open the settings group "Widgets"
-      And I set the scrolling widget style to "Timeline"
+      And I set the hours in view to "8"
       And I set the timeline days to "5"
-      Then the scrolling widget style is set to "Timeline"
+      Then the hours in view are set to "8"
       And the timeline days are set to "5"
 
-    Scenario: Search finds the List widget under Widgets
+    Scenario: The List widget has no style choice any more
       When I open the settings
-      And I search the settings for "agenda"
-      Then the settings search shows "List widget" in "Widgets"
+      And I open the settings group "Widgets"
+      Then the widget settings have no style choice for the List widget
+
+    Scenario: Search finds the hours in view under Widgets
+      When I open the settings
+      And I search the settings for "hours"
+      Then the settings search shows "Hours in view" in "Widgets"
+
+  Rule: The picker offers a List and a Multi-day widget
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetInflateTest.java:thePickerOffersAListAndAMultiDayWidget
+    @unit
+    Scenario: The widget picker lists "List" and "Multi-day"
+      When I open the Android widget picker
+      Then the picker offers the widgets "List" and "Multi-day" next to the week, day and clock widgets
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetInflateTest.java:aListWidgetPlacedAsATimelineIsAListNow
+    @unit
+    Scenario: A List widget that showed the Timeline is a List now
+      Given a List widget was placed while the app's copy chose the "Timeline" style
+      When I look at the scrolling widget
+      Then it shows the Agenda
 
   Rule: The Agenda lists the coming days
 
@@ -115,29 +140,54 @@ Feature: Scrolling phone widget
       When I look at the scrolling widget in the "Timeline" style
       Then the scrolling widget draws "Yoga" in the column "Thu 15 Oct" from 07:00 to 08:00
 
-    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:holdsMoreHoursThanFitSoItScrolls
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:holdsTheWholeDayAndFitsTheChosenHours
     @unit
-    Scenario: The Timeline scrolls through the hours
+    Scenario Outline: The Multi-day widget holds the whole day and fits the chosen hours into its height
       Given the calendar contains an event "Early" on 2026-10-14 from 06:00 to 07:00
-      And the calendar contains an event "Late" on 2026-10-14 from 21:00 to 22:00
-      When I look at a short scrolling widget in the "Timeline" style
-      Then the scrolling widget shows fewer hours than it holds and scrolls to the others
+      When I look at a 380 dp tall Multi-day widget with <hours> hours in view
+      Then the widget holds the hours from 00:00 to 24:00
+      And about <hours> hours fit into its height
+
+      Examples:
+        | hours |
+        | 8     |
+        | 12    |
+        | 16    |
+        | 24    |
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:opensHalfAnHourBeforeNow
+    @unit
+    Scenario: The Multi-day widget opens with half an hour before now at the top
+      When I look at the Multi-day widget at 14:10 with 16 hours in view
+      Then the widget scrolls so that 13:40 is at the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:aFullDayNeedsNoScrolling
+    @unit
+    Scenario: With 24 hours in view the whole day is shown from the top
+      When I look at the Multi-day widget at 14:10 with 24 hours in view
+      Then the widget does not scroll
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetPictureTest.java:drawsTheWidget
+    @unit
+    Scenario: The Multi-day widget is drawn for 8, 16 and 24 hours in view
+      When I look at the Multi-day widget with 8, 16 and 24 hours in view
+      Then each picture shows the hours from the top to the bottom of the columns with its own row height
 
   Rule: What the widget shows follows the app
 
-    # unit: web/test/widget-snapshot.test.ts:carries the next 14 days, the style and the number of days
+    # unit: web/test/widget-snapshot.test.ts:carries the next 14 days, the hours in view and the number of days
     @unit
-    Scenario: The style and the days reach the widget
-      Given the scrolling widget style is chosen as "Timeline" with 5 days
+    Scenario: The hours in view and the days reach the widget
+      Given the Multi-day widget is chosen with 5 days and 8 hours in view
       When the app hands the widget its copy
-      Then the scrolling widget shows the "Timeline" style with 5 days
+      Then the Multi-day widget shows 5 days and 8 hours in view
 
-    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:fallsBackToAgendaAndThreeDays
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:fallsBackToThreeDaysAndSixteenHours
     @unit
-    Scenario: A missing or unknown choice means an Agenda and three days
+    Scenario: A missing or unknown choice means three days and 16 hours
       Given the app's copy has no choice for the scrolling widget
-      When I look at the scrolling widget
-      Then the scrolling widget shows the "Agenda" style with 3 days
+      When I look at the Multi-day widget
+      Then the Multi-day widget shows 3 days and 16 hours in view
 
     # unit: web/test/widget-snapshot.test.ts:leaves out events of hidden calendars
     @unit
