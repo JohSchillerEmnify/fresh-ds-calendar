@@ -6,7 +6,6 @@ import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
 import { planSummary } from '@/components/settings/planSummary';
 import { t } from '@/i18n';
-import { api } from '@/api/client';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useDeviceStore } from '@/stores/device';
 
@@ -15,12 +14,9 @@ const others = computed(() => cals.list.filter((c) => !c.holiday));
 const holidays = computed(() => cals.list.filter((c) => c.holiday));
 const picking = ref(false);
 const device = useDeviceStore();
-// the task lists calendar is no list entry; its colour is a device file like on its own page
+// the task lists calendar is no list entry; its colour comes with the device sync
 const tasksColor = computed(() => device.file<{ color: string }>('tasksCalendarColor')?.color);
-onMounted(() => {
-  void cals.load().catch(() => undefined);
-  void device.read('tasksCalendarColor', () => api.tasksCalendarColor()).catch(() => undefined);
-});
+onMounted(() => { void cals.load().catch(() => undefined); });
 </script>
 
 <template>
