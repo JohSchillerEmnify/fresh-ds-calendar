@@ -98,6 +98,16 @@ public class WeekDataTest {
     }
 
     @Test
+    public void untitledTaskListIsNamedByItsFirstItemAsInTheApp() throws Exception {
+        String one = "{\"kind\":\"tasklist\",\"id\":\"u\",\"title\":\"\",\"date\":\"2026-10-15\",\"time\":null,\"doneCount\":0,\"totalCount\":1,\"color\":\"#0b8043\","
+                + "\"items\":[{\"title\":\"Milk\",\"done\":false}]}";
+        String two = one.replace("\"id\":\"u\"", "\"id\":\"v\"").replace("\"totalCount\":1", "\"totalCount\":2").replace("]}", ",{\"title\":\"Eggs\",\"done\":false}]}");
+        WeekData w = parse(one, two);
+        assertEquals("Milk", w.days.get(3).items.get(0).label());
+        assertEquals("Milk, Eggs", w.days.get(3).items.get(1).label());
+    }
+
+    @Test
     public void timedTaskListIsABlockSizedByItsEstimate() throws Exception {
         WeekData w = parse(list("Groceries", "2026-10-15", "17:00", 45, 2, 5), list("Short", "2026-10-15", "09:00", null, 0, 1));
         WeekData.Item g = w.days.get(3).items.get(1), s = w.days.get(3).items.get(0);

@@ -37,8 +37,10 @@ final class WeekData {
         final int total;
         /** Names of the open items of a task list (the web card shows open items only). */
         final List<String> openItems;
+        /** What an untitled task list is called instead: its first item, or the open names run together (web: TaskListCard lead). */
+        final String lead;
 
-        Item(String id, String title, boolean taskList, boolean allDay, int startMin, int endMin, String color, int done, int total, List<String> openItems) {
+        Item(String id, String title, boolean taskList, boolean allDay, int startMin, int endMin, String color, int done, int total, List<String> openItems, String lead) {
             this.id = id;
             this.title = title;
             this.taskList = taskList;
@@ -49,6 +51,12 @@ final class WeekData {
             this.done = done;
             this.total = total;
             this.openItems = openItems;
+            this.lead = lead;
+        }
+
+        /** The title as drawn: the real one, else the lead of an untitled task list, else empty. */
+        String label() {
+            return title == null || title.trim().isEmpty() ? lead : title;
         }
 
         /** Whether the item is placed in the hour grid. */
@@ -57,11 +65,15 @@ final class WeekData {
         }
 
         static Item event(String id, String title, boolean allDay, int startMin, int endMin, String color) {
-            return new Item(id, title, false, allDay, allDay ? -1 : startMin, allDay ? -1 : endMin, color, 0, 0, List.of());
+            return new Item(id, title, false, allDay, allDay ? -1 : startMin, allDay ? -1 : endMin, color, 0, 0, List.of(), "");
         }
 
         static Item taskList(String id, String title, int startMin, int endMin, String color, int done, int total, List<String> openItems) {
-            return new Item(id, title, true, false, startMin, endMin, color, done, total, openItems);
+            return taskList(id, title, startMin, endMin, color, done, total, openItems, "");
+        }
+
+        static Item taskList(String id, String title, int startMin, int endMin, String color, int done, int total, List<String> openItems, String lead) {
+            return new Item(id, title, true, false, startMin, endMin, color, done, total, openItems, lead);
         }
     }
 
@@ -284,16 +296,19 @@ final class WeekData {
             end = Math.min(24 * 60, start + estimate);
         }
         List<String> open = new ArrayList<>();
+        String first = "";
         JSONArray names = it.optJSONArray("items");
         for (int i = 0; names != null && i < names.length(); i++) {
             JSONObject n = names.optJSONObject(i);
             // an ink item has no title; the widget cannot draw ink, so it names it like Google does
+            if (n != null && i == 0) first = n.optBoolean("ink") ? INK_PLACEHOLDER : n.optString("title");
             if (n != null && !n.optBoolean("done")) open.add(n.optBoolean("ink") ? INK_PLACEHOLDER : n.optString("title"));
         }
+        String lead = open.size() > 1 ? String.join(", ", open) : first;
         // no category colours while task categories are off (owner rule): the calendar's colour, as in the app
         String color = categoriesOn ? it.optString("color") : it.optString("calendarColor", it.optString("color"));
         put(w, date, Item.taskList(it.optString("id"), it.optString("title"), start, end, color,
-                it.optInt("doneCount"), it.optInt("totalCount"), open));
+                it.optInt("doneCount"), it.optInt("totalCount"), open, lead));
     }
 
     /** Splits one single-day-or-short event into the days it covers: a timed event ending at 00:00 spares that day. */

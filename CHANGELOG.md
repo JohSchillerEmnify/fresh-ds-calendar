@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 - Fixed: in the Multi-day widget, the marker behind today's day name now has rounded corners, like in the week widget.
+- Fixed: a task list without a title now shows its first item as its name on the Android widgets, as it does in the app, instead of an empty or placeholder text.
 - Fixed: the Multi-day widget on Android now really opens with half an hour before now at the top, and an update no longer throws it back to midnight.
 - Fixed: the app no longer keeps stopping on Android when a large home screen widget needs more picture memory than the phone allows; the widget is drawn slightly less sharp instead.
 - Fixed: on a phone, birthdays and events whose title fits no longer fade out at the end; only a title that is really cut fades.

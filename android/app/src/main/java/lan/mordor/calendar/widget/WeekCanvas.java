@@ -237,7 +237,9 @@ final class WeekCanvas {
             tx += cbSize + 2;
             boolean count = it.total > 0 && r.width() >= 40;
             float cw = count ? 14 : 0;
-            label(it.title.isEmpty() ? "·" : it.title, tx, r.top + 0.5f, r.right - tx - cw - 1, 10, 8.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
+            // an untitled list's lead stands in for the title only where its items are not listed below (as in the app)
+            boolean listed = it.title.trim().isEmpty() && block && !it.openItems.isEmpty() && r.top + 11.5f + 9 <= r.bottom && r.width() >= 30;
+            label(listed ? "" : it.label().isEmpty() ? "·" : it.label(), tx, r.top + 0.5f, r.right - tx - cw - 1, 10, 8.5f, fg, false, Layout.Alignment.ALIGN_NORMAL, true);
             if (count) label(it.done + "/" + it.total, r.right - cw - 1, r.top + 1, cw, 10, 7, fg, false, Layout.Alignment.ALIGN_OPPOSITE, true);
             float y = r.top + 11.5f;
             for (String name : it.openItems) {

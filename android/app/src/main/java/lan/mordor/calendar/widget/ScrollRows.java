@@ -84,7 +84,7 @@ final class ScrollRows {
             rows.add(new Row(date, true, i == 0, str.agendaDay(date), "", "", ""));
             for (WeekData.Item it : day.items) {
                 String time = narrow ? "" : it.allDay ? str.allDay() : it.startMin >= 0 ? WeekData.hhmm(it.startMin) : "";
-                rows.add(new Row(date, false, i == 0, it.title.isEmpty() ? str.untitled() : it.title, time, it.taskList ? it.done + "/" + it.total : "", it.color));
+                rows.add(new Row(date, false, i == 0, it.label().isEmpty() ? str.untitled() : it.label(), time, it.taskList ? it.done + "/" + it.total : "", it.color));
             }
         }
         return rows;

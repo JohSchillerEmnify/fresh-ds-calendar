@@ -89,6 +89,16 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When I look at the scrolling widget in the "Agenda" style
       Then the scrolling widget shows the day header "Wed 14 Oct" with the task list "Groceries" and "1/3"
 
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:agendaNamesAnUntitledTaskListByItsFirstItem
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/WeekDataTest.java:untitledTaskListIsNamedByItsFirstItemAsInTheApp
+    @unit
+    Scenario: A task list without a title is named by its first item on every widget, as in the app
+      Given the calendar contains a task list "" on 2026-10-14 with items:
+        | item | done |
+        | Milk | no   |
+      When I look at the scrolling widget in the "Agenda" style
+      Then the scrolling widget shows the day header "Wed 14 Oct" with the task list "Milk" and "0/1"
+
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:reachesFourteenDaysAhead
     @unit
     Scenario: The widget reaches 14 days ahead
