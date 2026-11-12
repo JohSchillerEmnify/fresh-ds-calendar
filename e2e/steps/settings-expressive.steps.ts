@@ -94,7 +94,7 @@ Then('every settings group shows a 40 px tonal icon', async function (this: Worl
   await expect(icons.first()).toBeVisible();
   const tonal = await token(this.page, '--md-sys-color-secondary-container');
   const looks = await icons.evaluateAll((els) => els.map((e) => ({ w: e.getBoundingClientRect().width, h: e.getBoundingClientRect().height, bg: getComputedStyle(e).backgroundColor })));
-  expect(looks).toHaveLength(8);
+  expect(looks).toHaveLength(9);
   for (const l of looks) expect(l).toEqual({ w: 40, h: 40, bg: tonal });
 });
 

@@ -46,7 +46,7 @@ async function ensureKey(w: World, name: string) {
 When('I open the iPhone widget settings', async function (this: World) { await openSection(this); });
 
 When('I open the iPhone widget settings again', async function (this: World) {
-  await this.page.goto('/settings/account');
+  await this.page.goto('/settings/widgets');
   await expect(this.page.getByTestId('iphone-widget-keys')).toBeVisible();
 });
 
