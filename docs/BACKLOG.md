@@ -9,19 +9,7 @@ Tracked here so it survives across sessions. Newest first within each section. M
   before it; find the leak (falsify) and fix the test or the wipe.
 
 
-- **Labs Timeline: no way back to today after scrolling** (owner, 2026-10-26). After scrolling a while there is no
-  Today button to jump back. The date-less Labs views (Now, Timeline) hide the top bar's date/prev/next/Today since
-  2026-10-23; the Timeline needs a Today control again (spec + canvas mockup first: where it sits, maybe only once today
-  is out of view).
 
-- **Left-handed tablet: the + button covers the open tray** (2026-10-23, owner to decide). In left-handed mode on a
-  tablet the add button sits over the open task tray. Moving it right of the tray puts it past the middle of an 820 px
-  tablet, which breaks the owner's scenario "On an iPad in left-handed mode the add button sits on the left" (checked:
-  red). Owner to choose: keep it over the tray, move it right of the tray and change that scenario, or another place.
-- **Android: the widget's own week fetch still shows category colours while categories are off** (2026-10-23; being
-  fixed on `fix/notification-icons`). The widget snapshot was fixed (`listColor(l, categoriesOn)`), but the native week
-  fetch (`WeekData.java`, `it.optString("color")` from `/api/items`) still draws task lists in their category colour.
-  Needs the switch on the Java side and an APK build to verify.
 - **Zooming on the month overview** (2026-10-16, owner; findings 2026-10-23, owner to decide). There never was a zoom
   in the month view, so nothing broke: on the phone, pinch is blocked because the swipe area sets `touch-action: pan-y`
   (`SwipeCarousel.vue`); on the desktop, Ctrl+wheel is the browser's own page zoom. Owner to choose: (a) an app zoom
@@ -78,30 +66,20 @@ Tracked here so it survives across sessions. Newest first within each section. M
   scenario specifies it.
 - **Android 16 lock-screen countdown (Live Update)** (2026-10-23). See
   [proposals/2026-10-23-calendar-view-ideas.md](proposals/2026-10-23-calendar-view-ideas.md), idea 3.
-- **Reorder list items by drag and drop** (owner, 2026-10-23; needs its own slice + spec first). Inside a task list,
-  pick up an item and drop it at another place in the list. Today items move only with the up/down buttons
-  (`tasklist-items` "Reorder items", `@optional`).
-- **Day view: drag an entry to the next or previous day at the screen edge** (owner, 2026-10-23; needs its own slice +
-  spec first). In the day view, dragging an entry against the right edge moves it to the next day, against the left
-  edge to the previous day (time kept). Today the edge hold only works at the time grid's top and bottom (`dnd`).
 - **Confirm a new list item with a check button** (owner, 2026-10-23; needs its own slice + spec first). A small check
   mark / button at the right end of the new-item field adds the item, as an alternative to pressing Enter.
-- **Turn a calendar off on a schedule or for a while** (owner, 2026-10-26; needs its own slice + spec first, with
-  canvas mockups). (a) Schedule: a calendar shows only on chosen days/times, e.g. the work calendar only Monday to
-  Friday. (b) Temporarily off: hide a calendar for a few days, and it comes back by itself afterwards. Both from a long
-  press on the calendar's chip (owner: at least the temporary one must be a long press); the schedule may also live in
-  Settings. "Off" means exactly what switching a calendar off by hand does today (same hiding, same look, same sync);
-  this feature only switches it automatically (owner: "the behavior is already there, just currently manual").
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
   frames also drop, so check the ambient scene/top-bar animations with remote debugging on the phone.
 - Tags (shelved earlier).
-- iOS home-screen widget (needs a native shell; a PWA cannot provide widgets on iOS).
-- Android widget: verify on a real device (drawn as a bitmap of the week view, never rendered on a device yet).
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.
+
+## Open elsewhere
+
+- Android widget tests and the maps hand-off: issue #18. Flaky e2e under load: issue #13. iPhone widget days: issue #108.
 
 ## Dropped
 
