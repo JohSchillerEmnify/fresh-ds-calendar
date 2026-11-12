@@ -118,9 +118,7 @@ final class WidgetRenderer {
             if (fetched != null && monday.equals(WidgetStore.weekOf(fetched))) {
                 // the fetch reads the "Task categories" switch with the prefs; unknown, the server's default (on) applies
                 WeekData w = WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis(), fetched.optBoolean("taskCategories", true));
-                // the fetch reads the prefs too; when that part failed, the app's snapshot still knows the minimum
-                w.minEventMinutes = fetched.has("minEventMinutes") ? fetched.getInt("minEventMinutes") : snapshot != null ? snapshot.optInt("minEventMinutes", 0) : 0;
-                w.weekSideBySide = fetched.has("weekSideBySide") ? fetched.getInt("weekSideBySide") : snapshot != null ? snapshot.optInt("weekSideBySide", 2) : 2;
+                applyPrefs(w, fetched, snapshot);
                 return w;
             }
         } catch (Exception ignored) {
@@ -132,6 +130,12 @@ final class WidgetRenderer {
             // an unreadable snapshot is treated as absent
         }
         return null;
+    }
+
+    /** The fetch reads the prefs too; when that part failed, the app's snapshot still knows the minimum event length and the side-by-side limit. */
+    static void applyPrefs(WeekData w, JSONObject fetched, JSONObject snapshot) throws org.json.JSONException {
+        w.minEventMinutes = fetched.has("minEventMinutes") ? fetched.getInt("minEventMinutes") : snapshot != null ? snapshot.optInt("minEventMinutes", 0) : 0;
+        w.weekSideBySide = fetched.has("weekSideBySide") ? fetched.getInt("weekSideBySide") : snapshot != null ? snapshot.optInt("weekSideBySide", 2) : 2;
     }
 
     /** A tap target that opens the app at {@code path} (a day or the week). */

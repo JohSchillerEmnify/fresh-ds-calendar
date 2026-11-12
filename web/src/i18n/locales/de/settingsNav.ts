@@ -89,7 +89,7 @@ export default {
     bedtimeReminder: 'Schlafenszeit-Erinnerung, Erinnerung vor dem Schlafen',
     labs: 'experimentell, Beta',
     backup: 'Google Drive, wiederherstellen, Sicherung',
-    androidWidget: 'Android, Widget, Home-Bildschirm, Woche, Tag, Uhr, APK',
+    androidWidget: 'Android, Widget, Home-Bildschirm, Woche, Tag, Uhr, Liste, Agenda, Zeitleiste, APK',
     iphoneWidget: 'iPhone, iOS, Widget, Sperrbildschirm, Scriptable, Countdown',
     errorLog: 'Fehler, Absturz, Probleme, Diagnose',
     version: 'Build, Über',

@@ -76,4 +76,24 @@ final class WidgetStrings {
         if (monday.getMonth() == sunday.getMonth()) return monday.getDayOfMonth() + (german ? ".–" : "–") + dm.format(sunday);
         return dm.format(monday) + " – " + dm.format(sunday);
     }
+
+    String allDay() {
+        return german ? "Ganztägig" : "All day";
+    }
+
+    String nothingPlanned() {
+        return german ? "Nichts geplant" : "Nothing planned";
+    }
+
+    /** A day header of the scrolling widget: {@code Wed 14 Oct} / {@code Mi 14. Okt}. */
+    String agendaDay(LocalDate d) {
+        String month = DateTimeFormatter.ofPattern("MMM", german ? Locale.GERMANY : Locale.ENGLISH).format(d);
+        if (german) month = month.endsWith(".") ? month.substring(0, month.length() - 1) : month;
+        return weekday(d) + " " + d.getDayOfMonth() + (german ? ". " : " ") + month;
+    }
+
+    /** A Timeline column's name over its hours: weekday and day of the month on two lines. */
+    String columnName(LocalDate d) {
+        return weekday(d) + "\n" + d.getDayOfMonth();
+    }
 }

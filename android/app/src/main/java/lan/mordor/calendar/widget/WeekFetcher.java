@@ -23,7 +23,7 @@ final class WeekFetcher {
     enum Status { OK, SIGN_IN, ERROR }
 
     /**
-     * Fetches {@code GET /api/items} for the week of {@code today}, with the minimum event length and the "Task categories"
+     * Fetches {@code GET /api/items} from the Monday of {@code today}'s week to 14 days after {@code today}, with the minimum event length and the "Task categories"
      * switch from {@code GET /api/prefs},
      * and stores the result. {@code excludeHidden=1} makes the
      * server leave out the calendars the person switched off in the app (that state lives on the server, not here).
@@ -33,12 +33,14 @@ final class WeekFetcher {
      */
     static Status fetchAndStore(Context context, WidgetStore store, LocalDate today) {
         LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        // the scrolling widget reads 14 days from today, which reaches past the week
+        LocalDate to = today.plusDays(ScrollRows.DAYS);
         String base = ServerConfig.BASE_URL;
         // the first fetch after the update from the app with the server chooser drops that server's week and snapshot
         ServerConfig.forgetLegacyChoice(context);
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7) + "&excludeHidden=1").openConnection();
+            c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + to + "&excludeHidden=1").openConnection();
             c.setConnectTimeout(10_000);
             c.setReadTimeout(15_000);
             c.setRequestProperty("Accept", "application/json");
@@ -53,7 +55,7 @@ final class WeekFetcher {
             // the server slides the session cookie forward on use; hand the new expiry to the WebView's jar
             keepCookies(base, c.getHeaderFields().get("Set-Cookie"));
             JSONObject res = new JSONObject(read(c.getInputStream()));
-            JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("items", res.getJSONArray("items"));
+            JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("to", to.toString()).put("items", res.getJSONArray("items"));
             JSONObject prefs = prefs(base, cookie);
             if (prefs != null) week.put("minEventMinutes", prefs.optInt("minEventMinutes", 0)).put("weekSideBySide", prefs.optInt("weekSideBySide", 2)).put("taskCategories", prefs.optBoolean("taskCategories", true));
             store.saveFetched(week.toString(), System.currentTimeMillis());

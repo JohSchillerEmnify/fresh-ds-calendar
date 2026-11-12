@@ -89,7 +89,7 @@ export default {
     bedtimeReminder: 'bedtime reminder, sleep reminder',
     labs: 'experimental, beta',
     backup: 'google drive, restore',
-    androidWidget: 'android, widget, home screen, week, day, clock, apk',
+    androidWidget: 'android, widget, home screen, week, day, clock, list, agenda, timeline, apk',
     iphoneWidget: 'iphone, ios, widget, lock screen, scriptable, countdown',
     errorLog: 'errors, crash, problems, diagnostics',
     version: 'build, about',

@@ -99,6 +99,8 @@ final class WeekData {
     }
 
     final LocalDate weekStart;
+    /** The days from {@link #weekStart}: 7 for the week, more for the scrolling widget, which reads past the week. */
+    final int span;
     final List<Day> days = new ArrayList<>();
     final List<Bar> bars = new ArrayList<>();
     /** When the data was produced (epoch milliseconds). */
@@ -108,10 +110,11 @@ final class WeekData {
     /** The owner's "Week view: events side by side" limit (2 or 3): overlapping items side by side before they cascade. */
     int weekSideBySide = 2;
 
-    private WeekData(LocalDate weekStart, long timeMillis) {
+    private WeekData(LocalDate weekStart, long timeMillis, int span) {
         this.weekStart = weekStart;
         this.timeMillis = timeMillis;
-        for (int i = 0; i < 7; i++) days.add(new Day(weekStart.plusDays(i)));
+        this.span = span;
+        for (int i = 0; i < span; i++) days.add(new Day(weekStart.plusDays(i)));
     }
 
     /** Number of bar lanes. */
@@ -123,12 +126,17 @@ final class WeekData {
 
     /** Parses the app's snapshot (events per day with {@code HH:mm} times, the task lists of {@code today}); null for an unknown version. */
     static WeekData fromSnapshot(JSONObject s, LocalDate today, long timeMillis) throws JSONException {
+        return fromSnapshot(s, today, timeMillis, 7);
+    }
+
+    /** As above for the first {@code span} days from the snapshot's {@code weekStart} (the snapshot reaches 14 days past today). */
+    static WeekData fromSnapshot(JSONObject s, LocalDate today, long timeMillis, int span) throws JSONException {
         if (s.optInt("v") != 1) return null;
-        WeekData w = new WeekData(LocalDate.parse(s.getString("weekStart")), timeMillis);
+        WeekData w = new WeekData(LocalDate.parse(s.getString("weekStart")), timeMillis, span);
         w.minEventMinutes = s.optInt("minEventMinutes", 0);
         w.weekSideBySide = s.optInt("weekSideBySide", 2);
         JSONArray days = s.getJSONArray("days");
-        for (int i = 0; i < 7 && i < days.length(); i++) {
+        for (int i = 0; i < w.span && i < days.length(); i++) {
             JSONArray events = days.getJSONObject(i).getJSONArray("events");
             for (int j = 0; j < events.length(); j++) {
                 JSONObject e = events.getJSONObject(j);
@@ -140,7 +148,7 @@ final class WeekData {
         }
         JSONArray tasks = s.getJSONArray("tasklists");
         long idx = ChronoUnit.DAYS.between(w.weekStart, today);
-        int at = idx >= 0 && idx < 7 ? (int) idx : 0;
+        int at = idx >= 0 && idx < w.span ? (int) idx : 0;
         for (int i = 0; i < tasks.length(); i++) {
             JSONObject t = tasks.getJSONObject(i);
             w.days.get(at).items.add(Item.taskList("st" + i, t.getString("title"), -1, -1, t.getString("color"), t.getInt("done"), t.getInt("total"), List.of()));
@@ -161,7 +169,15 @@ final class WeekData {
      * @param categoriesOn the person's "Task categories" switch; off, a task list takes its calendar's colour, as in the app
      */
     static WeekData fromItems(JSONArray items, LocalDate today, LocalDate weekStart, long timeMillis, boolean categoriesOn) throws JSONException {
-        WeekData w = new WeekData(weekStart, timeMillis);
+        return fromItems(items, today, weekStart, timeMillis, categoriesOn, 7);
+    }
+
+    /**
+     * As above for {@code span} days from {@code weekStart}. Only the 7-day week has multi-day bars (week and day widget); with a
+     * longer span a multi-day event is listed on each day it covers, as the scrolling widget shows it.
+     */
+    static WeekData fromItems(JSONArray items, LocalDate today, LocalDate weekStart, long timeMillis, boolean categoriesOn, int span) throws JSONException {
+        WeekData w = new WeekData(weekStart, timeMillis, span);
         List<Candidate> candidates = new ArrayList<>();
         for (int i = 0; i < items.length(); i++) {
             JSONObject it = items.getJSONObject(i);
@@ -169,11 +185,11 @@ final class WeekData {
                 addTaskList(w, it, today, categoriesOn);
                 continue;
             }
-            LocalDate[] range = barRange(it);
+            LocalDate[] range = span == 7 ? barRange(it) : null;
             if (range != null) candidates.add(new Candidate(it, range[0], range[1]));
             else addEvent(w, it);
         }
-        w.layBars(candidates);
+        if (span == 7) w.layBars(candidates);
         w.sortDays();
         return w;
     }
@@ -314,7 +330,7 @@ final class WeekData {
 
     private static void put(WeekData w, LocalDate date, Item e) {
         long idx = ChronoUnit.DAYS.between(w.weekStart, date);
-        if (idx >= 0 && idx < 7) w.days.get((int) idx).items.add(e);
+        if (idx >= 0 && idx < w.span) w.days.get((int) idx).items.add(e);
     }
 
     /** The web's order in a day: all-day events, untimed task lists, then timed by start; ties by title. */

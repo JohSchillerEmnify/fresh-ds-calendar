@@ -118,6 +118,8 @@ export const PREFS = {
   daySideBySide: oneOf([1, 2, 3, 4], 4, 'daySideBySide must be 1, 2, 3 or 4'),
   weekSideBySide: oneOf([1, 2, 3], 2, 'weekSideBySide must be 1, 2 or 3'),
   widgetCircle: oneOf(['time', 'countdown'], 'time', 'widgetCircle must be time or countdown'),
+  androidWidgetStyle: oneOf(['agenda', 'timeline'], 'agenda', 'androidWidgetStyle must be agenda or timeline'),
+  androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),

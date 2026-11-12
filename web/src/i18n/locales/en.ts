@@ -165,7 +165,8 @@ export default {
       sounds: 'Sounds',
     },
     widgets: {
-      android: { label: 'Home screen widgets', hint: 'With the Android app installed, press and hold the home screen, tap Widgets and pick the calendar for the week, the day or the clock.' },
+      android: { label: 'Home screen widgets', hint: 'With the Android app installed, press and hold the home screen, tap Widgets and pick the calendar for the week, the day, the clock or the list.' },
+      scroll: { label: 'List widget', hint: 'The Agenda lists what is coming up. The Timeline shows the next days as columns, with the hours running down.', agenda: 'Agenda', timeline: 'Timeline', days: 'Days in the Timeline' },
     },
     labs: {
       weekTwoRow: { label: 'Two-row week overview', hint: 'Shows the week in two rows so all seven days fit on one screen without scrolling', split: 'Days on the top row' },

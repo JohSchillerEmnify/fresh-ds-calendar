@@ -3735,6 +3735,8 @@ the iPhone widget asks to be redrawn at {time}
 I look at the scrolling widget in the {string} style
 I look at a narrow scrolling widget in the {string} style
 I look at a short scrolling widget in the {string} style
+I look at the scrolling widget in the {string} style with {int} days
+I look at the scrolling widget
 the scrolling widget shows the day header {string} with the entry {string} at {string}
 the scrolling widget shows the day header {string} with the task list {string} and {string}
 the scrolling widget lists {string} before {string} under the day header {string}
@@ -3743,18 +3745,17 @@ the scrolling widget shows no day header {string}
 the scrolling widget shows the entry {string} at {string}
 the scrolling widget does not show the entry {string}
 the scrolling widget shows the entry {string} without a time
-the scrolling widget draws the day {string} as a strip with {string} from {time} to {time}
-the scrolling widget draws one strip per day that has entries
-I placed a scrolling widget and chose the {string} style
-I place a second scrolling widget and choose the {string} style
-I reconfigure the scrolling widget and choose the {string} style
-the first scrolling widget still shows the {string} style
-the second scrolling widget shows the {string} style
-the scrolling widget shows the {string} style
+the scrolling widget draws {int} day columns, from {string} to {string}
+the scrolling widget draws the hours from the top to the bottom of the columns
+the scrolling widget draws {string} in the column {string} from {time} to {time}
+the scrolling widget shows fewer hours than it holds and scrolls to the others
+the scrolling widget style is chosen as {string} with {int} days
+the app hands the widget its copy
+the app's copy has no choice for the scrolling widget
+the scrolling widget shows the {string} style with {int} days
 I tap the entry {string} in the scrolling widget
 I tap the day header {string} in the scrolling widget
-I tap the day strip {string} in the scrolling widget
-the app opens the event {string}
+I tap the Timeline day {string} in the scrolling widget
 the app opens the day view for {date}
 the phone has no connection to the server
 the calendar contains {int} events on {date}
@@ -3766,11 +3767,20 @@ the app's theme is dark
 the scrolling widget uses the dark theme colours
 I look at the week widget, the day widget and the clock widget
 they are still drawn as one picture each and do not scroll
+the scrolling widget style is set to {string}
+the scrolling widget Timeline days are set to {string}
+I set the scrolling widget style to {string}
+I set the scrolling widget Timeline days to {string}
 ```
 
-- All of these run on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or a device
-  prove them; they stay `@backlog` for Playwright. "{string} style" is "Agenda" or "Timeline". Day headers use the
-  app's date wording ("Wed 14 Oct"). "the calendar contains N events on D" are N ordinary timed events.
+- The settings steps run in the browser suite: the Widgets page has two segmented controls, `settings-scrolling-style`
+  ("Agenda" / "Timeline") and `settings-scrolling-days` ("1" to "7"); they save the person's prefs `androidWidgetStyle`
+  and `androidWidgetDays`.
+- Every other step here runs on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or
+  a device prove them (`@unit`). "{string} style" is "Agenda" or "Timeline"; the Timeline shows 3 days unless the step says
+  otherwise. Day headers use the widget's date wording ("Wed 14 Oct"). "the calendar contains N events on D" are N ordinary
+  timed events. A tap on an entry or a day header opens that day in the app (an entry cannot open itself: the app has no
+  link to a single event).
 
 ## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
 
