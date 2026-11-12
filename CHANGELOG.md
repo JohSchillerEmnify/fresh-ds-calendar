@@ -5,6 +5,7 @@
 - Android: a crash or a freeze of the app is now written to the error log the next time you open it.
 - Android: two new scrolling home screen widgets. "List" shows the next 14 days as an agenda; "Multi-day" shows the next days side by side with the hours running down. The number of days (1 to 7) is set under Timeline (iPhone and Android).
 - Android: the Multi-day widget opens with half an hour before now at the top (late in the day it shows the last hours of the day) and fits 16 hours into its height; change it to 8, 12, 16 or 24 in Settings › Widgets › Android › Hours in view.
+- Fixed: on Android 11 and older phones the app no longer keeps stopping while a home screen widget is on the screen, and the widgets' background refresh no longer fails there.
 - iPhone widget: a new Timeline layout shows the next days side by side, starting today, with the hours running top to bottom. Choose the layout in Settings › Widgets › iPhone; the number of days (1 to 7) is one setting under Timeline (iPhone and Android) that the Android Timeline shares.
 - Settings has a new group, Widgets, with an iPhone section (moved here from Account & app) and an Android section that explains how to add the home screen widgets.
 - Fixed: a long task list title in a grown list now wraps onto a second line instead of being cut off.
