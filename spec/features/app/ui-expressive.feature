@@ -96,14 +96,14 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       Then the lint gate fails and names that component
       And a button element inside "web/src/components/m3" passes the lint gate
 
-  Rule: A pressed button keeps its shape
+  Rule: A pressed button squishes slightly and never turns square
 
     @unit
-    # unit: web/test/touch-css.test.ts:no pressed state changes a control's corner radius
-    Scenario: Pressing a button, icon button, chip or the + button never changes its corners
+    # unit: web/test/touch-css.test.ts:a pressed control squishes slightly and never turns square: the radius change is animated and stays medium or rounder
+    Scenario: Pressing a button squishes it a little and its corners stay clearly rounded
       Given the style rules of the Material 3 components
       When a control is pressed
-      Then its corner radius stays as it was
+      Then its corners change smoothly and only a little, and never look square
 
   Rule: Theme corners shape events and cards only
 

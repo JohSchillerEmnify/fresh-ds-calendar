@@ -15,9 +15,9 @@ defineProps<{ label: string; expanded?: boolean }>();
   width: 64px; height: 64px; border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
   box-shadow: var(--md-sys-elevation-3); display: inline-flex; align-items: center; justify-content: center;
-  transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring);
+  transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring), border-radius var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring);
 }
-.fab:active { transform: scale(0.92); }
+.fab:active { transform: scale(0.92); border-radius: var(--md-sys-shape-corner-extra-large); }
 .fab :deep(svg) { width: 28px; height: 28px; }
 .plus { display: inline-flex; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .plus.open { transform: rotate(45deg); }
