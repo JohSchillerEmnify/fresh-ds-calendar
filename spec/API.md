@@ -200,6 +200,7 @@ not keep one view on: the client disables the last switch, and when every view i
 open the list sheet.
 `growSeveral` (boolean, default `true`) lets several task list cards stay grown at once; off, growing a card collapses the one
 grown before.
+`sendReportsAuto` (boolean, default `false`, never switched on by the app) lets the device send its error and crash log to `POST /api/diag/device-log` by itself (feature device-log).
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; `navPhone` also accepts `drawer`, the side menu of feature nav-expressive; any other value is a 400; feature nav-position).
 The person pref `bottomBarSize` (`'auto' | 'expressive' | 'compact'`, default `'auto'`: Compact on phones, Expressive elsewhere;
