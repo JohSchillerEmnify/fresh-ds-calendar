@@ -9,6 +9,7 @@ import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.CapConfig;
 import java.util.regex.Pattern;
+import lan.mordor.calendar.crash.CrashReportsPlugin;
 import lan.mordor.calendar.notify.RemindersPlugin;
 import lan.mordor.calendar.widget.ServerConfig;
 import lan.mordor.calendar.widget.WidgetBridgePlugin;
@@ -31,6 +32,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
+        registerPlugin(CrashReportsPlugin.class);
         registerPlugin(RemindersPlugin.class);
         registerPlugin(ServerChoicePlugin.class);
         config = capConfig();
