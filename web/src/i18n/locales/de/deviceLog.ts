@@ -17,5 +17,5 @@ export default {
   sendCopied: 'Teilen hat nicht geklappt, deshalb wurde das Fehlerprotokoll kopiert',
   sendFailed: 'Fehlerprotokoll konnte weder geteilt noch kopiert werden',
   standalone: 'installiert',
-  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung', crash: 'Absturz' },
+  kind: { error: 'Fehler', api: 'Anfrage', outbox: 'Änderung', sw: 'Update', sync: 'Sync', trace: 'Schritt', decision: 'Entscheidung', crash: 'Crash' },
 };
