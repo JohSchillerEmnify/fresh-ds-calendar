@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 - Fixed: the app no longer keeps stopping on Android when a large home screen widget needs more picture memory than the phone allows; the widget is drawn slightly less sharp instead.
+- Fixed: on a phone, birthdays and events whose title fits no longer fade out at the end; only a title that is really cut fades.
 - Android: a crash record in the error log now also says the reason Android gave, so such a problem can be found faster.
 - The Android app now needs Android 12 or newer; older phones keep the version they have.
 - Fixed: sending the error log to the server works again when the log holds an Android crash.
