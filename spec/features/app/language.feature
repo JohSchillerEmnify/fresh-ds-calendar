@@ -17,14 +17,14 @@ Feature: Language
     Then the view switcher shows "Jahr, Monat, Woche, Tag, Aufgaben, Uhr"
     And the page language is "de"
     When I open the settings
-    Then the settings groups are "Kalender, Ansichten, Aufgabenlisten, Erinnerungen, Aussehen & Aufbau, Fokus & Ruhe, Labor, Konto & App"
+    Then the settings groups are "Kalender, Ansichten, Aufgabenlisten, Erinnerungen, Aussehen & Aufbau, Fokus & Ruhe, Widgets, Labor, Konto & App"
     And the language "Automatisch" is selected
 
   Scenario: Choosing English in the settings switches at once
     Given the browser language is "de-DE"
     When I open the settings
     And I choose "English" as the language
-    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
+    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Widgets, Labs, Account & app"
     And the page language is "en"
     And the page was not reloaded
     When I leave the settings
@@ -40,7 +40,7 @@ Feature: Language
   Scenario: Fränggisch shows dialect labels and falls back to German where untranslated
     When I open the settings
     And I choose "Fränggisch" as the language
-    Then the settings groups are "Kalender, Ansichdn, Aufgabnlisdn, Erinnerunga, Aussehn & Aufbau, Fokus & Ruh, Labor, Kondo & App"
+    Then the settings groups are "Kalender, Ansichdn, Aufgabnlisdn, Erinnerunga, Aussehn & Aufbau, Fokus & Ruh, Widgets, Labor, Kondo & App"
     And the page language is "de-x-mainfr"
     When I leave the settings
     Then the view switcher shows "Jahr, Monad, Woche, Dag, Aufgabn, Uhr"

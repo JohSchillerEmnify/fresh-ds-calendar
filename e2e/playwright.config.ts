@@ -81,7 +81,7 @@ export default defineConfig({
     {
       // an iPhone (WebKit, touch): only the scenarios tagged @iphone; the finger is a model of iOS WebKit (STEPS.md)
       name: 'iphone',
-      grep: /@iphone/,
+      grep: /@iphone(?![\w-])/,
       grepInvert: /@backlog|@unit/,
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
