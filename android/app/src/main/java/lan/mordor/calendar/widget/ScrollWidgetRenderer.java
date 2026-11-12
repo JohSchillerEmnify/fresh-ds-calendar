@@ -22,8 +22,8 @@ import lan.mordor.calendar.R;
 import org.json.JSONObject;
 
 /**
- * Builds the scrolling widget: a list that is either the Agenda (a day header, then one row per entry) or the Timeline (the
- * rows of {@link TimelineRows}, with the day names above the list), as the person chose in the app's settings. The data is
+ * Builds the scrolling widgets: a list that is either the Agenda of the List widget (a day header, then one row per entry) or the
+ * Timeline of the Multi-day widget (the rows of {@link TimelineRows}, with the day names above the list). The data is
  * the app's device copy ({@link WidgetStore}); a fetched copy that reaches far enough is preferred, like in the other widgets.
  */
 final class ScrollWidgetRenderer {
@@ -92,7 +92,7 @@ final class ScrollWidgetRenderer {
     }
 
     /** The widget with its list: the rows themselves on Android 12 and newer, the {@link ScrollWidgetService} on older ones. */
-    static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now) {
+    static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now, boolean timeline) {
         Model m = load(context, today);
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_scroll);
         rv.setInt(R.id.bg, "setColorFilter", m.theme.surface);
@@ -102,8 +102,8 @@ final class ScrollWidgetRenderer {
         if (m.nothingYet) return message(rv, m.str.openOnce(), WidgetRenderer.openApp(context, "/day/" + today));
         if (m.signIn && m.data == null) return message(rv, m.str.signInAgain(), WidgetRenderer.openApp(context, "/day/" + today));
 
-        List<RemoteViews> items = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? items(context, m, options, today, now) : null;
-        if (m.choice.timeline) {
+        List<RemoteViews> items = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? items(context, m, options, today, now, timeline) : null;
+        if (timeline) {
             rv.setViewVisibility(R.id.head, View.VISIBLE);
             for (int i = 0; i < DAY_NAMES.length; i++) {
                 boolean shown = i < m.choice.days;
@@ -126,11 +126,14 @@ final class ScrollWidgetRenderer {
             for (int i = 0; i < items.size(); i++) b.addItem(i, items.get(i));
             rv.setRemoteAdapter(R.id.list, b.build());
         } else {
-            Intent svc = new Intent(context, ScrollWidgetService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
+            Intent svc = new Intent(context, ScrollWidgetService.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId).putExtra(ScrollWidgetService.EXTRA_TIMELINE, timeline);
             svc.setData(Uri.parse(svc.toUri(Intent.URI_INTENT_SCHEME)));
             rv.setRemoteAdapter(R.id.list, svc);
         }
-        if (m.choice.timeline && m.data != null) rv.setScrollPosition(R.id.list, startRow(m, today, now));
+        if (timeline && m.data != null) {
+            int row = plan(context, m, options, today, now).scrollRow;
+            if (row >= 0) rv.setScrollPosition(R.id.list, row);
+        }
         return rv;
     }
 
@@ -143,21 +146,18 @@ final class ScrollWidgetRenderer {
         return rv;
     }
 
-    /** The Timeline opens at the hour before now (or its first hour) so what is next is in view. */
-    private static int startRow(Model m, LocalDate today, LocalTime now) {
-        TimelineRows.Plan plan = TimelineRows.plan(m.data, today, m.choice.days, m.str);
-        int band = plan.bandDp > 0 ? 1 : 0;
-        return band + Math.max(0, Math.min(plan.lastHour - plan.firstHour - 1, now.getHour() - 1 - plan.firstHour));
+    private static TimelineRows.Plan plan(Context context, Model m, Bundle options, LocalDate today, LocalTime now) {
+        return TimelineRows.plan(m.data, today, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(context, options), now);
     }
 
     /** The list's rows, top to bottom: Agenda rows, or the Timeline's picture slices. */
-    static List<RemoteViews> items(Context context, Model m, Bundle options, LocalDate today, LocalTime now) {
+    static List<RemoteViews> items(Context context, Model m, Bundle options, LocalDate today, LocalTime now, boolean timeline) {
         List<RemoteViews> items = new ArrayList<>();
         if (m.data == null) return items;
         String pkg = context.getPackageName();
-        if (m.choice.timeline) {
+        if (timeline) {
             DisplayMetrics dm = context.getResources().getDisplayMetrics();
-            TimelineRows.Plan plan = TimelineRows.plan(m.data, today, m.choice.days, m.str);
+            TimelineRows.Plan plan = plan(context, m, options, today, now);
             float widthDp = WidgetRenderer.widthDp(context, options);
             float scale = WeekLayout.bitmapScale(widthDp, plan.totalDp(), dm.density, (long) dm.widthPixels * dm.heightPixels);
             for (Bitmap slice : TimelineRows.slices(m.data, plan, m.theme, m.str, today, now.getHour() * 60 + now.getMinute(), Math.max(1, Math.round(widthDp * scale)), scale)) {

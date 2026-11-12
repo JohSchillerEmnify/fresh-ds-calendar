@@ -33,6 +33,8 @@ final class WeekCanvas {
     private final WidgetTheme th;
     private final float s;
     private final Canvas c;
+    /** The hours the grid spans when the caller fixes them (the Multi-day widget draws the whole day); null = fitted to the entries. */
+    private int[] fixedHours;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint text = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
@@ -92,7 +94,9 @@ final class WeekCanvas {
         float w = widthPx / scale;
         float h = PAD + columnsBandHeight(data.days.subList(offset, offset + n), range, hourDp) + (range[1] - range[0]) * hourDp + PAD;
         Bitmap bmp = Bitmap.createBitmap(widthPx, Math.max(1, Math.round(h * scale)), Bitmap.Config.ARGB_8888);
-        new WeekCanvas(new Canvas(bmp), theme, scale).paint(data, str, data.weekStart, offset, n, "", today, minutesNow, "", false, w, h, hourDp);
+        WeekCanvas canvas = new WeekCanvas(new Canvas(bmp), theme, scale);
+        canvas.fixedHours = range;
+        canvas.paint(data, str, data.weekStart, offset, n, "", today, minutesNow, "", false, w, h, hourDp);
         return bmp;
     }
 
@@ -130,7 +134,7 @@ final class WeekCanvas {
         int lanes = 0, chips = 0;
         for (WeekData.Bar b : bars) lanes = Math.max(lanes, b.lane + 1);
         for (WeekData.Day d : days) chips = Math.max(chips, untimed(d).size());
-        int[] hours = data == null ? new int[] {WeekLayout.DEFAULT_START_HOUR, WeekLayout.DEFAULT_END_HOUR} : WeekLayout.hourRange(days);
+        int[] hours = fixedHours != null ? fixedHours : data == null ? new int[] {WeekLayout.DEFAULT_START_HOUR, WeekLayout.DEFAULT_END_HOUR} : WeekLayout.hourRange(days);
         int cap = bandCap(bare ? (hours[1] - hours[0]) * bareHourDp : gridBottom - bandTop);
         int barRows = Math.min(lanes, cap), chipRows = Math.min(chips, cap - barRows);
         float bandH = (barRows + chipRows) * (CHIP + 1) + ((barRows + chipRows) > 0 ? 2 : 0);

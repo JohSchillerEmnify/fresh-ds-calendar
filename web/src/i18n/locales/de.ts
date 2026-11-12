@@ -159,8 +159,8 @@ export default {
       sounds: 'Töne',
     },
     widgets: {
-      android: { label: 'Widgets für den Home-Bildschirm', hint: 'Ist die Android-App installiert, halte den Home-Bildschirm gedrückt, tippe auf „Widgets“ und wähle den Kalender für die Woche, den Tag, die Uhr oder die Liste.' },
-      scroll: { label: 'Listen-Widget', hint: 'Die Terminliste listet auf, was ansteht. Die Zeitleiste zeigt die nächsten Tage als Spalten, mit den Stunden von oben nach unten.', agenda: 'Terminliste', timeline: 'Zeitleiste', days: 'Tage in der Zeitleiste' },
+      android: { label: 'Widgets für den Home-Bildschirm', hint: 'Ist die Android-App installiert, halte den Home-Bildschirm gedrückt, tippe auf „Widgets“ und wähle den Kalender für die Woche, den Tag, die Uhr, die Liste oder mehrere Tage.' },
+      scroll: { label: 'Stunden im Blick', hint: 'Wie viele Stunden des Tages das Widget „Mehrere Tage“ ohne Scrollen zeigt.', days: 'Tage in der Zeitleiste' },
       timeline: { hint: 'Wie viele Tage die Zeitleiste ab heute zeigt.' },
     },
     labs: {

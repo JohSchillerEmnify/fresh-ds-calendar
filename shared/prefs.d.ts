@@ -13,6 +13,7 @@ export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 /** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export type WidgetCircle = 'time' | 'countdown';
+export type AndroidWidgetHours = 8 | 12 | 16 | 24;
 export type AndroidWidgetStyle = 'agenda' | 'timeline';
 export type WidgetLayout = 'standard' | 'timeline';
 export type WidgetTimelineDays = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -141,8 +142,10 @@ export interface Prefs {
   weekSideBySide: WeekSideBySide;
   /** The iPhone widget's lock-screen circle: the next entry's start time (the default) or a live countdown to it (feature iphone-widget). */
   widgetCircle: WidgetCircle;
-  /** The Android list widget's style: the Agenda (default) or the Timeline (feature scrolling-widget). */
+  /** Not used any more: the List and the Multi-day widget are two widgets now. Still stored and readable. */
   androidWidgetStyle: AndroidWidgetStyle;
+  /** How many hours of the day the Android Multi-day widget fits into its height: 8, 12, 16 (default) or 24 (feature scrolling-widget). */
+  androidWidgetHours: AndroidWidgetHours;
   /** The days the Android Timeline widget shows as columns, 1 to 7 (default 3). */
   androidWidgetDays: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   /** The iPhone widget's medium and large layout: the standard views or the Timeline (feature iphone-widget). */

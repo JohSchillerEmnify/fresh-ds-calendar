@@ -162,8 +162,8 @@ export default {
       sounds: 'Sounds (ich rappe hier, ich rappe dort)',
     },
     widgets: {
-      android: { label: 'Widgets für den Home-Bildschirm, yo', hint: 'Android-App drauf, dann Home-Bildschirm gedrückt halten, „Widgets“ antippen und den Kalender für Woche, Tag, Uhr oder Liste wählen, Digga.' },
-      scroll: { label: 'Listen-Widget, yo', hint: 'Die Terminliste listet auf, was ansteht, Digga. Die Zeitleiste zeigt die nächsten Tage als Spalten, die Stunden laufen von oben nach unten.', agenda: 'Terminliste', timeline: 'Zeitleiste', days: 'Tage in der Zeitleiste, yo' },
+      android: { label: 'Widgets für den Home-Bildschirm, yo', hint: 'Android-App drauf, dann Home-Bildschirm gedrückt halten, „Widgets“ antippen und den Kalender für Woche, Tag, Uhr, Liste oder mehrere Tage wählen, Digga.' },
+      scroll: { label: 'Stunden im Blick, yo', hint: 'Wie viele Stunden des Tages das Widget „Mehrere Tage“ ohne Scrollen zeigt, Digga.', days: 'Tage in der Zeitleiste, yo' },
       timeline: { hint: 'Wie viele Tage die Zeitleiste ab heute zeigt, Digga.' },
     },
     labs: {

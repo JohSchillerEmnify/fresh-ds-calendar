@@ -5,7 +5,7 @@
  * this snapshot supplies the theme, the language and a fallback when that fetch fails.
  */
 import { addDays, differenceInCalendarDays, format, startOfWeek } from 'date-fns';
-import type { AndroidWidgetStyle, CalendarItem, LocalDate, TaskList } from '@/api/types';
+import type { CalendarItem, LocalDate, TaskList } from '@/api/types';
 import { listColor } from '@/features/tasklists/categories';
 import { parseIsoDate, WEEK_OPTS } from '@/lib/dates';
 import { segmentsByDate, specialMarker } from '@/lib/items';
@@ -51,9 +51,9 @@ export interface WidgetSnapshot {
   minEventMinutes: number;
   /** How many overlapping events the week view places side by side (2 or 3): the widget's week grid follows it. */
   weekSideBySide: number;
-  /** The list widget's style (Settings › Widgets › Android) and the Timeline's number of days (1 to 7). */
-  scrollStyle: AndroidWidgetStyle;
+  /** The Multi-day widget's number of days (1 to 7) and the hours it fits into its height (Settings › Widgets). */
   scrollDays: number;
+  scrollHours: number;
 }
 
 export interface SnapshotInput {
@@ -71,8 +71,8 @@ export interface SnapshotInput {
   weekSideBySide?: number;
   /** The "Task categories" switch (default on); off, a task list takes its calendar's colour, as in the app. */
   categoriesOn?: boolean;
-  /** The "List widget" settings: Agenda (default) or Timeline, and the Timeline's days (default 3). */
-  androidWidgetStyle?: AndroidWidgetStyle;
+  /** The "Hours in view" setting of the Multi-day widget (default 16). */
+  androidWidgetHours?: number;
   /** The shared Timeline day count (default 3). */
   timelineDays?: number;
 }
@@ -108,5 +108,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: listColor(l, input.categoriesOn ?? true) }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollStyle: input.androidWidgetStyle ?? 'agenda', scrollDays: input.timelineDays ?? 3 };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollDays: input.timelineDays ?? 3, scrollHours: input.androidWidgetHours ?? 16 };
 }

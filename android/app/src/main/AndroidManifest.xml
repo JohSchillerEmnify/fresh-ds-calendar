@@ -95,6 +95,21 @@
                 android:resource="@xml/scroll_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".widget.MultiDayWidgetProvider"
+            android:exported="true"
+            android:label="@string/multiday_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/multiday_widget_info" />
+        </receiver>
+
         <!-- feeds the scrolling widget's list on Android 11 and older; newer systems get the rows with the widget itself -->
         <service
             android:name=".widget.ScrollWidgetService"

@@ -7,5 +7,7 @@
     <string name="day_widget_label">Day</string>
     <string name="day_widget_description">Today as in the app\'s day view: events, task lists and the hour grid</string>
     <string name="scroll_widget_label">List</string>
-    <string name="scroll_widget_description">Today and the coming days as an agenda or a timeline you can scroll</string>
+    <string name="scroll_widget_description">Today and the coming days as a list you can scroll</string>
+    <string name="multiday_widget_label">Multi-day</string>
+    <string name="multiday_widget_description">The next days as columns with the hours running down, to scroll</string>
 </resources>

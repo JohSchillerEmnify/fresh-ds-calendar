@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /** Settings group Widgets (docs/settings-tree.md): one section per platform (the iPhone widget, the Android home-screen widgets) and one for the Timeline's day count both use. */
-import { computed } from 'vue';
 import { timelineDays } from '@calendar/shared/prefs';
-import type { AndroidWidgetStyle, WidgetTimelineDays } from '@/api/types';
+import type { AndroidWidgetHours, WidgetTimelineDays } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import IphoneWidgetSection from '@/components/settings/IphoneWidgetSection.vue';
@@ -18,7 +17,7 @@ import { usePrefsStore } from '@/stores/prefs';
 const showApk = !isIos();
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
-const styleOptions = computed(() => (['agenda', 'timeline'] as const).map((v) => ({ value: v, label: t(`settings.widgets.scroll.${v}`), testid: `settings-scrolling-style-${v}` })));
+const hourOptions = [8, 12, 16, 24].map((n) => ({ value: String(n), label: String(n), testid: `settings-widget-hours-${n}` }));
 const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: String(n), testid: `settings-widget-days-${n}` }));
 </script>
 
@@ -29,8 +28,8 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
     <SettingRow id="androidWidgets" wide :label="t('settings.widgets.android.label')" :hint="t('settings.widgets.android.hint')">
       <Button v-if="showApk" variant="tonal" data-testid="settings-android-widgets" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button>
     </SettingRow>
-    <SettingRow id="androidWidgetStyle" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
-      <SegmentedButton connected :model-value="prefs.androidWidgetStyle" :options="styleOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-scrolling-style" @update:model-value="savePrefs({ androidWidgetStyle: $event as AndroidWidgetStyle })" />
+    <SettingRow id="androidWidgetHours" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
+      <SegmentedButton connected :model-value="String(prefs.androidWidgetHours)" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHours: Number($event) as AndroidWidgetHours })" />
     </SettingRow>
   </SettingSection>
 

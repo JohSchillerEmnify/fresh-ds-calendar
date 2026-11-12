@@ -98,7 +98,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('account', 'account', 'signOutAll', 'settings.account.signOutAll.label', { hint: 'settings.account.signOutAll.hint' }),
   e('account', undefined, 'backup', 'backup.label', { hint: 'backup.hint', synonyms: 'settingsNav.synonyms.backup' }),
   e('widgets', 'android', 'androidWidgets', 'settings.widgets.android.label', { hint: 'settings.widgets.android.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
-  e('widgets', 'android', 'androidWidgetStyle', 'settings.widgets.scroll.label', { hint: 'settings.widgets.scroll.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
+  e('widgets', 'android', 'androidWidgetHours', 'settings.widgets.scroll.label', { hint: 'settings.widgets.scroll.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'timeline', 'widgetTimelineDays', 'settings.widgets.scroll.days', { hint: 'settings.widgets.timeline.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
   e('widgets', 'iphone', 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('widgets', 'iphone', 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
