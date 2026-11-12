@@ -150,12 +150,6 @@ Then('the reminder settings show {string} for the calendar {string}', async func
   await expect.poll(async () => (await section.getByTestId('calendar-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
 });
 
-Then('the task lists default reminders show {string}', async function (this: World, list: string) {
-  const expected = list.split(',').map((s) => s.trim()).filter(Boolean);
-  const editor = this.byTestId('reminders-tasks-calendar');
-  await expect.poll(async () => (await editor.getByTestId('tasks-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
-});
-
 When('I add the default reminder {string} for the calendar {string}', async function (this: World, label: string, name: string) {
   const section = await calendarSection(this, name);
   await section.getByTestId('calendar-default-reminder-add').click();

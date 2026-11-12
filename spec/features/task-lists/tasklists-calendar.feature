@@ -11,7 +11,7 @@ Feature: Task lists live in their own calendar
   its task lists disappear from the calendar views like any calendar's events do, on every device and in the widgets;
   the Tasks view keeps listing every open task list. Color is written to Google as the person's calendar list colour;
   task lists that follow the calendar colour (no category, or task categories off) are drawn in it. Default reminders
-  are the same list as Settings › Reminders › Task lists. The calendar is not a filter chip: it is chosen here only.
+  are set only here; Settings › Reminders offers no second place for them (owner, 2026-11-12: it was left over there). The calendar is not a filter chip: it is chosen here only.
 
   Background:
     Given the calendar is empty
@@ -118,7 +118,7 @@ Feature: Task lists live in their own calendar
     And I open the day view for 2026-10-12
     Then I do not see the task list "Groceries"
 
-  Scenario: The task lists calendar's default reminders are edited on its page and shared with the Reminders group
+  Scenario: The task lists calendar's default reminders are edited on its page, the one place for them
     Given Google has a hidden calendar "Calendar app: tasks"
     When I open the settings
     And I open the settings group "Calendars"
@@ -126,7 +126,7 @@ Feature: Task lists live in their own calendar
     And I add the default reminder "15 min" for the calendar "Task lists calendar"
     Then the calendar "Calendar app: tasks" has the default reminders "15" in Google
     When I open the reminder settings
-    Then the task lists default reminders show "15 min"
+    Then the settings page does not show the setting "Default reminders of task lists"
 
   Scenario: There is no switch to show the task lists calendar in Google
     When I open the settings

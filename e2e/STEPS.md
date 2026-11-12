@@ -2427,7 +2427,6 @@ Google has exactly one calendar {string}
 the filter bar does not offer the calendar {string}
 I turn on {string} in the settings
 Google still has the calendar {string} switched off in its list
-the task lists default reminders show {string}
 ```
 
 - "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
@@ -2441,10 +2440,8 @@ the task lists default reminders show {string}
 - "the calendar X in the settings shows the colour C": the colour dot (`::before`) of X's row in the Calendars group has
   background colour C. The task lists calendar's page has the rows of any calendar's page (`Show this calendar`, `Color`, `Plan`,
   `Default reminders`); its reminders are saved with `PATCH /api/reminders/tasks-calendar` (the `I add the default reminder R
-  for the calendar C` step waits for that or `PATCH /api/calendars/:id`), and "the task lists default reminders show L" reads the
-  chips of `reminders-tasks-calendar` in Settings › Reminders. "Google still has the calendar S switched off in its list": exactly
+  for the calendar C` step waits for that or `PATCH /api/calendars/:id`). "Google still has the calendar S switched off in its list": exactly
   one Google calendar with that summary, and it is hidden (the app's Show switch never writes it).
-  background colour C.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.

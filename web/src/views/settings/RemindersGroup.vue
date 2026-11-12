@@ -2,22 +2,17 @@
 /** Settings group Reminders (docs/settings-tree.md): where reminders arrive, appointments, the morning overview and task lists. */
 import { onMounted, ref } from 'vue';
 import type { NotifyPrefs } from '@/api/types';
-import { api, ApiError } from '@/api/client';
 import Switch from '@/components/m3/Switch.vue';
-import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
 import TimeField from '@/components/settings/TimeField.vue';
 import { useSavePrefs } from '@/composables/useSaveSettings';
 import { t } from '@/i18n';
 import { disablePush, enablePush, pushEndpoint, pushSupported, refreshPushState } from '@/pwa/push';
-import { useDeviceStore } from '@/stores/device';
 import { usePrefsStore } from '@/stores/prefs';
-import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 
 const prefs = usePrefsStore();
-const device = useDeviceStore();
 const ui = useUiStore();
 const savePrefs = useSavePrefs();
 
@@ -37,25 +32,7 @@ async function setPush(on: boolean) {
   else if (r === 'failed') ui.notify(t('settings.reminders.push.failed'));
 }
 
-const tasksDefault = ref<number[]>([]);
-onMounted(() => {
-  void refreshPushState();
-  void device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { tasksDefault.value = r.defaultReminders; }, () => undefined);
-});
-/** The task lists' default reminders, saved at once; the items on screen are read again because they carry the effective leads. */
-async function saveTasks(minutes: number[]) {
-  const before = tasksDefault.value;
-  tasksDefault.value = minutes;
-  try {
-    const saved = await api.setTasksCalendarReminders(minutes);
-    device.putFile('tasksCalendarReminders', saved);
-    tasksDefault.value = saved.defaultReminders;
-    void useSyncStore().resyncAfterWrite();
-  } catch (e) {
-    tasksDefault.value = before;
-    ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
-  }
-}
+onMounted(() => { void refreshPushState(); });
 </script>
 
 <template>
@@ -82,12 +59,5 @@ async function saveTasks(minutes: number[]) {
   <SettingRow id="notifyTasklists" :label="t('settings.notifications.tasklists')" :hint="t('settingsNav.labels.notifyTasklistsHint')">
     <Switch :model-value="prefs.notify.tasklists" :label="t('settings.notifications.tasklists')" data-testid="reminders-tasklists" @update:model-value="saveNotify({ tasklists: $event })" />
   </SettingRow>
-  <SettingRow id="tasklistDefaults" wide :label="t('settings.reminders.tasklists.default')">
-    <ReminderEditor class="editor" :model-value="{ useDefault: false, minutes: tasksDefault }" prefix="tasks-default" data-testid="reminders-tasks-calendar" @update:model-value="saveTasks($event.minutes)" />
-  </SettingRow>
   </SettingSection>
 </template>
-
-<style scoped>
-.editor { flex: 1; }
-</style>

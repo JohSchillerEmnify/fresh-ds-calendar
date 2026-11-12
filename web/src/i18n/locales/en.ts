@@ -102,9 +102,6 @@ export default {
         denied: 'Notifications are blocked for this site. Allow them in the browser settings, then switch this on again.',
         failed: 'Could not switch browser reminders on. Try again.',
       },
-      tasklists: {
-        default: 'Default reminders of task lists',
-      },
     },
     notifications: {
       events: { label: 'Before appointments' },

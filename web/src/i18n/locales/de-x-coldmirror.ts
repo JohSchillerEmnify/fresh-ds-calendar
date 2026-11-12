@@ -99,9 +99,6 @@ export default {
         denied: 'Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Browser-Einstellungen und schalte das danach wieder ein.',
         failed: 'Die Browser-Erinnerungen ließen sich nicht einschalten. Versuche es noch einmal.',
       },
-      tasklists: {
-        default: 'Standard-Erinnerungen der To-do-Listen',
-      },
     },
     notifications: {
       events: { label: 'Vor Terminen' },
