@@ -82,7 +82,7 @@ function back() {
         <p v-if="sendStatus === 'sent' || sendStatus === 'failed'" class="sub status" role="status" data-testid="device-log-send-status">{{ t(sendStatus === 'sent' ? 'deviceLog.sent' : 'deviceLog.sendNotSent') }}</p>
         <textarea ref="field" v-model="text" class="copy-field" readonly aria-hidden="true" tabindex="-1" />
       </section>
-      <section class="card auto">
+      <section class="card">
         <SettingRow id="sendReportsAuto" :label="t('deviceLog.auto.label')" :hint="t('deviceLog.auto.hint')">
           <Switch :model-value="prefs.sendReportsAuto" :label="t('deviceLog.auto.label')" data-testid="device-log-auto" @update:model-value="setAuto" />
         </SettingRow>
@@ -113,5 +113,4 @@ function back() {
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); margin: 0; }
 .meta { font-size: 12px; overflow-wrap: anywhere; }
 .hint, .empty, .status { padding: 0 4px; }
-.auto { padding: 0; }
 </style>
