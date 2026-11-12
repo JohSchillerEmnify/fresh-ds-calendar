@@ -1,6 +1,6 @@
 # @calendar/server
 
-Hono 4 + `@hono/node-server` backend for the calendar. Implements `spec/API.md` (REST under `/api`), a mock Google
+Hono + `@hono/node-server` backend for the calendar. Implements `spec/API.md` (REST under `/api`), a mock Google
 Calendar v3 backend (default) and a real `GoogleProvider` (`@googleapis/calendar` + `google-auth-library`, lazily
 imported, only when `PROVIDER=google`). Validation: valibot (lighter than zod).
 
@@ -10,20 +10,20 @@ pnpm -F @calendar/server build   # tsc -> dist/
 pnpm -F @calendar/server dev     # tsx watch
 ```
 
-Env: see `docs/DEPLOYMENT.md` (`PORT HOST PUBLIC_URL ALLOWED_ORIGINS TZ PROVIDER DATA_DIR SEED TEST_MODE
-POLL_INTERVAL_MS GOOGLE_* LOG_LEVEL`). `ALLOWED_ORIGINS` defaults to `PUBLIC_URL`; CORS is only
+Env: the full list is in `docs/DEPLOYMENT.md`. `ALLOWED_ORIGINS` defaults to `PUBLIC_URL`; CORS is only
 sent for listed origins (same-origin needs none).
 
-Layout: `src/app.ts` (buildApp), `context.ts` (wiring), `api/` (routes, test routes, OAuth routes, shared `types.ts`),
-`services/` (CalendarService, TaskListCodec `taskCodec.ts`, SettingsStore, MotivationService), `providers/`
-(interface, `mock/`, `google/`), `lib/` (clock, time, colors, ids, validation, errors), `seed.ts`.
+Layout: `src/app.ts` (buildApp), `context.ts` (wiring), `api/` (route files by topic, test routes, shared `types.ts`),
+`auth/` (sign-in, sessions, people), `plugins/` (optional integrations, ADR 0004), `services/` (CalendarService, the task
+list codec `taskCodec.ts`, per-person stores, push, backup, widget keys, ...), `providers/` (interface, `mock/`,
+`google/`), `lib/` (clock, time, colors, ids, validation, errors), `seed.ts`. Env variables: `src/config.ts`.
 One `Clock` (`lib/clock.ts`) is used everywhere; `now()` honours the test clock, `real()` is used for `updated`/etags.
 
 ## Demo data
 
 With `PROVIDER=mock`, `SEED` not `false`, `TEST_MODE` off and an empty store, the server seeds about 25 events
 (two weeks back to four weeks ahead), 7 task lists (all four default categories, some ticked, some open and dated in the
-past so they are carried over), a 5 day streak ending yesterday, a plant with 190 growth points (4 sunflowers).
+past so they are carried over), a 6 day streak ending yesterday, a plant with 190 growth points (4 sunflowers).
 **Demo reset**: `POST /api/demo/reset` (mock mode only, 404 otherwise) wipes the mock calendar and motivation state and
 re-seeds relative to the current app clock. Settings are kept. A "Reset demo data" button in Settings can call it.
 
@@ -48,8 +48,8 @@ Contract-relevant for web/e2e:
    at the last date and `best` as the longest run.
 9. A capped action (daily cap 30 reached) still waters the plant (`lastWatered = today`) and sends the header.
 10. Task list `recurrence` is stored as `private.recurrence` and as a Google `RRULE` (daily/weekly/monthly). The mock
-    expands instances (id `<masterId>_<YYYYMMDD>`); ticking an instance materialises an exception event. Recurrence cannot
-    be changed with `PATCH` (not in `UpdateTaskListInput`).
+    expands instances (id `<masterId>_<YYYYMMDD>`); ticking an instance materialises an exception event. Repeating lists
+    are described in `spec/API.md` (series, "this and following").
 11. Stale `categoryId`s (deleted category) are kept in Google and reported as `null`; item operations and unrelated
     edits keep working. Only setting a new unknown id is a 400.
 12. Event `PATCH` with `If-Match`: the etag is compared in the server first (412 `This event was changed elsewhere...`).
@@ -70,9 +70,8 @@ Internal (provider layer):
   TEST_MODE: `GET/POST /api/__test/remote/calendars` (raw calendar list), `GET /api/__test/tasks-calendar` (its id).
 - Task list writes larger than 30 000 chars of extended properties are rejected with `Task list is too large`.
 - The mock persists to `DATA_DIR/mock-google.json` with a 200 ms debounced atomic flush (also flushed on SIGTERM).
-  Settings and motivation are tiny and written synchronously and atomically.
+  Settings and motivation are tiny, stored per person (ADR 0035) and written synchronously and atomically.
 
 ## Footprint
 
-Idle RSS about 17 MB with the demo seed (Node 24, `--max-old-space-size=96`). Google libraries are never loaded in mock
-mode. `test/leak.test.ts` runs 5 000 in-process requests under `--expose-gc` and asserts < 10 MB heap growth.
+Google libraries are never loaded in mock mode; the idle size limit is in `spec/features/app/performance.feature`. `test/leak.test.ts` runs 5 000 in-process requests under `--expose-gc` and asserts < 10 MB heap growth.
