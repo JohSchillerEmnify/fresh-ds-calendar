@@ -149,6 +149,15 @@ Feature: Installable progressive web app
       Then the app runs the new version
       And I am not told a new version is available
 
+    # unit: web/test/check-update.test.ts:lets go of the live stream before activating the new worker, which an open stream keeps the old worker from handing over
+    @unit
+    Scenario: The live connection never keeps the old version running
+      Given the service worker controls the page
+      When a new version of the app is deployed
+      And I check for updates
+      And I load the update
+      Then the app runs the new version
+
     # unit: web/test/update-prompt.test.ts:defers the auto-apply while a dialog is open, then applies once it closes
     @unit
     Scenario: An open dialog is never interrupted by the update

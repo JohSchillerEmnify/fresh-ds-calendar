@@ -22,6 +22,13 @@ async function stillSignedIn(): Promise<boolean> {
   }
 }
 
+let closeActive: (() => void) | null = null;
+
+/** Lets go of the open stream (it reopens on the next visibility change); an update calls it so the old worker can hand over. */
+export function closeLiveStream(): void {
+  closeActive?.();
+}
+
 /** Opens the stream while the page is visible and closes it while hidden; returns the function that stops everything. */
 export function startLiveSync(hooks: LiveHooks): Disposer {
   if (typeof EventSource === 'undefined' || typeof document === 'undefined') return () => undefined;
@@ -72,8 +79,9 @@ export function startLiveSync(hooks: LiveHooks): Disposer {
     };
   };
 
+  closeActive = close;
   const onVisibility = (): void => (document.hidden ? close() : open());
   const stopListening = listen(document, 'visibilitychange', onVisibility);
   if (!document.hidden) open();
-  return () => { stopListening(); close(); };
+  return () => { stopListening(); close(); if (closeActive === close) closeActive = null; };
 }
