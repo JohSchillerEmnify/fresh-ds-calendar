@@ -66,7 +66,8 @@ Internal (provider layer):
 - Task lists live in each person's own calendar "Calendar app: tasks" (`services/tasksCalendar.ts`): stored id in
   `prefs.json` (`tasksCalendarId`), else found by name, else created (`insertCalendar`) and hidden in Google's list
   (`setCalendarHidden`). `listCalendars` includes hidden entries (`showHidden`); hidden calendars and the tasks
-  calendar are not event calendars. `PATCH /api/prefs` `tasksCalendarVisible` switches the list entry's `hidden`.
+  calendar are not event calendars. The app has no switch for showing it in Google; its colour is
+  `GET/PATCH /api/calendar-colors/tasks-calendar` (Google's list colour, like any calendar's).
   TEST_MODE: `GET/POST /api/__test/remote/calendars` (raw calendar list), `GET /api/__test/tasks-calendar` (its id).
 - Task list writes larger than 30 000 chars of extended properties are rejected with `Task list is too large`.
 - The mock persists to `DATA_DIR/mock-google.json` with a 200 ms debounced atomic flush (also flushed on SIGTERM).

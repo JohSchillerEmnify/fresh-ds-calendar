@@ -96,8 +96,6 @@ export interface Prefs {
   approachTimeLeft: boolean;
   /** Task-list categories shown; off hides every category UI but keeps the stored ids. */
   taskCategories: boolean;
-  /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
-  tasksCalendarVisible: boolean;
   supportCat: SupportCat;
   /** The small build-version label in the bottom-left corner of the main UI (off by default). */
   versionInCorner: boolean;

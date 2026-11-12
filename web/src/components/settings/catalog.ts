@@ -34,7 +34,7 @@ const e = (group: GroupId, sub: string | undefined, id: string, label: MessageKe
 /** Every setting in its new place (docs/settings-tree.md). */
 export const SETTINGS: readonly SettingEntry[] = [
   e('calendars', undefined, 'tasksCalendar', 'settingsNav.labels.tasksCalendar', { hint: 'settingsNav.labels.tasksCalendarHint' }),
-  e('calendars', 'tasksCalendar', 'tasksCalendarVisible', 'settings.calendar.tasksCalendar.label', { hint: 'settings.calendar.tasksCalendar.hint', page: 'tasks-calendar' }),
+  e('calendars', 'tasksCalendar', 'tasksCalendarColor', 'calendar.event.fields.color', { page: 'tasks-calendar' }),
 
   ...STABLE_VIEWS.map((v) => e('views', 'switcher', `stableView-${v.id}`, v.labelKey)),
   e('views', 'general', 'defaultView', 'settings.calendar.defaultView', { synonyms: 'settingsNav.synonyms.defaultView' }),

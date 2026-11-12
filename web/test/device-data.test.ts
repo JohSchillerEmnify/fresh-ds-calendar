@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent, TaskList } from '@/api/types';
 import {
-  applyChanges, covers, dropItem, isQuiet, emptyData, itemsIn, putItem, recolourEvents, summaryOf, windowOf, type ChangeSet, type DeviceData,
+  applyChanges, covers, dropItem, isQuiet, emptyData, itemsIn, putItem, recolourEvents, recolourTaskLists, summaryOf, windowOf, type ChangeSet, type DeviceData,
 } from '@/lib/deviceData';
 import { eventFixture } from './helpers';
 
@@ -176,5 +176,29 @@ describe('recolourEvents (feature calendar-colours)', () => {
     const data = { ...held(events), calendars: [{ id: 'primary', color: '#039be5' }, { id: 'other', color: '#039be5' }] as never };
     const next = applyChanges(data, answer({ calendars: [{ id: 'primary', color: '#0b8043' }, { id: 'other', color: '#039be5' }] as never, events: { calendars: ['primary', 'other'], replace: [], series: [], removed: [], upserts: [], failed: [] } }));
     expect(next.events.map((e) => e.color)).toEqual(['#0b8043', '#d50000', '#039be5']);
+  });
+});
+
+describe('recolourTaskLists (the tasks calendar colour)', () => {
+  const lists = [
+    list('plain', '2026-10-13', { color: '#039be5', calendarColor: '#039be5' }),
+    list('sorted', '2026-10-13', { categoryId: 'work', color: '#8e24aa', calendarColor: '#039be5' }),
+    list('shared:x', '2026-10-13', { color: '#039be5', calendarColor: '#039be5' }),
+  ];
+
+  it('recolours the lists that follow the calendar: the calendar colour of all, the colour of those without a category; shared lists keep theirs', () => {
+    const next = recolourTaskLists(lists, '#039be5', '#0b8043');
+    expect(next.map((l) => [l.color, l.calendarColor])).toEqual([['#0b8043', '#0b8043'], ['#8e24aa', '#0b8043'], ['#039be5', '#039be5']]);
+  });
+
+  it('keeps the very same list when the colour did not change or is not known yet', () => {
+    expect(recolourTaskLists(lists, '#039be5', '#039BE5')).toBe(lists);
+    expect(recolourTaskLists(lists, undefined, '#0b8043')).toBe(lists);
+  });
+
+  it('applyChanges recolours held lists when the answer brings a new tasks calendar colour', () => {
+    const data = { ...held([], lists), files: { tasksCalendarColor: { color: '#039be5' } } };
+    const next = applyChanges(data, answer({ files: { tasksCalendarColor: { color: '#0b8043' } } }));
+    expect(next.taskLists.map((l) => l.calendarColor).sort()).toEqual(['#039be5', '#0b8043', '#0b8043']);
   });
 });

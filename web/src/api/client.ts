@@ -259,6 +259,16 @@ export class ApiClient {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, pick, o);
   }
 
+  /** The person's colour of their tasks calendar (API.md `GET /api/calendar-colors/tasks-calendar`). */
+  tasksCalendarColor(o?: RequestOptions) {
+    return this.request<{ color: string }>('GET', '/api/calendar-colors/tasks-calendar', undefined, o);
+  }
+
+  /** Sets the colour of the tasks calendar like {@link setCalendarColor}; answers the colour as Google holds it. */
+  setTasksCalendarColor(pick: { color: string } | { colorId: string }, o?: RequestOptions) {
+    return this.request<{ color: string }>('PATCH', '/api/calendar-colors/tasks-calendar', pick, o);
+  }
+
   /** Google's calendar colour palette (API.md `GET /api/calendar-colors`). */
   calendarColors(o?: RequestOptions) {
     return this.request<{ colors: CalendarColor[] }>('GET', '/api/calendar-colors', undefined, o);

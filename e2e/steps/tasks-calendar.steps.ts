@@ -85,9 +85,3 @@ When('I turn on {string} in the settings', async function (this: World, label: s
   }
   await expect(control).toHaveAttribute('aria-checked', 'true');
 });
-
-Then('Google shows the calendar {string}', async function (this: World, summary: string) {
-  await expect
-    .poll(async () => (await calendarsNamed(this, summary)).map((c) => c.hidden === true ? 'hidden' : 'shown').join(','))
-    .toBe('shown');
-});

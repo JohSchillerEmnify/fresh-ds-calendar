@@ -6,8 +6,7 @@ export const TASKS_CALENDAR_SUMMARY = 'Calendar app: tasks';
 
 /**
  * Finds or creates one person's tasks calendar: the id stored in their prefs, else an owned calendar with
- * {@link TASKS_CALENDAR_SUMMARY} in the calendar list, else a new one (hidden in Google's list unless the person chose
- * to show it). Parallel callers share one in-flight lookup, so two calendars are never created.
+ * {@link TASKS_CALENDAR_SUMMARY} in the calendar list, else a new one (hidden in Google's list). Parallel callers share one in-flight lookup, so two calendars are never created.
  */
 export class TasksCalendar {
   private pending: Promise<string> | null = null;
@@ -40,19 +39,6 @@ export class TasksCalendar {
     this.known = null;
   }
 
-  /** Whether the person chose "Show tasks calendar in Google". */
-  visible(): boolean {
-    return this.prefs.tasksCalendarVisible(this.sub);
-  }
-
-  /** "Show tasks calendar in Google": sets the list entry's `hidden` and remembers the choice. */
-  async setVisible(visible: boolean): Promise<void> {
-    const id = await this.id();
-    await this.provider.setCalendarHidden(id, !visible);
-    this.prefs.setTasksCalendarVisible(this.sub, visible);
-    this.changed();
-  }
-
   private async resolve(): Promise<string> {
     const cals = await this.calendars();
     // a stored id whose calendar was deleted in Google falls through to the lookup by name
@@ -67,7 +53,7 @@ export class TasksCalendar {
 
   private async create(): Promise<string> {
     const cal = await this.provider.insertCalendar(TASKS_CALENDAR_SUMMARY);
-    if (!this.prefs.tasksCalendarVisible(this.sub)) await this.provider.setCalendarHidden(cal.id, true);
+    await this.provider.setCalendarHidden(cal.id, true);
     this.changed();
     return cal.id;
   }

@@ -163,10 +163,9 @@ export class PrefsStore {
   }
 
   /**
-   * Merges the given switches into the person's preferences and returns the result. `tasksCalendarVisible` is not
-   * accepted here: it changes Google first, through `TasksCalendar.setVisible` and `setTasksCalendarVisible`.
+   * Merges the given switches into the person's preferences and returns the result.
    */
-  setLabs(sub: string, patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>>): Prefs {
+  setLabs(sub: string, patch: Partial<Prefs>): Prefs {
     this.merge(sub, patch);
     return this.labsPrefs(sub);
   }
@@ -179,13 +178,6 @@ export class PrefsStore {
     this.merge(sub, { tasksCalendarId: id });
   }
 
-  tasksCalendarVisible(sub: string): boolean {
-    return this.read(sub).tasksCalendarVisible;
-  }
-
-  setTasksCalendarVisible(sub: string, visible: boolean): void {
-    this.merge(sub, { tasksCalendarVisible: visible });
-  }
 
   /** Forgets every person's preferences (test reset). */
   reset(): void {

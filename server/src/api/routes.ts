@@ -150,16 +150,19 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json({ defaultReminders: await cal(c).setDefaultReminders('', parse(defaultRemindersSchema, b?.defaultReminders), true) });
   });
 
+  // The tasks calendar's list colour, kept by Google like every calendar's (feature tasklists-own-calendar).
+  r.patch('/calendar-colors/tasks-calendar', async (c) => {
+    const b = ((await body(c)) ?? {}) as { color?: unknown; colorId?: unknown };
+    return c.json({ color: await cal(c).setTasksColor(parse(calendarColorPickSchema, { color: b.color, colorId: b.colorId })) });
+  });
+
   r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const parsed = parsePrefsPatch(b, ctx.prefs.labsPrefs(person(c)));
     if ('error' in parsed) throw validation(parsed.error, parsed.field);
-    // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
-    const { tasksCalendarVisible, ...patch } = parsed.patch;
-    if (tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(tasksCalendarVisible);
-    return c.json(ctx.prefs.setLabs(person(c), patch));
+    return c.json(ctx.prefs.setLabs(person(c), parsed.patch));
   });
 
   // ---- per-person theme and imported themes ----

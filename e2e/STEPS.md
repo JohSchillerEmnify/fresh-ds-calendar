@@ -1630,6 +1630,7 @@ Google lists the calendar {string} with the palette colour {int}
   and change events) and waits the same way; "I type the colour" fills the hex field and presses Enter (a valid value waits for
   the PATCH). "I recolour the calendar C to the palette colour N" opens Settings > Calendars > C and clicks it; "I try to recolour ..." does the same waiting for the PATCH's answer, whatever its status (the server may refuse it). "is drawn in the
   colour": the event chip's `data-color` equals the hex; "its own calendar colour": the colour the calendar was set up with.
+  "I choose the palette colour" etc. wait for `PATCH /api/calendars/:id` or, on the task lists calendar's page, `PATCH /api/calendar-colors/tasks-calendar`.
   "Google lists ... in the colour": the mock Google calendar list's `backgroundColor`; "with the palette colour N": its `backgroundColor` is that palette colour
   is N and its `backgroundColor` is Google's entry N (known entries: 1 #ac725e, 3 #f83a22, 8 #16a765, 16 #4986e7).
 
@@ -2420,15 +2421,16 @@ the main calendar has no event {string}
 Google has exactly one calendar {string}
 the filter bar does not offer the calendar {string}
 I turn on {string} in the settings
-Google shows the calendar {string}
 ```
 
 - "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
 - "hidden" = the mock account's calendar list entry has `hidden: true` (switched off in Google's list). "the main
   calendar" = the person's primary calendar. "exactly one" counts calendars with that summary in the calendar list.
 - "does not offer": no filter chip with that calendar's name after "I show the filters".
-- "I turn on {string} in the settings" flips the switch with that label (settings page). "Google shows" = the mock
-  calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
+- "I turn on {string} in the settings" flips the switch with that label (settings page).
+- The task lists calendar's settings page is opened like a calendar's: `I open the calendar "Task lists calendar" in the
+  settings`. Its Color row is the one of `@id:calendar-colours` (same steps; the save is `PATCH /api/calendar-colors/tasks-calendar`
+  here), and "Google lists the calendar {string} with the palette colour N" also finds a calendar by its Google summary.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.

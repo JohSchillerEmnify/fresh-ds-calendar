@@ -134,7 +134,7 @@ Then("the calendar's settings page has no extra current colour", async function 
 
 /** Runs `act` and waits until the server has the colour. */
 async function saved(world: World, act: () => Promise<void>) {
-  const done = world.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes('/api/calendars/') && r.status() === 200);
+  const done = world.page.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/calendars\/|\/api\/calendar-colors\/tasks-calendar/.test(r.url()) && r.status() === 200);
   await act();
   await done;
 }
@@ -191,7 +191,9 @@ Then('Google lists the calendar {string} in the colour {string}', async function
 });
 
 Then('Google lists the calendar {string} with the palette colour {int}', async function (this: World, calendar: string, n: number) {
-  const o = owned.get(this)!;
-  const listed = (await this.api.remoteCalendars(o.owner)).find((c) => c.id === o.calendars.get(calendar)!.id);
+  const o = owned.get(this);
+  // a calendar of the fixture by its name, else any calendar of the account by its Google summary (the tasks calendar)
+  const id = o?.calendars.get(calendar)?.id;
+  const listed = (await this.api.remoteCalendars(o?.owner)).find((c) => (id ? c.id === id : c.summary === calendar));
   expect(listed).toMatchObject({ backgroundColor: PALETTE[n] });
 });
