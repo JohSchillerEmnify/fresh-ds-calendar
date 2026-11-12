@@ -178,18 +178,27 @@ Feature: Mobile-first layout
       | week  | 2026-10-12 |
       | day   | 2026-10-14 |
 
-  # owner, 2026-10-26: only the calendar is protected; text in dialogs and on the settings pages stays selectable
+  # owner, 2026-11-12: text and buttons are not selectable anywhere; only fields and an event's description, place and notes
   @iphone
-  Scenario: Text in an event's dialog can still be selected
+  Scenario: Text in an event's dialog cannot be selected
     Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     When I open the day view for 2026-10-14
     And I open the event "Dentist"
-    Then the text in the open dialog can be selected by a long press
+    Then no text in the open dialog can be selected by a long press
 
   @iphone
-  Scenario: Text on the settings page can still be selected
+  Scenario: Text on the settings page cannot be selected
     When I open the settings page "/settings"
-    Then the text on the page can be selected by a long press
+    Then no text on the page can be selected by a long press
+
+  # owner, 2026-10-26: copy text from event details
+  @iphone
+  Scenario: The description and the place in an event's details can be selected
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00 at "Park" with the description "Bring a mat"
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    Then the description and the place in the open dialog can be selected by a long press
 
   @iphone
   Scenario: The fields of the event form can still be selected and edited

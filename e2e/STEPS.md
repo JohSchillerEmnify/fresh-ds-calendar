@@ -725,8 +725,9 @@ the bottom bar reserves the safe-area inset at the bottom
 the page does not bounce when pulled
 nothing on the calendar screen can be selected by a long press
 the text fields of the open form can be selected
-the text in the open dialog can be selected by a long press
-the text on the page can be selected by a long press
+no text in the open dialog can be selected by a long press
+no text on the page can be selected by a long press
+the description and the place in the open dialog can be selected by a long press
 ```
 
 - "no neighbouring period is shown beside the current one": 200 ms after the last move, no `swipe-neighbour` is visible.
@@ -740,11 +741,13 @@ the text on the page can be selected by a long press
   element (`elementFromPoint`) that is not a text field (`input`, `textarea`, `select`, `[contenteditable]`) has a
   computed `-webkit-user-select` (or `user-select`) of `none`; the failure lists the offending elements. (iOS starts its
   text selection only where the touched point is selectable; a long press itself cannot be made in the test browsers.)
-- "the text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
+- "no text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
   open dialog (last `role=dialog`) or `section.page`, the topmost element that holds text of its own and is not a
-  button (`button`, `[role=button]`) has a computed `-webkit-user-select` (or `user-select`) other than `none`; at least
-  one such element is found. The grid is probed once the area's finite animations have finished (`getAnimations`,
-  subtree): a phone sheet counts as visible while it still sits below the screen, sliding in.
+  button (`button`, `[role=button]`), a text field or inside `[data-selectable]` has a computed `-webkit-user-select`
+  (or `user-select`) of `none`; at least one such element is found. The grid is probed once the area's finite
+  animations have finished (`getAnimations`, subtree): a phone sheet counts as visible while it still sits below the screen, sliding in.
+- "the description and the place in the open dialog can be selected by a long press": `event-readonly-description` and
+  `event-readonly-location` have a computed `-webkit-user-select` (or `user-select`) other than `none`.
 - "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
   `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
@@ -1795,6 +1798,7 @@ a calendar {string} shared with me with edit rights by {string}
 a family calendar {string} shared with me with edit rights by {string}
 a calendar {string} shared with me read-only by {string}
 the calendar {string} contains an event {string} on {date} from {time} to {time}
+the calendar {string} contains an event {string} on {date} from {time} to {time} at {string} with the description {string}
 I start a new event
 I try to rename the event {string} through the API
 the API answers {int}
@@ -1813,7 +1817,7 @@ the calendar picker offers {string}
   `…@group.calendar.google.com`) with `accessRole` writer and owner address E. Events inserted into it without an
   organiser get the calendar itself as organiser (as Google does).
 - "a calendar C shared with me read-only by E": the same with `accessRole` reader.
-- "the calendar C contains an event ...": inserts into the calendar named C as another Google client would.
+- "the calendar C contains an event ...": inserts into the calendar named C as another Google client would; "at L with the description D" also sets the location and the description.
 - "I start a new event": opens the week view and the "new event" dialog (`create-button`, `new-kind-event`).
 - "I try to rename the event T through the API": `PATCH /api/events/:id` with a new title, without the UI; "the API
   answers N" compares the status of that call.

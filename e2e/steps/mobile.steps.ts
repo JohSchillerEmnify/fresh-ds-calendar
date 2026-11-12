@@ -34,8 +34,8 @@ Then('nothing on the calendar screen can be selected by a long press', async fun
   expect(offenders, 'elements a long press could select text in').toEqual([]);
 });
 
-/** Elements with text of their own inside `area` that a long press could not select (STEPS.md "Mobile"). */
-async function unselectableText(area: Locator): Promise<{ checked: number; bad: string[] }> {
+/** Elements with text of their own inside `area` that a long press could select, outside fields and [data-selectable] (STEPS.md "Mobile"). */
+async function selectableText(area: Locator): Promise<{ checked: number; bad: string[] }> {
   await expect(area).toBeVisible();
   // a phone sheet is "visible" while it still sits below the screen, sliding in: probe it at rest, as a finger would
   await area.evaluate((root) => Promise.all(root.getAnimations({ subtree: true })
@@ -50,25 +50,32 @@ async function unselectableText(area: Locator): Promise<{ checked: number; bad: 
     for (let y = Math.max(0, r.top) + 2; y < Math.min(innerHeight, r.bottom); y += 16) {
       for (let x = Math.max(0, r.left) + 2; x < Math.min(innerWidth, r.right); x += 16) {
         const e = document.elementFromPoint(x, y);
-        if (!e || !root.contains(e) || !ownText(e) || e.closest('button, [role="button"]')) continue;
+        if (!e || !root.contains(e) || !ownText(e) || e.closest('button, [role="button"], input, textarea, select, [contenteditable], [data-selectable]')) continue;
         checked++;
-        if (sel(e) === 'none') bad.add(`${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} "${e.textContent!.trim().slice(0, 20)}"`);
+        if (sel(e) !== 'none') bad.add(`${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} "${e.textContent!.trim().slice(0, 20)}"`);
       }
     }
     return { checked, bad: [...bad] };
   });
 }
 
-Then('the text in the open dialog can be selected by a long press', async function (this: World) {
-  const { checked, bad } = await unselectableText(this.page.getByRole('dialog').last());
+Then('no text in the open dialog can be selected by a long press', async function (this: World) {
+  const { checked, bad } = await selectableText(this.page.getByRole('dialog').last());
   expect(checked, 'text found in the dialog').toBeGreaterThan(0);
-  expect(bad, 'dialog text a long press could not select').toEqual([]);
+  expect(bad, 'dialog text a long press could select').toEqual([]);
 });
 
-Then('the text on the page can be selected by a long press', async function (this: World) {
-  const { checked, bad } = await unselectableText(this.page.locator('section.page'));
+Then('no text on the page can be selected by a long press', async function (this: World) {
+  const { checked, bad } = await selectableText(this.page.locator('section.page'));
   expect(checked, 'text found on the page').toBeGreaterThan(0);
-  expect(bad, 'page text a long press could not select').toEqual([]);
+  expect(bad, 'page text a long press could select').toEqual([]);
+});
+
+Then('the description and the place in the open dialog can be selected by a long press', async function (this: World) {
+  for (const id of ['event-readonly-description', 'event-readonly-location']) {
+    const sel = await this.byTestId(id).evaluate((e) => { const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string }; return cs.webkitUserSelect || cs.userSelect; });
+    expect(sel, id).not.toBe('none');
+  }
 });
 
 Then('the text fields of the open form can be selected', async function (this: World) {

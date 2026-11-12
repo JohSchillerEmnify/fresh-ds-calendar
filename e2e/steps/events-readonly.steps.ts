@@ -49,6 +49,13 @@ Given(
   },
 );
 
+Given(
+  'the calendar {string} contains an event {string} on {date} from {time} to {time} at {string} with the description {string}',
+  async function (this: World, calendar: string, title: string, date: string, from: string, to: string, location: string, description: string) {
+    await insertEvent(this, await this.api.calendarId(calendar), title, date, from, to, { location, description });
+  },
+);
+
 When('I start a new event', async function (this: World) {
   await this.page.goto('/week/2026-10-12');
   await this.settled();

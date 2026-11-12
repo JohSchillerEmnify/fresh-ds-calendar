@@ -97,25 +97,16 @@ html, body { max-width: 100%; overflow-x: clip; }
 /* the page itself never rubber-bands (iOS left a gap at the bottom); WebKit reads this from <html> only, not <body> */
 html { overscroll-behavior: none; }
 /*
- * Touch screens: a long press on the calendar never starts the system text selection or callout (owner, 2026-10-25:
- * on an iPhone a long press selected text instead of picking the entry up; iOS starts its selection wherever the
- * pressed point is selectable). Dialogs, sheets, the settings pages and text fields keep selection and link callouts
- * (owner, 2026-10-26: copy text from event details). Set on every element, not only inherited, and with :where() so
- * any component rule still wins (cards and task rows set none themselves, also inside sheets). Mouse screens keep
- * normal text selection.
+ * Nothing is selectable and no long press shows the iOS callout, on every pointer; only fields and the long free text
+ * of an event's details ([data-selectable]) opt back in. Set on every element, not only inherited, and with :where() so
+ * any component rule still wins.
  */
-@media (pointer: coarse) {
-  body, body :where(*:not(input, textarea, select, [contenteditable], [contenteditable] *, [role='dialog'], [role='dialog'] *, section.page, section.page *)) {
-    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  }
-  /* WebKit inherits user-select from body: dialogs and pages say text again */
-  :where([role='dialog'], section.page) {
-    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
-  }
-  /* WebKit inherits user-select: fields say text again (iOS refuses to edit a user-select: none field) */
-  :where(input, textarea, select, [contenteditable]:not([contenteditable='false'])) {
-    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
-  }
+body, body :where(*:not(input, textarea, select, [contenteditable], [contenteditable] *, [data-selectable], [data-selectable] *)) {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+/* WebKit inherits user-select from body: fields refuse to be edited under none on iOS, so they say text again */
+:where(input, textarea, select, [contenteditable]:not([contenteditable='false']), [data-selectable], [data-selectable] *) {
+  -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
 }
 body {
   font: var(--md-sys-typescale-body-medium);
