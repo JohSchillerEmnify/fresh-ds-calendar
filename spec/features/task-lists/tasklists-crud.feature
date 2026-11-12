@@ -52,7 +52,7 @@ Feature: Creating, editing and deleting task lists
       | title | Ideas      |
       | date  | 2026-10-14 |
     And I save the task list
-    Then the task list "Ideas" shows the done count "0/0"
+    Then the task list "Ideas" shows no done count
 
   Scenario: The new task list form defaults to the focused day without a time
     When I open the day view for 2026-10-20

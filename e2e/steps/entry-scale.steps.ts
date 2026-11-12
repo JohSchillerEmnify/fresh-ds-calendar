@@ -32,11 +32,13 @@ Then('in the {view} view of {date} the title of {string} fades out instead of en
   await open(this, view, date);
   const title = titleOf(this, name);
   await expect(title).toBeVisible();
-  const style = await title.evaluate((n) => { const s = getComputedStyle(n); return { overflow: s.textOverflow, clamp: s.webkitLineClamp, mask: s.maskImage || s.webkitMaskImage }; });
+  const style = await title.evaluate((n) => { const s = getComputedStyle(n); return { overflow: s.textOverflow, clamp: s.webkitLineClamp }; });
   expect(style.overflow).toBe('clip');
   // a line clamp draws its own ellipsis whatever text-overflow says
   expect(style.clamp).toBe('none');
-  expect(style.mask).not.toBe('none');
+  // the fade sits on the title or, on a task list card, on its text once that is measured as cut
+  const masked = () => title.evaluate((n) => [n, ...n.querySelectorAll('.tx')].some((e) => { const s = getComputedStyle(e); return (s.maskImage || s.webkitMaskImage) !== 'none'; }));
+  await expect.poll(masked).toBe(true);
 });
 
 Then('in the {view} view of {date} the marker of {string} is {float} px', async function (this: World, view: View, date: string, name: string, px: number) {

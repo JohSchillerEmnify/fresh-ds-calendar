@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 - Settings has a new group, Widgets, with an iPhone section (moved here from Account & app) and an Android section that explains how to add the home screen widgets.
+- Fixed: a long task list title in a grown list now wraps onto a second line instead of being cut off.
 
 ## 2026-11-11
 - iPhone widget: Settings › Account & app › iPhone widget sets up your calendar on the iPhone home screen and lock screen with the free Scriptable app (today, today and tomorrow, or the week; on the lock screen your next appointment).
