@@ -51,6 +51,15 @@ Feature: Task lists live in their own calendar
     And I open the day view for 2026-10-14
     Then the task list "Groceries" has the color "#16a765"
 
+  Scenario: The calendars list shows the task lists calendar's colour
+    Given task categories are off
+    When I open the settings
+    And I open the settings group "Calendars"
+    And I open the calendar "Task lists calendar" in the settings
+    And I choose the palette colour 8 on the calendar's settings page
+    And I open the settings group "Calendars"
+    Then the calendar "Task lists calendar" in the settings shows the colour "#16a765"
+
   Scenario: There is no switch to show the task lists calendar in Google
     When I open the settings
     And I open the settings group "Calendars"
