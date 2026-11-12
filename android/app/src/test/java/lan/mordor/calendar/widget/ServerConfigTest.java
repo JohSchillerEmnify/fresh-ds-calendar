@@ -25,7 +25,7 @@ public class ServerConfigTest {
 
     @Test
     public void aLegacyChoiceIsForgottenOnceWithTheWidgetsData() {
-        ctx.getSharedPreferences(ServerConfig.LEGACY_PREFS, Context.MODE_PRIVATE).edit().putString("baseUrl", "http://cal.mordor.lan").commit();
+        ctx.getSharedPreferences(ServerConfig.LEGACY_PREFS, Context.MODE_PRIVATE).edit().putString("baseUrl", "http://cal.example.test").commit();
         WidgetStore store = new WidgetStore(ctx);
         store.saveSnapshot("{\"v\":1,\"generatedAt\":\"a\"}");
         assertTrue(ServerConfig.forgetLegacyChoice(ctx));

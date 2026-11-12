@@ -16,7 +16,7 @@
 - **No limit** (one trusted machine client): the key is the only secret on a public URL; unlimited guessing is not
   acceptable even for a long key.
 - **First `X-Forwarded-For` entry**: the caller writes it, so rotating it would buy unlimited asks.
-- **Always trust the header**: breaks the same way when the app is reached without the proxy (home server).
+- **Always trust the header**: breaks the same way when the app is reached without the proxy (local run).
 - **One global counter**: a stranger could lock the real board out.
 
 ## Why

@@ -2,7 +2,7 @@ import { errorFacts, logDevice } from '@/lib/deviceLog';
 import { autoUpdate } from './update';
 
 /**
- * Registers the service worker only in a secure context (http://cal.mordor.local runs without one).
+ * Registers the service worker only in a secure context (http://cal.example.test runs without one).
  * A newly installed worker (the newest build) is handed to `autoUpdate` (`./update`), which activates it (SKIP_WAITING) and
  * reloads once the ui is safe; without a controlling worker the manual "Reload" snackbar applies instead.
  */

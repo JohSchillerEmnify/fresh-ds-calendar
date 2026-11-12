@@ -173,7 +173,6 @@
 
 ## Iteration 1 — walking skeleton (2026-10-12)
 
-Live at **http://cal.mordor.local** (also linked on Homepage as "Calendar").
 
 What you can see:
 - App shell, mobile first (works at 375px): top bar with the current period, **Today**, previous/next.
@@ -190,7 +189,7 @@ Not yet: events, task lists, Google sync (no data is shown yet).
 Under the hood:
 - `server/`: Fastify (Node 22, TypeScript), `GET /api/health`, serves the built web app with SPA fallback.
 - `web/`: Vue 3 + Vite + Pinia + Vue Router + date-fns.
-- Single Docker image; compose file at `/home/sauron/docker-compose/calendar/docker-compose.yaml`.
+- Single Docker image; one compose file runs it.
 - Redeploy: `scripts/deploy.sh` (runs tests, rebuilds, waits for health).
 
 ## Iteration 1.1 — stack migration (2026-10-12)
@@ -214,7 +213,7 @@ No visible feature change; the app looks and works as before, with Material 3 co
 - Redeploy: `pnpm redeploy` or `scripts/deploy.sh` (renamed from `deploy`, because `pnpm deploy` is a pnpm command).
 
 ## Iteration 2 — full feature set (2026-10-12 ~06:00)
-Live at http://cal.mordor.local (mock Google backend with demo data).
+First running version (mock Google backend with demo data).
 - Server: mock Google Calendar provider (JSON in DATA_DIR), full REST API, task lists stored as Google events,
   settings + categories, streak/plant/sunflowers rules, demo seed, inactive real Google adapter.
 - Web: Material 3 shell (month picker from title, year/month/week/day, swipe), settings (theme presets incl. Mordor,
