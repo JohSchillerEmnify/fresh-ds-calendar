@@ -1,7 +1,8 @@
 <script setup lang="ts">
-/** Settings group Widgets (docs/settings-tree.md): one section per platform, the iPhone widget and the Android home-screen widgets. */
+/** Settings group Widgets (docs/settings-tree.md): one section per platform (the iPhone widget, the Android home-screen widgets) and one for the Timeline's day count both use. */
 import { computed } from 'vue';
-import type { AndroidWidgetStyle } from '@/api/types';
+import { timelineDays } from '@calendar/shared/prefs';
+import type { AndroidWidgetStyle, WidgetTimelineDays } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import IphoneWidgetSection from '@/components/settings/IphoneWidgetSection.vue';
@@ -18,7 +19,7 @@ const showApk = !isIos();
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
 const styleOptions = computed(() => (['agenda', 'timeline'] as const).map((v) => ({ value: v, label: t(`settings.widgets.scroll.${v}`), testid: `settings-scrolling-style-${v}` })));
-const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: String(n), testid: `settings-scrolling-days-${n}` }));
+const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: String(n), testid: `settings-widget-days-${n}` }));
 </script>
 
 <template>
@@ -31,8 +32,11 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
     <SettingRow id="androidWidgetStyle" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
       <SegmentedButton connected :model-value="prefs.androidWidgetStyle" :options="styleOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-scrolling-style" @update:model-value="savePrefs({ androidWidgetStyle: $event as AndroidWidgetStyle })" />
     </SettingRow>
-    <SettingRow id="androidWidgetDays" wide :label="t('settings.widgets.scroll.days')">
-      <SegmentedButton connected :model-value="String(prefs.androidWidgetDays)" :options="dayOptions" :label="t('settings.widgets.scroll.days')" data-testid="settings-scrolling-days" @update:model-value="savePrefs({ androidWidgetDays: Number($event) as 1 | 2 | 3 | 4 | 5 | 6 | 7 })" />
+  </SettingSection>
+
+  <SettingSection :title="t('settingsNav.sub.timeline')">
+    <SettingRow id="widgetTimelineDays" wide :label="t('settings.widgets.scroll.days')" :hint="t('settings.widgets.timeline.hint')">
+      <SegmentedButton connected :model-value="String(timelineDays(prefs))" :options="dayOptions" :label="t('settings.widgets.scroll.days')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: Number($event) as WidgetTimelineDays })" />
     </SettingRow>
   </SettingSection>
 </template>

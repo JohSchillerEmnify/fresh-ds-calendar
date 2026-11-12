@@ -8,9 +8,9 @@ import { settingControl } from './support/settings.js';
 import { chooseOption, selectedLabel } from './support/ui.js';
 import type { World } from './support/world.js';
 
-const control = (w: World, which: 'style' | 'days') => settingControl(w, `settings-scrolling-${which}`);
+const control = (w: World, which: 'style') => settingControl(w, `settings-scrolling-${which}`);
 
-async function choose(w: World, which: 'style' | 'days', label: string) {
+async function choose(w: World, which: 'style', label: string) {
   const c = await control(w, which);
   const saved = w.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
   await chooseOption(c, label);
@@ -22,15 +22,6 @@ Then('the scrolling widget style is set to {string}', async function (this: Worl
   await expect.poll(async () => selectedLabel(c)).toBe(label);
 });
 
-Then('the scrolling widget Timeline days are set to {string}', async function (this: World, label: string) {
-  const c = await control(this, 'days');
-  await expect.poll(async () => selectedLabel(c)).toBe(label);
-});
-
 When('I set the scrolling widget style to {string}', async function (this: World, label: string) {
   await choose(this, 'style', label);
-});
-
-When('I set the scrolling widget Timeline days to {string}', async function (this: World, label: string) {
-  await choose(this, 'days', label);
 });

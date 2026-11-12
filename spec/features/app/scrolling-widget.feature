@@ -12,21 +12,21 @@ Feature: Scrolling phone widget
     Given the calendar is empty
     And today is 2026-10-14
 
-  Rule: The Android section of the Widgets settings chooses the style and the days
+  Rule: The Android section of the Widgets settings chooses the style; the days are the shared Timeline setting
 
     Scenario: The scrolling widget starts as an Agenda with a three-day Timeline
       When I open the settings
       And I open the settings group "Widgets"
       Then the scrolling widget style is set to "Agenda"
-      And the scrolling widget Timeline days are set to "3"
+      And the timeline days are set to "3"
 
     Scenario: The style and the number of days can be changed
       When I open the settings
       And I open the settings group "Widgets"
       And I set the scrolling widget style to "Timeline"
-      And I set the scrolling widget Timeline days to "5"
+      And I set the timeline days to "5"
       Then the scrolling widget style is set to "Timeline"
-      And the scrolling widget Timeline days are set to "5"
+      And the timeline days are set to "5"
 
     Scenario: Search finds the List widget under Widgets
       When I open the settings

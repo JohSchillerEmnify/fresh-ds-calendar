@@ -160,3 +160,28 @@ When('I set the lock screen circle to {string}', async function (this: World, la
   await chooseOption(control, label);
   expect((await saved).status(), 'prefs saved').toBe(200);
 });
+
+Then('the iPhone widget layout is set to {string}', async function (this: World, label: string) {
+  const control = await settingControl(this, 'settings-widget-layout');
+  await expect.poll(async () => selectedLabel(control)).toBe(label);
+});
+
+When('I set the iPhone widget layout to {string}', async function (this: World, label: string) {
+  const control = await settingControl(this, 'settings-widget-layout');
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await chooseOption(control, label);
+  expect((await saved).status(), 'prefs saved').toBe(200);
+});
+
+Then('the timeline days are set to {string}', async function (this: World, label: string) {
+  const control = await settingControl(this, 'settings-widget-days');
+  await expect.poll(async () => selectedLabel(control)).toBe(label);
+});
+
+When('I set the timeline days to {string}', async function (this: World, label: string) {
+  const control = await settingControl(this, 'settings-widget-days');
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await chooseOption(control, label);
+  expect((await saved).status(), 'prefs saved').toBe(200);
+});
+

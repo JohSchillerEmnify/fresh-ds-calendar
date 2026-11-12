@@ -1,7 +1,7 @@
-// calendar-widget version=1
+// calendar-widget version=2
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
-// Small = today, medium = today and tomorrow (the same rows), large = the week as a time grid; the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
-const VERSION = 1;
+// Small = today, medium = today and tomorrow (the same rows), large = the week as a time grid (or, as chosen in Settings, medium and large show the Timeline: 1 to 7 days from today as columns); the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
+const VERSION = 2;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
 const CACHE_FILE = 'calendar-widget-data.json';
@@ -202,13 +202,13 @@ function lanes(day) {
 }
 
 /**
- * The week as a time grid (like the Android week widget): seven day columns, an all-day band, an hour scale and a block
- * per timed entry placed by its start and as tall as it lasts. Pure geometry in points; drawing follows it.
+ * Days as a time grid (like the Android week widget): one column per day from `from`, an all-day band, an hour scale and a
+ * block per timed entry placed by its start and as tall as it lasts. The hours fit the entries of these days only (a widget
+ * cannot scroll). Pure geometry in points; drawing follows it.
  */
-function weekGrid(entries, today, nowMin, minLen, W, H) {
-  const start = weekStart(today);
-  const colW = (W - WEEK.gutter) / 7;
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+function dayGrid(entries, today, from, count, nowMin, minLen, W, H) {
+  const colW = (W - WEEK.gutter) / count;
+  const days = Array.from({ length: count }, (_, i) => addDays(from, i));
   const segs = days.map((date) => entriesOn(entries, date).filter((e) => !e.allDay).map((e) => segmentOn(e, date, minLen)));
   const [first, last] = hourRange(segs.flat());
   const chips = days.map((date) => entriesOn(entries, date).filter((e) => e.allDay));
@@ -231,6 +231,14 @@ function weekGrid(entries, today, nowMin, minLen, W, H) {
   const nowLine = nowMin >= first * 60 && nowMin <= last * 60 ? { y: yOf(nowMin), col: cols.findIndex((c) => c.today) } : null;
   return { first, last, hourH, top, colW, cols, nowLine, yOf };
 }
+
+/** The week of today's Monday, seven columns. */
+const weekGrid = (entries, today, nowMin, minLen, W, H) => dayGrid(entries, today, weekStart(today), 7, nowMin, minLen, W, H);
+
+/** The Timeline: `days` (1 to 7, else 3) columns from today. */
+const timelineGrid = (entries, today, nowMin, minLen, W, H, days) => dayGrid(entries, today, today, timelineDays(days), nowMin, minLen, W, H);
+
+const timelineDays = (n) => (Number.isInteger(n) && n >= 1 && n <= 7 ? n : 3);
 
 /** Draws the text `s` into a rectangle with the font and colour given. */
 function drawText(ctx, s, rect, size, bold, color) {
@@ -258,7 +266,8 @@ function drawColumn(ctx, g, c, lang, T, dim) {
     ctx.setFillColor(new Color('#b3261e'));
     ctx.fillRect(new Rect(c.x + 1, 0, g.colW - 2, WEEK.head));
   }
-  drawText(ctx, `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`, [c.x + 2, 2, g.colW - 4, WEEK.head - 2], 10, true, c.today ? new Color('#ffffff') : ink);
+  const head = g.colW >= 56 ? dayName(c.date, lang) : `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`;
+  drawText(ctx, head, [c.x + 2, 2, g.colW - 4, WEEK.head - 2], 10, true, c.today ? new Color('#ffffff') : ink);
   const paint = (e, rect, label, size) => {
     const color = dim ? GREY : e.color;
     ctx.setFillColor(new Color(color));
@@ -270,9 +279,10 @@ function drawColumn(ctx, g, c, lang, T, dim) {
   c.blocks.forEach((b) => paint(b.e, [b.x, b.y, b.w, b.h], b.label, 8));
 }
 
-function weekWidget(entries, today, nowMin, minLen, lang, T, dim) {
-  const [W, H] = SIZES.large;
-  const g = weekGrid(entries, today, nowMin, minLen, W, H);
+/** The grid as one picture in a widget of `size`: the week, or the Timeline when `days` is given. */
+function gridWidget(size, entries, today, nowMin, minLen, lang, T, dim, days) {
+  const [W, H] = SIZES[size];
+  const g = days ? timelineGrid(entries, today, nowMin, minLen, W, H, days) : weekGrid(entries, today, nowMin, minLen, W, H);
   const ctx = new DrawContext();
   ctx.size = new Size(W, H);
   ctx.opaque = false;
@@ -441,16 +451,21 @@ function pickLanguage(setting) {
   return 'en';
 }
 
+/** The home-screen widget of a size: small = today; medium and large = the Timeline when chosen, else two columns and the week. */
+function homeWidget(family, { entries, today, nowMs, offset, data }, lang, T) {
+  const big = family === 'large' || family === 'extraLarge';
+  const nowMin = localNow(nowMs, offset).minutes;
+  if (data.widgetLayout === 'timeline' && (big || family === 'medium')) return gridWidget(big ? 'large' : 'medium', entries, today, nowMin, data.minEventMinutes, lang, T, false, timelineDays(data.widgetTimelineDays));
+  if (big) return gridWidget('large', entries, today, nowMin, data.minEventMinutes, lang, T, false);
+  return family === 'medium' ? mediumWidget(entries, nowMs, today, lang, T, false) : smallWidget(entries, nowMs, today, lang, T, false);
+}
+
 /** Builds the widget for a size from one answer; `note` is the stale or refusal text, `dim` greys the picture. */
 function buildWidget(family, data, nowMs, lang, T) {
   const offset = offsetMinutesOf(data.generatedAt);
   const today = localNow(nowMs, offset).date;
   const entries = data.items.map(entryOf).filter(Boolean);
-  let w;
-  if (family.startsWith('accessory')) w = lockWidget(family, entries, nowMs, T, data.widgetCircle);
-  else if (family === 'large' || family === 'extraLarge') w = weekWidget(entries, today, localNow(nowMs, offset).minutes, data.minEventMinutes, lang, T, false);
-  else if (family === 'medium') w = mediumWidget(entries, nowMs, today, lang, T, false);
-  else w = smallWidget(entries, nowMs, today, lang, T, false);
+  const w = family.startsWith('accessory') ? lockWidget(family, entries, nowMs, T, data.widgetCircle) : homeWidget(family, { entries, today, nowMs, offset, data }, lang, T);
   w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset, family === 'accessoryCircular' ? data.widgetCircle : null));
   return { w, today, entries, offset, data };
 }
@@ -496,17 +511,16 @@ async function run() {
 
 /** The same picture with the stale note added. */
 function withNote(family, built, lang, T, note) {
-  const { w, today, entries } = built;
+  const { w } = built;
   if (family.startsWith('accessory')) return w;
-  const again = (family === 'large' || family === 'extraLarge') ? weekWidget(entries, today, localNow(api.now(), built.offset).minutes, built.data.minEventMinutes, lang, T, false)
-    : family === 'medium' ? mediumWidget(entries, api.now(), today, lang, T, false) : smallWidget(entries, api.now(), today, lang, T, false);
+  const again = homeWidget(family, { ...built, nowMs: api.now() }, lang, T);
   addLine(again, note, 10, { color: new Color(GREY), lines: 2 });
   again.refreshAfterDate = w.refreshAfterDate;
   return again;
 }
 
 const api = {
-  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, hourRange, nextRedraw, localNow, weekStart, addDays, rangeFor, buildWidget, fetchData, updateScript, run,
+  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, timelineGrid, hourRange, nextRedraw, localNow, weekStart, addDays, rangeFor, buildWidget, fetchData, updateScript, run,
 };
 module.exports = api;
 if (typeof CALENDAR_WIDGET_TEST === 'undefined') await run();

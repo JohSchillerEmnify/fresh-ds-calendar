@@ -13,6 +13,7 @@ import { useCalendarsStore } from '@/stores/calendars';
 import { covers, itemsIn } from '@/lib/deviceData';
 import { useClockStore } from '@/stores/clock';
 import { useDeviceStore } from '@/stores/device';
+import { timelineDays } from '@calendar/shared/prefs';
 import { usePrefsStore } from '@/stores/prefs';
 import { buildWidgetSnapshot, type WidgetTheme } from './widgetSnapshot';
 import type { CalendarItem } from '@/api/types';
@@ -72,7 +73,7 @@ async function push(): Promise<void> {
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
     language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes, weekSideBySide: usePrefsStore().weekSideBySide,
-    categoriesOn: usePrefsStore().taskCategories, androidWidgetStyle: usePrefsStore().androidWidgetStyle, androidWidgetDays: usePrefsStore().androidWidgetDays,
+    categoriesOn: usePrefsStore().taskCategories, androidWidgetStyle: usePrefsStore().androidWidgetStyle, timelineDays: timelineDays(usePrefsStore()),
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });
   if (content === lastPushed) return;

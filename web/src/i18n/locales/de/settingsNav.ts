@@ -38,6 +38,7 @@ export default {
     account: 'Konto',
     app: 'App',
     iphone: 'iPhone',
+    timeline: 'Zeitleiste (iPhone und Android)',
     android: 'Android',
     tasksCalendar: 'Kalender der Aufgabenlisten',
   },

@@ -14,6 +14,8 @@ export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export type WidgetCircle = 'time' | 'countdown';
 export type AndroidWidgetStyle = 'agenda' | 'timeline';
+export type WidgetLayout = 'standard' | 'timeline';
+export type WidgetTimelineDays = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 /** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
 export type HeaderLayout = 'auto' | 'two-rows' | 'one-row';
 /** How the Tasks view groups its lists (feature tasks-view). */
@@ -141,6 +143,10 @@ export interface Prefs {
   androidWidgetStyle: AndroidWidgetStyle;
   /** The days the Android Timeline widget shows as columns, 1 to 7 (default 3). */
   androidWidgetDays: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  /** The iPhone widget's medium and large layout: the standard views or the Timeline (feature iphone-widget). */
+  widgetLayout: WidgetLayout;
+  /** How many days the Timeline of the iPhone and the Android widget shows, 1 to 7; null until chosen (then `androidWidgetDays`, else 3; see `timelineDays`). */
+  widgetTimelineDays: WidgetTimelineDays | null;
   /** What the top bar shows of the streak: off (the default), flame or plant. */
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
@@ -193,3 +199,6 @@ export declare function readPrefs(raw: Record<string, unknown> | null | undefine
 export declare function mergePref<K extends keyof Prefs>(key: K, current: Prefs[K], incoming: Prefs[K] | Partial<Prefs[K]>): Prefs[K];
 /** Validates a `PATCH /api/prefs` body against the table: the valid fields (merge preferences merged over `current`), or the first bad field with its message. */
 export declare function parsePrefsPatch(body: Record<string, unknown>, current: Prefs): { patch: Partial<Prefs> } | { error: string; field: string };
+
+/** The one day count of the Timeline on iPhone and Android: the shared choice, else the older Android choice, else 3. */
+export function timelineDays(prefs: Pick<Prefs, 'widgetTimelineDays' | 'androidWidgetDays'>): WidgetTimelineDays;

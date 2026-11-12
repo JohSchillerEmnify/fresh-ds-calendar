@@ -15,6 +15,7 @@ export default {
   failed: 'Das Widget konnte nicht hinzugefügt werden. Versuche es noch einmal.',
   done: 'Fertig',
   circle: { label: 'Kreis auf dem Sperrbildschirm', time: 'Startzeit', countdown: 'Countdown', hint: 'Der Countdown kann ein paar Minuten nachgehen.' },
+  layout: { label: 'Darstellung', standard: 'Standard', timeline: 'Zeitleiste', hint: 'Das mittlere und das große Widget können die nächsten Tage als Spalten zeigen.' },
   guide: {
     s1: 'Installiere die kostenlose App Scriptable:',
     getScriptable: 'Scriptable laden',

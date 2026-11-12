@@ -3704,6 +3704,18 @@ the widget data carries the lock screen circle {string}
 the lock screen circle is set to {string}
 the lock screen circle row says {string}
 I set the lock screen circle to {string}
+the iPhone widget layout is chosen as {string}
+the timeline days are chosen as {int}
+the earlier Android day count was {int}
+the Android widget snapshot carries {int} timeline days
+the widget data carries the iPhone widget layout {string} and {int} timeline days
+setting the timeline days to {int} is refused
+the iPhone widget shows the timeline of {int} days from {date}
+the iPhone widget places the event {string} in the timeline from {time} to {time}
+the iPhone widget layout is set to {string}
+I set the iPhone widget layout to {string}
+the timeline days are set to {string}
+I set the timeline days to {string}
 the iPhone widget keeps no calendar data
 the iPhone widget opens the app at the day view of {date}
 the iPhone widget asks to be redrawn at {time}
@@ -3721,6 +3733,7 @@ the iPhone widget asks to be redrawn at {time}
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
+- Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `weekGrid` for D and the N-1 days after it (the same geometry as the week); the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-layout` (iPhone section) and `settings-widget-days` (the Timeline section, always shown).
 - Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
 - "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
 - The widget and the installer speak the person's app language (`prefs.language`, sent in the widget data and into the installer), `auto` follows the iPhone, the fun German variants read as German, anything else English; German is the primary language: every widget, guide, setting and error text is written in German first. iOS and Scriptable menu names in the German guide ("Bearbeiten › Widget hinzufügen", "Einsetzen") are unverified until a real iPhone is checked.
@@ -3768,14 +3781,12 @@ the scrolling widget uses the dark theme colours
 I look at the week widget, the day widget and the clock widget
 they are still drawn as one picture each and do not scroll
 the scrolling widget style is set to {string}
-the scrolling widget Timeline days are set to {string}
 I set the scrolling widget style to {string}
-I set the scrolling widget Timeline days to {string}
 ```
 
 - The settings steps run in the browser suite: the Widgets page has two segmented controls, `settings-scrolling-style`
-  ("Agenda" / "Timeline") and `settings-scrolling-days` ("1" to "7"); they save the person's prefs `androidWidgetStyle`
-  and `androidWidgetDays`.
+  ("Agenda" / "Timeline") and the Timeline section's `settings-widget-days` ("1" to "7", shared by iPhone and Android); they save `androidWidgetStyle`
+  and `widgetTimelineDays`. A person who never chose `widgetTimelineDays` gets the older `androidWidgetDays` (default 3) through `timelineDays` in `shared/prefs.js`.
 - Every other step here runs on Android, not in the browser suite: the widget's own unit tests (`android/app/src/test`) or
   a device prove them (`@unit`). "{string} style" is "Agenda" or "Timeline"; the Timeline shows 3 days unless the step says
   otherwise. Day headers use the widget's date wording ("Wed 14 Oct"). "the calendar contains N events on D" are N ordinary

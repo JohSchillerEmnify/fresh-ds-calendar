@@ -41,6 +41,7 @@ export default {
     app: 'App',
     tasksCalendar: 'Kalender der Aufgabenlisten',
     iphone: 'iPhone',
+    timeline: 'Zeitleiste (iPhone und Android), yo',
     android: 'Android',
   },
   labels: {
