@@ -291,6 +291,32 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When the app hands the widget its copy
       Then the widget scrolls so that 06:50 is at the top
 
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshLaterInTheDayMovesOnToHalfAnHourBeforeTheNewNowAndDrawsTheNewTime
+    @unit
+    Scenario: A refresh later in the day moves on to half an hour before the new time
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 16 hours in view
+      When the widget refreshes at 09:40
+      Then the widget scrolls so that 09:10 is at the top
+      And the time line is at 09:40
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshFromFarBelowComesStraightBackUp
+    @unit
+    Scenario: A refresh after scrolling far down goes straight back up, without showing 00:00 first
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 8 hours in view
+      And I scroll the widget so that 16:00 is at the top
+      When the widget refreshes at 07:20
+      Then the widget scrolls so that 06:50 is at the top
+      And the list moved straight there from where it was
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshFromFarAboveComesStraightDown
+    @unit
+    Scenario: A refresh after scrolling to the top goes straight down
+      Given the Multi-day widget shows 11:50 at the top at 12:20 with 8 hours in view
+      And I scroll the widget so that 00:00 is at the top
+      When the widget refreshes at 12:50
+      Then the widget scrolls so that 12:20 is at the top
+      And the list moved straight there from where it was
+
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRebuiltLauncherOpensTheKeptViewsAtTheSamePlace
     @unit
     Scenario: A home screen that builds the widget again shows half an hour before now

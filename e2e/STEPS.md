@@ -3833,6 +3833,10 @@ the widget scrolls so that {time} is at the top
 I place the Multi-day widget at {time} with {int} hours in view
 the Multi-day widget shows {time} at the top at {time} with {int} hours in view
 I scroll the widget down a little
+I scroll the widget so that {time} is at the top
+the widget refreshes at {time}
+the time line is at {time}
+the list moved straight there from where it was
 the home screen builds the widget again
 the widget shows the last {int} hours of the day with 24:00 at the bottom of the list
 the list has no blank space below 24:00

@@ -1,8 +1,8 @@
 package lan.mordor.calendar.widget;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -55,20 +55,22 @@ public class MultiDayRefreshTest {
     @Test
     public void aRefreshTapWithUnchangedDataPushesTheMultiDayWidgetAgain() {
         assertTrue(ScrollWidgetProvider.render(ctx, manager, id, false, true, LocalDate.now(), LocalTime.now()));
-        boolean before = new WidgetStore(ctx).altLayout(id);
+        shadowOf(manager).setAlwaysRecreateViewsDuringUpdate(true); // a new view per push, so that a push shows
+        android.view.View before = shadowOf(manager).getViewFor(id);
         new WidgetActionReceiver().onReceive(ctx, new Intent(WidgetActionReceiver.ACTION_REFRESH));
-        assertNotEquals("pushed anew", before, new WidgetStore(ctx).altLayout(id));
+        assertNotSame("pushed anew", before, shadowOf(manager).getViewFor(id));
     }
 
     @Test
     public void theTickPushesTheMultiDayWidgetOnceTheOpeningQuarterHourMovedOn() {
+        shadowOf(manager).setAlwaysRecreateViewsDuringUpdate(true);
         assertTrue(ScrollWidgetProvider.render(ctx, manager, id, false, true, TODAY, LocalTime.of(10, 0)));
         ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 10));
-        boolean sameQuarter = new WidgetStore(ctx).altLayout(id);
+        android.view.View sameQuarter = shadowOf(manager).getViewFor(id);
         ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 5));
-        assertEquals("not pushed within the quarter hour", sameQuarter, new WidgetStore(ctx).altLayout(id));
+        assertSame("not pushed within the quarter hour", sameQuarter, shadowOf(manager).getViewFor(id));
         ScrollWidgetProvider.renderMultiDay(ctx, false, TODAY, LocalTime.of(10, 30));
-        assertNotEquals("pushed 30 minutes later", sameQuarter, new WidgetStore(ctx).altLayout(id));
+        assertNotSame("pushed 30 minutes later", sameQuarter, shadowOf(manager).getViewFor(id));
     }
 
     @Test

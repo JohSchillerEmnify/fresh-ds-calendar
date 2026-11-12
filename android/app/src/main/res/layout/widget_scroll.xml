@@ -45,12 +45,25 @@
             <TextView android:id="@+id/d6" style="@style/ScrollDayName" />
         </LinearLayout>
 
-        <ListView
-            android:id="@+id/list"
+        <!-- The list reaches 20 dp above and below what shows, as padding: a smooth scroll to a far row stops the fading-edge length
+             (12 dp, 18 on big screens; ViewConfiguration) or the padding, whichever is more, from the edge (AbsListView.PositionScroller),
+             so with the padding hidden every scroll lands at the shown edge. -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@null"
-            android:dividerHeight="0dp" />
+            android:layout_height="match_parent">
+
+            <ListView
+                android:id="@+id/list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="-20dp"
+                android:layout_marginBottom="-20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="20dp"
+                android:clipToPadding="false"
+                android:divider="@null"
+                android:dividerHeight="0dp" />
+        </FrameLayout>
     </LinearLayout>
 
     <TextView
