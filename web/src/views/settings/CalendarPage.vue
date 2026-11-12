@@ -12,7 +12,7 @@ import SettingSection from '@/components/settings/SettingSection.vue';
 import { planSummary } from '@/components/settings/planSummary';
 import { allowContacts } from '@/features/calendar';
 import { t } from '@/i18n';
-import { useCalendarsStore } from '@/stores/calendars';
+import { calendarById, useCalendarsStore } from '@/stores/calendars';
 import { useHolidaysStore } from '@/stores/holidays';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -21,7 +21,7 @@ const props = defineProps<{ calendarId: string }>();
 const cals = useCalendarsStore();
 const ui = useUiStore();
 const router = useRouter();
-const cal = computed(() => cals.find(props.calendarId));
+const cal = computed(() => calendarById(props.calendarId));
 onMounted(() => { void cals.load().catch(() => undefined); });
 
 /** Takes the holiday calendar out of the person's Google list and returns to the calendars. */

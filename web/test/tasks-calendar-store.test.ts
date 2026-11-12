@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useCalendarsStore } from '@/stores/calendars';
+import { calendarById, useCalendarsStore } from '@/stores/calendars';
 import { freshPinia, mockFetch } from './helpers';
 
 const tasks = { id: 'tasks1', name: 'Calendar app: tasks', color: '#039be5', primary: false, writable: false, defaultReminders: [], tasks: true as const };
@@ -13,7 +13,7 @@ describe('the task lists calendar in the calendars store (feature tasklists-own-
     cals.fromDevice([work, tasks] as never);
     expect(cals.list.map((c) => c.id)).toEqual(['work']);
     expect(cals.tasksCalendar).toMatchObject({ id: 'tasks1', name: 'Task lists calendar' });
-    expect(cals.find('tasks1')?.id).toBe('tasks1');
+    expect(calendarById('tasks1')?.id).toBe('tasks1');
   });
 
   it('is hidden for every view when switched off, like any calendar', async () => {

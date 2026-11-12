@@ -9,14 +9,14 @@ import TextField from '@/components/m3/TextField.vue';
 import { t } from '@/i18n';
 import { weekdayLabels } from '@/lib/dates';
 import { awayActive } from '@/lib/calendarPlan';
-import { useCalendarsStore } from '@/stores/calendars';
+import { calendarById, useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 
 const props = defineProps<{ calendarId: string }>();
 const emit = defineEmits<{ close: [] }>();
 const cals = useCalendarsStore();
 const clock = useClockStore();
-const cal = computed(() => cals.find(props.calendarId));
+const cal = computed(() => calendarById(props.calendarId));
 const plan = cals.planOf(props.calendarId);
 
 /** Step values `Sun`..`Sat` are the plan's days 0..6; labels follow the language, Monday first. */

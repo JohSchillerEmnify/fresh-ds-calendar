@@ -33,11 +33,7 @@ function tasksEntry(all: Calendar[]): Calendar | undefined {
 export const useCalendarsStore = defineStore('calendars', () => {
   const raw = ref<Calendar[]>([]);
   const list = computed(() => raw.value.filter((c) => !c.tasks).map(named));
-  const tasksCalendar = computed(() => tasksEntry(raw.value));
-  /** A calendar of the list, or the task lists calendar. */
-  const find = (id: string): Calendar | undefined => (tasksCalendar.value?.id === id ? tasksCalendar.value : list.value.find((c) => c.id === id));
-  let saving = 0;
-  const clock = useClockStore();
+  let saving = 0; const clock = useClockStore();
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
   const planOf = (id: string): CalendarPlan | undefined => source.value.plans()[id];
 
@@ -105,7 +101,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** Replaces a calendar's popup reminder defaults (Google's `defaultReminders`); shown at once, rolled back on failure. */
   async function setDefaultReminders(id: string, minutes: number[]): Promise<void> {
-    if (tasksCalendar.value?.id === id) return useDeviceStore().putFile('tasksCalendarReminders', await api.setTasksCalendarReminders(minutes));
+    if (raw.value.find((c) => c.tasks)?.id === id) return useDeviceStore().putFile('tasksCalendarReminders', await api.setTasksCalendarReminders(minutes));
     const before = raw.value;
     raw.value = before.map((c) => (c.id === id ? { ...c, defaultReminders: minutes } : c));
     saving++;
@@ -133,5 +129,11 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, tasksCalendar, find, stored: raw, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
+  return { list, tasksCalendar: computed(() => tasksEntry(raw.value)), stored: raw, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
 });
+
+/** A calendar of the list, or the task lists calendar. */
+export function calendarById(id: string): Calendar | undefined {
+  const cals = useCalendarsStore();
+  return cals.tasksCalendar?.id === id ? cals.tasksCalendar : cals.list.find((c) => c.id === id);
+}
