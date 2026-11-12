@@ -72,6 +72,7 @@ Where things live:
 |---|---|
 | `web/`, `server/`, `shared/` | Vue 3 PWA (Vite), Hono API with static hosting, code shared by both; pnpm workspace, Node >= 24.11 |
 | `android/` | Capacitor shell with native widgets (views `androidApp` and `widget`, ADRs 0012-0015, 0022) |
+| `ios/` | The iPhone widget script for the Scriptable app (ADR 0044) |
 | `e2e/`, `e2e/STEPS.md` | Playwright + playwright-bdd running `spec/features`; every step phrase, the contract for `e2e/steps/` |
 | `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
@@ -186,7 +187,9 @@ Neither is a required check; both live in the Actions tab.
 Where things are:
 - `web/`: the Vue PWA.
 - `server/`: the Hono API.
+- `shared/`: rules both the web app and the server use.
 - `android/`: the Capacitor shell and widgets.
+- `ios/`: the iPhone widget script (runs in the Scriptable app).
 - `spec/`: the behaviour.
 - `docs/adrs/`: why things are the way they are.
 - `docs/architecture/`: the C4 model.
