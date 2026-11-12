@@ -16,6 +16,7 @@ import { isPhone } from '@/composables/useViewport';
 import { inPreview } from '@/composables/usePreview';
 import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
+import { vFade } from '@/lib/fade';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
@@ -91,7 +92,7 @@ const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value 
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">
-      <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
+      <span v-fade:x class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
       <span v-if="showTime" class="meta">
         <span class="time" data-testid="event-chip-time">{{ timeText }}<template v-if="timeLeft"> · {{ timeLeft }}</template></span><span v-if="!timeLeft && showDuration" class="dur"> · {{ duration }}</span>
       </span>
@@ -101,7 +102,7 @@ const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value 
     </template>
     <template v-else>
       <span v-if="showChipTime" class="time" data-testid="event-chip-time">{{ timeText }}</span>
-      <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
+      <span v-fade:x class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
     </template>
   </Pressable>
 </template>
@@ -146,10 +147,13 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 /* phones: tighter boxes (type and padding come from the --entry-* tokens); clip with a fade instead of an ellipsis */
 @media (max-width: 767.98px) {
   .chip { min-height: 16px; }
-  .chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  .chip .title { text-overflow: clip; }
+  .chip .title[data-cut='true'] { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   .allday { min-height: 18px; }
-  .allday .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  .allday .title { text-overflow: clip; }
+  .allday .title[data-cut='true'] { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   /* a block one line tall is a one-line entry: it fades out like a chip; two or more lines keep the ellipsis */
-  .block[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
+  .block[data-one-line] .title { display: block; -webkit-line-clamp: none; line-clamp: none; white-space: nowrap; text-overflow: clip; }
+  .block[data-one-line] .title[data-cut='true'] { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 </style>

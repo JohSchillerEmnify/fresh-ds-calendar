@@ -12,6 +12,7 @@ import { openItem } from '@/extensions/registry';
 import { inPreview } from '@/composables/usePreview';
 import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
+import { vFade } from '@/lib/fade';
 import { barSegment, type Bar } from '@/lib/spans';
 import { useCalendarDrag } from './dnd';
 import { t } from '@/i18n';
@@ -46,7 +47,7 @@ function onClick(e: MouseEvent) {
     :aria-label="t('calendar.item.range', { title: ev.title, start: bar.startDate, end: bar.endDate })" @pointerdown.capture="onDown" @click="onClick"
   >
     <span v-if="!chip && bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
-    <span class="title" data-testid="event-bar-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
+    <span v-fade:x class="title" data-testid="event-bar-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
     <span v-if="!chip && bar.continuesToNext" class="arr" aria-hidden="true">▸</span>
   </Pressable>
 </template>
@@ -64,7 +65,7 @@ function onClick(e: MouseEvent) {
 .mark { margin-right: 3px; font-size: var(--entry-mark); }
 .arr { flex: none; font-size: var(--entry-micro); opacity: 0.85; }
 html[data-calm='true'] .bar { filter: saturate(0.6); }
-@media (max-width: 767.98px) { .bar .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); } }
+@media (max-width: 767.98px) { .bar .title { text-overflow: clip; } .bar .title[data-cut='true'] { -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); } }
 /* month view: same height (from the row), padding, type and radius as an entry chip; the margin is the cell padding so the ends line up with chips */
 .bar.chip { gap: 4px; margin: 0 var(--pad, 1px); }
 .bar.chip.from { margin-left: 0; }
