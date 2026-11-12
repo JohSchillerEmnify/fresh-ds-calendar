@@ -21,7 +21,10 @@ import { useTaskCategories } from './categories';
 import SupportCat from '@/features/motivation/SupportCat.vue';
 import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 import { displayTitle } from '@/lib/items';
-import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
+import { getMotionLevel, ProgressRing, useCelebrate } from '@/motion';
+import Checkbox from '@/components/m3/Checkbox.vue';
+import ListItem from '@/components/m3/ListItem.vue';
+import TextField from '@/components/m3/TextField.vue';
 import { useClockStore } from '@/stores/clock';
 import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
@@ -173,10 +176,10 @@ function cancelEdit() { editingItem.value = null; }
 /** The add field stays behind a "+" button (less clutter); it stays open for several items in a row. */
 const adding = ref(false);
 const newTitle = ref('');
-const newInput = ref<HTMLInputElement | null>(null);
+const newInput = (): HTMLInputElement | null => root.value?.querySelector('[data-testid="tasklist-new-item"]') ?? null;
 function openAdd() {
   adding.value = true;
-  void nextTick(() => newInput.value?.focus());
+  void nextTick(() => newInput()?.focus());
 }
 function closeAdd() {
   if (!newTitle.value.trim()) adding.value = false;
@@ -196,7 +199,7 @@ async function add() {
   // the question took the focus (and closed the empty field): the field stays open for the next item
   const asked = !adding.value;
   adding.value = true;
-  void nextTick(() => { if (asked) newInput.value?.focus(); newInput.value?.scrollIntoView?.({ block: 'nearest' }); });
+  void nextTick(() => { if (asked) newInput()?.focus(); newInput()?.scrollIntoView?.({ block: 'nearest' }); });
 }
 
 const renaming = ref(false);
@@ -335,27 +338,23 @@ defineExpose({ root, busy });
       <div v-if="!collapsed" class="tlc-body">
         <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
 
-        <div v-if="titleTick" class="row" data-testid="tasklist-title-item" :data-title="displayTitle(tl)">
-          <RewardCheckbox :model-value="false" :label="undefined" data-testid="tasklist-title-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: displayTitle(tl) })" @update:model-value="tickTitle" />
+        <ListItem v-if="titleTick" class="row" data-testid="tasklist-title-item" :data-title="displayTitle(tl)">
+          <template #leading><Checkbox class="cbx" :model-value="false" data-testid="tasklist-title-item-checkbox" :label="t('tasks.list.itemDone', { title: displayTitle(tl) })" @update:model-value="tickTitle" /></template>
           <span class="ititle plain"><span class="tt">{{ displayTitle(tl) }}</span></span>
-        </div>
+        </ListItem>
         <ul class="list">
-          <li
-            v-for="(item, i) in tl.items" :key="item.id" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
-            :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
-          >
-            <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
-            <div v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
+          <ListItem v-for="(item, i) in tl.items" :key="item.id" tag="li" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item" :data-item-id="item.id" :data-title="item.title" :data-done="item.done">
+            <template #leading><Checkbox class="cbx" :model-value="item.done" data-testid="tasklist-item-checkbox" :label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" /></template>
+            <div v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" :role="writing ? undefined : 'button'" :tabindex="writing ? undefined : 0" @click="!writing && tick(item, !item.done)" @keydown.enter.space.self.prevent="!writing && tick(item, !item.done)">
               <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
             </div>
-            <input
-              v-else-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"
-              @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
-            />
+            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" />
             <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
-            <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
-            <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
-          </li>
+            <template #trailing>
+              <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
+              <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
+            </template>
+          </ListItem>
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
           <InkLine class="draft" :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
@@ -366,12 +365,10 @@ defineExpose({ root, busy });
         </div>
         <p v-if="!tl.items.length && !titleTick && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 
-        <form v-if="adding && !compact" class="add" @submit.prevent="add">
-          <input
-            ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" :maxlength="TITLE_MAX"
-            :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
-          />
-        </form>
+        <ListItem v-if="adding && !compact" tag="form" class="add" @submit.prevent="add">
+          <template #leading><IconAdd /></template>
+          <TextField v-model="newTitle" inline class="new" data-testid="tasklist-new-item" enterkeyhint="done" :maxlength="TITLE_MAX" :placeholder="t('tasks.list.addPlaceholder')" :label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false" />
+        </ListItem>
 
         <InkTools v-if="writing && !compact" class="inktools" :can-undo="inkWriting.canUndo.value" @undo="inkWriting.undo" />
 
@@ -397,11 +394,11 @@ html[data-motion='full'] .tlc-enter-active, html[data-motion='full'] .tlc-leave-
 html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to { opacity: 0; }
 .titles { flex: 1; min-width: 0; }
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
-.name-in, .item-in, .new {
+.name-in {
   width: 100%; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
   border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0; min-width: 0;
 }
-.name-in:focus, .item-in:focus, .new:focus { outline: 2px solid var(--md-sys-color-primary); }
+.name-in:focus { outline: 2px solid var(--md-sys-color-primary); }
 .emoji { margin-right: 6px; }
 /* done state: the hand-drawn strike line over the title text (drawn by the support cat's paw when it comes) */
 .tx { position: relative; --strike-w: 2.400px; }
@@ -411,40 +408,40 @@ html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 2px 0 0; padding: 0; }
-.row { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); border-radius: 12px; transition: background 400ms; }
+.row { transition: background 400ms; }
+/* 48 px targets centred on the list item's 24 px icon slots */
+.row .cbx, .row :deep(.li-trail) { margin-inline: -12px; }
 html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; }
-.ititle {
-  flex: 1; min-width: 0; text-align: left; min-height: 44px; padding: 0 4px; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large);
-}
-.ititle.plain { display: flex; align-items: center; }
+.ititle { flex: 1; min-width: 0; display: flex; align-items: center; text-align: left; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large); }
 .tt { background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0% 1.6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 html:not([data-motion='off']) .tt { transition: background-size 280ms cubic-bezier(0.3, 0, 0.2, 1) 60ms; }
 html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms; }
 .ticked .tt { background-size: 100% 1.6px; }
 .ticked .ititle { opacity: 0.55; }
-.item-in { flex: 1; }
-.act { width: 36px; height: 44px; opacity: 0.75; }
-.grip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 44px; opacity: 0.55; cursor: grab; color: var(--md-sys-color-on-surface-variant); }
+/* editing keeps the row's height: the field fills the headline instead of bringing its own 56 px */
+.item-in, .item-in :deep(.box) { flex: 1; display: flex; }
+.item-in :deep(.in) { min-height: 0; }
+.row .act { width: 48px; height: 48px; opacity: 0.75; }
+.grip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; opacity: 0.55; cursor: grab; color: var(--md-sys-color-on-surface-variant); }
 .row[data-dragging='true'] { cursor: grabbing; }
 /* a long press picks a row up: no text selection or iOS callout then */
 .row { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* the title field stays editable (iOS refuses to edit user-select: none fields) */
-.row input { user-select: text; -webkit-user-select: text; }
+.row :deep(input) { user-select: text; -webkit-user-select: text; }
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
-.add { margin-top: 4px; }
-.new::placeholder { color: var(--md-sys-color-on-surface-variant); }
+.new { flex: 1; }
 .foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; container-type: inline-size; }
 /* an ink item: the line of ink takes the place of the title; a ticked one is struck through like a title and faded */
 .inkcell { padding: 0; min-height: 0; position: relative; }
 .ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
-.nextline { padding-left: 44px; }
+.nextline { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); padding-left: 56px; }
 .nextline .draft { flex: 1; min-width: 0; }
 .done-slot { flex: none; width: 44px; display: inline-flex; }
 /* where a pen is used the lines are ruled and a little taller, so a word fits on one */
 /* left-handed: checkbox on the right, grip on the left and a free strip before the writing, so the palm rests on the screen (decision G7) */
 html[data-hand='left'][data-touch] .mirror .row { flex-direction: row-reverse; }
 html[data-hand='left'][data-touch] .mirror .inkcell { margin-left: 40px; }
-html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; padding-right: 44px; }
+html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; padding-right: 56px; }
 .ruled { --ink-h: 52px; }
 .ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
 .inktools { margin-top: 4px; }
