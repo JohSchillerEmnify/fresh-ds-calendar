@@ -88,15 +88,17 @@ public class ScrollRowsTest {
     }
 
     @Test
-    public void fallsBackToAgendaAndThreeDays() throws Exception {
-        assertEquals(false, ScrollRows.choice(null).timeline);
-        assertEquals(3, ScrollRows.choice(new JSONObject("{}")).days);
-        ScrollRows.Choice odd = ScrollRows.choice(new JSONObject("{\"scrollStyle\":\"carousel\",\"scrollDays\":9}"));
-        assertEquals(false, odd.timeline);
+    public void fallsBackToThreeDaysAndSixteenHours() throws Exception {
+        assertEquals(3, ScrollRows.choice(null).days);
+        assertEquals(16, ScrollRows.choice(null).hours);
+        assertEquals(16, ScrollRows.choice(new JSONObject("{}")).hours);
+        ScrollRows.Choice odd = ScrollRows.choice(new JSONObject("{\"scrollHours\":10,\"scrollDays\":9}"));
         assertEquals(3, odd.days);
-        ScrollRows.Choice set = ScrollRows.choice(new JSONObject("{\"scrollStyle\":\"timeline\",\"scrollDays\":5}"));
-        assertEquals(true, set.timeline);
+        assertEquals(16, odd.hours);
+        ScrollRows.Choice set = ScrollRows.choice(new JSONObject("{\"scrollHours\":8,\"scrollDays\":5}"));
         assertEquals(5, set.days);
+        assertEquals(8, set.hours);
+        for (int h : new int[] {8, 12, 16, 24}) assertEquals(h, ScrollRows.choice(new JSONObject("{\"scrollHours\":" + h + "}")).hours);
     }
 
     @Test

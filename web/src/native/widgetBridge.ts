@@ -73,7 +73,7 @@ async function push(): Promise<void> {
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
     language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes, weekSideBySide: usePrefsStore().weekSideBySide,
-    categoriesOn: usePrefsStore().taskCategories, androidWidgetStyle: usePrefsStore().androidWidgetStyle, timelineDays: timelineDays(usePrefsStore()),
+    categoriesOn: usePrefsStore().taskCategories, androidWidgetHours: usePrefsStore().androidWidgetHours, timelineDays: timelineDays(usePrefsStore()),
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });
   if (content === lastPushed) return;

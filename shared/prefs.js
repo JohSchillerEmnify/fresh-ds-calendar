@@ -120,6 +120,7 @@ export const PREFS = {
   weekSideBySide: oneOf([1, 2, 3], 2, 'weekSideBySide must be 1, 2 or 3'),
   widgetCircle: oneOf(['time', 'countdown'], 'time', 'widgetCircle must be time or countdown'),
   androidWidgetStyle: oneOf(['agenda', 'timeline'], 'agenda', 'androidWidgetStyle must be agenda or timeline'),
+  androidWidgetHours: oneOf([8, 12, 16, 24], 16, 'androidWidgetHours must be 8, 12, 16 or 24'),
   androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
   widgetLayout: oneOf(['standard', 'timeline'], 'standard', 'widgetLayout must be standard or timeline'),
   // null = never chosen: the day count then follows the older Android choice (see timelineDays)

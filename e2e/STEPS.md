@@ -3770,6 +3770,7 @@ the widget holds the hours from {time} to {time}
 about {int} hours fit into its height
 I look at the Multi-day widget at {time} with {int} hours in view
 the widget scrolls so that {time} is at the top
+the list ends in blank space below 24:00 so that {time} can reach the top
 the widget does not scroll
 I look at the Multi-day widget with {int}, {int} and {int} hours in view
 each picture shows the hours from the top to the bottom of the columns with its own row height

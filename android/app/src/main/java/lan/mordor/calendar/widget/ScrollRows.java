@@ -7,32 +7,36 @@ import java.util.List;
 import org.json.JSONObject;
 
 /**
- * What the scrolling widget shows, as plain data: the person's choice (Agenda or Timeline, how many days) from the app's
- * snapshot, and the Agenda's rows (a day header, then its entries). The widget draws them; see {@link ScrollWidgetRenderer}.
+ * What the scrolling widgets show, as plain data: the person's choice (the Timeline's number of days and the hours in view)
+ * from the app's snapshot, and the Agenda's rows (a day header, then its entries). The List widget shows the Agenda, the
+ * Multi-day widget the Timeline; see {@link ScrollWidgetRenderer}.
  */
 final class ScrollRows {
     /** Today and the 13 days after it. */
     static final int DAYS = 14;
-    static final int DEFAULT_TIMELINE_DAYS = 3, MAX_TIMELINE_DAYS = 7;
+    static final int DEFAULT_TIMELINE_DAYS = 3, MAX_TIMELINE_DAYS = 7, DEFAULT_HOURS = 16;
+    private static final int[] HOURS = {8, 12, 16, 24};
 
     private ScrollRows() {}
 
-    /** The person's choice for the widget: the Timeline or the Agenda, and the Timeline's number of days. */
+    /** The person's choice for the Multi-day widget: its number of days and the hours in view. */
     static final class Choice {
-        final boolean timeline;
         final int days;
+        final int hours;
 
-        Choice(boolean timeline, int days) {
-            this.timeline = timeline;
+        Choice(int days, int hours) {
             this.days = days;
+            this.hours = hours;
         }
     }
 
-    /** The choice in the snapshot ({@code scrollStyle}, {@code scrollDays}); a missing or unknown value means the Agenda and 3 days. */
+    /** The choice in the snapshot ({@code scrollDays}, {@code scrollHours}); a missing or unknown value means 3 days and 16 hours. */
     static Choice choice(JSONObject snapshot) {
-        if (snapshot == null) return new Choice(false, DEFAULT_TIMELINE_DAYS);
-        int days = snapshot.optInt("scrollDays", DEFAULT_TIMELINE_DAYS);
-        return new Choice("timeline".equals(snapshot.optString("scrollStyle")), days >= 1 && days <= MAX_TIMELINE_DAYS ? days : DEFAULT_TIMELINE_DAYS);
+        if (snapshot == null) return new Choice(DEFAULT_TIMELINE_DAYS, DEFAULT_HOURS);
+        int days = snapshot.optInt("scrollDays", DEFAULT_TIMELINE_DAYS), hours = snapshot.optInt("scrollHours", DEFAULT_HOURS);
+        boolean known = false;
+        for (int h : HOURS) known |= h == hours;
+        return new Choice(days >= 1 && days <= MAX_TIMELINE_DAYS ? days : DEFAULT_TIMELINE_DAYS, known ? hours : DEFAULT_HOURS);
     }
 
     /** One line of the Agenda: a day header or an entry. */

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Refreshed with the week widget's WorkManager fetch and every data change, not by updatePeriodMillis. The list's style
-     (Agenda or Timeline) and the Timeline's days come from the app's settings. -->
+<!-- The List widget (the Agenda). Refreshed with the week widget's WorkManager fetch and every data change, not by updatePeriodMillis. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/scroll_widget_description"
     android:initialLayout="@layout/widget_scroll"

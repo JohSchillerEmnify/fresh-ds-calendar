@@ -2,18 +2,25 @@ package lan.mordor.calendar.widget;
 
 import android.graphics.Bitmap;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
- * The scrolling widget's Timeline: the next days as columns with the hours running top to bottom. {@link #plan} says which
- * days and hours it holds and how tall that is; {@link #slices} draws it (by {@link WeekCanvas#drawColumns}) and cuts it into the
- * rows the widget's list scrolls through: the all-day band first, then one row per hour.
+ * The Multi-day widget's Timeline: the next days as columns with the whole day's hours running top to bottom. {@link #plan} says
+ * which days it holds, how tall an hour is (so that the chosen hours fit the widget's height), where the list is cut and which
+ * row it scrolls to; {@link #slices} draws it (by {@link WeekCanvas#drawColumns}) and cuts it into the rows the widget's list
+ * scrolls through: the all-day band first, then the segments between the cut minutes.
  */
 final class TimelineRows {
-    /** The height of one hour in dp: more than a short widget shows, so the list scrolls. */
-    static final float HOUR_DP = 40;
+    /** The height in dp the day names and the widget's padding take away from the list. */
+    static final float HEAD_DP = 38;
+    /** The Timeline opens with this many minutes before now at the top. */
+    static final int LEAD_MINUTES = 30;
+    private static final int DAY_MINUTES = 24 * 60;
+    private static final float MIN_HOUR_DP = 8;
 
     private TimelineRows() {}
 
@@ -36,31 +43,57 @@ final class TimelineRows {
         }
     }
 
-    /** The columns and the hours they hold. */
+    /** The columns, the height of an hour and the list's cuts. */
     static final class Plan {
         final List<Column> columns;
-        final int firstHour, lastHour;
+        /** The whole day is drawn. */
+        final int firstHour = 0, lastHour = 24;
+        final float hourDp;
         /** The all-day band's height in dp (0 without untimed entries). */
         final float bandDp;
+        /** 1 with an all-day band row, else 0. */
+        final int bandRows;
         /** Offset of the first column in the data's days. */
         final int offset;
+        /** The minutes of the day where the picture is cut into rows, ascending, from 0 to 1440: every hour and the two minutes the scroll needs. */
+        final int[] marks;
+        /** The minute that opens at the top of the list; -1 when the list opens at its start. */
+        final int startMin;
+        /** The blank row under 24:00 in dp (0 when the day's end is far enough from the opening minute for the list to scroll there). */
+        final float spacerDp;
+        /** The row to scroll to, so that the opening minute is at the top (the list brings it to the bottom edge); -1 for none. */
+        final int scrollRow;
 
-        Plan(List<Column> columns, int firstHour, int lastHour, float bandDp, int offset) {
+        Plan(List<Column> columns, float hourDp, float bandDp, int offset, int[] marks, int startMin, float spacerDp, int scrollRow) {
             this.columns = columns;
-            this.firstHour = firstHour;
-            this.lastHour = lastHour;
+            this.hourDp = hourDp;
             this.bandDp = bandDp;
+            this.bandRows = bandDp > 0 ? 1 : 0;
             this.offset = offset;
+            this.marks = marks;
+            this.startMin = startMin;
+            this.spacerDp = spacerDp;
+            this.scrollRow = scrollRow;
         }
 
         /** The height of the whole picture in dp. */
         float totalDp() {
-            return 2 * WeekCanvas.PAD + bandDp + (lastHour - firstHour) * HOUR_DP;
+            return 2 * WeekCanvas.PAD + bandDp + (lastHour - firstHour) * hourDp;
+        }
+
+        /** Rows in the list: the band, the segments and the blank row. */
+        int rowCount() {
+            return bandRows + marks.length - 1 + (spacerDp > 0 ? 1 : 0);
         }
     }
 
-    /** The {@code days} columns from {@code today} and the hours the earliest start to the latest end of them needs (at least six). */
-    static Plan plan(WeekData data, LocalDate today, int days, WidgetStrings str) {
+    /**
+     * The {@code days} columns from {@code today}. An hour is as tall as the list below the day names divided by {@code hours}, so that
+     * many hours fit; the list opens {@link #LEAD_MINUTES} before {@code now}, with 24 hours (the whole day) from the top.
+     *
+     * @param heightDp the widget's height
+     */
+    static Plan plan(WeekData data, LocalDate today, int days, WidgetStrings str, int hours, float heightDp, LocalTime now) {
         int offset = (int) ChronoUnit.DAYS.between(data.weekStart, today);
         List<Column> columns = new ArrayList<>();
         List<WeekData.Day> shown = new ArrayList<>();
@@ -71,20 +104,36 @@ final class TimelineRows {
             shown.add(day);
             columns.add(new Column(date, str.agendaDay(date), str.columnName(date), i == 0, day.items));
         }
-        int[] range = WeekLayout.hourRange(shown);
-        return new Plan(columns, range[0], range[1], WeekCanvas.columnsBandHeight(shown, range, HOUR_DP), offset);
+        float hourDp = Math.max(MIN_HOUR_DP, (heightDp - HEAD_DP) / hours);
+        float bandDp = WeekCanvas.columnsBandHeight(shown, new int[] {0, 24}, hourDp);
+        int start = hours >= 24 ? 0 : Math.max(0, now.getHour() * 60 + now.getMinute() - LEAD_MINUTES);
+        int end = start + hours * 60;
+        TreeSet<Integer> cuts = new TreeSet<>();
+        for (int m = 0; m <= DAY_MINUTES; m += 60) cuts.add(m);
+        if (start > 0) {
+            cuts.add(start);
+            if (end < DAY_MINUTES) cuts.add(end);
+        }
+        int[] marks = new int[cuts.size()];
+        int i = 0;
+        for (int m : cuts) marks[i++] = m;
+        int band = bandDp > 0 ? 1 : 0;
+        float spacer = start > 0 && end > DAY_MINUTES ? (end - DAY_MINUTES) / 60f * hourDp : 0;
+        int scrollRow = -1;
+        if (start > 0) scrollRow = spacer > 0 ? band + marks.length - 1 : band + cuts.headSet(end).size() - 1;
+        return new Plan(columns, hourDp, bandDp, offset, marks, start > 0 ? start : -1, spacer, scrollRow);
     }
 
-    /** The picture cut into list rows, top to bottom; {@code scale} is pixels per dp, {@code widthPx} the picture's width. */
+    /** The picture cut into list rows, top to bottom (the blank row is not part of it); {@code scale} is pixels per dp, {@code widthPx} the picture's width. */
     static List<Bitmap> slices(WeekData data, Plan plan, WidgetTheme theme, WidgetStrings str, LocalDate today, int minutesNow, int widthPx, float scale) {
-        Bitmap all = WeekCanvas.drawColumns(data, theme, str, plan.offset, plan.columns.size(), today, minutesNow, widthPx, new int[] {plan.firstHour, plan.lastHour}, HOUR_DP, scale);
+        Bitmap all = WeekCanvas.drawColumns(data, theme, str, plan.offset, plan.columns.size(), today, minutesNow, widthPx, new int[] {plan.firstHour, plan.lastHour}, plan.hourDp, scale);
         List<Bitmap> rows = new ArrayList<>();
-        int top = 0, bandEnd = Math.round((WeekCanvas.PAD + plan.bandDp) * scale);
-        if (plan.bandDp > 0) top = cut(all, rows, 0, bandEnd);
-        float y = WeekCanvas.PAD + plan.bandDp;
-        for (int h = plan.firstHour; h < plan.lastHour; h++, y += HOUR_DP) {
-            boolean lastRow = h == plan.lastHour - 1;
-            top = cut(all, rows, top, lastRow ? all.getHeight() : Math.round((y + HOUR_DP) * scale));
+        int top = 0;
+        float gridTop = WeekCanvas.PAD + plan.bandDp;
+        if (plan.bandRows > 0) top = cut(all, rows, 0, Math.round(gridTop * scale));
+        for (int i = 1; i < plan.marks.length; i++) {
+            boolean last = i == plan.marks.length - 1;
+            top = cut(all, rows, top, last ? all.getHeight() : Math.round((gridTop + plan.marks[i] / 60f * plan.hourDp) * scale));
         }
         all.recycle();
         return rows;

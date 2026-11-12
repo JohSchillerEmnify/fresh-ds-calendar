@@ -6,7 +6,11 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Application;
+import android.appwidget.AppWidgetProvider;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -63,7 +67,11 @@ public class ScrollWidgetInflateTest {
     }
 
     private List<RemoteViews> items(Bundle options) {
-        return ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), options, TODAY, NOW);
+        return items(options, false);
+    }
+
+    private List<RemoteViews> items(Bundle options, boolean timeline) {
+        return ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), options, TODAY, NOW, timeline);
     }
 
     private static String text(Context ctx, RemoteViews rv, int id) {
@@ -76,9 +84,10 @@ public class ScrollWidgetInflateTest {
             for (String style : new String[] {"agenda", "timeline"}) {
                 new WidgetStore(ctx).clearAll();
                 new WidgetStore(ctx).saveSnapshot(snapshot(dark, style, 3, "2|Dentist|09:00|10:00"));
-                RemoteViews rv = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW);
+                boolean timeline = "timeline".equals(style);
+                RemoteViews rv = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW, timeline);
                 assertNotNull(style, rv.apply(ctx, new FrameLayout(ctx)));
-                for (RemoteViews row : items(size(250, 250))) assertNotNull(row.apply(ctx, new FrameLayout(ctx)));
+                for (RemoteViews row : items(size(250, 250), timeline)) assertNotNull(row.apply(ctx, new FrameLayout(ctx)));
             }
         }
         assertTrue(new WidgetStore(ctx).snapshot().optBoolean("dark"));
@@ -120,7 +129,7 @@ public class ScrollWidgetInflateTest {
     @Test
     public void timelineTapsOpenTheDay() throws Exception {
         new WidgetStore(ctx).saveSnapshot(snapshot(false, "timeline", 3, "2|Dentist|09:00|10:00"));
-        RemoteViews rv = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW);
+        RemoteViews rv = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW, true);
         View view = rv.apply(ctx, new FrameLayout(ctx));
         assertEquals(View.VISIBLE, view.findViewById(R.id.head).getVisibility());
         assertEquals(View.GONE, view.findViewById(R.id.d3).getVisibility());
@@ -132,7 +141,7 @@ public class ScrollWidgetInflateTest {
     @Test
     public void factoryHandsOutTheSameRowsOnOlderAndroid() throws Exception {
         new WidgetStore(ctx).saveSnapshot(snapshot(false, "agenda", 3, "2|Dentist|09:00|10:00"));
-        ScrollWidgetService.Factory factory = new ScrollWidgetService.Factory(ctx, 1, TODAY);
+        ScrollWidgetService.Factory factory = new ScrollWidgetService.Factory(ctx, 1, false, TODAY);
         factory.onDataSetChanged();
         assertEquals(2, factory.getCount());
         assertEquals("Dentist", text(ctx, factory.getViewAt(1), R.id.title));
@@ -141,7 +150,35 @@ public class ScrollWidgetInflateTest {
     @Test
     public void anEmptyAgendaShowsTheMessage() throws Exception {
         new WidgetStore(ctx).saveSnapshot(snapshot(false, "agenda", 3));
-        View view = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW).apply(ctx, new FrameLayout(ctx));
+        View view = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW, false).apply(ctx, new FrameLayout(ctx));
         assertEquals("Nothing planned", ((TextView) view.findViewById(R.id.empty)).getText().toString());
+    }
+
+    @Test
+    public void thePickerOffersAListAndAMultiDayWidget() throws Exception {
+        PackageManager pm = ctx.getPackageManager();
+        ActivityInfo list = pm.getReceiverInfo(new ComponentName(ctx, ScrollWidgetProvider.class), 0);
+        ActivityInfo multi = pm.getReceiverInfo(new ComponentName(ctx, MultiDayWidgetProvider.class), 0);
+        assertEquals("List", list.loadLabel(pm).toString());
+        assertEquals("Multi-day", multi.loadLabel(pm).toString());
+        assertTrue(new MultiDayWidgetProvider() instanceof AppWidgetProvider);
+    }
+
+    @Test
+    public void aListWidgetPlacedAsATimelineIsAListNow() throws Exception {
+        new WidgetStore(ctx).saveSnapshot(snapshot(false, "timeline", 3, "2|Dentist|09:00|10:00"));
+        View view = ScrollWidgetRenderer.build(ctx, 1, size(250, 250), TODAY, NOW, false).apply(ctx, new FrameLayout(ctx));
+        assertEquals(View.GONE, view.findViewById(R.id.head).getVisibility());
+        List<RemoteViews> rows = items(size(250, 250), false);
+        assertEquals("Wed 14 Oct", text(ctx, rows.get(0), R.id.title));
+    }
+
+    @Test
+    public void multiDayRowsEndInBlankSpaceWhenNowMinusHalfAnHourNeedsIt() throws Exception {
+        new WidgetStore(ctx).saveSnapshot(snapshot(false, "timeline", 3, "2|Dentist|09:00|10:00"));
+        Bundle o = size(250, 380);
+        TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, 3, new WidgetStrings("en"), 16, 380, LocalTime.of(14, 10));
+        assertEquals(plan.rowCount(), ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), o, TODAY, LocalTime.of(14, 10), true).size());
+        assertTrue(plan.spacerDp > 0);
     }
 }
