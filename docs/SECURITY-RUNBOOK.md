@@ -20,6 +20,7 @@ Docker volume mounted as `DATA_DIR` (`/data`). Background: ADR 0026.
 - [ ] Each person revokes the app at <https://myaccount.google.com/permissions>.
 - [ ] Rotate VAPID keys: `push.json` holds browser push endpoints and keys.
 - [ ] Delete old provider snapshots and backup copies that are no longer needed.
+- [ ] iPhone widget keys are stored only as hashes (ADR 0044); each person can still revoke them in Settings.
 
 ## A secret or private value reached the repo (leak guard hit after a push)
 

@@ -12,7 +12,7 @@ pnpm e2e                       # from the repo root: build, start TEST_MODE serv
 pnpm e2e --project=mobile      # extra args go to playwright
 pnpm e2e --grep @year
 E2E_BASE_URL=http://localhost:3000 bash e2e/run.sh   # use an already running TEST_MODE server (no build/start)
-bash e2e/run.sh --smoke        # @smoke only, against http://cal.mordor.local (--add-host cal.mordor.local:192.168.1.38)
+bash e2e/run.sh --smoke        # @smoke only, against a deployment (its defaults still name the old home server; set E2E_BASE_URL and E2E_HOST_IP)
 pnpm -F @calendar/e2e steps    # every STEPS.md expression implemented? (exit 1 on a difference)
 pnpm -F @calendar/e2e check    # bddgen (fails on undefined steps) + tsc
 ```
@@ -25,7 +25,8 @@ failing test-endpoint setup call warns instead of failing). Fallback if the 1.64
 `v1.63.0-noble` and pin both `@playwright/test` and the image to 1.63.0.
 
 Projects: `mobile` (default, 375x812 touch, everything except `@desktop`), `desktop` (1280x800, everything except
-`@mobile`, `@tablet` and `@perf`), `tablet` (820x1180 touch, an iPad; only scenarios tagged `@tablet`). `workers: 1` (one shared mock backend), timezone Europe/Berlin, locale en-GB.
+`@mobile`, `@tablet` and `@perf`), `tablet` (820x1180 touch, an iPad; only scenarios tagged `@tablet`), `iphone` (WebKit, an
+iPhone 13; only scenarios tagged `@iphone`). `@backlog` and `@unit` scenarios run nowhere. `workers: 1` (one shared mock backend), timezone Europe/Berlin, locale en-GB.
 
 ## Layout
 
@@ -34,13 +35,10 @@ grid, color, cdp, probes in `world.ts`), custom parameter types in `steps/parame
 `/api/__test/reset` ("the calendar is empty") and again after every scenario. The world fails any scenario in which the
 browser reports a `securitypolicyviolation` (the Content-Security-Policy is the one the server and Caddy send).
 
-## Check run against current master (no features implemented)
+## Running a part
 
-- `pnpm exec bddgen`: 0 undefined steps. 337 of 337 STEPS.md expressions implemented, 0 extra.
-- 690 tests (mobile 356, desktop 334): 4 passed (the `@smoke` health scenarios, which need no test endpoints), 686 failed.
-  Failures are expected: master has no `/api/__test/*` endpoints and none of the new UI.
-- Duration of that run: about 46 minutes (failing tests wait for timeouts). Use `--project=` or `--grep` while developing.
-- `run.sh --smoke` against the deployed site: 4 passed.
+The whole suite takes a long time; use `--project=` and `--grep` while developing (`pnpm e2e:affected` suggests the
+grep for what you changed). Only the `@smoke` and `@ci` scenarios run in CI; the nightly run takes everything.
 
 ## Assumptions and spec ambiguities
 

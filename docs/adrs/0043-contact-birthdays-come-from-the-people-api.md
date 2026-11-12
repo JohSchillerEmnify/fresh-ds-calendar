@@ -1,6 +1,6 @@
 # 0043: Contact birthdays come from the People API, behind an opt-in permission
 
-Status: proposed (issue 93, owner decisions recorded in its requirements file)
+Status: accepted and built (issue 93, owner decisions recorded in its requirements file)
 
 ## Decision
 

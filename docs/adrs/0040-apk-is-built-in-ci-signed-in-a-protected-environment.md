@@ -1,6 +1,6 @@
 # 0040 — The APK is built in CI, signed in a protected environment, shipped by the forced command
 
-- Status: proposed (owner decided the design, 2026-11-10)
+- Status: accepted and built (owner decided the design, 2026-11-10)
 - Supersedes: the "APK only from the laptop" part of ADR 0036. Views shaped: `deployment`
 
 ## Decision

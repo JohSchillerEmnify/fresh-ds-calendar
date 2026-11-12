@@ -1,5 +1,15 @@
 # Project brief (shared by all agents)
 
+> The original brief of 2026-10-12. The app has grown since; where a line below no longer holds, the list here wins,
+> and `spec/`, `docs/adrs/` and `docs/DEVELOPER-GUIDE.md` are the current source.
+> - Hosting: the app runs on a VPS under a public domain with HTTPS and a real Google sign-in, deployed by GitHub CD
+>   (ADR 0036, `docs/DEPLOYMENT.md`); the home-server and `.local` lines below are history.
+> - Languages: German and English (plus two fun languages), ADR 0021; settings are per person (ADR 0035).
+> - Task lists live in a hidden per-person Google calendar (ADR 0006); shared lists and templates live on the server
+>   (ADR 0011, 0024). Native Android app and widgets: ADR 0012, 0022; iPhone widget: ADR 0044.
+> - `spec/ACCEPTANCE.md` is gone; behaviour is in `spec/features/`, the architecture in `docs/architecture/`.
+> - Versions are in `package.json`, `pnpm-workspace.yaml` and the `Dockerfile`, not here.
+
 Owner request (2026-10-12): a Google Calendar clone, used mainly on Android and iOS phones,
 with embeddable, expandable task lists inside the calendar views. Spec-driven development.
 
@@ -10,15 +20,15 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
   - Collapsed in calendar views: shows the list title and the item titles (compact) plus a done count like `2/5`.
   - Tap/click: expands, items can be ticked/unticked, added, renamed, removed.
 - Everything syncs with Google Calendar in the background (Google Tasks would be nice, Calendar is required).
-- Real Google OAuth needs owner action (Google Cloud project, client ID, HTTPS domain; `.local` hosts
-  are not allowed as OAuth redirect). So: **mock Google backend now**, real adapter behind the same interface,
-  switchable by env var later.
+- Real Google OAuth needs a Google Cloud project, a client ID and an HTTPS domain (`.local` hosts are not allowed as
+  redirect). So the first build used a **mock Google backend**; the real adapter sits behind the same interface and is
+  chosen by `PROVIDER=mock|google` (the mock is still used for development and tests).
 - Mobile-first responsive UI, installable PWA (manifest + icons). Must also work on desktop.
-- Deployed on the home server at `http://cal.mordor.local` via Traefik.
+- Deployed behind a reverse proxy (originally a home server, now a VPS; see the note above).
 
 ## Fixed technical decisions
-- Monorepo at `/home/sauron/projects/calendar`:
-  - `spec/` Gherkin `.feature` files (the single source of truth), `ACCEPTANCE.md`, `ARCHITECTURE.md`, `API.md`.
+- Monorepo with `shared/` (code used by web and server) next to the folders below:
+  - `spec/` Gherkin `.feature` files (the single source of truth), `ARCHITECTURE.md`, `API.md`.
   - `server/` Node 22 + TypeScript + Fastify. Vitest for unit/integration tests (use `fastify.inject`).
   - `web/` Vue 3 (Composition API, `<script setup lang="ts">`) + Vite + TypeScript + Pinia + Vue Router + date-fns.
     Vitest + @vue/test-utils + jsdom for unit/component tests.
@@ -27,29 +37,25 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
   `extendedProperties.private.kind = "tasklist"`; items stored in `extendedProperties.private.items` (JSON, chunked
   if > 1024 chars) and mirrored human-readably into the event description as `☐ item` / `☑ item` lines, so the
   list is readable in the official Google Calendar app too.
-- Backend `CalendarProvider` interface with two implementations:
+- Backend `CalendarProvider` interface with two implementations (original design; the storage detail above was refined by ADR 0006):
   - `MockGoogleProvider`: emulates Google Calendar API v3 semantics (ids, etag, updated, extendedProperties,
     syncToken-ish). Persists to a JSON file in `DATA_DIR` (default `./data`). Seeds a few demo events/task lists
     when empty (disable with `SEED=false`).
-  - `GoogleProvider`: real implementation using `googleapis`, OAuth2 refresh token from env. Implemented and unit
-    tested with mocked HTTP, but not active. Selected via `PROVIDER=mock|google`.
+  - `GoogleProvider`: real implementation on `@googleapis/calendar`, with each person's own sign-in (ADR 0008).
+    Selected via `PROVIDER=mock|google`.
 - Server serves the built web app as static files and the REST API under `/api`. Single container.
-- Week starts Monday everywhere. Timezone Europe/Berlin default. UI language English. 24h time.
+- Week starts Monday everywhere. Timezone Europe/Berlin default. 24h time. (UI language: see the note above.)
 - Every UI element used by tests gets a stable `data-testid`.
-- Toolchain: Node 24.21.0 LTS at `~/.local/opt/node-v24.21.0-linux-x64/bin` (prepend to PATH; system node is 18),
-  with pnpm 12.11.2 installed globally in that Node (`packageManager` field pins it). No sudo. Playwright browsers:
-  run e2e inside the docker image matching the `@playwright/test` version (see "Stack (final)").
-  Immich is stopped for now, ~5 GB RAM free. Still avoid more than 2 heavy jobs (docker build / Playwright) at once.
-- Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` builds from the monorepo, joins external
-  network `proxy-network`, Traefik labels `Host(\`cal.mordor.local\`)`, `TZ=Europe/Berlin`, data volume `./data`.
-  Follow the style of `/home/sauron/docker-compose/filebrowser/docker-compose.yaml`.
+- Toolchain: Node and pnpm versions are pinned by `.nvmrc`, `engines` and the `packageManager` field; Playwright runs in
+  the docker image matching the `@playwright/test` version (see `e2e/README.md`). Avoid more than 2 heavy jobs
+  (docker build / Playwright) at once.
+- Deployment: `deploy/docker-compose.yaml` and `deploy/vps/compose.yml`; `TZ=Europe/Berlin`, one data volume.
 
 ## Update: mobile first + installable (owner, 2026-10-12)
 - Mobile first is the primary target (phones 375–430px portrait). Desktop must work but is secondary.
 - Installable as an app on iOS and Android from the browser = PWA (manifest, icons incl. maskable + apple-touch-icon,
   service worker via vite-plugin-pwa, iOS meta tags, Android install button, iOS "Add to Home Screen" hint).
-- Full install/offline needs HTTPS (secure context). http://cal.mordor.local is not secure, so HTTPS on Traefik
-  is an owner action. Tests check PWA bits on localhost.
+- Full install/offline needs HTTPS (secure context); the public deployment has it. Tests check PWA bits on localhost.
 
 ## Update: efficiency, leaks, Material 3 (owner, 2026-10-12)
 - Resource efficiency is a priority (server RAM/CPU, image size, bundle size, phone battery). Stack may change per
@@ -60,7 +66,7 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 
 ## Update: prettiness, settings, categories (owner, 2026-10-12)
 - Not an exact Google clone; looks matter. Settings screen: theme seed color (presets + custom) generating M3
-  dynamic palettes, theme mode System/Light/Dark, persisted server-side (/api/settings).
+  dynamic palettes, theme mode System/Light/Dark, persisted server-side (`/api/settings`, per person since ADR 0035).
 - Task lists have a user-defined category (name, color, icon) + optional tags; filter calendar by category/tag.
   Default categories: Shopping, To-do, Work, Home. Events can pick a color.
 
@@ -94,20 +100,20 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - Butterfly: on app open lands on a sunflower, flaps, flies away (~3-4 s, once per session, Full animations only).
 
 ## Stack (final, from docs/RESEARCH.md "Decision"; overrides the fixed decisions above)
-- Node 24.21.0 LTS (Docker `node:24.21.0-alpine3.24`), pnpm 12.11.2 workspaces (`server`, `web`, `e2e`, `catalog:`),
-  slim image via `pnpm deploy --prod`. Move to Node 26 LTS after 2026-10-28.
-- Server: Hono 4.13 + `@hono/node-server` 2.1 (not Fastify); tests use `app.request()`. Google via
-  `@googleapis/calendar` + `google-auth-library`, never the full `googleapis`.
-- Web: Vue 3.5, vue-router 5, Pinia 4, date-fns 4, @vueuse/core 15, Vite 8, TypeScript ~6.0 + vue-tsc 3.3.
+- Node 24 LTS (Docker `node:24.x-alpine`), pnpm workspaces (`server`, `web`, `e2e`, `shared`, `catalog:`),
+  slim image via `pnpm deploy --prod`.
+- Server: Hono + `@hono/node-server` (not Fastify); tests use `app.request()`. Google via
+  `@googleapis/calendar`, `@googleapis/people` + `google-auth-library`, never the full `googleapis`.
+- Web: Vue 3.5, vue-router, Pinia, vue-i18n, date-fns, @vueuse/core, Vite, TypeScript + vue-tsc.
 - UI: hand-built M3 Expressive components on `--md-sys-*` CSS tokens; colors from `@material/material-color-utilities`
   (default seed inlined in `web/src/theme/tokens.css`, user seed generated at runtime by a lazy chunk). Icons:
   `unplugin-icons` + Material Symbols (inline SVG). System fonts. No component library.
-- PWA: vite-plugin-pwa 2. Unit tests: Vitest 5, @vue/test-utils 2.5, jsdom 30.
-- E2E: `@playwright/test` 1.64.0 + playwright-bdd 9.2.1 in `mcr.microsoft.com/playwright:v1.64.0-noble` (versions must match).
-- Gates: size-limit budgets (`pnpm size`), heap/DOM growth and soak tests. Container: `mem_limit: 192m`,
-  `NODE_OPTIONS=--max-old-space-size=96 --heapsnapshot-signal=SIGUSR2`.
+- PWA: vite-plugin-pwa. Unit tests: Vitest, @vue/test-utils, jsdom.
+- E2E: `@playwright/test` + playwright-bdd in the matching `mcr.microsoft.com/playwright` image (versions must match).
+- Gates: `pnpm verify` (incl. `pnpm quality` ratchet), size-limit budgets (`pnpm size`), heap/DOM growth and soak tests.
+  Container: see `deploy/docker-compose.yaml` (`mem_limit`, `NODE_OPTIONS`).
 
 ## Update: Mordor theme (owner, 2026-10-12)
 - Secondary theme "Mordor": ember-on-black palette preset + top-bar scene with original SVG Barad-dûr and
-  flickering Eye of Sauron (eye opens on app open). Settings "Scene": Sunflower field / Mordor / None.
-  Settings field `scene`, preset id `mordor` (seed #c43e00).
+  flickering Eye of Sauron (eye opens on app open). The scene is now one of many (`spec/API.md` "Scenes"), stored in
+  the person's theme; preset id `mordor` (seed #c43e00).

@@ -40,7 +40,7 @@ The remaining time must be stated in words and shown as a shrinking quantity, at
   switch, planned buffers, and written "where I paused" markers, especially to break hyperfocus. [S11][S12]
 
 **Implication:** the app needs a live now line, a "time left / starts in" read-out with a progress bar, and in-app
-transition warnings a few minutes before an event. Notifications are a later option once HTTPS exists.
+transition warnings a few minutes before an event. Notifications came later with HTTPS: Web Push for the installed web app and system notifications in the Android app (feature `reminders`).
 
 ### 1.3 Out of sight, out of mind [practice] [research]
 - Community and practitioner sources consistently report that tasks and planners that are not visible are forgotten.
@@ -328,8 +328,8 @@ Mapped to `spec/features/` tags. P1 = must, P2 = should, P3 = optional (`@option
 | R12 | Calm mode: hides item previews and tags on cards, mutes item colours, no motion or celebrations animation. | P2 | 1.4 | adhd-support |
 | R13 | The Now card shows the next small task (first unticked item of the oldest open list for today). | P2 | 1.7 | adhd-support |
 | R14 | Supportive language everywhere: no "failed" or "missed" wording; overdue uses the tertiary colour, not error red. | P1 | 1.3, 1.4 | open-tasks |
-| R15 | Recurring task lists (daily, weekly, monthly) with per-occurrence ticks. | P3 | 1.7 | adhd-support `@optional` |
-| R16 | System notifications for transition warnings. They need HTTPS, permission and push support (iOS only for installed PWAs). | P3 | 1.2 | documented only |
+| R15 | Recurring task lists (daily, weekly, monthly) with per-occurrence ticks. | P3 | 1.7 | tasklists-repeating |
+| R16 | System notifications for transition warnings. They need HTTPS, permission and push support (iOS only for installed PWAs). | P3 | 1.2 | reminders (built) |
 | R18 | Rewarding tick: springy checkbox with check-draw, animated strike-through, sparkle burst (≤ 700 ms, non-blocking, removed from the DOM afterwards). | P1 (owner) | 1.5, 1.8 | reward |
 | R19 | List completion celebration: larger burst, card bounce, progress ring fills to 100 %, "All done! 🎉". | P1 (owner) | 1.5, 1.8 | reward |
 | R20 | Micro-interactions on FAB, sheet open/close and view switch, using springs (M3 Expressive). | P2 | 1.8 | reward |
@@ -348,9 +348,9 @@ Mapped to `spec/features/` tags. P1 = must, P2 = should, P3 = optional (`@option
 | R33 | Transition warnings as system notifications in the Android app (the in-app warning when the app is closed). | P1 (proposed) | 1.2, 1.11, 1.21 | – |
 | R34 | Look back: a calm "what I did" view (done lists and past events of the day/week), offered after a gap instead of overdue counts. | P2 (proposed) | 1.21, 1.22 | – |
 | R35 | Estimate, then measure: for a task list with an estimate, record when it was started and finished and show estimate vs actual over time, without judgement. | P2 (proposed) | 1.6, 1.22 | – |
-| R36 | Shared calendar with the partner as the core social support (already planned: `shared-lists`), and widgets / lock-screen presence as the glanceable "separate" place. | P1 (proposed) | 1.21 | – |
+| R36 | Sharing with another person as the core social support (`shared-lists`), and widgets / lock-screen presence as the glanceable "separate" place (Android and iPhone widgets are built). | P1 (proposed) | 1.21 | shared-lists |
 | R37 | Energy-aware day: optional energy level per entry or time of day (LGO session 6–7) shown as a soft band. | P3 (proposed) | 1.22 | – |
-| R17 | Later ideas, not specified: estimate vs. actual learning, body-doubling or sharing, energy-based planning, lock-screen widgets (not possible for a PWA). | – | 1.6, 1.7 | – |
+| R17 | Later ideas, not specified: estimate vs. actual learning, body-doubling or sharing, energy-based planning, lock-screen widgets (not possible for a PWA; the native Android widgets and the iPhone Scriptable widget exist). | – | 1.6, 1.7 | – |
 
 ## 3. Sources
 

@@ -3,12 +3,22 @@
 Research date 2026-10-13, deepened 2026-10-14 (tool issue trackers, Apple docs). Question (owner): is there really no way to ship a native iOS
 app, or at least an iOS home-screen widget, without owning an Apple device for development and without paying a lot?
 
+## What came of it
+
+- **Built:** the Scriptable widget, with a per-device widget key created in Settings (ADR 0044, issue #95; script in
+  `ios/widget/`, scenarios in `spec/features/app/iphone-widget.feature`). Small, medium and large sizes and the lock
+  screen are covered; a configurable number of days is issue #108.
+- **Built:** Web Push reminders for the installed web app (`server/src/services/push.ts`), on the public HTTPS domain.
+- **Not built:** a native iOS app. The reasoning below still holds.
+
+The research below is from October 2026 and is kept as the reasoning behind these choices.
+
 ## Short answer
 
 - **Notifications on iPhone**: yes, free, no native app: an installed PWA gets Web Push (iOS 16.4+). Needs HTTPS (the
   planned domain). [I1]
 - **A home-screen widget**: yes, free, no Mac: the free **Scriptable** app runs a JavaScript widget that can call the
-  calendar API and draw the week like the Android widget (DrawContext). Refresh timing is up to iOS. [I2][I3]
+  calendar API and draw the week like the Android widget (DrawContext). Refresh timing is up to iOS. [I2][I3] (Built, see above.)
 - **A real native app**: possible without a Mac (cloud macOS builds or `xtool` on Linux) and without paying, but a free
   Apple ID signs for **7 days, max 3 apps per device**, so it must be re-signed weekly (SideStore on the phone after a
   one-time PC setup, or AltServer/Sideloadly on the Windows PC). Widgets need an App Group to share data with the app;
@@ -47,9 +57,9 @@ app, or at least an iOS home-screen widget, without owning an Apple device for d
 
 ## Recommendation
 
-1. **HTTPS first** (the planned Cloudflare DNS-01 setup): it unlocks the PWA install on iPhone, Declarative Web Push for
+1. **HTTPS first** (done: the app runs on its own domain with HTTPS): it unlocks the PWA install on iPhone, Declarative Web Push for
    the bedtime and transition reminders, and a safe target for a widget script.
-2. **Widget: a Scriptable script**, written by us, pasted once into the free Scriptable app: today's clock or the
+2. **Widget: a Scriptable script** (done, ADR 0044), written by us, pasted once into the free Scriptable app: today's clock or the
    week, drawn like the Android widgets, authenticated with a per-device token (a small server addition, revocable in
    Settings). No Mac, no money, no weekly re-signing.
 3. **A native iOS app only with the 99 USD/year program.** Without it, the 7-day signature, the 3-app limit and the

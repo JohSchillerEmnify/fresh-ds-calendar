@@ -1,21 +1,22 @@
 # Deployment guide
 
-How the calendar app is built, deployed and installed. Everything runs from the laptop checkout: the GitHub repository
-is the source, the public server (VPS) only runs what the laptop ships. The architecture is in `docs/architecture`
+How the calendar app is built, deployed and installed. The GitHub repository is the source. After a green CI run on
+`main`, GitHub Actions deploys it to the public server (VPS); the laptop deploys by hand only when that automatic deploy is off. The architecture is in `docs/architecture`
 (LikeC4) and `docs/adrs`; this page is the runbook.
 
 ## Overview
 
 | What | Where | How it updates |
 |---|---|---|
-| Source | `git@github.com:JohSchillerEmnify/fresh-ds-calendar.git` (remote `github`), branch `main` | merge on the laptop, `git push github main` |
-| Production | `https://cal.example.org` (VPS, Caddy terminates HTTPS) | `scripts/vps.sh deploy` from the laptop, by hand after a merge |
-| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built on the laptop with `scripts/android-build.sh --no-publish`, shipped by `scripts/vps.sh apk` (CD deploys the server, the signing key stays on the laptop) |
+| Source | `github.com/<owner>/<repo>` (remote `github`), branch `main` | merge, `git push github main` |
+| Production | `https://cal.example.org` (VPS, Caddy terminates HTTPS) | automatic after a green CI run ("Automatic deploy" below); `scripts/vps.sh deploy` from the laptop only when that is off or for `compose.yml` and the Caddyfile |
+| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built, signed and shipped by CD when native code changed (ADR 0040); by hand with `scripts/android-build.sh --no-publish` and `scripts/vps.sh deploy` |
 
-There is no automatic deploy and no preview deployment any more: to show work before a merge, run it locally
-(`pnpm dev:server` and `pnpm dev:web`). sauron is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`,
-`scripts/deploy.sh`, `scripts/preview-branch.sh`, and the auto-deploy git hooks in `scripts/hooks`, which the laptop
-does not enable) are still in the repo but not part of this flow.
+There is no preview deployment: to show work before a merge, run it locally (`pnpm dev:server` and `pnpm dev:web`).
+The old home server is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`, `auto-preview.sh`,
+`deploy.sh`, `deploy-status.sh`, `preview.sh`, `preview-branch.sh`, `rundir.sh`, `deploy/docker-compose.yaml` and the
+`post-commit` / `post-merge` git hooks in `scripts/hooks`, which `pnpm hooks:install` does not enable) are still in the
+repo but not part of this flow.
 
 ## Release flow
 
@@ -30,7 +31,8 @@ does not enable) are still in the repo but not part of this flow.
    ```
 
 3. Merge into `main` (adding the release-notes lines, see below) and push: `git push github main`.
-4. Deploy (next section).
+4. Watch the CI and Deploy runs (`gh run list --branch main --limit 3`); CD deploys after a green CI. The by-hand deploy
+   (next section) is for when CD is off.
 
 ## Production deploy (VPS)
 

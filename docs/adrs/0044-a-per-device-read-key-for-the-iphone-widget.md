@@ -1,6 +1,6 @@
 # 0044 A per-device read key and the Scriptable app give the iPhone a widget
 
-Status: proposed (issue #95; number 0044 because 0043 is taken on `feat/93-contact-birthdays`)
+Status: accepted and built (issue #95)
 
 ## Decision
 - The iPhone widget is a JavaScript script run by the free Scriptable app. It cannot use the web app's session cookie (it

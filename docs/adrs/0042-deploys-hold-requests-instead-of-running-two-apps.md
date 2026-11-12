@@ -1,6 +1,6 @@
 # 0042 — Deploys hold requests at Caddy instead of running two app instances
 
-- Status: proposed (issue #74, part 3)
+- Status: accepted and built (issue #74, part 3)
 - Views shaped: `deployment`
 
 ## Decision

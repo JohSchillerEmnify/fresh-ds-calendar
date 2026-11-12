@@ -1,5 +1,9 @@
 # Settings audit (2026-11-01)
 
+> A snapshot from before the Settings screen was regrouped. Since then the groups and the search were built
+> (`settings-groups`, `settings-search`) and `/api/settings` became per person (ADR 0035), so problem 1 below is fixed;
+> the counts and the "wrong place" findings describe the old page.
+
 What the Settings screen holds today, where each setting lives, and what is wrong with it. The proposed new structure
 is in [`settings-tree.md`](settings-tree.md); the behaviour is specified in `spec/features/app/settings-groups.feature`
 and `spec/features/app/settings-search.feature` (all `@backlog`).

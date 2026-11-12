@@ -5,6 +5,10 @@ shell, phone-first). Evidence labels follow `docs/ADHD-RESEARCH.md`: **[research
 clinicians/community, **[product]** vendor pages (marketing, not evidence). `[unverified]` marks claims I could not
 confirm from a primary source.
 
+> Status (2026-11-12): idea 1 (Now / Next) and idea 4 (Bedtime runway) exist as Labs views (`/now`, `/runway`; features
+> `labs-now-next`, `labs-bedtime-runway`); the Labs Timeline and the Android widgets also came after this text. The other
+> ideas are still open. Below is the research as written on 2026-10-23.
+
 ## Summary
 
 The app already covers most "time as space" ideas: proportional timelines, a now line, a Now card with countdown, an
