@@ -24,7 +24,7 @@ const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
 const circleOptions = computed(() => (['time', 'countdown'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.circle.${v}`), testid: `settings-widget-circle-${v}` })));
 const layoutOptions = computed(() => (['standard', 'timeline'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.layout.${v}`), testid: `settings-widget-layout-${v}` })));
-const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: String(n), testid: `settings-widget-days-${n}` }));
+const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: String(n), testid: `settings-widget-days-${n}` }));
 const adding = ref(false);
 const removing = ref<WidgetKey | null>(null);
 
@@ -72,7 +72,7 @@ async function remove() {
     </SettingRow>
     <SettingRow v-if="prefs.widgetLayout === 'timeline'" id="widgetTimelineDays" wide :label="t('iphoneWidget.days.label')">
       <template #sub><span class="sub" data-testid="settings-widget-days-hint">{{ t('iphoneWidget.days.hint') }}</span></template>
-      <SegmentedButton connected :model-value="prefs.widgetTimelineDays" :options="dayOptions" :label="t('iphoneWidget.days.label')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: $event as WidgetTimelineDays })" />
+      <SegmentedButton connected :model-value="String(prefs.widgetTimelineDays)" :options="dayOptions" :label="t('iphoneWidget.days.label')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: Number($event) as WidgetTimelineDays })" />
     </SettingRow>
   </SettingSection>
   <IphoneWidgetSheet v-if="adding" @close="adding = false" />

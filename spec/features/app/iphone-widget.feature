@@ -162,7 +162,7 @@ Feature: iPhone widgets through Scriptable
       Then the timeline days are set to "5"
 
     @visual
-    Scenario: The iPhone section with the Timeline chosen looks right in light and dark
+    Scenario: The iPhone section with the Timeline chosen looks right in the light theme
       When I open the iPhone widget settings
       And I set the iPhone widget layout to "Timeline"
       And I set the timeline days to "5"
