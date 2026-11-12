@@ -1,3 +1,7 @@
+> Historical: the orchestrator's notes of the first build day (2026-10-12). The previews, auto-deploy hooks, host names
+> and process rules below were replaced by GitHub issues, `AGENTS.md`, `docs/DEPLOYMENT.md` and `docs/adrs/`. Do not follow
+> them; kept only as a record.
+
 # >>> HANDOFF: READ FIRST (another Claude session worked here while you were rate-limited) <<<
 
 Written by a separate Claude Code session (driven by the owner from the owner's laptop over ssh), 2026-10-12 from 12:30,

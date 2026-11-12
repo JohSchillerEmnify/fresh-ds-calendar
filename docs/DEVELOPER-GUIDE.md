@@ -76,7 +76,7 @@ Where things live:
 | `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `docs/architecture/`, `docs/adrs/` | LikeC4 model and views; architecture decision records |
-| `BRIEF.md` | Owner brief and fixed technical decisions |
+| `BRIEF.md`, `PLAN.md` | The original owner brief and the first build day's notes (history; the spec and ADRs are current) |
 | `docs/` | Research, deployment and backlog notes |
 
 Android: `scripts/android-build.sh` (needs `CAL_DOMAIN` or `CAL_SERVER_URL`) builds the APK in Docker and signs it with
