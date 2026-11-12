@@ -9,7 +9,9 @@ adb logcat -c
 ./gradlew --no-daemon connectedDebugAndroidTest
 status=$?
 adb logcat -d > "$log"
-if grep -E "FATAL EXCEPTION|has died: .*lan\.mordor\.calendar|Process lan\.mordor\.calendar .*has died" "$log" > "$log.crash"; then
+# other processes (Play services on the emulator image) may crash; only the app's own crash counts
+{ grep -A3 "FATAL EXCEPTION" "$log" | grep "Process: lan.mordor.calendar"; grep -E "Process lan\.mordor\.calendar .*has died" "$log"; } > "$log.crash"
+if [ -s "$log.crash" ]; then
   echo "::error::the device log shows a crash of the app"
   head -40 "$log.crash"
   exit 1

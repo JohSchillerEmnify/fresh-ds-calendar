@@ -47,7 +47,7 @@ public class WidgetSmokeTest {
         seedAppCopy("agenda");
         run("logcat -c");
         // binding needs the signature permission BIND_APPWIDGET that a launcher holds; the shell can grant it (exists since API 26, used by AOSP's CTS)
-        run("appwidget grantbind --package " + ctx.getPackageName() + " --user current");
+        run("appwidget grantbind --package " + ctx.getPackageName() + " --user 0");
         AppWidgetManager manager = AppWidgetManager.getInstance(ctx);
         AppWidgetHost host = new AppWidgetHost(ctx, HOST_ID);
         List<Integer> ids = new ArrayList<>();
@@ -60,7 +60,7 @@ public class WidgetSmokeTest {
                 for (AppWidgetProviderInfo info : providers) {
                     int id = host.allocateAppWidgetId();
                     ids.add(id);
-                    assertTrue("bind " + info.provider, manager.bindAppWidgetIdIfAllowed(id, info.provider));
+                    assertTrue("bind " + info.provider, bind(manager, id, info));
                     AppWidgetHostView view = host.createView(ctx, id, info);
                     assertNotNull(info.provider.getClassName(), view);
                     views.add(view);
@@ -83,8 +83,8 @@ public class WidgetSmokeTest {
             for (int round = 0; System.currentTimeMillis() < end; round++) {
                 for (int i = 0; i < ids.size(); i++) sendUpdate(providers.get(i).provider, ids.get(i));
                 if (round % 4 == 1) WeekWidgetProvider.enqueueFetch(ctx);
-                if (round % 4 == 2) ctx.sendBroadcast(new Intent(Intent.ACTION_DATE_CHANGED).setPackage(ctx.getPackageName()));
-                if (round % 4 == 3) ctx.sendBroadcast(new Intent(Intent.ACTION_TIME_CHANGED).setPackage(ctx.getPackageName()));
+                if (round % 4 == 2) run("am broadcast -a android.intent.action.DATE_CHANGED -p " + ctx.getPackageName()); // protected: only the shell may send it
+                if (round % 4 == 3) run("am broadcast -a android.intent.action.TIME_SET -p " + ctx.getPackageName());
                 Thread.sleep(3000);
             }
         } finally {
@@ -92,6 +92,16 @@ public class WidgetSmokeTest {
             host.stopListening();
         }
         assertNoCrashInLog();
+    }
+
+    /** The shell grant can take a moment to reach the widget service right after the app was installed. */
+    private boolean bind(AppWidgetManager manager, int id, AppWidgetProviderInfo info) throws Exception {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            if (manager.bindAppWidgetIdIfAllowed(id, info.provider)) return true;
+            run("appwidget grantbind --package " + ctx.getPackageName() + " --user 0");
+            Thread.sleep(1000);
+        }
+        return false;
     }
 
     private void sendUpdate(ComponentName provider, int id) {
@@ -102,11 +112,16 @@ public class WidgetSmokeTest {
     private void assertNoCrashInLog() throws Exception {
         String log = run("logcat -d -b crash -b main -b system");
         String pkg = ctx.getPackageName();
-        for (String line : log.split("\n")) {
-            boolean ours = line.contains(pkg);
-            assertFalse("crash in the device log: " + line, line.contains("FATAL EXCEPTION"));
-            assertFalse("crash in the device log: " + line, ours && line.contains("has died"));
-            assertFalse("crash in the device log: " + line, ours && line.contains("ANR in"));
+        String[] lines = log.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            // other processes (Play services on the emulator image) crash too; only the app's own crash counts
+            if (line.contains("FATAL EXCEPTION")) {
+                for (int j = i; j < Math.min(i + 4, lines.length); j++) {
+                    assertFalse("crash of the app in the device log: " + lines[j], lines[j].contains("Process: " + pkg));
+                }
+            }
+            assertFalse("crash in the device log: " + line, line.contains(pkg) && (line.contains("has died") || line.contains("ANR in")));
         }
     }
 

@@ -52,6 +52,11 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    // calls newer than minSdk compile fine against compileSdk but throw NoSuchMethodError on older phones
+    lint {
+        checkOnly 'NewApi' // the one lint check that gates; the others are not set up for this app
+        abortOnError true
+    }
     testOptions {
         unitTests.includeAndroidResources = true
     }

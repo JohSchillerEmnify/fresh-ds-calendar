@@ -111,6 +111,9 @@ jobs:
       - run: pnpm exec cap sync android
       - run: ./gradlew testDebugUnitTest
         working-directory: android
+      # NewApi errors (a call newer than minSdk 26) fail the build: they only show up as crashes on older phones
+      - run: ./gradlew :app:lintDebug
+        working-directory: android
 
   # Does the APK differ from what the last green run saw? Then the emulator job runs; otherwise it is skipped (which
   # "CI result" accepts), so a web-only change does not pay for two emulator boots.
