@@ -1,6 +1,6 @@
 /**
  * Touch-screen CSS rules that the test browsers cannot show by behaviour (owner, 2026-10-25, iPhone): the page does not
- * rubber-band, a long press selects no text outside fields, and no hover state stays behind after a tap.
+ * rubber-band, nothing is selectable outside fields and an event's description, place and notes, and no hover state stays behind after a tap.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -23,12 +23,12 @@ describe('touch CSS', () => {
     expect(styles).toMatch(/^html \{ overscroll-behavior: none; \}/m);
   });
 
-  it('touch screens: no text selection or callout on the calendar; dialogs, settings pages and fields keep them (owner, 2026-10-26)', () => {
-    const coarse = styles.slice(styles.indexOf('@media (pointer: coarse)'));
-    const kept = "input, textarea, select, [contenteditable], [contenteditable] *, [role='dialog'], [role='dialog'] *, section.page, section.page *";
-    expect(coarse).toContain(`body, body :where(*:not(${kept})) {\n    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;`);
-    expect(coarse).toMatch(/:where\(\[role='dialog'\], section\.page\) \{\s*-webkit-user-select: text; user-select: text; -webkit-touch-callout: default;/);
-    expect(coarse).toMatch(/:where\(input, textarea, select, \[contenteditable\]:not\(\[contenteditable='false'\]\)\) \{\s*-webkit-user-select: text; user-select: text;/);
+  it('nothing is selectable or gets a long-press callout on any pointer; fields and event description, place and notes are (owner, 2026-11-12)', () => {
+    const kept = "input, textarea, select, [contenteditable], [contenteditable] *, [data-selectable], [data-selectable] *";
+    expect(styles).not.toMatch(/@media \(pointer: coarse\) \{\s*body, body :where/);
+    expect(styles).toContain(`body, body :where(*:not(${kept})) {\n  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;`);
+    expect(styles).toMatch(/:where\(input, textarea, select, \[contenteditable\]:not\(\[contenteditable='false'\]\), \[data-selectable\], \[data-selectable\] \*\) \{\s*-webkit-user-select: text; user-select: text; -webkit-touch-callout: default;/);
+    expect(styles).not.toContain("section.page");
   });
 
   it('every :hover rule outside the labs only applies to a real pointer (@media (hover: hover) on the same line)', () => {

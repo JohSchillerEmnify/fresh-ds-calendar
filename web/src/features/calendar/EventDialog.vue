@@ -302,12 +302,12 @@ function remove() {
       </header>
       <p class="lab" data-testid="event-readonly-date">{{ original.special ? `${t(`calendar.item.${original.special}`)} · ${original.start}` : whenText }}</p>
       <template v-if="original.location">
-        <p class="lab" data-testid="event-readonly-location">
+        <p class="lab" data-selectable data-testid="event-readonly-location">
           <span class="on">{{ readOnlyPlace?.name ?? original.location }}</span><template v-if="readOnlyPlace?.address"><br><span data-testid="event-location-address">{{ readOnlyPlace.address }}</span></template>
         </p>
         <EventMap v-if="readOnlyPlace" :place="readOnlyPlace" :tile-url="clock.config.mapTileUrl" />
       </template>
-      <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
+      <p v-if="original.description" class="lab" data-selectable data-testid="event-readonly-description">{{ original.description }}</p>
       <p v-if="age !== null" class="lab" data-testid="birthday-age">{{ t('calendar.event.turns', { n: age }) }}</p>
       <p v-if="fromContacts" class="lab" data-testid="event-readonly-hint">{{ t('calendar.event.contactHint') }}</p>
       <p v-else-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
