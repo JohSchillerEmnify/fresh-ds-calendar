@@ -185,6 +185,3 @@ When('I set the timeline days to {string}', async function (this: World, label: 
   expect((await saved).status(), 'prefs saved').toBe(200);
 });
 
-Then('the timeline days row is not offered', async function (this: World) {
-  await expect(this.page.getByTestId('settings-widget-days')).toHaveCount(0);
-});

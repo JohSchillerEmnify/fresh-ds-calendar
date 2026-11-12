@@ -62,7 +62,7 @@ describe('buildWidgetSnapshot', () => {
 
   it('carries the next 14 days, the style and the number of days', () => {
     const far = ev('f', 'Far', '2026-10-27T09:00:00+02:00', '2026-10-27T10:00:00+02:00');
-    const s = buildWidgetSnapshot({ items: [far], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), androidWidgetStyle: 'timeline', androidWidgetDays: 5 });
+    const s = buildWidgetSnapshot({ items: [far], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), androidWidgetStyle: 'timeline', timelineDays: 5 });
     expect(s.days[15].events.map((e) => e.title)).toEqual(['Far']);
     expect([s.scrollStyle, s.scrollDays]).toEqual(['timeline', 5]);
     expect([build([]).scrollStyle, build([]).scrollDays]).toEqual(['agenda', 3]);

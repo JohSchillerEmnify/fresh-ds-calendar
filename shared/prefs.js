@@ -121,7 +121,8 @@ export const PREFS = {
   androidWidgetStyle: oneOf(['agenda', 'timeline'], 'agenda', 'androidWidgetStyle must be agenda or timeline'),
   androidWidgetDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'androidWidgetDays must be a whole number from 1 to 7'),
   widgetLayout: oneOf(['standard', 'timeline'], 'standard', 'widgetLayout must be standard or timeline'),
-  widgetTimelineDays: oneOf([1, 2, 3, 4, 5, 6, 7], 3, 'widgetTimelineDays must be 1 to 7'),
+  // null = never chosen: the day count then follows the older Android choice (see timelineDays)
+  widgetTimelineDays: { default: null, parse: (v) => (Number.isInteger(v) && v >= 1 && v <= 7 ? ok(v) : { error: 'widgetTimelineDays must be 1 to 7' }) },
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
   headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
@@ -131,6 +132,11 @@ export const PREFS = {
   calendarPlans: { default: {}, parse: (v) => { const r = toCalendarPlans(v); return r ? ok(r) : { error: 'Invalid calendarPlans' }; } },
   contactsOfferDismissed: bool(false),
 };
+
+/** The one day count of the Timeline on iPhone and Android: the shared choice, else the older Android choice, else 3. */
+export function timelineDays(prefs) {
+  return prefs.widgetTimelineDays ?? prefs.androidWidgetDays ?? 3;
+}
 
 /** The preference names, in table order. */
 export const PREF_KEYS = Object.keys(PREFS);

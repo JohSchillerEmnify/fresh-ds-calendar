@@ -16,7 +16,6 @@ export default {
   done: 'Fertig',
   circle: { label: 'Kreis auf dem Sperrbildschirm', time: 'Startzeit', countdown: 'Countdown', hint: 'Der Countdown kann ein paar Minuten nachgehen.' },
   layout: { label: 'Darstellung', standard: 'Standard', timeline: 'Zeitleiste', hint: 'Das mittlere und das große Widget können die nächsten Tage als Spalten zeigen.' },
-  days: { label: 'Tage in der Zeitleiste', hint: 'Wie viele Tage die Zeitleiste ab heute zeigt.' },
   guide: {
     s1: 'Installiere die kostenlose App Scriptable:',
     getScriptable: 'Scriptable laden',

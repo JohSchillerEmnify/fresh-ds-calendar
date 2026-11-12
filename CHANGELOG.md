@@ -1,8 +1,8 @@
 # Changelog
 
 ## 2026-11-12
-- Android: a new scrolling "List" home screen widget shows the next 14 days, either as an Agenda or as a Timeline with the days side by side and the hours running down; choose the style and 1 to 7 days in Settings › Widgets › Android.
-- iPhone widget: a new Timeline layout shows the next days side by side, starting today, with the hours running top to bottom. Choose it and the number of days (1 to 7) in Settings › Widgets › iPhone.
+- Android: a new scrolling "List" home screen widget shows the next 14 days, either as an Agenda or as a Timeline with the days side by side and the hours running down; choose the style in Settings › Widgets › Android and the number of days (1 to 7) under Timeline (iPhone and Android).
+- iPhone widget: a new Timeline layout shows the next days side by side, starting today, with the hours running top to bottom. Choose the layout in Settings › Widgets › iPhone; the number of days (1 to 7) is one setting under Timeline (iPhone and Android) that the Android Timeline shares.
 - Settings has a new group, Widgets, with an iPhone section (moved here from Account & app) and an Android section that explains how to add the home screen widgets.
 - Fixed: a long task list title in a grown list now wraps onto a second line instead of being cut off.
 

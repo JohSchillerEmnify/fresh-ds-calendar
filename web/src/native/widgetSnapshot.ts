@@ -73,7 +73,8 @@ export interface SnapshotInput {
   categoriesOn?: boolean;
   /** The "List widget" settings: Agenda (default) or Timeline, and the Timeline's days (default 3). */
   androidWidgetStyle?: AndroidWidgetStyle;
-  androidWidgetDays?: number;
+  /** The shared Timeline day count (default 3). */
+  timelineDays?: number;
 }
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -107,5 +108,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: listColor(l, input.categoriesOn ?? true) }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollStyle: input.androidWidgetStyle ?? 'agenda', scrollDays: input.androidWidgetDays ?? 3 };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollStyle: input.androidWidgetStyle ?? 'agenda', scrollDays: input.timelineDays ?? 3 };
 }

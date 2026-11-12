@@ -21,7 +21,9 @@ Feature: iPhone widgets through Scriptable
   The iPhone section of Settings › Widgets also offers a layout: Standard (as above) or Timeline. With the Timeline the
   medium and large widgets draw the next days as columns from today, hours from top to bottom, as many days as the person
   picks (1 to 7, default 3). The hours are fitted to the entries of those days, because the widget cannot scroll. The
-  small widget and the lock screen do not change. The two settings belong to the iPhone section only; they are per person.
+  small widget and the lock screen do not change. The layout belongs to the iPhone section; the day count is one setting in
+  its own section "Timeline (iPhone and Android)" of Widgets settings, shared with the Android List widget's Timeline, and a day
+  count chosen earlier for the Android widget carries over until one is chosen there. Both are per person.
 
   Background:
     Given the calendar is empty
@@ -151,10 +153,9 @@ Feature: iPhone widgets through Scriptable
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
 
-    Scenario: The layout and the number of days are set in the iPhone section
+    Scenario: The layout is set in the iPhone section and the number of days in the Timeline section
       When I open the iPhone widget settings
       Then the iPhone widget layout is set to "Standard"
-      And the timeline days row is not offered
       When I set the iPhone widget layout to "Timeline"
       Then the iPhone widget layout is set to "Timeline"
       And the timeline days are set to "3"
@@ -173,6 +174,7 @@ Feature: iPhone widgets through Scriptable
       Given the device prefers a dark color scheme
       When I open the iPhone widget settings
       And I set the iPhone widget layout to "Timeline"
+      And I set the timeline days to "2"
       Then the "settings page" still looks like "settings-iphone-timeline-dark"
 
     Scenario: The key is not shown again later
@@ -352,7 +354,7 @@ Feature: iPhone widgets through Scriptable
       And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
       And the calendar contains an event "Dinner" on 2026-10-17 from 19:00 to 21:00
       And the iPhone widget layout is chosen as "timeline"
-      And the iPhone widget timeline is set to 3 days
+      And the timeline days are chosen as 3
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "medium" size
       Then the iPhone widget shows the timeline of 3 days from 2026-10-14
@@ -376,7 +378,7 @@ Feature: iPhone widgets through Scriptable
       And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
       And the calendar contains an event "Night" on 2026-10-17 from 22:00 to 23:00
       And the iPhone widget layout is chosen as "timeline"
-      And the iPhone widget timeline is set to 2 days
+      And the timeline days are chosen as 2
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the hours from 09:00 to 19:00
@@ -386,7 +388,7 @@ Feature: iPhone widgets through Scriptable
     Scenario: The Timeline can show a whole week from today
       Given the calendar contains an event "Review" on 2026-10-20 from 14:00 to 15:00
       And the iPhone widget layout is chosen as "timeline"
-      And the iPhone widget timeline is set to 7 days
+      And the timeline days are chosen as 7
       And the widget key "My iPhone" belongs to "jo@example.com"
       When I look at the iPhone widget in the "large" size
       Then the iPhone widget shows the timeline of 7 days from 2026-10-14
@@ -482,9 +484,26 @@ Feature: iPhone widgets through Scriptable
       When the iPhone widget refreshes with the key "My iPhone"
       Then the widget data carries the iPhone widget layout "standard" and 3 timeline days
       Given the iPhone widget layout is chosen as "timeline"
-      And the iPhone widget timeline is set to 5 days
+      And the timeline days are chosen as 5
       When the iPhone widget refreshes with the key "My iPhone"
       Then the widget data carries the iPhone widget layout "timeline" and 5 timeline days
+
+    # unit: server/test/widget-keys.test.ts:falls back to the earlier Android day count
+    @unit
+    Scenario: A day count chosen earlier for the Android widget carries over
+      Given the earlier Android day count was 5
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the iPhone widget layout "standard" and 5 timeline days
+      Given the timeline days are chosen as 2
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the iPhone widget layout "standard" and 2 timeline days
+
+    # unit: web/test/widget-snapshot.test.ts:carries the next 14 days
+    @unit
+    Scenario: The Android widget uses the same day count
+      Given the timeline days are chosen as 4
+      Then the Android widget snapshot carries 4 timeline days
 
     # unit: server/test/prefs.test.ts:timeline days
     @unit

@@ -104,6 +104,15 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await data(other.key)).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: 3 });
   });
 
+  it('falls back to the earlier Android day count until the shared one is chosen', async () => {
+    const key = await mint(ann);
+    await t.json('PATCH', '/api/prefs', { androidWidgetDays: 5 }, as(ann));
+    expect((await data(key.key)).body.widgetTimelineDays).toBe(5);
+    await t.json('PATCH', '/api/prefs', { widgetTimelineDays: 2 }, as(ann));
+    expect((await data(key.key)).body.widgetTimelineDays).toBe(2);
+    expect((await t.json('GET', '/api/prefs', undefined, as(ann))).body.androidWidgetDays).toBe(5);
+  });
+
   it('carries the app language of the key\'s person, auto by default', async () => {
     const key = await mint(jo);
     expect((await data(key.key)).body.language).toBe('auto');
