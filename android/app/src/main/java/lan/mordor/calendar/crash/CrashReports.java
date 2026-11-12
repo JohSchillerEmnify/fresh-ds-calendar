@@ -1,5 +1,6 @@
 package lan.mordor.calendar.crash;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.ApplicationExitInfo;
 import android.content.Context;
@@ -36,6 +37,7 @@ public final class CrashReports {
     }
 
     /** {@code getHistoricalProcessExitReasons(null, 0, 0)}: all records of the app's package, newest first, from a ring buffer. */
+    @TargetApi(30) // only called when SDK_INT >= 30 (see take)
     private static List<ExitReasonReader.Exit> systemExits(Context context) {
         List<ExitReasonReader.Exit> out = new ArrayList<>();
         try {
@@ -53,6 +55,7 @@ public final class CrashReports {
         return out;
     }
 
+    @TargetApi(30) // ApplicationExitInfo exists from API 30
     private static String traceOf(ApplicationExitInfo info) {
         try (InputStream in = info.getTraceInputStream()) {
             if (in == null) return null;
