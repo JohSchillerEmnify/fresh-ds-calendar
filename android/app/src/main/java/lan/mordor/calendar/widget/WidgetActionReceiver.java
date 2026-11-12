@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * Receives the widgets' own broadcasts (the refresh icon's tap and the clock's 5-minute tick). It is not exported, so
+ * Receives the widgets' own broadcasts (the refresh icon's tap and the 5-minute tick of the clock and Multi-day widgets). It is not exported, so
  * only this app can send them; the exported widget providers take nothing but the system's widget broadcasts.
  */
 public class WidgetActionReceiver extends BroadcastReceiver {
@@ -16,10 +16,11 @@ public class WidgetActionReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (ACTION_REFRESH.equals(action)) {
-            WeekWidgetProvider.renderAll(context);
+            WeekWidgetProvider.renderAll(context, true);
             WeekWidgetProvider.enqueueFetch(context);
         } else if (ACTION_TICK.equals(action)) {
             ClockWidgetProvider.renderAll(context);
+            ScrollWidgetProvider.renderMultiDay(context, false, java.time.LocalDate.now(), java.time.LocalTime.now());
         }
     }
 }

@@ -75,11 +75,16 @@ public class WeekWidgetProvider extends AppWidgetProvider {
 
     /** Redraws every widget instance (week, clock, day, list) from the stored data. */
     static void renderAll(Context context) {
+        renderAll(context, false);
+    }
+
+    /** {@code force}: the refresh icon's tap, which redraws even what looks unchanged. */
+    static void renderAll(Context context, boolean force) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        for (int id : manager.getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class))) WidgetRenderer.render(context, manager, id);
+        for (int id : manager.getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class))) WidgetRenderer.render(context, manager, id, force);
         ClockWidgetProvider.renderAll(context);
         DayWidgetProvider.renderAll(context);
-        ScrollWidgetProvider.renderAll(context);
+        ScrollWidgetProvider.renderAll(context, force);
     }
 
     /** Whether at least one widget (week, clock, day or list) is on a home screen. */

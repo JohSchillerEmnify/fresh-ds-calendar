@@ -33,19 +33,19 @@ public class ClockWidgetProvider extends AppWidgetProvider {
     @Override
     public void onEnabled(Context context) {
         WeekWidgetProvider.schedulePeriodicFetch(context);
-        scheduleTicks(context, true);
+        scheduleTicks(context);
     }
 
     @Override
     public void onDisabled(Context context) {
-        scheduleTicks(context, false);
+        scheduleTicks(context);
         if (!WeekWidgetProvider.hasWidgets(context)) WeekWidgetProvider.cancelPeriodicFetch(context);
     }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         for (int id : ids) render(context, manager, id);
-        scheduleTicks(context, true);
+        scheduleTicks(context);
         WeekWidgetProvider.enqueueFetch(context);
     }
 
@@ -111,12 +111,12 @@ public class ClockWidgetProvider extends AppWidgetProvider {
         return o.getInt(land ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 160);
     }
 
-    /** Starts (or stops) the 5-minute redraw; inexact and not waking the phone. */
-    static void scheduleTicks(Context context, boolean on) {
+    /** Starts the 5-minute redraw while a clock or Multi-day widget is placed, else stops it; inexact and not waking the phone. */
+    static void scheduleTicks(Context context) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent i = new Intent(context, WidgetActionReceiver.class).setAction(WidgetActionReceiver.ACTION_TICK);
         PendingIntent pi = PendingIntent.getBroadcast(context, 1, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         am.cancel(pi);
-        if (on && ids(context).length > 0) am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + TICK_MS, TICK_MS, pi);
+        if (ids(context).length > 0 || ScrollWidgetProvider.hasMultiDay(context)) am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + TICK_MS, TICK_MS, pi);
     }
 }

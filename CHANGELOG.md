@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-12
+- Fixed: the refresh button on the Android widgets now redraws them, and the Multi-day widget moves its now line and opening time on by itself every quarter of an hour.
 - New: Settings › Widgets › Timeline has a "Text size in the Timeline" slider from 90 % to 150 % (110 % to start with). It makes the text bigger or smaller in the Multi-day widget on Android and in the Timeline of the iPhone widget.
 - iPhone widget: the script updates itself to the new version; the Timeline texts are a little larger now, as chosen in Settings.
 - Fixed: in Settings › Error log, the switch for sending reports automatically no longer sits too far to the left.
