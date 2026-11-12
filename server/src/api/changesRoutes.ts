@@ -10,6 +10,7 @@ import type { Ctx } from '../context.js';
 import { validation } from '../lib/errors.js';
 import { dayNumber, isLocalDate } from '../lib/time.js';
 import { windowOf } from '../services/changeFeed.js';
+import { calendarList } from './routeHelpers.js';
 import type { CalendarService, ChangeState } from '../services/calendar.js';
 
 /** `p` is a short hash of the person the cursor was made for: another person's cursor is no cursor. */
@@ -60,8 +61,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const prev = decodeCursor(c.req.query('cursor'), sub);
 
     // the calendar list is small and always answered in full; reading it first fills the service's calendar cache
-    const hidden = ctx.prefs.hiddenCalendars(sub);
-    const calendars = (await cal.calendars()).map((k) => ({ ...k, hidden: hidden.includes(k.id) }));
+    const calendars = await calendarList(ctx, sub, cal);
 
     // per-person files: a version each, the file itself only when the version moved
     const sources: Record<string, () => unknown> = {

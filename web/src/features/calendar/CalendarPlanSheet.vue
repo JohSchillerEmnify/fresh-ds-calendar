@@ -16,7 +16,7 @@ const props = defineProps<{ calendarId: string }>();
 const emit = defineEmits<{ close: [] }>();
 const cals = useCalendarsStore();
 const clock = useClockStore();
-const cal = computed(() => cals.list.find((c) => c.id === props.calendarId));
+const cal = computed(() => cals.find(props.calendarId));
 const plan = cals.planOf(props.calendarId);
 
 /** Step values `Sun`..`Sat` are the plan's days 0..6; labels follow the language, Monday first. */

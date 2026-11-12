@@ -117,6 +117,16 @@ When('I switch the calendar off in its settings page', async function (this: Wor
   await expect(control).toHaveAttribute('aria-checked', 'false');
 });
 
+When('I switch the calendar on in its settings page', async function (this: World) {
+  const control = this.page.getByTestId('settings-calendar-shown');
+  if ((await control.getAttribute('aria-checked')) === 'false') {
+    const saved = answered(this, 'PATCH', /^\/api\/calendars\/.+/);
+    await control.click();
+    expect((await saved).ok(), 'saved').toBe(true);
+  }
+  await expect(control).toHaveAttribute('aria-checked', 'true');
+});
+
 Then('{string} no longer has the holiday region {string} in Google', async function (this: World, email: string, name: string) {
   const id = await this.api.holidayId(codeOf(name), 'official');
   expect((await this.api.remoteCalendars(email)).some((c) => c.id === id)).toBe(false);

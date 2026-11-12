@@ -44,6 +44,11 @@ Given('Google has a hidden calendar {string}', async function (this: World, summ
   await this.api.remoteInsertCalendar(summary, true);
 });
 
+Then('Google still has the calendar {string} switched off in its list', async function (this: World, summary: string) {
+  const cals = await calendarsNamed(this, summary);
+  expect(cals.map((c) => c.hidden), `calendars "${summary}" in Google`).toEqual([true]);
+});
+
 Then('Google has a hidden calendar {string} with the event {string}', async function (this: World, summary: string, title: string) {
   await expect
     .poll(async () => {

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-12
+- Changed: the task lists calendar works like your other calendars in Settings › Calendars: it has its colour dot and plan line, and its page lets you show or hide it, set its colour and plan, and choose its default reminders.
 - Changed: the Multi-day view is now called "Multi-day" (German: "Mehrere Tage") on iPhone and Android alike, and the iPhone layout "Standard" is now "List & week".
 - Fixed: text and buttons can no longer be selected by accident; event descriptions, places and notes can still be copied.
 - New: the calendar that holds your task lists has a colour setting now (Settings › Calendars › Task lists calendar), just like your other calendars. Task lists follow it.

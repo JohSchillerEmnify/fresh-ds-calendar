@@ -1015,6 +1015,7 @@ the settings page shows the setting {string}
 the settings page does not show the setting {string}
 I turn off {string} in the settings
 I open the calendar {string} in the settings
+the calendar {string} in the settings shows the colour {string}
 the settings show the plan {string} for the calendar {string}
 I choose {string} for {string} in the settings
 {string} is chosen for {string} in the settings
@@ -2421,6 +2422,8 @@ the main calendar has no event {string}
 Google has exactly one calendar {string}
 the filter bar does not offer the calendar {string}
 I turn on {string} in the settings
+Google still has the calendar {string} switched off in its list
+the task lists default reminders show {string}
 ```
 
 - "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
@@ -2431,6 +2434,12 @@ I turn on {string} in the settings
 - The task lists calendar's settings page is opened like a calendar's: `I open the calendar "Task lists calendar" in the
   settings`. Its Color row is the one of `@id:calendar-colours` (same steps; the save is `PATCH /api/calendar-colors/tasks-calendar`
   here), and "Google lists the calendar {string} with the palette colour N" also finds a calendar by its Google summary.
+- "the calendar X in the settings shows the colour C": the colour dot (`::before`) of X's row in the Calendars group has
+  background colour C. The task lists calendar's page has the rows of any calendar's page (`Show this calendar`, `Color`, `Plan`,
+  `Default reminders`); its reminders are saved with `PATCH /api/reminders/tasks-calendar` (the `I add the default reminder R
+  for the calendar C` step waits for that or `PATCH /api/calendars/:id`), and "the task lists default reminders show L" reads the
+  chips of `reminders-tasks-calendar` in Settings › Reminders. "Google still has the calendar S switched off in its list": exactly
+  one Google calendar with that summary, and it is hidden (the app's Show switch never writes it).
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
@@ -4524,6 +4533,7 @@ I add the holiday region {string} as {string}
 I add the holiday region {string} without a question
 I remove the holiday calendar
 I switch the calendar off in its settings page
+I switch the calendar on in its settings page
 Google's holiday calendar of {string} has the holiday {string} on {date}
 Google knows only the public holidays of {string}
 Google has no holiday calendar for {string}
@@ -4547,7 +4557,7 @@ the sheet says that adding a region needs a connection
 - Region names are English (the e2e app language) and the mock's regions are the curated list; "offer"/"do not offer" read the
   `holiday-region` buttons left after the search. "I remove the holiday calendar" clicks `holiday-calendar-remove` on the calendar's
   settings page and waits for `DELETE /api/holiday-calendars/:id`, after which the calendars list is shown. "I switch the calendar
-  off": clicks `settings-calendar-shown` while it is on and waits for `PATCH /api/calendars/:id`.
+  off": clicks `settings-calendar-shown` while it is on and waits for `PATCH /api/calendars/:id`; "on" does the same while it is off.
 - Givens work on the mock Google: "Google's holiday calendar of R has the holiday H on D" puts an all-day event into the public
   calendar `en.<region>.official#holiday@group.v.calendar.google.com` (Google's public calendars exist without being subscribed);
   "knows only the public holidays of R" / "has no holiday calendar for R" make the plain / every variant answer 404 to the

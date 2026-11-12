@@ -11,7 +11,7 @@ import { parsePrefsPatch } from '@calendar/shared/prefs';
 import { canvasDocSchema, defaultRemindersSchema, calendarColorPickSchema, createBirthdaySchema, createEventSchema, parse, parseTemplate, updateEventSchema } from '../lib/validation.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { registerChanges } from './changesRoutes.js';
-import { alsoRange, body, range, readItems, type RouteDeps } from './routeHelpers.js';
+import { alsoRange, body, calendarList, range, readItems, type RouteDeps } from './routeHelpers.js';
 import { registerSettings } from './settingsRoutes.js';
 import { registerWidgetKeys } from './widgetRoutes.js';
 import { registerTaskLists } from './taskListRoutes.js';
@@ -112,8 +112,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/release-notes', (c) => c.json({ notes: ctx.overrides.notes ?? ctx.releaseNotes }));
 
   r.get('/calendars', async (c) => {
-    const hidden = ctx.prefs.hiddenCalendars(person(c));
-    return c.json({ calendars: (await cal(c).calendars()).map((k) => ({ ...k, hidden: hidden.includes(k.id) })) });
+    return c.json({ calendars: await calendarList(ctx, person(c), cal(c)) });
   });
   r.patch('/calendars/:id', async (c) => {
     const id = c.req.param('id');
@@ -122,12 +121,15 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b?.hidden === undefined && b?.defaultReminders === undefined && b?.color === undefined && b?.colorId === undefined) throw validation('hidden must be a boolean', 'hidden');
     if (b.hidden !== undefined && typeof b.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
     const minutes = b.defaultReminders === undefined ? undefined : parse(defaultRemindersSchema, b.defaultReminders);
-    if (!(await cal(c).calendars()).some((x) => x.id === id)) throw notFound('Calendar not found');
+    // the task lists calendar is a list entry for its settings page: its colour and reminders have their own endpoints
+    const isTasks = id === (await cal(c).tasks.id());
+    if (isTasks && (minutes || b.color !== undefined || b.colorId !== undefined)) throw validation('Only hidden can be set here', 'hidden');
+    if (!isTasks && !(await cal(c).calendars()).some((x) => x.id === id)) throw notFound('Calendar not found');
     if (minutes) await cal(c).setDefaultReminders(id, minutes);
     if (b.color !== undefined || b.colorId !== undefined) await cal(c).setColor(id, parse(calendarColorPickSchema, { color: b.color, colorId: b.colorId }));
     if (typeof b.hidden === 'boolean') ctx.prefs.setHidden(person(c), id, b.hidden);
-    const k = (await cal(c).calendars()).find((x) => x.id === id)!;
-    return c.json({ ...k, hidden: ctx.prefs.hiddenCalendars(person(c)).includes(id) });
+    const k = (await calendarList(ctx, person(c), cal(c))).find((x) => x.id === id)!;
+    return c.json(k);
   });
   r.get('/holiday-regions', async (c) => c.json({ regions: await cal(c).holidays.regions(c.req.query('lang')) }));
   r.post('/holiday-calendars', async (c) => {

@@ -150,10 +150,17 @@ Then('the reminder settings show {string} for the calendar {string}', async func
   await expect.poll(async () => (await section.getByTestId('calendar-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
 });
 
+Then('the task lists default reminders show {string}', async function (this: World, list: string) {
+  const expected = list.split(',').map((s) => s.trim()).filter(Boolean);
+  const editor = this.byTestId('reminders-tasks-calendar');
+  await expect.poll(async () => (await editor.getByTestId('tasks-default-reminder').allTextContents()).map((s) => s.trim())).toEqual(expected);
+});
+
 When('I add the default reminder {string} for the calendar {string}', async function (this: World, label: string, name: string) {
   const section = await calendarSection(this, name);
   await section.getByTestId('calendar-default-reminder-add').click();
-  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname.startsWith('/api/calendars/') && r.request().method() === 'PATCH');
+  // the task lists calendar saves through its own reminders endpoint
+  const saved = this.page.waitForResponse((r) => /^\/api\/(calendars\/|reminders\/tasks-calendar)/.test(new URL(r.url()).pathname) && r.request().method() === 'PATCH');
   await section.getByTestId('calendar-default-reminder-option').filter({ hasText: exactText(label) }).click();
   expect((await saved).status(), 'calendar default saved').toBe(200);
 });

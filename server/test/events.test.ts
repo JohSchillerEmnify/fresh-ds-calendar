@@ -175,6 +175,7 @@ describe('calendars, config, health, errors', () => {
       { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, defaultReminders: [], hidden: false },
       { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, defaultReminders: [], hidden: false },
       { id: 'birthdays', name: 'Birthdays', color: '#9fc6e7', primary: false, writable: false, defaultReminders: [], hidden: false, virtual: true, contactsPermission: 'granted' },
+      { id: expect.any(String), name: 'Calendar app: tasks', color: expect.any(String), primary: false, writable: false, defaultReminders: [], hidden: false, tasks: true },
     ]);
   });
 
@@ -182,7 +183,7 @@ describe('calendars, config, health, errors', () => {
     const r = await t.json('PATCH', '/api/calendars/work', { hidden: true });
     expect(r.status).toBe(200);
     expect(r.body.hidden).toBe(true);
-    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: { hidden: boolean }) => c.hidden)).toEqual([false, true, false]);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: { hidden: boolean }) => c.hidden)).toEqual([false, true, false, false]);
     await t.json('PATCH', '/api/calendars/work', { hidden: false });
     expect((await t.json('GET', '/api/calendars')).body.calendars.every((c: { hidden: boolean }) => !c.hidden)).toBe(true);
     expect((await t.json('PATCH', '/api/calendars/nope', { hidden: true })).status).toBe(404);

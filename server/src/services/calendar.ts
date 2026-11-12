@@ -22,7 +22,7 @@ import {
   nextCompletedOn, privateSize,
   type TaskListData,
 } from './taskCodec.js';
-import { TasksCalendar } from './tasksCalendar.js';
+import { TASKS_CALENDAR_SUMMARY, TasksCalendar } from './tasksCalendar.js';
 import { EventWrites } from './eventWrites.js';
 import { ItemQueries } from './itemQueries.js';
 import { BIRTHDAYS_COLOR, BIRTHDAYS_ID, etagEq, inContactsCalendar, isContactsCalendarId, specialOf } from './eventRules.js';
@@ -217,6 +217,12 @@ export class CalendarService {
     if (id === BIRTHDAYS_ID) return this.setBirthdaysColor(pick);
     if (!(await this.eventCalendars()).some((c) => c.id === id)) throw notFound('Calendar not found');
     await this.writeColor(id, pick);
+  }
+
+  /** The tasks calendar as an entry of the person's calendar list (`tasks: true`); {@link calendars} leaves it out because it holds no events. Created on first use. */
+  async tasksEntry(): Promise<Calendar> {
+    const id = await this.tasks.id();
+    return { id, name: TASKS_CALENDAR_SUMMARY, color: await this.calendarColor(id), primary: false, writable: false, defaultReminders: await this.tasksDefaultReminders(), tasks: true };
   }
 
   /** The person's colour of their tasks calendar, which is not in {@link calendars} (created on first use like any task list access). */

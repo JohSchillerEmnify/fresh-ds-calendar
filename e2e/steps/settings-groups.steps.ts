@@ -110,6 +110,11 @@ When('I open the calendar {string} in the settings', async function (this: World
   await expect(groupPage(this)).toHaveAttribute('data-group', name);
 });
 
+Then('the calendar {string} in the settings shows the colour {string}', async function (this: World, name: string, hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  await expect.poll(() => row(this, name).evaluate((el) => getComputedStyle(el, '::before').backgroundColor)).toBe(`rgb(${r}, ${g}, ${b})`);
+});
+
 When('I search the settings for {string}', async function (this: World, query: string) {
   if (!(await this.page.getByTestId('settings-home').isVisible())) await openSettingsHome(this);
   await this.page.getByTestId('settings-search').fill(query);

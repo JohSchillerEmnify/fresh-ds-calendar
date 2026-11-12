@@ -19,12 +19,22 @@ export function setPlanSource(s: PlanSource): void {
 }
 
 // the server names the virtual Birthdays calendar in English; the device copy keeps that, the screen shows the app language
-const named = (c: Calendar): Calendar => (c.virtual && c.id === 'birthdays' ? { ...c, name: t('calendar.birthdaysCalendar') } : c);
+const named = (c: Calendar): Calendar => (c.virtual && c.id === 'birthdays' ? { ...c, name: t('calendar.birthdaysCalendar') } : c.tasks ? { ...c, name: t('settingsNav.labels.tasksCalendar') } : c);
 
 /** Every calendar of the person with their hidden choice and plan (feature calendar-off-plan). Toggling is instant; the server is told in the background. */
 export const useCalendarsStore = defineStore('calendars', () => {
   const raw = ref<Calendar[]>([]);
-  const list = computed(() => raw.value.map(named));
+  // the task lists calendar holds no events: it is no chip and no calendar to create in, so `list` leaves it out and its page reads `tasksCalendar`
+  const list = computed(() => raw.value.filter((c) => !c.tasks).map(named));
+  const tasksCalendar = computed(() => {
+    const c = raw.value.find((k) => k.tasks);
+    if (!c) return undefined;
+    // its colour and reminders are device files of their own (saved by their own endpoints), which win over the entry
+    const device = useDeviceStore();
+    return { ...named(c), color: device.file<{ color: string }>('tasksCalendarColor')?.color ?? c.color, defaultReminders: device.file<{ defaultReminders: number[] }>('tasksCalendarReminders')?.defaultReminders ?? c.defaultReminders };
+  });
+  /** A calendar of the list, or the task lists calendar. */
+  const find = (id: string): Calendar | undefined => (tasksCalendar.value?.id === id ? tasksCalendar.value : list.value.find((c) => c.id === id));
   let saving = 0;
   const clock = useClockStore();
   const nowWall = computed(() => wallNow(clock.today, clock.minutesNow));
@@ -94,6 +104,10 @@ export const useCalendarsStore = defineStore('calendars', () => {
 
   /** Replaces a calendar's popup reminder defaults (Google's `defaultReminders`); shown at once, rolled back on failure. */
   async function setDefaultReminders(id: string, minutes: number[]): Promise<void> {
+    if (tasksCalendar.value?.id === id) {
+      useDeviceStore().putFile('tasksCalendarReminders', await api.setTasksCalendarReminders(minutes));
+      return;
+    }
     const before = raw.value;
     raw.value = before.map((c) => (c.id === id ? { ...c, defaultReminders: minutes } : c));
     saving++;
@@ -121,5 +135,5 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, stored: raw, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
+  return { list, tasksCalendar, find, stored: raw, hidden, isHidden, planOf, nowWall, load, fromDevice, toggle, setPlan, setDefaultReminders, setColor };
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** One calendar's settings page: whether it shows (same choice as its filter chip), its colour, its plan (feature calendar-off-plan) and its default reminders. */
+/** One calendar's settings page, also the task lists calendar's: whether it shows (same choice as its filter chip), its colour, its plan (feature calendar-off-plan) and its default reminders. */
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from '@/components/m3/Button.vue';
@@ -21,7 +21,7 @@ const props = defineProps<{ calendarId: string }>();
 const cals = useCalendarsStore();
 const ui = useUiStore();
 const router = useRouter();
-const cal = computed(() => cals.list.find((c) => c.id === props.calendarId));
+const cal = computed(() => cals.find(props.calendarId));
 onMounted(() => { void cals.load().catch(() => undefined); });
 
 /** Takes the holiday calendar out of the person's Google list and returns to the calendars. */
@@ -49,11 +49,11 @@ async function saveDefaults(minutes: number[]) {
 <template>
   <template v-if="cal">
     <SettingSection>
-      <SettingRow id="showCalendar" :label="t('settingsNav.labels.showCalendar')" :hint="t('settingsNav.labels.showCalendarHint')">
+      <SettingRow id="showCalendar" :label="t('settingsNav.labels.showCalendar')" :hint="cal.tasks ? undefined : t('settingsNav.labels.showCalendarHint')">
         <Switch :model-value="!cal.hidden" :label="t('settingsNav.labels.showCalendar')" data-testid="settings-calendar-shown" @update:model-value="cals.toggle(cal.id)" />
       </SettingRow>
       <SettingRow id="color" wide :label="t('calendar.event.fields.color')">
-        <CalendarColorRow :calendar-id="cal.id" />
+        <CalendarColorRow :calendar-id="cal.id" :tasks="cal.tasks" />
       </SettingRow>
       <SettingRow id="plan" link :label="t('settingsNav.labels.plan')" :hint="planSummary(cal.id)" testid="settings-calendar-plan" @open="ui.openDialog('calendar-plan', { calendarId: cal.id })" />
       <SettingRow v-if="!cal.virtual" id="defaultReminders" wide :label="t('settingsNav.labels.defaultReminders')" :hint="t('settings.reminders.intro')">
