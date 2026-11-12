@@ -109,6 +109,14 @@ public class ScrollRowsTest {
     }
 
     @Test
+    public void theTextSizeIsReadFromTheCopyAndKeptInBounds() throws Exception {
+        assertEquals(110, ScrollRows.choice(null).textPercent);
+        assertEquals(110, ScrollRows.choice(new JSONObject("{}")).textPercent);
+        for (int p : new int[] {90, 110, 150}) assertEquals(p, ScrollRows.choice(new JSONObject("{\"scrollTextPercent\":" + p + "}")).textPercent);
+        for (int bad : new int[] {85, 155, 200, 112}) assertEquals(110, ScrollRows.choice(new JSONObject("{\"scrollTextPercent\":" + bad + "}")).textPercent);
+    }
+
+    @Test
     public void germanDayHeadersReadLikeTheApp() {
         assertEquals("Mi 14. Okt", new WidgetStrings("de").agendaDay(TODAY));
         assertEquals("Mo 12. Okt", new WidgetStrings("de-x-coldmirror").agendaDay(MONDAY));

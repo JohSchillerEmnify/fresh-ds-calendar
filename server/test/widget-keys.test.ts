@@ -104,6 +104,14 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await data(other.key)).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: 3 });
   });
 
+  it('carries the timeline text size of the key\'s person, 110 by default', async () => {
+    const key = await mint(jo);
+    expect((await data(key.key)).body.widgetTimelineTextSize).toBe(110);
+    await t.json('PATCH', '/api/prefs', { widgetTimelineTextSize: 150 }, as(jo));
+    expect((await data(key.key)).body.widgetTimelineTextSize).toBe(150);
+    expect((await data((await mint(ann)).key)).body.widgetTimelineTextSize).toBe(110);
+  });
+
   it('falls back to the earlier Android day count until the shared one is chosen', async () => {
     const key = await mint(ann);
     await t.json('PATCH', '/api/prefs', { androidWidgetDays: 5 }, as(ann));

@@ -152,6 +152,8 @@ export interface Prefs {
   widgetLayout: WidgetLayout;
   /** How many days the Timeline of the iPhone and the Android widget shows, 1 to 7; null until chosen (then `androidWidgetDays`, else 3; see `timelineDays`). */
   widgetTimelineDays: WidgetTimelineDays | null;
+  /** The text size of the iPhone Timeline and the Android Multi-day widget in percent, 90 to 150 in steps of 5 (default 110). */
+  widgetTimelineTextSize: number;
   /** What the top bar shows of the streak: off (the default), flame or plant. */
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */

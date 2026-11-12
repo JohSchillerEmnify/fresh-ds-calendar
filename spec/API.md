@@ -241,6 +241,8 @@ are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMi
 
 **Tray width** (`prefs.trayWidth`, per person, feature `open-tasks-in-sight`): whole number of px from `260` to `560`, default `380`: the width of the desktop open-tasks side panel. Anything else answers 400 `VALIDATION_ERROR` (field `trayWidth`).
 
+**Timeline text size** (`prefs.widgetTimelineTextSize`, per person, feature `iphone-widget`): whole percent from `90` to `150` in steps of `5`, default `110`: the text size of the iPhone Timeline and the Android Multi-day widget. Anything else answers 400 `VALIDATION_ERROR` (field `widgetTimelineTextSize`).
+
 **Month scrolling** (`prefs.monthScroll`, per person, feature `month-vertical`): `sideways | vertical | vertical-snap`, default `sideways`. `vertical` stacks the
 months in one list that scrolls up and down; `vertical-snap` is the same list, one month per page. Any other value answers 400 `VALIDATION_ERROR` (field `monthScroll`).
 
@@ -547,7 +549,7 @@ person: every route below lists and changes only the signed-in person's keys, an
 - The routes a key opens are this and `/api/widget/script`: header `Authorization: Bearer <key>`. A key on any other `/api/*` route answers **401
   `UNAUTHENTICATED`**; the session cookie on this route is ignored (also **401**). Read-only by construction: no other method
   is routed for a key.
-- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories, widgetCircle, widgetLayout, widgetTimelineDays, language }`: `items` as `GET /api/items` for the
+- Answer `{ generatedAt, today, scriptVersion, items, minEventMinutes, weekSideBySide, taskCategories, widgetCircle, widgetLayout, widgetTimelineDays, widgetTimelineTextSize, language }`: `items` as `GET /api/items` for the
   range with `excludeHidden=1` always on (the same function and the same shared visibility rule, hidden flag and plans
   included; the key cannot turn it off), the five prefs as `GET /api/prefs` gives them (`language`: the person's app language, so the widget speaks it; `auto` means the iPhone's, and anything but German or English reads as English; `widgetLayout`: `standard` (default) or `timeline` (the medium and large iPhone widgets draw days as columns from today) and `widgetTimelineDays`: 1 to 7, default 3 (the Timeline's day count), both per person and validated like the other prefs; `widgetCircle`: `time` (default) or `countdown`, the lock-screen circle's drawing, per person, validation field `widgetCircle`; the script keeps the answer, setting included, for offline). `to - from` at most 14 days (the script asks for the week and the days around it, so one cache serves every size).
   `scriptVersion` is the newest script's `version`; a script that is older fetches `/api/widget/script`. `today` is the calendar's local date, so the script needs no time zone logic.

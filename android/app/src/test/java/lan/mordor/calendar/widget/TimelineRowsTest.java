@@ -31,7 +31,7 @@ public class TimelineRowsTest {
     private static final LocalTime T1410 = LocalTime.of(14, 10);
 
     private static TimelineRows.Plan plan(WeekData d, int days, int hours, float heightDp, LocalTime now) {
-        return TimelineRows.plan(d, TODAY, days, EN, hours, heightDp, now);
+        return TimelineRows.plan(d, TODAY, days, EN, hours, heightDp, now, 1f);
     }
 
     private static TimelineRows.Plan plan(WeekData d, int days) {
@@ -115,7 +115,7 @@ public class TimelineRowsTest {
         TimelineRows.Plan plan = plan(d, 3);
         assertTrue(plan.bandDp > 0);
         float scale = 2.75f;
-        List<Bitmap> rows = TimelineRows.slices(d, plan, WidgetTheme.defaults(false), EN, TODAY, 10 * 60, Math.round(300 * scale), scale);
+        List<Bitmap> rows = TimelineRows.slices(d, plan, WidgetTheme.defaults(false), EN, TODAY, 10 * 60, Math.round(300 * scale), scale, 1f);
         assertEquals(plan.rowCount(), rows.size());
         int total = 0;
         for (Bitmap b : rows) {

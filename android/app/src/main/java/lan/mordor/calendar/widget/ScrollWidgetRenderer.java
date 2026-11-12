@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import java.time.LocalDate;
@@ -30,6 +31,8 @@ import org.json.JSONObject;
 final class ScrollWidgetRenderer {
     /** Narrower than this many dp the Agenda shows titles only. */
     static final int NARROW_DP = 180;
+    /** The day names' size in sp at 100 % (the style ScrollDayName). */
+    private static final float DAY_NAME_SP = 10;
     private static final int[] DAY_NAMES = {R.id.d0, R.id.d1, R.id.d2, R.id.d3, R.id.d4, R.id.d5, R.id.d6};
 
     private ScrollWidgetRenderer() {}
@@ -119,6 +122,7 @@ final class ScrollWidgetRenderer {
                 if (!shown) continue;
                 LocalDate d = today.plusDays(i);
                 rv.setTextViewText(DAY_NAMES[i], m.str.columnName(d));
+                rv.setTextViewTextSize(DAY_NAMES[i], TypedValue.COMPLEX_UNIT_SP, DAY_NAME_SP * m.choice.textScale());
                 rv.setContentDescription(DAY_NAMES[i], m.str.agendaDay(d));
                 rv.setTextColor(DAY_NAMES[i], i == 0 ? m.theme.onPrimary : m.theme.onSurfaceVariant);
                 rv.setColorStateList(DAY_NAMES[i], "setBackgroundTintList", ColorStateList.valueOf(i == 0 ? m.theme.primary : 0));
@@ -155,7 +159,7 @@ final class ScrollWidgetRenderer {
     }
 
     private static TimelineRows.Plan plan(Context context, Model m, Bundle options, LocalDate today, LocalTime now) {
-        return TimelineRows.plan(m.data, today, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(context, options), now);
+        return TimelineRows.plan(m.data, today, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(context, options), now, m.choice.textScale());
     }
 
     /** The list's rows, top to bottom: Agenda rows, or the Timeline's picture slices. */
@@ -168,7 +172,7 @@ final class ScrollWidgetRenderer {
             TimelineRows.Plan plan = plan(context, m, options, today, now);
             float widthDp = WidgetRenderer.widthDp(context, options);
             float scale = WeekLayout.bitmapScale(widthDp, plan.totalDp(), dm.density, BitmapBudget.pixels(context));
-            for (Bitmap slice : TimelineRows.slices(m.data, plan, m.theme, m.str, today, now.getHour() * 60 + now.getMinute(), Math.max(1, Math.round(widthDp * scale)), scale)) {
+            for (Bitmap slice : TimelineRows.slices(m.data, plan, m.theme, m.str, today, now.getHour() * 60 + now.getMinute(), Math.max(1, Math.round(widthDp * scale)), scale, m.choice.textScale())) {
                 RemoteViews row = new RemoteViews(pkg, R.layout.scroll_timeline_row);
                 row.setImageViewBitmap(R.id.slice, slice);
                 row.setOnClickFillInIntent(R.id.slice, fillIn("/day/" + today));

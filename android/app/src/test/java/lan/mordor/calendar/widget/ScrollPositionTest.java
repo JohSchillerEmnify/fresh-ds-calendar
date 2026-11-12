@@ -73,7 +73,7 @@ public class ScrollPositionTest {
 
     private TimelineRows.Plan plan(int hours, LocalTime now) throws Exception {
         WeekData data = WeekData.fromItems(new JSONArray("[]"), TODAY, LocalDate.parse("2026-10-12"), 0, true, 16);
-        return TimelineRows.plan(data, TODAY, 3, new WidgetStrings("en"), hours, 380, now);
+        return TimelineRows.plan(data, TODAY, 3, new WidgetStrings("en"), hours, 380, now, 1f);
     }
 
     @Test

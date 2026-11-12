@@ -1,5 +1,6 @@
 package lan.mordor.calendar.widget;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -30,6 +31,7 @@ import org.robolectric.annotation.GraphicsMode;
 @Config(sdk = 35, qualifiers = "w360dp-h640dp-xhdpi")
 public class ScrollWidgetPictureTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
+    private int percent = 110;
     private final Context ctx = ApplicationProvider.getApplicationContext();
 
     private static void add(JSONArray days, int day, String title, boolean allDay, String start, String end, String color) throws Exception {
@@ -52,10 +54,11 @@ public class ScrollWidgetPictureTest {
         add(days, 8, "Flight to Berlin", false, "06:15", "08:00", "#d50000");
         JSONArray tasks = new JSONArray().put(new JSONObject().put("title", "Groceries").put("done", 1).put("total", 3).put("color", "#0b8043"));
         return new JSONObject().put("v", 1).put("generatedAt", "x").put("language", "en").put("dark", dark).put("weekStart", "2026-10-12").put("days", days)
-                .put("tasklists", tasks).put("minEventMinutes", 0).put("weekSideBySide", 2).put("scrollHours", hours).put("scrollDays", n).toString();
+                .put("tasklists", tasks).put("minEventMinutes", 0).put("weekSideBySide", 2).put("scrollTextPercent", percent).put("scrollHours", hours).put("scrollDays", n).toString();
     }
 
-    private void shoot(boolean dark, boolean timeline, int days, int hours, int widthDp, int heightDp, LocalTime now, String name) throws Exception {
+    /** Draws the widget into build/widget-pictures; returns the size in px of the first day name. */
+    private float shoot(boolean dark, boolean timeline, int days, int hours, int widthDp, int heightDp, LocalTime now, String name) throws Exception {
         new WidgetStore(ctx).clearAll();
         new WidgetStore(ctx).saveSnapshot(snapshot(dark, days, hours));
         Bundle o = new Bundle();
@@ -86,7 +89,7 @@ public class ScrollWidgetPictureTest {
         parent.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
         parent.layout(0, 0, w, h);
         if (timeline && scroll != null) {
-            TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, days, new WidgetStrings("en"), hours, heightDp, now);
+            TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, days, new WidgetStrings("en"), hours, heightDp, now, percent / 100f);
             if (plan.scrollRow >= 0) {
                 // the launcher's list brings the partly visible first row's bottom to the list's bottom (ScrollPositionTest)
                 scroll.scrollTo(0, Math.max(0, rows.getChildAt(plan.scrollRow).getBottom() - scroll.getHeight()));
@@ -100,6 +103,7 @@ public class ScrollWidgetPictureTest {
             bmp.compress(Bitmap.CompressFormat.PNG, 100, out);
         }
         assertTrue(new File(dir, name).length() > 0);
+        return ((android.widget.TextView) v.findViewById(R.id.d0)).getTextSize();
     }
 
     @Test
@@ -117,5 +121,20 @@ public class ScrollWidgetPictureTest {
         shoot(false, true, 3, 8, 300, 380, LocalTime.of(14, 10), "multiday-8h-1410.png");
         shoot(false, true, 7, 12, 300, 380, t, "multiday-7days-12h.png");
         shoot(false, true, 1, 16, 200, 300, t, "multiday-1day.png");
+    }
+
+    @Test
+    public void theTextSizeScalesTheMultiDayWidget() throws Exception {
+        LocalTime t = LocalTime.of(10, 20);
+        float[] names = new float[3];
+        int i = 0;
+        for (int p : new int[] {90, 110, 150}) {
+            percent = p;
+            names[i++] = shoot(false, true, 3, 16, 300, 380, t, "multiday-text-" + p + ".png");
+            percent = p;
+            shoot(true, true, 3, 16, 300, 380, t, "multiday-text-" + p + "-dark.png");
+        }
+        assertTrue(names[0] < names[1] && names[1] < names[2]);
+        assertEquals(names[2] / names[1], 150f / 110f, 0.02f);
     }
 }

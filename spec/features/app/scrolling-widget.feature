@@ -4,7 +4,8 @@ Feature: Scrolling phone widgets (List and Multi-day)
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
   hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Days in the Timeline"
   setting). The Multi-day widget fits about 16 hours into its height and opens with half an hour before now at the top;
-  the person can choose 8, 12, 16 or 24 hours in view in Settings > Widgets > Android. Widgets cannot be pinched, so the
+  the person can choose 8, 12, 16 or 24 hours in view in Settings > Widgets > Android, and the size of its texts (90 % to 150 %,
+  110 % by default) in the shared Timeline section. Widgets cannot be pinched, so the
   setting is the way to zoom. A List widget placed before the split that showed the Timeline is a List now; the person
   adds a Multi-day widget from the picker. The week, day and clock widgets stay exactly as they are. Like them both are
   native, read with the app's sign-in and keep showing the app's last copy when the server cannot be reached. The choice
@@ -42,6 +43,25 @@ Feature: Scrolling phone widgets (List and Multi-day)
       When I open the settings
       And I search the settings for "hours"
       Then the settings search shows "Hours in view" in "Widgets"
+
+  Rule: The Multi-day widget's texts follow the shared text size of the Timeline
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollRowsTest.java:theTextSizeIsReadFromTheCopyAndKeptInBounds
+    @unit
+    Scenario: The text size comes from the app's copy, 110 % unless it is missing or out of bounds
+      Given the app's copy has no text size for the Timeline
+      Then the Multi-day widget texts are drawn at 110 %
+      Given the app's copy has a Timeline text size of 150 %
+      Then the Multi-day widget texts are drawn at 150 %
+      Given the app's copy has a Timeline text size of 200 %
+      Then the Multi-day widget texts are drawn at 110 %
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetPictureTest.java:theTextSizeScalesTheMultiDayWidget
+    @unit
+    Scenario: A bigger text size makes the day names and the entry texts bigger
+      Given the app's copy has a Timeline text size of 90 %
+      When I look at the Multi-day widget
+      Then its day names and entry titles are drawn smaller than at 150 %
 
   Rule: The picker offers a List and a Multi-day widget
 

@@ -176,7 +176,7 @@ public class ScrollWidgetInflateTest {
     @Test
     public void multiDayRowsAreThePlansRows() throws Exception {
         new WidgetStore(ctx).saveSnapshot(snapshot(false, "timeline", 3, "2|Dentist|09:00|10:00"));
-        TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, 3, new WidgetStrings("en"), 16, 380, LocalTime.of(14, 10));
+        TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, 3, new WidgetStrings("en"), 16, 380, LocalTime.of(14, 10), 1f);
         assertEquals(plan.rowCount(), ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), size(250, 380), TODAY, LocalTime.of(14, 10), true).size());
     }
 }

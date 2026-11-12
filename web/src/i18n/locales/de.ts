@@ -162,6 +162,7 @@ export default {
       android: { label: 'Widgets für den Home-Bildschirm', hint: 'Ist die Android-App installiert, halte den Home-Bildschirm gedrückt, tippe auf „Widgets“ und wähle den Kalender für die Woche, den Tag, die Uhr, die Liste oder mehrere Tage.' },
       scroll: { label: 'Stunden im Blick', hint: 'Wie viele Stunden des Tages das Widget „Mehrere Tage“ ohne Scrollen zeigt.', days: 'Tage in der Zeitleiste' },
       timeline: { hint: 'Wie viele Tage die Zeitleiste ab heute zeigt.' },
+      textSize: { label: 'Schriftgröße in der Zeitleiste', hint: 'Größer ist leichter zu lesen; dafür passt weniger Text in schmale Spalten.' },
     },
     labs: {
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen', hint: 'Zeigt die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf einen Bildschirm passen', split: 'Tage in der oberen Zeile' },

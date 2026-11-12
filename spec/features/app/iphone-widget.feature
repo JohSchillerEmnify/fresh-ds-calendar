@@ -23,7 +23,9 @@ Feature: iPhone widgets through Scriptable
   picks (1 to 7, default 3). The hours are fitted to the entries of those days, because the widget cannot scroll. The
   small widget and the lock screen do not change. The layout belongs to the iPhone section; the day count is one setting in
   its own section "Timeline (iPhone and Android)" of Widgets settings, shared with the Android List widget's Timeline, and a day
-  count chosen earlier for the Android widget carries over until one is chosen there. Both are per person.
+  count chosen earlier for the Android widget carries over until one is chosen there. The same section holds the
+  "Text size in the Timeline": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
+  Timeline and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
 
   Background:
     Given the calendar is empty
@@ -161,6 +163,12 @@ Feature: iPhone widgets through Scriptable
       And the timeline days are set to "3"
       When I set the timeline days to "5"
       Then the timeline days are set to "5"
+
+    Scenario: The text size of the Timeline starts at 110 % and can be changed
+      When I open the iPhone widget settings
+      Then the timeline text size is set to "110 %"
+      When I set the timeline text size to 130
+      Then the timeline text size is set to "130 %"
 
     @visual @mobile
     Scenario: The iPhone section with the Timeline chosen looks right in the light theme
@@ -394,6 +402,18 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget shows the timeline of 7 days from 2026-10-14
       And the iPhone widget places the event "Review" in the timeline from 14:00 to 15:00
 
+    # unit: server/test/ios-widget.test.ts:the timeline text size
+    @unit
+    Scenario: The Timeline's texts follow the chosen text size and its hours still fit
+      Given the time is 2026-10-14 08:00
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      And the iPhone widget layout is chosen as "timeline"
+      And the timeline text size is chosen as 150
+      When I look at the iPhone widget in the "medium" size
+      Then the iPhone widget draws the timeline texts at 150 %
+      And the iPhone widget places the event "Dentist" in the timeline from 09:00 to 10:00
+
     # unit: server/test/ios-widget.test.ts:the timeline draws the red now-line
     @unit
     Scenario: The Timeline has a red line for now in today's column
@@ -498,6 +518,29 @@ Feature: iPhone widgets through Scriptable
       Given the timeline days are chosen as 2
       When the iPhone widget refreshes with the key "My iPhone"
       Then the widget data carries the iPhone widget layout "standard" and 2 timeline days
+
+    # unit: server/test/widget-keys.test.ts:carries the timeline text size
+    @unit
+    Scenario: The widget data carries the Timeline text size
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries a timeline text size of 110 %
+      Given the timeline text size is chosen as 150
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries a timeline text size of 150 %
+
+    # unit: web/test/widget-snapshot.test.ts:carries the timeline text size
+    @unit
+    Scenario: The Android widget uses the same text size
+      Given the timeline text size is chosen as 130
+      Then the Android widget snapshot carries a timeline text size of 130 %
+
+    # unit: server/test/prefs.test.ts:timeline text size
+    @unit
+    Scenario: A Timeline text size outside 90 to 150 % or between the steps is refused
+      Then setting the timeline text size to 85 is refused
+      And setting the timeline text size to 155 is refused
+      And setting the timeline text size to 112 is refused
 
     # unit: web/test/widget-snapshot.test.ts:carries the next 14 days
     @unit

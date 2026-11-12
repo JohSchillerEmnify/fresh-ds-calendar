@@ -68,6 +68,12 @@ describe('buildWidgetSnapshot', () => {
     expect([build([]).scrollDays, build([]).scrollHours]).toEqual([3, 16]);
   });
 
+  it('carries the timeline text size, 110 by default', () => {
+    expect(build([]).scrollTextPercent).toBe(110);
+    const s = buildWidgetSnapshot({ items: [], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), timelineTextSize: 130 });
+    expect(s.scrollTextPercent).toBe(130);
+  });
+
   it("lists only today's task lists, with their progress, and keeps them out of the day columns", () => {
     const s = build([list('Groceries', '2026-10-14', 2, 5), list('Tomorrow', '2026-10-15', 0, 3), list('Undated', null, 0, 1)]);
     expect(s.tasklists).toEqual([{ title: 'Groceries', done: 2, total: 5, color: '#0b8043' }]);
