@@ -21,9 +21,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 28: the widget list is fed by a RemoteViewsService; 34: the rows travel inside the widget (RemoteCollectionItems); 37.0: Android 17;
+        # 31 (Android 12, the minimum): the rows travel inside the widget (RemoteCollectionItems); 37.0: Android 17;
         # minSdk is 26 (android/variables.gradle)
-        api-level: [28, 34, "37.0"]
+        api-level: [31, "37.0"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
