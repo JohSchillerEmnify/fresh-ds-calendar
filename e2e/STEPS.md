@@ -965,6 +965,7 @@ the settings bar is {int} px high
 the section {string} is one rounded container
 the rows of the section {string} are {int} px high at least
 the settings page shows the section {string}
+the settings page does not show the section {string}
 the section containers are another tone than the page
 the settings groups {string} are items of one rounded container
 every settings group shows a 40 px tonal icon

@@ -18,7 +18,7 @@ Feature: Settings in a few groups
 
     Scenario: The settings home shows the groups and a search bar
       When I open the settings
-      Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
+      Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Widgets, Labs, Account & app"
       And the settings home shows the search bar
 
     Scenario: A group opens as its own page and Back returns to the groups
@@ -49,6 +49,39 @@ Feature: Settings in a few groups
       And the settings page does not show the setting "Approaching track"
       When I turn on "Approaching card" in the settings
       Then the settings page shows the setting "Time left"
+
+  Rule: Widgets have a group of their own, one section per platform
+
+    Scenario: The Widgets group has an iPhone and an Android section
+      When I open the settings
+      And I open the settings group "Widgets"
+      Then the settings group page "Widgets" is shown
+      And the settings page shows the section "iPhone"
+      And the settings page shows the section "Android"
+
+    Scenario: The Android section explains the home-screen widgets and links the app
+      When I open the settings
+      And I open the settings group "Widgets"
+      Then the settings page shows the setting "Home screen widgets"
+      And the button "Download" in the settings is a tonal button
+
+    Scenario: The iPhone widget is in Widgets, not in Account & app
+      When I open the settings
+      And I open the settings group "Account & app"
+      Then the settings page does not show the section "iPhone widget"
+      And the settings page does not show the section "iPhone"
+
+    Scenario: Search finds the iPhone widget under Widgets
+      When I open the settings
+      And I search the settings for "lock screen"
+      Then the settings search shows "Lock screen circle" in "Widgets"
+
+    # Shared settings are, for example, the number of days of a timeline view (issues 96 and 107); the section sits above iPhone and Android
+    @backlog
+    Scenario: Settings that both platforms share appear above the two sections
+      When I open the settings
+      And I open the settings group "Widgets"
+      Then the settings page shows the section "Shared"
 
   Rule: Each calendar has its own settings page
 

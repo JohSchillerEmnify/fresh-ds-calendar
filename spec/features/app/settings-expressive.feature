@@ -37,7 +37,7 @@ Feature: Settings in Material 3 Expressive
 
     Scenario: The group list on the settings home is one container
       When I open the settings
-      Then the settings groups "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app" are items of one rounded container
+      Then the settings groups "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Widgets, Labs, Account & app" are items of one rounded container
       And every settings group shows a 40 px tonal icon
 
     Scenario: The settings search is the expressive search bar
@@ -132,8 +132,24 @@ Feature: Settings in Material 3 Expressive
         | Views              | views      | dark   |
         | Account & app      | account    | light  |
         | Account & app      | account    | dark   |
+        | Widgets            | widgets    | light  |
+        | Widgets            | widgets    | dark   |
         | Appearance & layout | appearance | light  |
         | Appearance & layout | appearance | dark   |
+
+    @visual
+    Scenario Outline: The Widgets group is tidy in German
+      Given the browser language is "de-DE"
+      And the device prefers a <scheme> color scheme
+      When I open the settings
+      And I open the settings group "Widgets"
+      Then no text in the "settings page" is clipped
+      And the "settings page" still looks like "settings-widgets-de-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |
 
     @visual
     Scenario Outline: The theme page is tidy

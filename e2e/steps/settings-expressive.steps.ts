@@ -72,6 +72,10 @@ Then('the settings page shows the section {string}', async function (this: World
   await expect(section(this, name)).toBeVisible();
 });
 
+Then('the settings page does not show the section {string}', async function (this: World, name: string) {
+  await expect(section(this, name)).toHaveCount(0);
+});
+
 Then('the section containers are another tone than the page', async function (this: World) {
   const sec = this.page.getByTestId('settings-section').first();
   await expect(sec).toBeVisible();

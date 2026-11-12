@@ -20,7 +20,7 @@ const step = (w: World, n: number) => w.page.getByTestId(`iphone-widget-step-${n
 const rowOf = (w: World, name: string): Locator => w.page.getByTestId('iphone-widget-key-row').filter({ hasText: name });
 
 async function openSection(w: World) {
-  await openSettingsPage(w, 'account');
+  await openSettingsPage(w, 'widgets');
   await expect(w.page.getByTestId('iphone-widget-keys')).toBeVisible();
 }
 
