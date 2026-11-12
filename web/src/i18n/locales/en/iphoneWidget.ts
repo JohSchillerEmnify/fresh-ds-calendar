@@ -15,6 +15,8 @@ export default {
   failed: 'The widget could not be added. Try again.',
   done: 'Done',
   circle: { label: 'Lock screen circle', time: 'Start time', countdown: 'Countdown', hint: 'Countdown may lag a few minutes behind.' },
+  layout: { label: 'Layout', standard: 'Standard', timeline: 'Timeline', hint: 'The medium and large widgets show the next days side by side.' },
+  days: { label: 'Days in the timeline', hint: 'How many days the timeline shows, starting today.' },
   guide: {
     s1: 'Install the free Scriptable app:',
     getScriptable: 'Get Scriptable',

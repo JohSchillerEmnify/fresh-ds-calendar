@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** The iPhone widget section of Settings › Widgets (feature iphone-widget): the devices with a widget key, add and remove. */
 import { computed, onMounted, ref } from 'vue';
-import type { WidgetCircle, WidgetKey } from '@/api/types';
+import type { WidgetCircle, WidgetKey, WidgetLayout, WidgetTimelineDays } from '@/api/types';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Button from '@/components/m3/Button.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
@@ -23,6 +23,8 @@ const ui = useUiStore();
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
 const circleOptions = computed(() => (['time', 'countdown'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.circle.${v}`), testid: `settings-widget-circle-${v}` })));
+const layoutOptions = computed(() => (['standard', 'timeline'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.layout.${v}`), testid: `settings-widget-layout-${v}` })));
+const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: String(n), testid: `settings-widget-days-${n}` }));
 const adding = ref(false);
 const removing = ref<WidgetKey | null>(null);
 
@@ -63,6 +65,14 @@ async function remove() {
     <SettingRow id="widgetCircle" wide :label="t('iphoneWidget.circle.label')">
       <template #sub><span class="sub" data-testid="settings-widget-circle-hint">{{ t('iphoneWidget.circle.hint') }}</span></template>
       <SegmentedButton connected :model-value="prefs.widgetCircle" :options="circleOptions" :label="t('iphoneWidget.circle.label')" data-testid="settings-widget-circle" @update:model-value="savePrefs({ widgetCircle: $event as WidgetCircle })" />
+    </SettingRow>
+    <SettingRow id="widgetLayout" wide :label="t('iphoneWidget.layout.label')">
+      <template #sub><span class="sub" data-testid="settings-widget-layout-hint">{{ t('iphoneWidget.layout.hint') }}</span></template>
+      <SegmentedButton connected :model-value="prefs.widgetLayout" :options="layoutOptions" :label="t('iphoneWidget.layout.label')" data-testid="settings-widget-layout" @update:model-value="savePrefs({ widgetLayout: $event as WidgetLayout })" />
+    </SettingRow>
+    <SettingRow v-if="prefs.widgetLayout === 'timeline'" id="widgetTimelineDays" wide :label="t('iphoneWidget.days.label')">
+      <template #sub><span class="sub" data-testid="settings-widget-days-hint">{{ t('iphoneWidget.days.hint') }}</span></template>
+      <SegmentedButton connected :model-value="prefs.widgetTimelineDays" :options="dayOptions" :label="t('iphoneWidget.days.label')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: $event as WidgetTimelineDays })" />
     </SettingRow>
   </SettingSection>
   <IphoneWidgetSheet v-if="adding" @close="adding = false" />
