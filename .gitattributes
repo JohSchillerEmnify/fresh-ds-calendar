@@ -1,4 +1,2 @@
-# Spec documents grow by appended sections from parallel slices: keep both sides on merge.
+# The steps contract grows by appended sections from parallel slices: keep both sides on merge.
 e2e/STEPS.md merge=union
-spec/ARCHITECTURE.md merge=union
-spec/ASSUMPTIONS.md merge=union
