@@ -43,6 +43,21 @@ describe('manual update check', () => {
     expect(w.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
   });
 
+  it('lets go of the live stream before activating the new worker, which an open stream keeps the old worker from handing over', async () => {
+    const u = await load({ version: '0.2.0+new', apk: null });
+    const { startLiveSync } = await import('@/lib/liveSync');
+    const sources: { closed: boolean }[] = [];
+    vi.stubGlobal('EventSource', class { closed = false; constructor() { sources.push(this); } addEventListener() {} close() { this.closed = true; } });
+    const stop = startLiveSync({ changed: vi.fn(), connected: vi.fn() });
+    let closedWhenPosted: boolean | undefined;
+    const w = { postMessage: vi.fn(() => { closedWhenPosted = sources[0]!.closed; }) };
+    setSw({}, { update: async () => {}, installing: null, waiting: w });
+    await u.checkForUpdate();
+    u.reload();
+    expect(closedWhenPosted).toBe(true);
+    stop();
+  });
+
   it('says failed when the server cannot be reached', async () => {
     const u = await load(new Error('offline'));
     setSw(null, undefined);

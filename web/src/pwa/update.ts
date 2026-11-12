@@ -3,6 +3,7 @@ import { api } from '@/api/client';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import { apkHintVisible, checkApk } from '@/native/apkHint';
+import { closeLiveStream } from '@/lib/liveSync';
 import { errorFacts, logDevice } from '@/lib/deviceLog';
 
 const DISMISSED_KEY = 'cal.updateDismissed';
@@ -34,6 +35,8 @@ export function runningVersion(): string {
 export function reload(): void {
   if (latest) remember(RELOADED_KEY, latest);
   if (!waiting) { location.reload(); return; }
+  // an open event stream is an unfinished request of the old worker, and a worker cannot hand over before those end
+  closeLiveStream();
   navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
   waiting.postMessage({ type: 'SKIP_WAITING' });
 }
