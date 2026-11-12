@@ -214,6 +214,28 @@ Feature: The calendar's states look right
     Then no text in the "template save sheet" is clipped
     And the "template save sheet" still looks like "template-save"
 
+  # Issue #48: task input uses the M3 kit (checkbox, list item, inline text field)
+  Scenario Outline: The list sheet's item rows, the add field and an item being edited look right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And tapping a task list opens the list sheet
+    And the calendar contains a task list "Packing" on 2026-10-12 with items:
+      | item       | done |
+      | Passport   | yes  |
+      | Charger    | no   |
+      | Toothbrush | no   |
+    When I open the day view for 2026-10-12
+    And I tap the task list "Packing"
+    And I open the add field of the expanded task list
+    Then no text in the "expanded task list" is clipped
+    And the "expanded task list" still looks like "tasklist-items-adding-<scheme>"
+    When I start editing the item "Charger"
+    Then the "expanded task list" still looks like "tasklist-item-editing-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   Scenario: The template pill grows into the template menu, and a pick fills the form
     Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"
     And I have the template "Packing" with the items "Passport, Charger, Toothbrush"
