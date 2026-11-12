@@ -26,7 +26,7 @@ interface CapacitorGlobal {
 /** Without the device store the week is re-read from the server at most this often; every sync still refreshes theme, language and the clock. */
 const ITEMS_MAX_AGE_MS = 10 * 60_000;
 
-let cached: { weekStart: string; at: number; items: CalendarItem[] } | null = null;
+let cached: { weekStart: string; to: string; at: number; items: CalendarItem[] } | null = null;
 let running: Promise<void> | null = null;
 /** The last snapshot handed over, without its `generatedAt` stamp: an unchanged snapshot is not pushed again (the launcher cross-fades every redraw, which flashes). */
 let lastPushed: string | null = null;
@@ -54,16 +54,17 @@ async function push(): Promise<void> {
   const plugin = (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor?.Plugins?.WidgetBridge;
   if (!plugin) return;
   const today = useClockStore().today;
-  const monday = startOfWeek(new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8, 10))), WEEK_OPTS);
-  const weekStart = toIsoDate(monday);
-  const weekEnd = toIsoDate(addDays(monday, 7));
+  const todayDate = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8, 10)));
+  const weekStart = toIsoDate(startOfWeek(todayDate, WEEK_OPTS));
+  // the list widget reads 14 days from today, which reaches past the week
+  const weekEnd = toIsoDate(addDays(todayDate, 14));
   const device = useDeviceStore();
   if (device.ready && covers(device.data!, weekStart, weekEnd)) {
     // the week is read from the device store: always current, no request
-    cached = { weekStart, at: Date.now(), items: itemsIn(device.data!, weekStart, weekEnd) };
-  } else if (!cached || cached.weekStart !== weekStart || Date.now() - cached.at > ITEMS_MAX_AGE_MS) {
+    cached = { weekStart, to: weekEnd, at: Date.now(), items: itemsIn(device.data!, weekStart, weekEnd) };
+  } else if (!cached || cached.to !== weekEnd || Date.now() - cached.at > ITEMS_MAX_AGE_MS) {
     const res = await api.items(weekStart, weekEnd);
-    cached = { weekStart, at: Date.now(), items: res.items };
+    cached = { weekStart, to: weekEnd, at: Date.now(), items: res.items };
   }
   // the hidden calendars come from the server; without them the widget would show calendars the person switched off
   const calendars = useCalendarsStore();
@@ -71,7 +72,7 @@ async function push(): Promise<void> {
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
     language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes, weekSideBySide: usePrefsStore().weekSideBySide,
-    categoriesOn: usePrefsStore().taskCategories,
+    categoriesOn: usePrefsStore().taskCategories, androidWidgetStyle: usePrefsStore().androidWidgetStyle, androidWidgetDays: usePrefsStore().androidWidgetDays,
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });
   if (content === lastPushed) return;

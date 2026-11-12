@@ -1,10 +1,11 @@
 /**
  * The Android home-screen widget's snapshot (feature phone-widget): a compact, pure description of
- * the current week (Monday to Sunday), today's task lists and the theme colours. The widget fetches the week itself;
+ * the days from this week's Monday to 13 days after today (the week widgets use the week, the list widget the 14 days from today),
+ * today's task lists and the theme colours. The widget fetches the week itself;
  * this snapshot supplies the theme, the language and a fallback when that fetch fails.
  */
-import { addDays, format, startOfWeek } from 'date-fns';
-import type { CalendarItem, LocalDate, TaskList } from '@/api/types';
+import { addDays, differenceInCalendarDays, format, startOfWeek } from 'date-fns';
+import type { AndroidWidgetStyle, CalendarItem, LocalDate, TaskList } from '@/api/types';
 import { listColor } from '@/features/tasklists/categories';
 import { parseIsoDate, WEEK_OPTS } from '@/lib/dates';
 import { segmentsByDate, specialMarker } from '@/lib/items';
@@ -50,6 +51,9 @@ export interface WidgetSnapshot {
   minEventMinutes: number;
   /** How many overlapping events the week view places side by side (2 or 3): the widget's week grid follows it. */
   weekSideBySide: number;
+  /** The list widget's style (Settings › Widgets › Android) and the Timeline's number of days (1 to 7). */
+  scrollStyle: AndroidWidgetStyle;
+  scrollDays: number;
 }
 
 export interface SnapshotInput {
@@ -67,12 +71,17 @@ export interface SnapshotInput {
   weekSideBySide?: number;
   /** The "Task categories" switch (default on); off, a task list takes its calendar's colour, as in the app. */
   categoriesOn?: boolean;
+  /** The "List widget" settings: Agenda (default) or Timeline, and the Timeline's days (default 3). */
+  androidWidgetStyle?: AndroidWidgetStyle;
+  androidWidgetDays?: number;
 }
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
+/** The list widget reaches today and the 13 days after it. */
+const SCROLL_DAYS = 14;
 
 /**
- * Builds the snapshot of the week containing `input.today`.
+ * Builds the snapshot from the Monday of the week containing `input.today` to 13 days after today.
  *
  * Events are split per day they cover by the calendar's own `segmentsByDate` (a multi-day event shows on each day; its time only on the first). Task lists
  * are not shown in the day columns; those dated today go into `tasklists`.
@@ -83,7 +92,8 @@ const iso = (d: Date) => format(d, 'yyyy-MM-dd');
 export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
   const monday = startOfWeek(parseIsoDate(input.today)!, WEEK_OPTS);
   const segments = segmentsByDate(input.items.filter((it) => it.kind === 'event' && !input.hiddenCalendars?.has(it.calendarId))); // the calendar's own splitting and day order
-  const days: WidgetDay[] = Array.from({ length: 7 }, (_, i) => {
+  const length = differenceInCalendarDays(parseIsoDate(input.today)!, monday) + SCROLL_DAYS;
+  const days: WidgetDay[] = Array.from({ length }, (_, i) => {
     const date = iso(addDays(monday, i));
     const events = (segments.get(date) ?? []).map((seg): WidgetEvent => {
       const timed = !seg.allDay && seg.first;
@@ -97,5 +107,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: listColor(l, input.categoriesOn ?? true) }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2 };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2, scrollStyle: input.androidWidgetStyle ?? 'agenda', scrollDays: input.androidWidgetDays ?? 3 };
 }

@@ -45,7 +45,7 @@ model {
       description 'Hono API that stores per-person preferences'
     }
     widget = app 'Phone widget' {
-      description 'Native Android home-screen widgets (week, day and clock) that draw the current days'
+      description 'Native Android home-screen widgets (week, day and clock drawn as pictures; a scrolling list or timeline of the coming days)'
     }
     iosWidget = app 'iPhone widget' {
       description 'A Scriptable script on the iPhone that draws today, today and tomorrow, the week as a time grid and the lock screen with a per-device read key, in the person\'s language, and keeps its last answer'

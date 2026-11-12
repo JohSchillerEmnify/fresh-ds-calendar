@@ -57,7 +57,7 @@ final class WeekCanvas {
             boolean footerAccent, int widthPx, int heightPx, float scale) {
         Bitmap bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888);
         new WeekCanvas(new Canvas(bmp), theme, scale).paint(data, str, monday, 0, 7, str.weekRange(monday), today, minutesNow, footer, footerAccent,
-                widthPx / scale, heightPx / scale);
+                widthPx / scale, heightPx / scale, 0);
         return bmp;
     }
 
@@ -70,20 +70,47 @@ final class WeekCanvas {
         Bitmap bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888);
         int offset = (int) java.time.temporal.ChronoUnit.DAYS.between(monday, day);
         new WeekCanvas(new Canvas(bmp), theme, scale).paint(data, str, monday, offset, 1, str.dayTitle(day), today, minutesNow, footer, footerAccent,
-                widthPx / scale, heightPx / scale);
+                widthPx / scale, heightPx / scale, 0);
         return bmp;
+    }
+
+    /** The height in dp of the all-day band the scrolling Timeline draws for {@code days} (0 when none of them has an untimed entry). */
+    static float columnsBandHeight(List<WeekData.Day> days, int[] range, float hourDp) {
+        int chips = 0;
+        for (WeekData.Day d : days) chips = Math.max(chips, untimed(d).size());
+        int rows = Math.min(chips, bandCap((range[1] - range[0]) * hourDp));
+        return rows > 0 ? rows * (CHIP + 1) + 2 : 0;
+    }
+
+    /**
+     * Renders the scrolling Timeline's days as one tall picture without header and footer (the widget keeps the day names above
+     * its list): the all-day band, then the hours from {@code range[0]} to {@code range[1]} at {@code hourDp} each, top to bottom.
+     * The widget cuts the picture into rows.
+     */
+    static Bitmap drawColumns(WeekData data, WidgetTheme theme, WidgetStrings str, int offset, int n, LocalDate today, int minutesNow, int widthPx,
+            int[] range, float hourDp, float scale) {
+        float w = widthPx / scale;
+        float h = PAD + columnsBandHeight(data.days.subList(offset, offset + n), range, hourDp) + (range[1] - range[0]) * hourDp + PAD;
+        Bitmap bmp = Bitmap.createBitmap(widthPx, Math.max(1, Math.round(h * scale)), Bitmap.Config.ARGB_8888);
+        new WeekCanvas(new Canvas(bmp), theme, scale).paint(data, str, data.weekStart, offset, n, "", today, minutesNow, "", false, w, h, hourDp);
+        return bmp;
+    }
+
+    private static int bandCap(float bandAndGridDp) {
+        return Math.max(1, (int) (bandAndGridDp * BAND_SHARE / (CHIP + 1)));
     }
 
     /** Paints {@code n} days starting at {@code offset} days after {@code monday} (7 from 0: the week; 1: a day). */
     private void paint(WeekData data, WidgetStrings str, LocalDate monday, int offset, int n, String header, LocalDate today, int minutesNow,
-            String footer, boolean footerAccent, float w, float h) {
+            String footer, boolean footerAccent, float w, float h, float bareHourDp) {
+        boolean bare = bareHourDp > 0; // the Timeline picture: no header, day names or footer
         float x0 = PAD + GUTTER, colW = (w - PAD - x0) / n;
-        float dayHead = n == 1 ? 0 : DAYHEAD;
+        float dayHead = n == 1 || bare ? 0 : DAYHEAD;
 
         // header and weekday row (the day widget has the date in the header instead)
-        label(header, PAD + 4, PAD, w - 2 * PAD - 26, HEADER, 11, th.onSurface, true, Layout.Alignment.ALIGN_NORMAL, true);
-        float dayTop = PAD + HEADER;
-        for (int i = 0; i < n && n > 1; i++) {
+        if (!bare) label(header, PAD + 4, PAD, w - 2 * PAD - 26, HEADER, 11, th.onSurface, true, Layout.Alignment.ALIGN_NORMAL, true);
+        float dayTop = bare ? PAD : PAD + HEADER;
+        for (int i = 0; i < n && n > 1 && !bare; i++) {
             LocalDate d = monday.plusDays(offset + i);
             boolean isToday = d.equals(today);
             String t = str.weekday(d) + " " + d.getDayOfMonth();
@@ -92,7 +119,7 @@ final class WeekCanvas {
         }
 
         // all-day band: bars on top, the untimed items of each day below
-        float bandTop = dayTop + dayHead, gridBottom = h - PAD - FOOTER;
+        float bandTop = dayTop + dayHead, gridBottom = h - PAD - (bare ? 0 : FOOTER);
         List<WeekData.Bar> bars = new ArrayList<>();
         if (data != null) for (WeekData.Bar b : data.bars) {
             if (b.endCol < offset || b.startCol > offset + n - 1) continue;
@@ -103,7 +130,8 @@ final class WeekCanvas {
         int lanes = 0, chips = 0;
         for (WeekData.Bar b : bars) lanes = Math.max(lanes, b.lane + 1);
         for (WeekData.Day d : days) chips = Math.max(chips, untimed(d).size());
-        int cap = Math.max(1, (int) ((gridBottom - bandTop) * BAND_SHARE / (CHIP + 1)));
+        int[] hours = data == null ? new int[] {WeekLayout.DEFAULT_START_HOUR, WeekLayout.DEFAULT_END_HOUR} : WeekLayout.hourRange(days);
+        int cap = bandCap(bare ? (hours[1] - hours[0]) * bareHourDp : gridBottom - bandTop);
         int barRows = Math.min(lanes, cap), chipRows = Math.min(chips, cap - barRows);
         float bandH = (barRows + chipRows) * (CHIP + 1) + ((barRows + chipRows) > 0 ? 2 : 0);
         if (data != null) {
@@ -125,8 +153,7 @@ final class WeekCanvas {
         line(x0, gridTop, w - PAD, gridTop, th.outlineVariant, 1);
 
         // hour grid
-        int[] range = data == null ? new int[] {WeekLayout.DEFAULT_START_HOUR, WeekLayout.DEFAULT_END_HOUR} : WeekLayout.hourRange(days);
-        int first = range[0], last = range[1];
+        int first = hours[0], last = hours[1];
         float hh = (gridBottom - gridTop) / (last - first);
         int step = Math.max(1, (int) Math.ceil(9 / hh));
         for (int i = 0; i < n; i++) {
@@ -168,7 +195,7 @@ final class WeekCanvas {
         c.restore();
 
         // footer
-        if (!footer.isEmpty()) label(footer, PAD + 4, h - PAD - FOOTER, w - 2 * PAD, FOOTER, 7.5f, footerAccent ? th.primary : th.onSurfaceVariant, false, Layout.Alignment.ALIGN_NORMAL, true);
+        if (!footer.isEmpty() && !bare) label(footer, PAD + 4, h - PAD - FOOTER, w - 2 * PAD, FOOTER, 7.5f, footerAccent ? th.primary : th.onSurfaceVariant, false, Layout.Alignment.ALIGN_NORMAL, true);
     }
 
     private static List<WeekData.Item> untimed(WeekData.Day d) {

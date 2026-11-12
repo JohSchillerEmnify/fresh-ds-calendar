@@ -1,0 +1,17 @@
+model {
+  extend calendar.widget {
+    scrollingWidget = component 'Scrolling widget' {
+      description 'The scrolling home-screen widget: today and the coming days as an agenda list or a day-strip timeline, one style per widget'
+    }
+    scrollingConfigure = component 'Scrolling widget settings' {
+      description 'Asks for the style (Agenda or Timeline) when the widget is placed and when it is reconfigured'
+    }
+
+    scrollingConfigure -> store 'saves the style per widget in'
+    scrollingWidget -> store 'reads the fetch for the next 14 days, else the snapshot, and the style'
+    scrollingWidget -> renderer 'reuses the day drawing for each Timeline row'
+    refreshWorker -> scrollingWidget 'redraws it after a fetch or a new snapshot'
+  }
+
+  calendar.widget.scrollingWidget -> calendar.androidApp 'opens a tapped entry or day in the app'
+}

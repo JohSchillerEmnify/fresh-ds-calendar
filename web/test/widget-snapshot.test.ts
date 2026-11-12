@@ -20,11 +20,13 @@ const build = (items: (CalendarEvent | TaskList)[]) =>
   buildWidgetSnapshot({ items, today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z') });
 
 describe('buildWidgetSnapshot', () => {
-  it('covers Monday to Sunday of the current week with the theme, language and time', () => {
+  it('covers Monday of the current week to 13 days after today with the theme, language and time', () => {
     const s = build([]);
     expect(s.v).toBe(1);
     expect(s.weekStart).toBe('2026-10-12');
-    expect(s.days.map((d) => d.date)).toEqual(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
+    expect(s.days).toHaveLength(16);
+    expect(s.days.slice(0, 7).map((d) => d.date)).toEqual(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
+    expect(s.days[15].date).toBe('2026-10-27');
     expect([s.language, s.dark, s.theme, s.generatedAt]).toEqual(['de', true, theme, '2026-10-14T08:30:00.000Z']);
   });
 
@@ -53,9 +55,17 @@ describe('buildWidgetSnapshot', () => {
     expect(s.days[3].events).toEqual([{ title: 'Long', allDay: true, start: null, end: null, color: '#1a73e8' }]);
   });
 
-  it('ignores events outside the week', () => {
-    const s = build([ev('a', 'Before', '2026-10-11T10:00:00+02:00', '2026-10-11T11:00:00+02:00'), ev('b', 'After', '2026-10-19', '2026-10-20', true)]);
+  it('ignores events before the week and after the 14 days from today', () => {
+    const s = build([ev('a', 'Before', '2026-10-11T10:00:00+02:00', '2026-10-11T11:00:00+02:00'), ev('b', 'After', '2026-10-28', '2026-10-29', true)]);
     expect(s.days.every((d) => d.events.length === 0)).toBe(true);
+  });
+
+  it('carries the next 14 days, the style and the number of days', () => {
+    const far = ev('f', 'Far', '2026-10-27T09:00:00+02:00', '2026-10-27T10:00:00+02:00');
+    const s = buildWidgetSnapshot({ items: [far], today: '2026-10-14', theme, dark: false, language: 'en', now: new Date('2026-10-14T08:30:00Z'), androidWidgetStyle: 'timeline', androidWidgetDays: 5 });
+    expect(s.days[15].events.map((e) => e.title)).toEqual(['Far']);
+    expect([s.scrollStyle, s.scrollDays]).toEqual(['timeline', 5]);
+    expect([build([]).scrollStyle, build([]).scrollDays]).toEqual(['agenda', 3]);
   });
 
   it("lists only today's task lists, with their progress, and keeps them out of the day columns", () => {

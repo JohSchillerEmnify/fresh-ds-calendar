@@ -37,7 +37,7 @@ public class WeekWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onDisabled(Context context) {
-        if (ClockWidgetProvider.ids(context).length == 0 && DayWidgetProvider.ids(context).length == 0) cancelPeriodicFetch(context);
+        if (!hasWidgets(context)) cancelPeriodicFetch(context);
     }
 
     /** The 30-minute fetch shared by the week and the clock widget (kept when it already runs). */
@@ -73,18 +73,20 @@ public class WeekWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** Redraws every widget instance (week, clock, day) from the stored data. */
+    /** Redraws every widget instance (week, clock, day, list) from the stored data. */
     static void renderAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         for (int id : manager.getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class))) WidgetRenderer.render(context, manager, id);
         ClockWidgetProvider.renderAll(context);
         DayWidgetProvider.renderAll(context);
+        ScrollWidgetProvider.renderAll(context);
     }
 
-    /** Whether at least one widget (week, clock or day) is on a home screen. */
+    /** Whether at least one widget (week, clock, day or list) is on a home screen. */
     static boolean hasWidgets(Context context) {
         return AppWidgetManager.getInstance(context).getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class)).length > 0
-                || ClockWidgetProvider.ids(context).length > 0 || DayWidgetProvider.ids(context).length > 0;
+                || ClockWidgetProvider.ids(context).length > 0 || DayWidgetProvider.ids(context).length > 0
+                || ScrollWidgetProvider.ids(context).length > 0;
     }
 
     /** Asks for a fetch as soon as there is a network; a fetch already waiting is kept. */
