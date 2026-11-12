@@ -24,7 +24,7 @@ function originAllowed(config: AppConfig, c: Context): boolean {
   const origin = c.req.header('origin');
   if (origin === undefined) return true;
   if (config.allowedOrigins.includes(origin)) return true;
-  // without a configured public URL (local, test and home server runs) the page's own origin is the only one there is
+  // without a configured public URL (local and test runs) the page's own origin is the only one there is
   if (config.publicUrl !== null) return false;
   try {
     return new URL(origin).host === new URL(c.req.url).host;

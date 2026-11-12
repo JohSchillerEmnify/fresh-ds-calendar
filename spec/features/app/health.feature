@@ -1,7 +1,7 @@
 @api @id:health-and-config
 Feature: Health and configuration endpoints
   Scenarios tagged @smoke use no test-only steps and also run against the deployment
-  (E2E_BASE_URL=http://cal.mordor.local, later the HTTPS URL) where TEST_MODE is off.
+  (E2E_BASE_URL=http://cal.example.test, later the HTTPS URL) where TEST_MODE is off.
 
   @smoke
   Scenario: The health endpoint reports ok

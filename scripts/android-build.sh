@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-# Builds the Android app (Capacitor shell + home-screen widget) as a release-signed APK and publishes it, so the server
-# hands it out as http://cal.mordor.lan/app.apk (DATA_DIR/downloads/app.apk).
-# Usage: scripts/android-build.sh [--no-publish]
-# The public instance gets the APK from sauron's DOWNLOADS dir through `scripts/vps.sh deploy`.
-# Publishing works from sauron (local copy) and from any other machine (scp/ssh to sauron, SAURON=user@host).
-# Runs on sauron: Gradle builds an UNSIGNED release APK inside the `calendar-android-build` image (android/build.Dockerfile,
-# built on first use), capped at 3 CPUs / 4 GB with low CPU shares so Pi-hole keeps priority; the keystore is NOT mounted
+# Builds the Android app (Capacitor shell + home-screen widget) as a release-signed APK next to android/app/build/outputs.
+# Usage: scripts/android-build.sh
+# It publishes nothing: the public instance gets the APK through `scripts/vps.sh deploy` (CAL_APK, CAL_APK_INFO; docs/DEPLOYMENT.md).
+# Gradle builds an UNSIGNED release APK inside the `calendar-android-build` image (android/build.Dockerfile,
+# built on first use), capped at 3 CPUs / 4 GB with low CPU shares; the keystore is NOT mounted
 # there (Gradle plugins and dependencies run arbitrary code). A second, separate container (same pinned image, but no
 # network, read-only, nothing but apksigner, the unsigned APK and the keystore) signs it; then the APK is copied into the data dir.
 # The APK's signing certificate must be the one pinned in android/release-cert.sha256 (scripts/apk-cert.sh), else nothing is published.
@@ -15,9 +13,6 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$HOME/.local/opt/node-v24.21.0-linux-x64/bin:$PATH"
-# the compose mounts deploy/data of the repo on sauron as /data (DATA_DIR) in the container
-DOWNLOADS="/home/sauron/projects/calendar/deploy/data/downloads"
-SAURON="${SAURON:-sauron@192.168.1.38}"
 # not under a dot directory: the build container cannot mount those here; mounted as /key, so storeFile=/key/release.jks
 KEY_DIR="${CAL_ANDROID_KEY_DIR:-$HOME/calendar-android-key}"
 IMAGE="calendar-android-build"
@@ -33,7 +28,7 @@ if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
   PASS="$(openssl rand -hex 16)"
   docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -q -t "$IMAGE" - < "$REPO/android/build.Dockerfile"
   "${SIGN_DOCKER[@]}" -v "$KEY_DIR:/key" "$IMAGE" keytool -genkeypair -keystore /key/release.jks -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" \
-    -alias calendar -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Calendar, O=mordor.lan"
+    -alias calendar -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Calendar, O=Calendar"
   (umask 077; printf 'storeFile=/key/release.jks\nstorePassword=%s\nkeyAlias=calendar\nkeyPassword=%s\n' "$PASS" "$PASS" > "$KEY_DIR/keystore.properties")
 fi
 
@@ -78,17 +73,4 @@ echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 verify_apk_cert "$APK" || exit 1
 INFO="$REPO/android/app/build/outputs/apk/release/app.json"
 printf '{"versionCode":%s,"versionName":"%s","certSha256":"%s"}\n' "$VERSION_CODE" "$VERSION_NAME" "$(pinned_cert)" > "$INFO"
-if [[ "${1:-}" == "--no-publish" ]]; then exit 0; fi
-
-echo "==> publishing to $DOWNLOADS/app.apk"
-if [[ -d "$DOWNLOADS" ]]; then
-  # on sauron
-  cp "$APK" "$DOWNLOADS/app.apk.part" && chmod 644 "$DOWNLOADS/app.apk.part" && mv "$DOWNLOADS/app.apk.part" "$DOWNLOADS/app.apk"
-  cp "$INFO" "$DOWNLOADS/app.json" && chmod 644 "$DOWNLOADS/app.json"
-  curl -s --max-time 5 -o /dev/null -w 'http://cal.mordor.lan/app.apk -> %{http_code} %{content_type}\n' -H 'Host: cal.mordor.lan' http://127.0.0.1/app.apk
-else
-  # elsewhere: the directory is on sauron, so copy over ssh and move into place there
-  scp -q "$APK" "$SAURON:projects/calendar/deploy/data/downloads/app.apk.new"
-  scp -q "$INFO" "$SAURON:projects/calendar/deploy/data/downloads/app.json.new"
-  ssh "$SAURON" 'cd projects/calendar/deploy/data/downloads && chmod 644 app.apk.new app.json.new && mv app.apk.new app.apk && mv app.json.new app.json && sha256sum app.apk'
-fi
+echo "INFO: $INFO"

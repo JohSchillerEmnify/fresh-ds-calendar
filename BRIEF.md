@@ -24,7 +24,7 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
   redirect). So the first build used a **mock Google backend**; the real adapter sits behind the same interface and is
   chosen by `PROVIDER=mock|google` (the mock is still used for development and tests).
 - Mobile-first responsive UI, installable PWA (manifest + icons). Must also work on desktop.
-- Deployed behind a reverse proxy (originally a home server, now a VPS; see the note above).
+- Deployed behind a reverse proxy (a VPS; see the note above).
 
 ## Fixed technical decisions
 - Monorepo with `shared/` (code used by web and server) next to the folders below:
@@ -49,7 +49,7 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - Toolchain: Node and pnpm versions are pinned by `.nvmrc`, `engines` and the `packageManager` field; Playwright runs in
   the docker image matching the `@playwright/test` version (see `e2e/README.md`). Avoid more than 2 heavy jobs
   (docker build / Playwright) at once.
-- Deployment: `deploy/docker-compose.yaml` and `deploy/vps/compose.yml`; `TZ=Europe/Berlin`, one data volume.
+- Deployment: `deploy/vps/compose.yml`; `TZ=Europe/Berlin`, one data volume.
 
 ## Update: mobile first + installable (owner, 2026-10-12)
 - Mobile first is the primary target (phones 375–430px portrait). Desktop must work but is secondary.
@@ -111,7 +111,7 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - PWA: vite-plugin-pwa. Unit tests: Vitest, @vue/test-utils, jsdom.
 - E2E: `@playwright/test` + playwright-bdd in the matching `mcr.microsoft.com/playwright` image (versions must match).
 - Gates: `pnpm verify` (incl. `pnpm quality` ratchet), size-limit budgets (`pnpm size`), heap/DOM growth and soak tests.
-  Container: see `deploy/docker-compose.yaml` (`mem_limit`, `NODE_OPTIONS`).
+  Container: see `deploy/vps/compose.yml` (`mem_limit`, `NODE_OPTIONS`).
 
 ## Update: Mordor theme (owner, 2026-10-12)
 - Secondary theme "Mordor": ember-on-black palette preset + top-bar scene with original SVG Barad-dûr and

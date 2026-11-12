@@ -10,13 +10,9 @@ How the calendar app is built, deployed and installed. The GitHub repository is 
 |---|---|---|
 | Source | `github.com/<owner>/<repo>` (remote `github`), branch `main` | merge, `git push github main` |
 | Production | `https://cal.example.org` (VPS, Caddy terminates HTTPS) | automatic after a green CI run ("Automatic deploy" below); `scripts/vps.sh deploy` from the laptop only when that is off or for `compose.yml` and the Caddyfile |
-| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built, signed and shipped by CD when native code changed (ADR 0040); by hand with `scripts/android-build.sh --no-publish` and `scripts/vps.sh deploy` |
+| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built, signed and shipped by CD when native code changed (ADR 0040); by hand with `scripts/android-build.sh` and `scripts/vps.sh deploy` |
 
 There is no preview deployment: to show work before a merge, run it locally (`pnpm dev:server` and `pnpm dev:web`).
-The old home server is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`, `auto-preview.sh`,
-`deploy.sh`, `deploy-status.sh`, `preview.sh`, `preview-branch.sh`, `rundir.sh`, `deploy/docker-compose.yaml` and the
-`post-commit` / `post-merge` git hooks in `scripts/hooks`, which `pnpm hooks:install` does not enable) are still in the
-repo but not part of this flow.
 
 ## Release flow
 
@@ -198,13 +194,13 @@ Manual path: build on the laptop (Gradle runs in the `calendar-android-build` im
 deploy:
 
 ```bash
-scripts/android-build.sh --no-publish
+scripts/android-build.sh
 CAL_APK=android/app/build/outputs/apk/release/app-release.apk \
 CAL_APK_INFO=android/app/build/outputs/apk/release/app.json \
 VPS_HOST=<ip> CAL_DOMAIN=cal.example.org VPS_USER=root scripts/vps.sh deploy
 ```
 
-Without `--no-publish` the script copies the APK to sauron (`SAURON=user@host`), which is no longer needed.
+The script publishes nothing itself.
 
 - The signing key is `~/calendar-android-key/release.jks` on the build machine (`CAL_ANDROID_KEY_DIR` overrides the
   folder; not in a dot directory because the build container cannot mount those; the key is new since 2026-10-13, so
