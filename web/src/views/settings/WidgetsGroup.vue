@@ -55,10 +55,8 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
 </template>
 
 <style scoped>
-.track { flex: 0 1 260px; }
 /* the slider sits under the Automatic/Fixed choice, as in the mockup */
 .stack { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
-.stack .track { flex: none; }
 /* the row already names the control; only the value stays in sight */
 .track :deep(.lab) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .track :deep(.val) { grid-column: 2; }

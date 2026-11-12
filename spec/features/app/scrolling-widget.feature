@@ -54,6 +54,28 @@ Feature: Scrolling phone widgets (List and Multi-day)
       And I set the fixed hours in view to 12
       Then the "settings page" still looks like "settings-android-hours-dark"
 
+    @mobile
+    Scenario: A finger swiping down over a slider scrolls the page and leaves the hours alone
+      When I open the settings
+      And I open the settings group "Widgets"
+      And I swipe down with a finger starting on the fixed hours slider
+      Then the fixed hours in view read "16 hours"
+      And the page has scrolled past the fixed hours slider
+
+    @mobile
+    Scenario: A finger dragging the slider sideways sets the hours
+      When I open the settings
+      And I open the settings group "Widgets"
+      And I drag the fixed hours slider sideways with a finger
+      Then the fixed hours in view are no longer "16 hours"
+
+    @mobile
+    Scenario: The sliders in the settings span the width of their row
+      When I open the settings
+      And I open the settings group "Widgets"
+      Then the slider "settings-widget-hours-slider" spans the width of its setting row
+      And the slider "settings-timeline-text-size" spans the width of its setting row
+
     Scenario: The List widget has no style choice any more
       When I open the settings
       And I open the settings group "Widgets"

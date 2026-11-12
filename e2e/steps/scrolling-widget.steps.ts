@@ -5,7 +5,7 @@
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { settingControl } from './support/settings.js';
-import { chooseOption, selectedLabel } from './support/ui.js';
+import { chooseOption, selectedLabel, touchDrag } from './support/ui.js';
 import type { World } from './support/world.js';
 
 const control = (w: World, which: 'hours') => settingControl(w, `settings-widget-${which}`);
@@ -53,4 +53,40 @@ Given('the fixed hours in view are chosen as {int}', async function (this: World
 
 Then('the hours slider is not shown', async function (this: World) {
   await expect(this.page.getByTestId('settings-widget-hours-slider')).toHaveCount(0);
+});
+
+async function sliderBox(w: World) {
+  const input = await slider(w);
+  const box = await input.boundingBox();
+  if (!box) throw new Error('the slider has no box');
+  return { box, y: box.y + box.height / 2 };
+}
+
+When('I swipe down with a finger starting on the fixed hours slider', async function (this: World) {
+  await (await slider(this)).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const { box, y } = await sliderBox(this);
+  this.sliderTopBefore = box.y;
+  await touchDrag(this.page, { x: box.x + box.width * 0.25, y }, { x: box.x + box.width * 0.25, y: y + 160 }, { durationMs: 250, steps: 12 });
+});
+
+When('I drag the fixed hours slider sideways with a finger', async function (this: World) {
+  const { box, y } = await sliderBox(this);
+  await touchDrag(this.page, { x: box.x + box.width * 0.4, y }, { x: box.x + box.width * 0.85, y }, { durationMs: 400, steps: 15 });
+});
+
+Then('the page has scrolled past the fixed hours slider', async function (this: World) {
+  const input = await slider(this);
+  await expect.poll(async () => (await input.boundingBox())!.y).toBeGreaterThan(this.sliderTopBefore! + 20);
+});
+
+Then('the fixed hours in view are no longer {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('settings-widget-hours-slider-value').first()).not.toHaveText(text);
+});
+
+Then('the slider {string} spans the width of its setting row', async function (this: World, testid: string) {
+  const input = await settingControl(this, testid);
+  const row = input.locator('xpath=ancestor::*[@data-testid="settings-row"]');
+  const [i, r] = [await input.boundingBox(), await row.boundingBox()];
+  expect(i!.width, 'slider width').toBeGreaterThan(r!.width - 48);
+  expect(i!.x, 'slider left edge').toBeLessThan(r!.x + 24);
 });
