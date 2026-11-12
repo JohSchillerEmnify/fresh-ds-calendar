@@ -1,7 +1,4 @@
-/**
- * Sending the device's error log to the server (feature device-log): the button sends all of it, the automatic sending (a pref,
- * off until the person turns it on) only the entries the server does not have yet. Both use `POST /api/diag/device-log`.
- */
+/** Sending the error log to the server (feature device-log, ADR 0045): the button sends all of it, the opt-in pref only what is new. */
 import { watch } from 'vue';
 import { api, ApiError, type DeviceLogUpload } from '@/api/client';
 import { importCrashRecords } from '@/native/crashReports';

@@ -1,7 +1,4 @@
-/**
- * The Android app's crash records (feature device-log): the native plugin `CrashReports` hands over, once, what the app
- * recorded before its process died and the exits Android reported. Only inside the Capacitor app; a browser has none.
- */
+/** The Android app's crash records (feature device-log): the native plugin `CrashReports` hands them over once per start. */
 import { addEntries, platform, runningVersion, type LogEntry } from '@/lib/deviceLog';
 
 /** What the plugin sends per record (android/.../crash/CrashRecorder.java and ExitReasonReader.java). */

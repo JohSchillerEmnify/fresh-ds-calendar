@@ -64,4 +64,30 @@ public class CrashRecorderTest {
         assertEquals(5, all.getJSONObject(0).getInt("time"));
         file.delete();
     }
+
+    @Test
+    public void aCrashInAWidgetCallbackIsRecordedWithNoActivityStarted() throws Exception {
+        // the Application (not the activity) installs the handler, so a widget broadcast with the app closed is covered
+        assertTrue(ctx instanceof lan.mordor.calendar.CalendarApp);
+        Throwable thrown = null;
+        try {
+            new lan.mordor.calendar.widget.WeekWidgetProvider().onUpdate(ctx, null, new int[] {1});
+        } catch (Throwable t) {
+            thrown = t;
+        }
+        assertTrue("the provider callback must throw for this test", thrown != null);
+        Thread.UncaughtExceptionHandler[] previous = {Thread.getDefaultUncaughtExceptionHandler()};
+        Throwable[] seen = new Throwable[1];
+        try {
+            Thread.setDefaultUncaughtExceptionHandler((t, e) -> seen[0] = e);
+            CrashRecorder.install(ctx);
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), thrown);
+            JSONArray taken = CrashReports.take(ctx, java.util.Collections.emptyList());
+            assertEquals(1, taken.length());
+            assertEquals(thrown.getClass().getName(), taken.getJSONObject(0).getString("exception"));
+            assertTrue(taken.getJSONObject(0).getJSONArray("frames").getString(0).length() > 0);
+        } finally {
+            Thread.setDefaultUncaughtExceptionHandler(previous[0]);
+        }
+    }
 }

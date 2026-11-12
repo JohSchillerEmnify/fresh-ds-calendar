@@ -3,7 +3,7 @@
  * Google Calendar" banner, so the cause can be found in the server log next to the Google errors. Logging only.
  * `POST /api/diag/device-log` (ADR 0045): a person's error log, kept as one of their last few uploads.
  */
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { getCookie } from 'hono/cookie';
 import * as v from 'valibot';
@@ -45,6 +45,14 @@ const beaconSchema = v.strictObject({
   ageSec: v.optional(v.pipe(v.number('ageSec must be a number'), v.integer('ageSec must be a whole number'), v.minValue(0, 'ageSec must be 0-604800'), v.maxValue(604_800, 'ageSec must be 0-604800'))),
 });
 
+const jsonBody = async (c: Context): Promise<unknown> => {
+  try {
+    return await c.req.json();
+  } catch {
+    throw validation('Request body must be valid JSON');
+  }
+};
+
 export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
   const r = new Hono<AuthEnv>();
   /** Last accepted beacon per client (session id, or "local" while sign-in is off). */
@@ -54,12 +62,7 @@ export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
     '/diag/sync-error',
     bodyLimit({ maxSize: MAX_BODY_BYTES, onError: (c) => c.json({ error: { code: 'VALIDATION_ERROR', message: 'Body too large' } }, 400) }),
     async (c) => {
-      let raw: unknown;
-      try {
-        raw = await c.req.json();
-      } catch {
-        throw validation('Request body must be valid JSON');
-      }
+      const raw = await jsonBody(c);
       const b = parse(beaconSchema, raw);
       const now = ctx.clock.real();
       for (const [k, t] of last) if (now - t >= BEACON_EVERY_MS) last.delete(k);
@@ -75,12 +78,7 @@ export function diagRoutes(ctx: Ctx): Hono<AuthEnv> {
     '/diag/device-log',
     bodyLimit({ maxSize: MAX_LOG_BYTES, onError: (c) => c.json({ error: { code: 'VALIDATION_ERROR', message: 'Body too large' } }, 400) }),
     async (c) => {
-      let raw: unknown;
-      try {
-        raw = await c.req.json();
-      } catch {
-        throw validation('Request body must be valid JSON');
-      }
+      const raw = await jsonBody(c);
       const b = parse(logSchema, raw);
       const now = ctx.clock.real();
       const sub = c.get('person')?.sub ?? LOCAL_PERSON;
