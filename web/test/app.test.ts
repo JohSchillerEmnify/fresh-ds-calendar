@@ -386,12 +386,12 @@ describe('filter chips', () => {
 });
 
 describe('settings', () => {
-  it('the home lists eight groups and a search bar; theme controls only in the theme menu', async () => {
+  it('the home lists nine groups and a search bar; theme controls only in the theme menu', async () => {
     const { w, router } = await mountAt('/settings');
     await wait(() => expect(w.find(tid('settings-home')).exists()).toBe(true));
     const groups = w.findAll(tid('settings-group'));
-    expect(groups.map((x) => x.attributes('data-group-id'))).toEqual(['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'labs', 'account']);
-    expect(groups.map((x) => x.attributes('data-group'))).toEqual(['Calendars', 'Views', 'Task lists', 'Reminders', 'Appearance & layout', 'Focus & calm', 'Labs', 'Account & app']);
+    expect(groups.map((x) => x.attributes('data-group-id'))).toEqual(['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'widgets', 'labs', 'account']);
+    expect(groups.map((x) => x.attributes('data-group'))).toEqual(['Calendars', 'Views', 'Task lists', 'Reminders', 'Appearance & layout', 'Focus & calm', 'Widgets', 'Labs', 'Account & app']);
     expect(w.find(tid('settings-search')).exists()).toBe(true);
     await router.push('/settings/tasklists');
     await wait(() => expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']));

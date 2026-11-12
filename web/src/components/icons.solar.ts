@@ -50,6 +50,7 @@ import PaletteOutlineS from '~icons/solar/palette-bold-duotone';
 import NotificationsOutlineS from '~icons/solar/bell-bold-duotone';
 import ScienceOutlineS from '~icons/solar/test-tube-bold-duotone';
 import AccountCircleOutlineS from '~icons/solar/user-circle-bold-duotone';
+import WidgetsOutlineS from '~icons/solar/widget-bold-duotone';
 import SelfImprovementS from '~icons/solar/meditation-bold-duotone';
 
 export default {
@@ -106,5 +107,6 @@ export default {
   NotificationsOutline: NotificationsOutlineS,
   ScienceOutline: ScienceOutlineS,
   AccountCircleOutline: AccountCircleOutlineS,
+  WidgetsOutline: WidgetsOutlineS,
   SelfImprovement: SelfImprovementS,
 } as Record<string, Component>;

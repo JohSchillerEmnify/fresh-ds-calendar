@@ -50,6 +50,7 @@ import SearchP from '~icons/pixelarticons/search';
 import NotificationsOutlineP from '~icons/pixelarticons/bell';
 import ScienceOutlineP from '~icons/pixelarticons/test-tube';
 import AccountCircleOutlineP from '~icons/pixelarticons/avatar';
+import WidgetsOutlineP from '~icons/pixelarticons/grid';
 import SelfImprovementP from '~icons/pixelarticons/sparkles';
 
 export default {
@@ -106,5 +107,6 @@ export default {
   NotificationsOutline: NotificationsOutlineP,
   ScienceOutline: ScienceOutlineP,
   AccountCircleOutline: AccountCircleOutlineP,
+  WidgetsOutline: WidgetsOutlineP,
   SelfImprovement: SelfImprovementP,
 } as Record<string, Component>;

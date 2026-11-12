@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** The iPhone widget section of Settings › Account & app (feature iphone-widget): the devices with a widget key, add and remove. */
+/** The iPhone widget section of Settings › Widgets (feature iphone-widget): the devices with a widget key, add and remove. */
 import { computed, onMounted, ref } from 'vue';
 import type { WidgetCircle, WidgetKey } from '@/api/types';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
@@ -47,7 +47,7 @@ async function remove() {
 </script>
 
 <template>
-  <SettingSection :title="t('iphoneWidget.title')">
+  <SettingSection :title="t('settingsNav.sub.iphone')">
     <div data-testid="iphone-widget-keys">
       <SettingRow v-if="loaded && !keys.length" id="iphoneWidget" wide :label="t('iphoneWidget.intro')">
         <Button variant="tonal" data-testid="iphone-widget-add" @click="adding = true">{{ t('iphoneWidget.add') }}</Button>

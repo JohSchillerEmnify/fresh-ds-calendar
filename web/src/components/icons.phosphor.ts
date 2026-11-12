@@ -51,6 +51,7 @@ import PaletteOutlineP from '~icons/ph/palette-duotone';
 import NotificationsOutlineP from '~icons/ph/bell-duotone';
 import ScienceOutlineP from '~icons/ph/flask-duotone';
 import AccountCircleOutlineP from '~icons/ph/user-circle-duotone';
+import WidgetsOutlineP from '~icons/ph/squares-four-duotone';
 import SelfImprovementP from '~icons/ph/person-simple-tai-chi-duotone';
 
 export default {
@@ -107,5 +108,6 @@ export default {
   NotificationsOutline: NotificationsOutlineP,
   ScienceOutline: ScienceOutlineP,
   AccountCircleOutline: AccountCircleOutlineP,
+  WidgetsOutline: WidgetsOutlineP,
   SelfImprovement: SelfImprovementP,
 } as Record<string, Component>;

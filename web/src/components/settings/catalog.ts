@@ -4,7 +4,7 @@ import { STABLE_VIEWS } from '@/features/views';
 import { t, type MessageKey } from '@/i18n';
 
 /** The groups of the settings home, in their order. */
-export const GROUP_IDS = ['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'labs', 'account'] as const;
+export const GROUP_IDS = ['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'widgets', 'labs', 'account'] as const;
 export type GroupId = (typeof GROUP_IDS)[number];
 
 /** Sub-pages of a group (`/settings/<group>/<page>`). */
@@ -97,8 +97,9 @@ export const SETTINGS: readonly SettingEntry[] = [
 
   e('account', 'account', 'signOutAll', 'settings.account.signOutAll.label', { hint: 'settings.account.signOutAll.hint' }),
   e('account', undefined, 'backup', 'backup.label', { hint: 'backup.hint', synonyms: 'settingsNav.synonyms.backup' }),
-  e('account', undefined, 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
-  e('account', undefined, 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
+  e('widgets', 'android', 'androidWidgets', 'settings.widgets.android.label', { hint: 'settings.widgets.android.hint', synonyms: 'settingsNav.synonyms.androidWidget' }),
+  e('widgets', 'iphone', 'iphoneWidget', 'iphoneWidget.title', { hint: 'iphoneWidget.intro', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
+  e('widgets', 'iphone', 'widgetCircle', 'iphoneWidget.circle.label', { hint: 'iphoneWidget.circle.hint', synonyms: 'settingsNav.synonyms.iphoneWidget' }),
   e('account', 'app', 'whatsNew', 'settings.account.whatsNew.label'),
   e('account', 'app', 'errorLog', 'deviceLog.row.label', { hint: 'deviceLog.row.hint', synonyms: 'settingsNav.synonyms.errorLog' }),
   e('account', 'app', 'credits', 'settings.account.credits.label', { hint: 'settings.account.credits.hint' }),

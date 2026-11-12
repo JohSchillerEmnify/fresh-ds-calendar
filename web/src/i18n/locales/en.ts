@@ -164,6 +164,9 @@ export default {
       ignoreSystem: { label: 'Ignore the device setting', hint: 'Use the animation level above even if the device asks for less motion' },
       sounds: 'Sounds',
     },
+    widgets: {
+      android: { label: 'Home screen widgets', hint: 'With the Android app installed, press and hold the home screen, tap Widgets and pick the calendar for the week, the day or the clock.' },
+    },
     labs: {
       weekTwoRow: { label: 'Two-row week overview', hint: 'Shows the week in two rows so all seven days fit on one screen without scrolling', split: 'Days on the top row' },
     },
