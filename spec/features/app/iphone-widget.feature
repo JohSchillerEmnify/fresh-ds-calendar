@@ -18,6 +18,10 @@ Feature: iPhone widgets through Scriptable
   no clock of its own, because iOS shows its clock on the lock screen,, and no date line above the box, because
   it shows it itself. Inline and rectangular show start times and titles only, which do not go stale.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
+  The iPhone section of Settings › Widgets also offers a layout: Standard (as above) or Timeline. With the Timeline the
+  medium and large widgets draw the next days as columns from today, hours from top to bottom, as many days as the person
+  picks (1 to 7, default 3). The hours are fitted to the entries of those days, because the widget cannot scroll. The
+  small widget and the lock screen do not change. The two settings belong to the iPhone section only; they are per person.
 
   Background:
     Given the calendar is empty
@@ -146,6 +150,30 @@ Feature: iPhone widgets through Scriptable
       And the lock screen circle row says "Countdown may lag a few minutes behind."
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
+
+    Scenario: The layout and the number of days are set in the iPhone section
+      When I open the iPhone widget settings
+      Then the iPhone widget layout is set to "Standard"
+      And the timeline days row is not offered
+      When I set the iPhone widget layout to "Timeline"
+      Then the iPhone widget layout is set to "Timeline"
+      And the timeline days are set to "3"
+      When I set the timeline days to "5"
+      Then the timeline days are set to "5"
+
+    @visual
+    Scenario: The iPhone section with the Timeline chosen looks right in light and dark
+      When I open the iPhone widget settings
+      And I set the iPhone widget layout to "Timeline"
+      And I set the timeline days to "5"
+      Then the "settings page" still looks like "settings-iphone-timeline-light"
+
+    @visual
+    Scenario: The iPhone section with the Timeline chosen looks right in the dark theme
+      Given the device prefers a dark color scheme
+      When I open the iPhone widget settings
+      And I set the iPhone widget layout to "Timeline"
+      Then the "settings page" still looks like "settings-iphone-timeline-dark"
 
     Scenario: The key is not shown again later
       Given I created a widget key named "My iPhone"
@@ -317,6 +345,73 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget shows the hours from 06:00 to 20:00
       And the iPhone widget places the event "Late" in the week grid from 19:00 to 20:00
 
+    # unit: server/test/ios-widget.test.ts:the timeline shows the chosen days
+    @unit
+    Scenario: The medium widget can show the Timeline of the next days from today
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
+      And the calendar contains an event "Dinner" on 2026-10-17 from 19:00 to 21:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the iPhone widget timeline is set to 3 days
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "medium" size
+      Then the iPhone widget shows the timeline of 3 days from 2026-10-14
+      And the iPhone widget places the event "Dentist" in the timeline from 09:00 to 10:00
+      And the iPhone widget places the event "Gym" in the timeline from 18:00 to 19:00
+      And the iPhone widget does not show the event "Dinner"
+
+    # unit: server/test/ios-widget.test.ts:the timeline defaults to three days
+    @unit
+    Scenario: The Timeline shows three days unless the person picks another number
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget shows the timeline of 3 days from 2026-10-14
+
+    # unit: server/test/ios-widget.test.ts:the timeline hours follow the days shown
+    @unit
+    Scenario: The Timeline fits its hours to the entries of the days shown
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
+      And the calendar contains an event "Night" on 2026-10-17 from 22:00 to 23:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the iPhone widget timeline is set to 2 days
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget shows the hours from 09:00 to 19:00
+
+    # unit: server/test/ios-widget.test.ts:the timeline runs up to seven days
+    @unit
+    Scenario: The Timeline can show a whole week from today
+      Given the calendar contains an event "Review" on 2026-10-20 from 14:00 to 15:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the iPhone widget timeline is set to 7 days
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "large" size
+      Then the iPhone widget shows the timeline of 7 days from 2026-10-14
+      And the iPhone widget places the event "Review" in the timeline from 14:00 to 15:00
+
+    # unit: server/test/ios-widget.test.ts:the timeline draws the red now-line
+    @unit
+    Scenario: The Timeline has a red line for now in today's column
+      Given the time is 2026-10-14 09:20
+      And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "medium" size
+      Then the iPhone widget draws a red now-line at 09:20 in today's column
+
+    # unit: server/test/ios-widget.test.ts:the small widget stays
+    @unit
+    Scenario: The Timeline does not change the small widget
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+      And the iPhone widget layout is chosen as "timeline"
+      And the widget key "My iPhone" belongs to "jo@example.com"
+      When I look at the iPhone widget in the "small" size
+      Then the iPhone widget shows "WED 14"
+      And the iPhone widget shows the entry "Dentist" with its start "09:00"
+
     # unit: server/test/ios-widget.test.ts:inline says the next entry
     @unit
     Scenario: The inline lock-screen widget shows the next entry
@@ -379,6 +474,23 @@ Feature: iPhone widgets through Scriptable
       And the lock screen circle is chosen as "countdown"
       When the iPhone widget refreshes with the key "My iPhone"
       Then the widget data carries the lock screen circle "countdown"
+
+    # unit: server/test/widget-keys.test.ts:carries the layout and the timeline days
+    @unit
+    Scenario: The widget data carries the layout and the number of timeline days
+      Given the widget key "My iPhone" belongs to "jo@example.com"
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the iPhone widget layout "standard" and 3 timeline days
+      Given the iPhone widget layout is chosen as "timeline"
+      And the iPhone widget timeline is set to 5 days
+      When the iPhone widget refreshes with the key "My iPhone"
+      Then the widget data carries the iPhone widget layout "timeline" and 5 timeline days
+
+    # unit: server/test/prefs.test.ts:timeline days
+    @unit
+    Scenario: A number of timeline days outside 1 to 7 is refused
+      Then setting the timeline days to 0 is refused
+      And setting the timeline days to 8 is refused
 
     # unit: server/test/ios-widget.test.ts:rectangular says what is going on now
     @unit
