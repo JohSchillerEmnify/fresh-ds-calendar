@@ -37,10 +37,10 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
       <Button v-if="showApk" variant="tonal" data-testid="settings-android-widgets" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button>
     </SettingRow>
     <SettingRow id="androidWidgetHours" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
+      <div class="stack">
       <SegmentedButton connected :model-value="prefs.androidWidgetHoursMode" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHoursMode: $event as AndroidWidgetHoursMode })" />
-    </SettingRow>
-    <SettingRow v-if="prefs.androidWidgetHoursMode === 'fixed'" id="androidWidgetHoursFixed" wide :label="t('settings.widgets.scroll.fixed')">
-      <Slider class="track" :model-value="liveHours" :min="4" :max="24" :step="1" :label="t('settings.widgets.scroll.fixed')" :value-text="hoursText(liveHours)" testid="settings-widget-hours-slider" @update:model-value="liveHours = $event" @commit="savePrefs({ androidWidgetHours: $event })" />
+      <Slider v-if="prefs.androidWidgetHoursMode === 'fixed'" class="track" :model-value="liveHours" :min="4" :max="24" :step="1" :label="t('settings.widgets.scroll.label')" :value-text="hoursText(liveHours)" testid="settings-widget-hours-slider" @update:model-value="liveHours = $event" @commit="savePrefs({ androidWidgetHours: $event })" />
+      </div>
     </SettingRow>
   </SettingSection>
 
@@ -56,6 +56,9 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
 
 <style scoped>
 .track { flex: 0 1 260px; }
+/* the slider sits under the Automatic/Fixed choice, as in the mockup */
+.stack { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
+.stack .track { flex: none; }
 /* the row already names the control; only the value stays in sight */
 .track :deep(.lab) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .track :deep(.val) { grid-column: 2; }
