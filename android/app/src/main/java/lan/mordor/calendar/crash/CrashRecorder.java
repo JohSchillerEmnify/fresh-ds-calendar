@@ -11,14 +11,18 @@ import org.json.JSONObject;
 /**
  * Writes a Java crash of the app process (the widgets run in it) to a file before the process dies; the web app picks the
  * records up at its next start ({@link CrashReports}). A record holds the exception class, its causes' classes, the stack
- * frames (class, method, file, line), the thread name, the app and Android version and the time. The exception message is
- * never recorded: it can carry a calendar title.
+ * frames (class, method, file, line), the thread name, the app and Android version and the time. A message is kept only when
+ * the Android or Java framework wrote it (see {@link #fromFramework}): the system's reason for refusing a call is the decisive
+ * part, while our own messages can carry a calendar title.
  */
 public final class CrashRecorder {
     static final String FILE = "crash-records.jsonl";
     static final int MAX_FRAMES = 40;
     static final int MAX_CAUSES = 5;
     static final int MAX_RECORDS = 20;
+    static final int MAX_MESSAGE = 300;
+    private static final int MAX_CAUSE_FRAMES = 20;
+    private static final String[] FRAMEWORK = {"android.", "com.android.", "java.", "javax.", "dalvik.", "libcore."};
 
     private CrashRecorder() {}
 
@@ -45,16 +49,48 @@ public final class CrashRecorder {
         }
     }
 
-    /** The record of one crash: no message text, only class names and frames. */
+    /** The record of one crash: class names, frames, and only the messages the framework wrote. */
     public static JSONObject describe(Throwable error, String thread, String app, int sdk, long timeMs) throws JSONException {
         JSONArray causes = new JSONArray();
+        JSONArray details = new JSONArray();
         Throwable cause = error.getCause();
-        for (int i = 0; cause != null && i < MAX_CAUSES; i++, cause = cause.getCause()) causes.put(cause.getClass().getName());
+        for (int i = 0; cause != null && i < MAX_CAUSES; i++, cause = cause.getCause()) {
+            causes.put(cause.getClass().getName());
+            JSONObject d = new JSONObject().put("exception", cause.getClass().getName()).put("frames", frames(cause, MAX_CAUSE_FRAMES));
+            if (fromFramework(cause)) d.put("message", message(cause));
+            details.put(d);
+        }
+        JSONObject r = new JSONObject().put("source", "java").put("exception", error.getClass().getName()).put("causes", causes)
+                .put("causeDetails", details).put("frames", frames(error, MAX_FRAMES)).put("thread", thread).put("app", app).put("android", sdk).put("time", timeMs);
+        if (fromFramework(error)) r.put("message", message(error));
+        return r;
+    }
+
+    /**
+     * True when the framework threw it: its own top frame is in a framework package, or it has no frames and a framework class
+     * (Parcel attaches the system's stack that way, as a frameless RemoteException).
+     */
+    static boolean fromFramework(Throwable t) {
+        if (t.getMessage() == null) return false;
+        StackTraceElement[] stack = t.getStackTrace();
+        return framework(stack.length > 0 ? stack[0].getClassName() : t.getClass().getName());
+    }
+
+    private static boolean framework(String className) {
+        for (String p : FRAMEWORK) if (className.startsWith(p)) return true;
+        return false;
+    }
+
+    private static String message(Throwable t) {
+        String m = t.getMessage();
+        return m.length() > MAX_MESSAGE ? m.substring(0, MAX_MESSAGE) : m;
+    }
+
+    private static JSONArray frames(Throwable t, int max) {
         JSONArray frames = new JSONArray();
-        StackTraceElement[] stack = error.getStackTrace();
-        for (int i = 0; i < stack.length && i < MAX_FRAMES; i++) frames.put(stack[i].toString());
-        return new JSONObject().put("source", "java").put("exception", error.getClass().getName()).put("causes", causes)
-                .put("frames", frames).put("thread", thread).put("app", app).put("android", sdk).put("time", timeMs);
+        StackTraceElement[] stack = t.getStackTrace();
+        for (int i = 0; i < stack.length && i < max; i++) frames.put(stack[i].toString());
+        return frames;
     }
 
     static synchronized void append(File file, JSONObject record) throws IOException {

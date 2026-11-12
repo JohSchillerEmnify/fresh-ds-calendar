@@ -4395,6 +4395,7 @@ the shared error log is a text file with {int} entries
 the app cannot open its share sheet
 the error log is copied and I am told so
 the Android app crashes with {string} and the message {string}
+the Android system refuses a widget update with the reason {string}
 the Android app is started again
 Android 11 reports that the app stopped with an ANR and a native crash since the last start
 the Android app is started twice
