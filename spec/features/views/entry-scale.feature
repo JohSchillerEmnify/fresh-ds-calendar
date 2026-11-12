@@ -117,6 +117,19 @@ Feature: The same kind of entry looks the same in every view
       | week |
       | day  |
 
+  @mobile
+  Scenario Outline: On a phone a title that fits shows in full without a fade
+    Given the Birthdays calendar has a birthday "Anna" on 2026-10-14
+    And the calendar contains an event "Lunch" on 2026-10-14 from 12:00 to 13:00
+    Then in the <view> view of 2026-10-14 the title of "Anna" shows in full without a fade
+    And in the <view> view of 2026-10-14 the title of "Lunch" shows in full without a fade
+
+    Examples:
+      | view  |
+      | month |
+      | week  |
+      | day   |
+
   @desktop
   Scenario Outline: The birthday marker has one size in every view
     Given the Birthdays calendar has a birthday "Anna" on 2026-10-14
