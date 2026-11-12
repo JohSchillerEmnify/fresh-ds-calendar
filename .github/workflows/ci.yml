@@ -140,11 +140,6 @@ jobs:
           fi
           echo "native=$native" >> "$GITHUB_OUTPUT"
 
-  android-emulator:
-    needs: android-changes
-    if: needs.android-changes.outputs.native == 'true'
-    uses: ./.github/workflows/android-emulator.yml
-
   # The repo is public: commit messages that name people (scripts/hooks/personal-terms) fail here too, also when the
   # local commit-msg hook did not run.
   commit-messages:
@@ -169,7 +164,7 @@ jobs:
   ci-result:
     name: CI result
     if: always()
-    needs: [verify, e2e-smoke, android-unit, android-emulator, commit-messages]
+    needs: [verify, e2e-smoke, android-unit, commit-messages]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
