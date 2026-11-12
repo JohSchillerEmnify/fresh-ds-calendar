@@ -165,9 +165,9 @@ export default {
     },
     widgets: {
       android: { label: 'Home screen widgets', hint: 'With the Android app installed, press and hold the home screen, tap Widgets and pick the calendar for the week, the day, the clock, the list or several days.' },
-      scroll: { label: 'Hours in view', hint: 'With “Automatic” the range follows your appointments. With “Fixed” you choose how many hours the Multi-day widget shows at once.', auto: 'Automatic', fixed: 'Fixed', hoursValue: '{n} hours', days: 'Days in the Timeline' },
-      timeline: { hint: 'How many days the Timeline shows, starting today.' },
-      textSize: { label: 'Text size in the Timeline', hint: 'Larger is easier to read; less text fits into narrow columns.' },
+      scroll: { label: 'Hours in view', hint: 'With “Automatic” the range follows your appointments. With “Fixed” you choose how many hours the Multi-day widget shows at once.', auto: 'Automatic', fixed: 'Fixed', hoursValue: '{n} hours', days: 'Number of days' },
+      timeline: { hint: 'How many days Multi-day shows, starting today.' },
+      textSize: { label: 'Text size', hint: 'Larger is easier to read; less text fits into narrow columns.' },
     },
     labs: {
       weekTwoRow: { label: 'Two-row week overview', hint: 'Shows the week in two rows so all seven days fit on one screen without scrolling', split: 'Days on the top row' },

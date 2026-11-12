@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-12
+- Changed: the Multi-day view is now called "Multi-day" (German: "Mehrere Tage") on iPhone and Android alike, and the iPhone layout "Standard" is now "List & week".
 - Fixed: text and buttons can no longer be selected by accident; event descriptions, places and notes can still be copied.
 - New: the calendar that holds your task lists has a colour setting now (Settings › Calendars › Task lists calendar), just like your other calendars. Task lists follow it.
 - Removed: the switch "Show the task lists calendar in Google" is gone; it never worked. The calendar stays out of your Google calendar list.

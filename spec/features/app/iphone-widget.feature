@@ -18,15 +18,15 @@ Feature: iPhone widgets through Scriptable
   no clock of its own, because iOS shows its clock on the lock screen,, and no date line above the box, because
   it shows it itself. Inline and rectangular show start times and titles only, which do not go stale.
   An iPhone widget is a fixed picture: it cannot scroll or page, and Scriptable widgets have no buttons.
-  The iPhone section of Settings › Widgets also offers a layout: Standard (as above) or Timeline. With the Timeline the
+  The iPhone section of Settings › Widgets also offers a layout: "List & week" (as above) or "Multi-day". With Multi-day the
   medium and large widgets draw the next days as columns from today, hours from top to bottom, as many days as the person
   picks (1 to 7, default 3). The hours are fitted to the entries of those days, because the widget cannot scroll. The
   small widget and the lock screen do not change. The layout belongs to the iPhone section; the day count is one setting in
-  its own section "Timeline (iPhone and Android)" of Widgets settings, shared with the Android List widget's Timeline, and a day
+  its own section "Multi-day (iPhone and Android)" of Widgets settings, shared with the Android Multi-day widget, and a day
   count chosen earlier for the Android widget carries over until one is chosen there. The same section holds the
-  "Text size in the Timeline": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
-  Timeline and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
-  The iPhone section also holds "Hours in the Timeline": "Automatic" (the default, the hours fit the entries of the days
+  "Text size": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
+  Multi-day layout and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
+  The iPhone section also holds "Hours (Multi-day)": "Automatic" (the default, the hours fit the entries of the days
   shown) or "Fixed range" with a start ("From") and an end ("To"). An entry outside a fixed range is not dropped: it
   gets a small marker at the edge of its day, "▾ Cinema 19:00" at the bottom or "▴ Run 06:00" at the top (the nearest
   one, with "+1" for each further one); an entry that reaches into the range is drawn clipped to it. A stored choice is never
@@ -160,11 +160,11 @@ Feature: iPhone widgets through Scriptable
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
 
-    Scenario: The layout is set in the iPhone section and the number of days in the Timeline section
+    Scenario: The layout is set in the iPhone section and the number of days in the Multi-day section
       When I open the iPhone widget settings
-      Then the iPhone widget layout is set to "Standard"
-      When I set the iPhone widget layout to "Timeline"
-      Then the iPhone widget layout is set to "Timeline"
+      Then the iPhone widget layout is set to "List & week"
+      When I set the iPhone widget layout to "Multi-day"
+      Then the iPhone widget layout is set to "Multi-day"
       And the timeline days are set to "3"
       When I set the timeline days to "5"
       Then the timeline days are set to "5"
@@ -178,7 +178,7 @@ Feature: iPhone widgets through Scriptable
     @visual @mobile
     Scenario: The iPhone section with the Timeline chosen looks right in the light theme
       When I open the iPhone widget settings
-      And I set the iPhone widget layout to "Timeline"
+      And I set the iPhone widget layout to "Multi-day"
       And I set the timeline days to "5"
       Then the "settings page" still looks like "settings-iphone-timeline-light"
 
@@ -186,7 +186,7 @@ Feature: iPhone widgets through Scriptable
     Scenario: The iPhone section with the Timeline chosen looks right in the dark theme
       Given the device prefers a dark color scheme
       When I open the iPhone widget settings
-      And I set the iPhone widget layout to "Timeline"
+      And I set the iPhone widget layout to "Multi-day"
       And I set the timeline days to "2"
       Then the "settings page" still looks like "settings-iphone-timeline-dark"
 

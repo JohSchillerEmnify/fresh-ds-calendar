@@ -2,7 +2,7 @@
 Feature: Scrolling phone widgets (List and Multi-day)
   Two Android home-screen widgets that scroll, both in the widget picker. "List" (Agenda) shows today and the coming days
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
-  hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Days in the Timeline"
+  hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Number of days"
   setting). The Multi-day widget opens with half an hour before now at the top. Its hours in view are "Automatic" (the hours
   fit the appointments of the days shown, by the same rule as the week grid, and the person scrolls for the rest of the day)
   or "Fixed" (a free choice of 4 to 24 hours that fit into its height, 16 by default), in Settings > Widgets > Android; a
