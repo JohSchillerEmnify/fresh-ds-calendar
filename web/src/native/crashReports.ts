@@ -6,7 +6,7 @@ export interface CrashRecord {
   source?: string;
   exception?: string;
   causes?: string[];
-  /** Only a message Android or Java wrote; the recorder drops the app's own (CrashRecorder.fromFramework). */
+  /** Only a message Android itself wrote; the recorder drops all others (CrashRecorder.fromFramework). */
   message?: string;
   causeDetails?: { exception?: string; message?: string; frames?: string[] }[];
   frames?: string[];

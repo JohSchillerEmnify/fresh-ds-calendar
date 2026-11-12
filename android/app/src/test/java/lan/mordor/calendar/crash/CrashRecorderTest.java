@@ -69,6 +69,13 @@ public class CrashRecorderTest {
         assertEquals(CrashRecorder.MAX_MESSAGE, r.getString("message").length());
         JSONObject cause = r.getJSONArray("causeDetails").getJSONObject(0);
         assertFalse(cause.has("message"));
+        NumberFormatException parse = new NumberFormatException("For input string: \"Dentist\"");
+        parse.setStackTrace(new StackTraceElement[] {new StackTraceElement("java.lang.Long", "parseLong", "Long.java", 1)});
+        RuntimeException wrapped = new RuntimeException("wrapped", parse);
+        wrapped.setStackTrace(new StackTraceElement[] {new StackTraceElement("java.lang.Thread", "run", "Thread.java", 1)});
+        String json = CrashRecorder.describe(wrapped, "main", "1.1.9", 37, 1L).toString();
+        assertFalse("a message java.* wrote can quote a title", json.contains("Dentist"));
+        assertFalse(json.contains("wrapped"));
         assertTrue(cause.getJSONArray("frames").getString(0).contains("CrashRecorderTest.dropsTheMessage"));
     }
 

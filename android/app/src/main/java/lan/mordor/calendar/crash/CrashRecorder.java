@@ -12,7 +12,7 @@ import org.json.JSONObject;
  * Writes a Java crash of the app process (the widgets run in it) to a file before the process dies; the web app picks the
  * records up at its next start ({@link CrashReports}). A record holds the exception class, its causes' classes, the stack
  * frames (class, method, file, line), the thread name, the app and Android version and the time. A message is kept only when
- * the Android or Java framework wrote it (see {@link #fromFramework}): the system's reason for refusing a call is the decisive
+ * Android itself wrote it (see {@link #fromFramework}): the system's reason for refusing a call is the decisive
  * part, while our own messages can carry a calendar title.
  */
 public final class CrashRecorder {
@@ -22,7 +22,8 @@ public final class CrashRecorder {
     static final int MAX_RECORDS = 20;
     static final int MAX_MESSAGE = 300;
     private static final int MAX_CAUSE_FRAMES = 20;
-    private static final String[] FRAMEWORK = {"android.", "com.android.", "java.", "javax.", "dalvik.", "libcore."};
+    /** Android writes these messages itself; a message from java.* can quote a value from a calendar (NumberFormatException). */
+    private static final String[] FRAMEWORK = {"android.", "com.android."};
 
     private CrashRecorder() {}
 
@@ -49,7 +50,7 @@ public final class CrashRecorder {
         }
     }
 
-    /** The record of one crash: class names, frames, and only the messages the framework wrote. */
+    /** The record of one crash: class names, frames, and only the messages Android wrote. */
     public static JSONObject describe(Throwable error, String thread, String app, int sdk, long timeMs) throws JSONException {
         JSONArray causes = new JSONArray();
         JSONArray details = new JSONArray();
