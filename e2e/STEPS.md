@@ -4496,6 +4496,7 @@ the sheet says that adding a region needs a connection
 the density is {string}
 in the {view} view of {date} the title of {string} is {float} px at weight {int}
 in the {view} view of {date} the title of {string} fades out instead of ending in an ellipsis
+in the {view} view of {date} the title of {string} shows in full without a fade
 in the {view} view of {date} the marker of {string} is {float} px
 ```
 
@@ -4505,6 +4506,8 @@ in the {view} view of {date} the marker of {string} is {float} px
 - "title is N px at weight W": computed `font-size` (1 decimal) and `font-weight` of that title.
 - "fades out instead of ending in an ellipsis": computed `text-overflow` is `clip`, `-webkit-line-clamp` is `none` (a
   line clamp draws its own ellipsis) and `mask-image` is not `none`.
+- "shows in full without a fade": the title is not wider than its box (`scrollWidth <= clientWidth`) and neither it nor
+  its text has a `mask-image`: a fade appears only where text is really cut.
 - "the marker of X is N px": computed `font-size` of the first visible `event-marker` inside the entry titled X.
 
 ## One-line task lists (`@one-line`)

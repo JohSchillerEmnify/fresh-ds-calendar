@@ -41,6 +41,15 @@ Then('in the {view} view of {date} the title of {string} fades out instead of en
   await expect.poll(masked).toBe(true);
 });
 
+Then('in the {view} view of {date} the title of {string} shows in full without a fade', async function (this: World, view: View, date: string, name: string) {
+  await open(this, view, date);
+  const title = titleOf(this, name);
+  await expect(title).toBeVisible();
+  await this.settled();
+  const state = () => title.evaluate((n) => ({ fits: n.scrollWidth <= n.clientWidth, masked: [n, ...n.querySelectorAll('.tx')].some((e) => { const s = getComputedStyle(e); return (s.maskImage || s.webkitMaskImage) !== 'none'; }) }));
+  await expect.poll(state).toEqual({ fits: true, masked: false });
+});
+
 Then('in the {view} view of {date} the marker of {string} is {float} px', async function (this: World, view: View, date: string, name: string, px: number) {
   await open(this, view, date);
   const marker = this.page.locator(`[data-title=${JSON.stringify(name)}] [data-testid="event-marker"]`).locator('visible=true').first();

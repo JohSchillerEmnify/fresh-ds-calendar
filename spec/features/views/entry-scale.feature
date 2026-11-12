@@ -4,8 +4,8 @@ Feature: The same kind of entry looks the same in every view
   size and weight in all three, an event, a multi-day bar and a task list title alike. Every size follows the density
   setting (Compact, Comfortable, Airy), and on a phone every entry is one step smaller. A timed block in the week and
   the day may keep a slightly larger title, since it has room that a month chip has not. Smaller differences are gone
-  too: on a phone a one-line entry title (chip, bar, all-day entry, task list card) fades out in every view, never an
-  ellipsis in one and a fade in another. A multi-line timed block in the week and the day keeps the ellipsis on a cut
+  too: on a phone a one-line entry title (chip, bar, all-day entry, task list card) that is too long fades out in every view, never an
+  ellipsis in one and a fade in another; a title that fits shows in full, with no fade. A multi-line timed block in the week and the day keeps the ellipsis on a cut
   title, since a fade cannot show a cut where the last line ends at a word break; a block only one line tall is a
   one-line entry and fades out. The
   birthday and anniversary marker has one size, and each kind of entry (chip, bar, all-day entry, block, card) has one
@@ -81,8 +81,8 @@ Feature: The same kind of entry looks the same in every view
 
   @mobile
   Scenario Outline: On a phone a multi-day bar fades out in every view
-    Given the calendar contains an all-day event "Trip" from 2026-10-13 to 2026-10-15
-    Then in the <view> view of 2026-10-14 the title of "Trip" fades out instead of ending in an ellipsis
+    Given the calendar contains an all-day event "Annual offsite trip with the whole extended team and all of the partners from every office" from 2026-10-13 to 2026-10-15
+    Then in the <view> view of 2026-10-14 the title of "Annual offsite trip with the whole extended team and all of the partners from every office" fades out instead of ending in an ellipsis
 
     Examples:
       | view  |
@@ -109,13 +109,26 @@ Feature: The same kind of entry looks the same in every view
 
   @mobile
   Scenario Outline: On a phone a timed entry only one line tall fades out
-    Given the calendar contains an event "Quarterly planning with the whole extended team" on 2026-10-14 from 10:00 to 10:15
-    Then in the <view> view of 2026-10-14 the title of "Quarterly planning with the whole extended team" fades out instead of ending in an ellipsis
+    Given the calendar contains an event "Quarterly planning with the whole extended team and all of the partners from every office" on 2026-10-14 from 10:00 to 10:15
+    Then in the <view> view of 2026-10-14 the title of "Quarterly planning with the whole extended team and all of the partners from every office" fades out instead of ending in an ellipsis
 
     Examples:
       | view |
       | week |
       | day  |
+
+  @mobile
+  Scenario Outline: On a phone a title that fits shows in full without a fade
+    Given the Birthdays calendar has a birthday "Anna" on 2026-10-14
+    And the calendar contains an event "Lunch" on 2026-10-14 from 12:00 to 13:00
+    Then in the <view> view of 2026-10-14 the title of "Anna" shows in full without a fade
+    And in the <view> view of 2026-10-14 the title of "Lunch" shows in full without a fade
+
+    Examples:
+      | view  |
+      | month |
+      | week  |
+      | day   |
 
   @desktop
   Scenario Outline: The birthday marker has one size in every view
