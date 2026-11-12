@@ -3,7 +3,6 @@ package lan.mordor.calendar.widget;
 import android.content.Context;
 import android.content.SharedPreferences;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import org.json.JSONObject;
 
 /**
@@ -73,25 +72,6 @@ final class WidgetStore {
 
     String auth() {
         return prefs.getString("auth", AUTH_OK);
-    }
-
-    /** Whether the widget instance last got the other copy of its layout (ScrollWidgetProvider#push). */
-    boolean altLayout(int widgetId) {
-        return prefs.getBoolean("altLayout" + widgetId, false);
-    }
-
-    void setAltLayout(int widgetId, boolean alt) {
-        prefs.edit().putBoolean("altLayout" + widgetId, alt).apply();
-    }
-
-    /** The time today at which the Multi-day instance last opened at half an hour before now, or null (none yet, or another day). */
-    LocalTime opening(int widgetId, LocalDate today) {
-        if (!today.toString().equals(prefs.getString("openedOn" + widgetId, null))) return null;
-        return LocalTime.ofSecondOfDay(prefs.getInt("openedAt" + widgetId, 0));
-    }
-
-    void setOpening(int widgetId, LocalDate today, LocalTime at) {
-        prefs.edit().putString("openedOn" + widgetId, today.toString()).putInt("openedAt" + widgetId, at.toSecondOfDay()).apply();
     }
 
     /** The week the fetched data is for, or null. */

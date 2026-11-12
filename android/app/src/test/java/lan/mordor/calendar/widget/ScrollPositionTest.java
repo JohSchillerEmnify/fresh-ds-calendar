@@ -43,7 +43,10 @@ public class ScrollPositionTest {
             top = end;
         }
         ListView list = new ListView(ctx);
-        list.setDivider(null); // like the widget layout
+        list.setDivider(null); // like the widget layout, with its padding out of sight
+        int pad = Math.round(20 * d);
+        list.setPadding(0, pad, 0, pad);
+        list.setClipToPadding(false);
         list.setAdapter(new BaseAdapter() {
             public int getCount() { return n; }
             public Object getItem(int p) { return p; }
@@ -59,14 +62,17 @@ public class ScrollPositionTest {
         FrameLayout parent = new FrameLayout(activity);
         activity.setContentView(parent, new ViewGroup.LayoutParams(Math.round(300 * d), Math.round(listDp * d)));
         int w = Math.round(300 * d), h = Math.round(listDp * d);
-        parent.addView(list, new FrameLayout.LayoutParams(w, h));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(w, h + 2 * pad);
+        lp.topMargin = -pad;
+        lp.bottomMargin = -pad;
+        parent.addView(list, lp);
         parent.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
         parent.layout(0, 0, w, h);
         shadowOf(Looper.getMainLooper()).idle();
         list.smoothScrollToPosition(plan.scrollRow);
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10));
         int first = list.getFirstVisiblePosition();
-        int scrolled = -list.getChildAt(0).getTop();
+        int scrolled = pad - list.getChildAt(0).getTop();
         for (int i = 0; i < first; i++) scrolled += heights[i];
         return scrolled / d - (plan.bandDp + WeekCanvas.PAD);
     }
@@ -83,7 +89,8 @@ public class ScrollPositionTest {
             for (int hour = 0; hour < 24; hour++) {
                 TimelineRows.Plan plan = plan(hours, LocalTime.of(hour, 40));
                 if (plan.scrollRow < 0) continue;
-                assertEquals(hours + " h at " + hour + ":40", plan.startMin / 60f * plan.hourDp, dpAtTop(plan, listDp), 0.6);
+                double wanted = plan.startMin < 0 ? -(plan.bandDp + WeekCanvas.PAD) : plan.startMin / 60f * plan.hourDp;
+                assertEquals(hours + " h at " + hour + ":40", wanted, dpAtTop(plan, listDp), 0.6);
             }
         }
     }

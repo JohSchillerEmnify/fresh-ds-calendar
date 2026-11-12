@@ -91,14 +91,16 @@ public class ScrollWidgetHostTest {
         shown = rv;
     }
 
-    /** A push that places the list with half an hour before now at the top: a placed widget or a new day. */
     private void update() {
-        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, NOW, true));
+        update(NOW);
     }
 
-    /** Any other push: a refresh, a tick, new data. */
-    private void refresh(LocalTime now) {
-        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, now, false));
+    private void update(LocalTime now) {
+        assertTrue(ScrollWidgetProvider.push(ctx, this::apply, 7, size(), true, TODAY, now));
+    }
+
+    private void hours(int hours) throws Exception {
+        new WidgetStore(ctx).saveSnapshot(s.put("scrollHours", hours).toString());
     }
 
     /** Lets the host lay out and the list's scroller run to its end. */
@@ -115,11 +117,11 @@ public class ScrollWidgetHostTest {
         return host.findViewById(R.id.list);
     }
 
-    /** The list's scroll in dp: the measured heights of the rows above the first shown one, plus how far that one is cut off. */
+    /** The list's scroll in dp: the measured heights of the rows above the first shown one, plus how far that one is cut off at the shown top. */
     private double scrolledDp() {
         ListView list = list();
         int first = list.getFirstVisiblePosition();
-        int scrolled = -list.getChildAt(0).getTop();
+        int scrolled = list.getPaddingTop() - list.getChildAt(0).getTop();
         for (int i = 0; i < first; i++) {
             View row = list.getAdapter().getView(i, null, list);
             row.measure(View.MeasureSpec.makeMeasureSpec(list.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -130,10 +132,63 @@ public class ScrollWidgetHostTest {
 
     /** The dp of the minute that should be at the top: half an hour before now, below the band and the picture's top padding. */
     private double wantedDp() {
+        assertEquals("half an hour before now", 6 * 60 + 50, plan(NOW).startMin);
+        return wantedDp(NOW);
+    }
+
+    private TimelineRows.Plan plan(LocalTime now) {
         ScrollWidgetRenderer.Model m = ScrollWidgetRenderer.load(ctx, TODAY);
-        TimelineRows.Plan plan = TimelineRows.plan(m.data, TODAY, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(ctx, size()), NOW, m.choice.textScale());
-        assertEquals("half an hour before now", 6 * 60 + 50, plan.startMin);
-        return plan.bandDp + WeekCanvas.PAD + plan.startMin / 60f * plan.hourDp;
+        return TimelineRows.plan(m.data, TODAY, m.choice.days, m.str, m.choice.hours, WidgetRenderer.heightDp(ctx, size()), now, m.choice.textScale());
+    }
+
+    /** 0 when the list opens at its start (just after midnight). */
+    private double wantedDp(LocalTime now) {
+        TimelineRows.Plan plan = plan(now);
+        return plan.startMin < 0 ? 0 : plan.bandDp + WeekCanvas.PAD + plan.startMin / 60f * plan.hourDp;
+    }
+
+    /** The user's finger: scrolls the list to {@code dp}, at most the list's height per move. */
+    private void scrollTo(double dp) {
+        for (int i = 0; i < 40 && Math.abs(scrolledDp() - dp) > 0.5; i++) {
+            list().scrollListBy(px((float) Math.max(-100, Math.min(100, dp - scrolledDp()))));
+            settle();
+        }
+        assertEquals("scrolled by hand", dp, scrolledDp(), 1.0);
+    }
+
+    /**
+     * A refresh at {@code now}: the shown list is reused (no fresh one at 00:00) and moves straight from where it is to half an hour
+     * before now, never beyond either end of that way.
+     */
+    private void refresh(LocalTime now) {
+        ListView before = list();
+        double from = scrolledDp(), to = wantedDp(now);
+        double[] seen = {from, from};
+        before.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(android.widget.AbsListView view, int state) {}
+
+            @Override
+            public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
+                if (view.getChildCount() == 0 || view.getAdapter() == null || view.getAdapter().getCount() == 0) return;
+                double at = scrolledDp();
+                seen[0] = Math.min(seen[0], at);
+                seen[1] = Math.max(seen[1], at);
+            }
+        });
+        update(now);
+        settle();
+        assertSame("the shown list is reused, not built afresh at 00:00", before, list());
+        assertEquals("half an hour before now", to, scrolledDp(), 1.0);
+        assertTrue("never above the way from " + from + " to " + to + ": " + seen[0], seen[0] >= Math.min(from, to) - 1);
+        assertTrue("never below the way from " + from + " to " + to + ": " + seen[1], seen[1] <= Math.max(from, to) + 1);
+    }
+
+    /** The picture of one list row as the host shows it. */
+    private android.graphics.Bitmap slice(int row) {
+        View v = list().getAdapter().getView(row, null, list());
+        android.widget.ImageView img = v.findViewById(R.id.slice);
+        return ((android.graphics.drawable.BitmapDrawable) img.getDrawable()).getBitmap();
     }
 
     @Test
@@ -144,42 +199,60 @@ public class ScrollWidgetHostTest {
     }
 
     @Test
-    public void aRefreshKeepsThePlaceTheUserScrolledToAndNeverShowsTheTop() throws Exception {
-        new WidgetStore(ctx).saveSnapshot(s.put("scrollHours", 8).toString()); // 8 hours: the list's second row (from 14:50) can reach its top
+    public void anUpdateAfterTheUserScrolledShowsHalfAnHourBeforeNowAgainNotTheTop() {
         update();
         settle();
-        for (int dp : new int[] {100, 100, 100, 60}) { // to about 15:15, in the second row (from 14:50), short of the list's end
-            list().scrollListBy(px(dp)); // one call moves at most the list's height
-            settle();
-        }
-        assertEquals("scrolled into the second row", 1, list().getFirstVisiblePosition());
+        list().scrollListBy(px(60));
         settle();
-        ListView before = list();
-        double place = scrolledDp();
-        android.graphics.Bitmap firstRow = slice(0);
-        boolean[] top = {false};
-        before.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(android.widget.AbsListView view, int state) {}
-
-            @Override
-            public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
-                if (first == 0 && view.getChildCount() > 0 && view.getChildAt(0).getTop() >= 0) top[0] = true;
-            }
-        });
-        refresh(NOW.plusMinutes(40));
-        settle();
-        assertSame("the shown list is updated, not built afresh", before, list());
-        assertFalse("the list never passes its top", top[0]);
-        assertEquals(place, scrolledDp(), 1.0);
-        assertFalse("the time line moved on", firstRow.sameAs(slice(0)));
+        refresh(NOW);
+        assertEquals(wantedDp(), scrolledDp(), 1.0);
     }
 
-    /** The picture of one list row as the host shows it. */
-    private android.graphics.Bitmap slice(int row) {
-        View v = list().getAdapter().getView(row, null, list());
-        android.widget.ImageView img = v.findViewById(R.id.slice);
-        return ((android.graphics.drawable.BitmapDrawable) img.getDrawable()).getBitmap();
+    @Test
+    public void aRefreshLaterInTheDayMovesOnToHalfAnHourBeforeTheNewNowAndDrawsTheNewTime() {
+        update();
+        settle();
+        android.graphics.Bitmap window = slice(plan(NOW).scrollRow);
+        refresh(LocalTime.of(9, 40));
+        assertFalse("the time line moved on", window.sameAs(slice(plan(LocalTime.of(9, 40)).scrollRow)));
+    }
+
+    @Test
+    public void aRefreshFromFarBelowComesStraightBackUp() throws Exception {
+        hours(8);
+        update();
+        settle();
+        scrollTo(wantedDp(LocalTime.of(16, 30))); // the evening, the opening view (06:50 to 14:50) out of sight
+        refresh(NOW);
+    }
+
+    @Test
+    public void aRefreshFromFarAboveComesStraightDown() throws Exception {
+        hours(8);
+        update(LocalTime.of(12, 20));
+        settle();
+        assertEquals("placed at noon", wantedDp(LocalTime.of(12, 20)), scrolledDp(), 1.0);
+        scrollTo(0); // the night, the opening view (11:50 to 19:50) out of sight
+        refresh(LocalTime.of(12, 50));
+    }
+
+    @Test
+    public void lateInTheDayARefreshShowsTheLastHours() throws Exception {
+        hours(8);
+        update(LocalTime.of(21, 0));
+        settle();
+        scrollTo(wantedDp(LocalTime.of(10, 0)));
+        refresh(LocalTime.of(23, 0));
+    }
+
+    @Test
+    public void justAfterMidnightARefreshShowsTheStartOfTheDay() throws Exception {
+        hours(8);
+        update(LocalTime.of(0, 10));
+        settle();
+        assertEquals("opens at its start", 0, scrolledDp(), 1.0);
+        scrollTo(wantedDp(LocalTime.of(5, 0)));
+        refresh(LocalTime.of(0, 20));
     }
 
     @Test
