@@ -7,6 +7,10 @@ battery and RAM, no memory leaks, current Android look (Material 3 Expressive), 
 Versions come from the npm registry, Docker Hub and nodejs.org on 2026-10-12. Numbers marked **measured** were
 measured on the home server (4 cores, Linux 5.15) with the exact versions given. Treat them as relative, not absolute.
 
+> Status: this is the research behind the stack of 2026-10-12. The "Decision" was carried out; the "Migration" steps are
+> done. The versions, size budgets (`web/.size-limit.json`) and container limits (`deploy/`) in the repository are
+> current, not the numbers quoted here. `@googleapis/tasks` was never used, and `@googleapis/people` was added later.
+
 ---
 
 ## 0. Version snapshot (npm `latest`, 2026-10-12)
