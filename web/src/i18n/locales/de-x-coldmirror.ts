@@ -161,6 +161,9 @@ export default {
       ignoreSystem: { label: 'Geräte-Setting ignorieren, yo', hint: 'Die Animationsstufe oben auch dann nutzen, wenn das Gerät weniger Bewegung will, Digga' },
       sounds: 'Sounds (ich rappe hier, ich rappe dort)',
     },
+    widgets: {
+      android: { label: 'Widgets für den Home-Bildschirm, yo', hint: 'Android-App drauf, dann Home-Bildschirm gedrückt halten, „Widgets“ antippen und den Kalender für Woche, Tag oder Uhr wählen, Digga.' },
+    },
     labs: {
       weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen, yo', hint: 'Die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf den Screen passen, Digga', split: 'Tage in der oberen Zeile, yo' },
     },

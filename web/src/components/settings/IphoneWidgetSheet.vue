@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Settings › Account & app › iPhone widget: names the device, makes its key and walks through the seven setup steps; the key lives only here. */
+/** Settings › Widgets › iPhone widget: names the device, makes its key and walks through the seven setup steps; the key lives only here. */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import type { WidgetKeyCreated } from '@/api/types';

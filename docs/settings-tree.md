@@ -89,6 +89,14 @@ Settings  [search bar: "Search settings"]
 │     ├─ Sleep, Wind down before        menus (Dynamic only)
 │     └─ Reminder                       Off/5…60 min before (merged: notify.bedtime + reminderMinutes = one row)
 │
+├─ Widgets                                      "Home screen and lock screen widgets"
+│  ├─ iPhone                            (moved from Account & app; feature iphone-widget)
+│  │  ├─ <one row per device with a widget key>, Add iPhone widget
+│  │  └─ Lock screen circle             Start time / Countdown
+│  ├─ Android
+│  │  └─ Home screen widgets            how to add the week, day and clock widgets · Download (not on iPhone)
+│  └─ Shared  (backlog: settings both platforms share, e.g. days of a timeline view, appear above the two sections)
+│
 ├─ Labs                                         "Try features that are not finished"
 │  ├─ Show Labs features                switch  (renamed from "Experimental views": it gates more than views)
 │  ├─ Views:  Clock, Clock rings, Timeline, Strip, Zoom, Horizontal, Runway, Now & next   switches

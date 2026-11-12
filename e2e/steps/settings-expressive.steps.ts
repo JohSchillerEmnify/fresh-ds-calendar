@@ -72,6 +72,10 @@ Then('the settings page shows the section {string}', async function (this: World
   await expect(section(this, name)).toBeVisible();
 });
 
+Then('the settings page does not show the section {string}', async function (this: World, name: string) {
+  await expect(section(this, name)).toHaveCount(0);
+});
+
 Then('the section containers are another tone than the page', async function (this: World) {
   const sec = this.page.getByTestId('settings-section').first();
   await expect(sec).toBeVisible();
@@ -90,7 +94,7 @@ Then('every settings group shows a 40 px tonal icon', async function (this: Worl
   await expect(icons.first()).toBeVisible();
   const tonal = await token(this.page, '--md-sys-color-secondary-container');
   const looks = await icons.evaluateAll((els) => els.map((e) => ({ w: e.getBoundingClientRect().width, h: e.getBoundingClientRect().height, bg: getComputedStyle(e).backgroundColor })));
-  expect(looks).toHaveLength(8);
+  expect(looks).toHaveLength(9);
   for (const l of looks) expect(l).toEqual({ w: 40, h: 40, bg: tonal });
 });
 

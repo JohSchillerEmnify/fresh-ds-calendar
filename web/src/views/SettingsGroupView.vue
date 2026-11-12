@@ -16,11 +16,12 @@ import RemindersGroup from './settings/RemindersGroup.vue';
 import TaskListsGroup from './settings/TaskListsGroup.vue';
 import TasksCalendarPage from './settings/TasksCalendarPage.vue';
 import ViewsGroup from './settings/ViewsGroup.vue';
+import WidgetsGroup from './settings/WidgetsGroup.vue';
 
 const props = defineProps<{ group: GroupId; page?: string }>();
 const GROUPS: Record<GroupId, Component> = {
   calendars: CalendarsGroup, views: ViewsGroup, tasklists: TaskListsGroup, reminders: RemindersGroup,
-  appearance: AppearanceGroup, focus: FocusGroup, labs: LabsGroup, account: AccountGroup,
+  appearance: AppearanceGroup, focus: FocusGroup, widgets: WidgetsGroup, labs: LabsGroup, account: AccountGroup,
 };
 const cals = useCalendarsStore();
 

@@ -15,6 +15,7 @@ export default {
     reminders: { title: 'Erinnerungen, Digga', summary: 'Bescheid sagen vor Terminen, Listen und dem Tag' },
     appearance: { title: 'Look & Aufbau, krass', summary: 'Design, Sprache, Leisten, Linkshänder-Modus' },
     focus: { title: 'Fokus & Chillen', summary: 'Chill-Modus, Bewegung, Töne, Serie, Bettzeit' },
+    widgets: { title: 'Widgets, yo', summary: 'Für Home- und Sperrbildschirm' },
     labs: { title: 'Labor, yo', summary: 'Sachen testen, die noch nicht fertig sind' },
     account: { title: 'Konto & App, fresh', summary: 'Google-Konto, Sicherung, Installieren, Version' },
   },
@@ -39,6 +40,8 @@ export default {
     account: 'Konto',
     app: 'App',
     tasksCalendar: 'Kalender der Aufgabenlisten',
+    iphone: 'iPhone',
+    android: 'Android',
   },
   labels: {
     plan: 'Plan, yo',

@@ -1,4 +1,4 @@
-/** Texts of the iPhone widget setup in Settings › Account & app (feature iphone-widget). */
+/** Texts of the iPhone widget setup in Settings › Widgets (feature iphone-widget). */
 export default {
   title: 'iPhone-Widget',
   intro: 'Dein Kalender auf dem Home-Bildschirm und dem Sperrbildschirm deines iPhones.',

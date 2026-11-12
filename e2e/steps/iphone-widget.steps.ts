@@ -20,7 +20,7 @@ const step = (w: World, n: number) => w.page.getByTestId(`iphone-widget-step-${n
 const rowOf = (w: World, name: string): Locator => w.page.getByTestId('iphone-widget-key-row').filter({ hasText: name });
 
 async function openSection(w: World) {
-  await openSettingsPage(w, 'account');
+  await openSettingsPage(w, 'widgets');
   await expect(w.page.getByTestId('iphone-widget-keys')).toBeVisible();
 }
 
@@ -46,7 +46,7 @@ async function ensureKey(w: World, name: string) {
 When('I open the iPhone widget settings', async function (this: World) { await openSection(this); });
 
 When('I open the iPhone widget settings again', async function (this: World) {
-  await this.page.goto('/settings/account');
+  await this.page.goto('/settings/widgets');
   await expect(this.page.getByTestId('iphone-widget-keys')).toBeVisible();
 });
 

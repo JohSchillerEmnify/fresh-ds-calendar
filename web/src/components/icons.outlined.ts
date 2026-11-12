@@ -53,6 +53,7 @@ import PaletteOutlineO from '~icons/material-symbols/palette-outline';
 import NotificationsOutlineO from '~icons/material-symbols/notifications-outline';
 import ScienceOutlineO from '~icons/material-symbols/science-outline';
 import AccountCircleOutlineO from '~icons/material-symbols/account-circle-outline';
+import WidgetsOutlineO from '~icons/material-symbols/widgets-outline';
 import SelfImprovementO from '~icons/material-symbols/self-improvement';
 
 export default {
@@ -109,5 +110,6 @@ export default {
   NotificationsOutline: NotificationsOutlineO,
   ScienceOutline: ScienceOutlineO,
   AccountCircleOutline: AccountCircleOutlineO,
+  WidgetsOutline: WidgetsOutlineO,
   SelfImprovement: SelfImprovementO,
 } as Record<string, Component>;

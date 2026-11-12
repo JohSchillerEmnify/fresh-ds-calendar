@@ -60,7 +60,7 @@ const PAGE_OF: Array<[RegExp, string]> = [
   [/^(reminders-|tasks-default-|settings-notify-)/, 'reminders'],
   [/^settings-(calm-mode|animation-level|system-reduced-motion|ignore-system-motion|sounds|streak|best-streak|support-cat|bedtime$)/, 'focus'],
   [/^settings-(labs|week-two-row)/, 'labs'],
-  [/^(iphone-widget|settings-widget-circle)/, 'account'],
+  [/^(iphone-widget|settings-widget-circle|settings-android-widgets)/, 'widgets'],
   [/^settings-(signout|calendar-access|backup-|install-app|android-app|whats-new|credits|error-log|version|update-|app-cert|reset-demo)/, 'account'],
 ];
 

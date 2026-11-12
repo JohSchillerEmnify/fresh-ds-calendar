@@ -97,4 +97,5 @@ export const IconPaletteOutline = appIcon('IconPaletteOutline', 'PaletteOutline'
 export const IconNotificationsOutline = appIcon('IconNotificationsOutline', 'NotificationsOutline');
 export const IconScienceOutline = appIcon('IconScienceOutline', 'ScienceOutline');
 export const IconAccountCircleOutline = appIcon('IconAccountCircleOutline', 'AccountCircleOutline');
+export const IconWidgetsOutline = appIcon('IconWidgetsOutline', 'WidgetsOutline');
 export const IconSelfImprovement = appIcon('IconSelfImprovement', 'SelfImprovement');

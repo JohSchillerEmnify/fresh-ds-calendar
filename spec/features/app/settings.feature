@@ -118,7 +118,7 @@ Feature: Settings
 
   Scenario: Every setting appears once, in its group
     When I open the settings
-    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Labs, Account & app"
+    Then the settings groups are "Calendars, Views, Task lists, Reminders, Appearance & layout, Focus & calm, Widgets, Labs, Account & app"
     And the settings page has no theme mode or seed colour controls
 
   Scenario: The version is shown in the settings and, if I want, in the corner
@@ -168,6 +168,7 @@ Feature: Settings
       | /settings/appearance    |
       | /settings/focus         |
       | /settings/focus/bedtime |
+      | /settings/widgets       |
       | /settings/labs          |
       | /settings/account       |
 

@@ -4,7 +4,7 @@ import { computed, onMounted, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IconAccountCircleOutline, IconCalendarMonth, IconChecklist, IconClose, IconNotificationsOutline, IconPaletteOutline,
-  IconScienceOutline, IconSearch, IconSelfImprovement, IconViewAgenda,
+  IconScienceOutline, IconSearch, IconSelfImprovement, IconViewAgenda, IconWidgetsOutline,
 } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
 import Pressable from '@/components/m3/Pressable.vue';
@@ -24,7 +24,7 @@ onMounted(() => { void cals.load().catch(() => undefined); });
 
 const ICONS: Record<GroupId, Component> = {
   calendars: IconCalendarMonth, views: IconViewAgenda, tasklists: IconChecklist, reminders: IconNotificationsOutline,
-  appearance: IconPaletteOutline, focus: IconSelfImprovement, labs: IconScienceOutline, account: IconAccountCircleOutline,
+  appearance: IconPaletteOutline, focus: IconSelfImprovement, widgets: IconWidgetsOutline, labs: IconScienceOutline, account: IconAccountCircleOutline,
 };
 
 const query = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''));

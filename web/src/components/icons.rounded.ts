@@ -53,6 +53,7 @@ import PaletteOutlineR from '~icons/material-symbols/palette-outline-rounded';
 import NotificationsOutlineR from '~icons/material-symbols/notifications-outline-rounded';
 import ScienceOutlineR from '~icons/material-symbols/science-outline-rounded';
 import AccountCircleOutlineR from '~icons/material-symbols/account-circle-outline-rounded';
+import WidgetsOutlineR from '~icons/material-symbols/widgets-outline-rounded';
 import SelfImprovementR from '~icons/material-symbols/self-improvement-rounded';
 
 export default {
@@ -109,5 +110,6 @@ export default {
   NotificationsOutline: NotificationsOutlineR,
   ScienceOutline: ScienceOutlineR,
   AccountCircleOutline: AccountCircleOutlineR,
+  WidgetsOutline: WidgetsOutlineR,
   SelfImprovement: SelfImprovementR,
 } as Record<string, Component>;

@@ -13,6 +13,7 @@ export default {
     reminders: { title: 'Erinnerunga', summary: 'Bescheid vor Terminen, Lisdn und dem Dag' },
     appearance: { title: 'Aussehn & Aufbau', summary: 'Design, Sproch, Leisdn, Linkshänder-Modus' },
     focus: { title: 'Fokus & Ruh', summary: 'Ruhemodus, Bewegung, Dön, Serie, Bettzeit' },
+    widgets: { title: 'Widgets', summary: 'Fürn Home- und Sperrbildschirm' },
     labs: { title: 'Labor', summary: 'Sachn ausbrobiern, die no ned ferdich sin' },
     account: { title: 'Kondo & App', summary: 'Google-Kondo, Sicherung, Installiern, Version' },
   },
