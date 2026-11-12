@@ -7,7 +7,7 @@ import { useCanvasStore } from '@/features/tasklists/canvasStore';
 import { useInkStore } from '@/stores/ink';
 import { useMotivationStore } from '@/features/motivation/store';
 import {
-  applyChanges, calendarSettingChanges, replacedSettings, dropItem, recolourEvents, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
+  applyChanges, calendarSettingChanges, replacedSettings, dropItem, recolourEvents, recolourTaskLists, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
 } from '@/lib/deviceData';
 import { deviceDb, devicePerson, onDeviceWipe, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { withPending } from '@/lib/outbox';
@@ -279,6 +279,17 @@ export const useDeviceStore = defineStore('device', () => {
     scheduleSave();
   }
 
+  /** A new colour of the tasks calendar: its file and the task lists that follow it change at once. */
+  function putTasksColor(color: string): void {
+    if (!data.value) return;
+    const before = file<{ color?: string }>('tasksCalendarColor')?.color;
+    const held = data.value.taskLists;
+    const taskLists = recolourTaskLists(held, before, color);
+    data.value = { ...data.value, taskLists, files: { ...data.value.files, tasksCalendarColor: { color } } };
+    if (taskLists !== held) useItemsStore().refreshFromDevice();
+    scheduleSave();
+  }
+
   /** A calendar that left the person's list: it and its events go from the device now (a sync that only finds the list as it is would keep the events). */
   function dropCalendar(id: string): void {
     if (!data.value) return;
@@ -322,6 +333,6 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   return {
-    data, ready, noteShown, syncedAt, fresh, failed, sessionPerson, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars, dropCalendar,
+    data, ready, noteShown, syncedAt, fresh, failed, sessionPerson, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars, putTasksColor, dropCalendar,
   };
 });

@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 - Fixed: text and buttons can no longer be selected by accident; event descriptions, places and notes can still be copied.
+- New: the calendar that holds your task lists has a colour setting now (Settings › Calendars › Task lists calendar), just like your other calendars. Task lists follow it.
+- Removed: the switch "Show the task lists calendar in Google" is gone; it never worked. The calendar stays out of your Google calendar list.
 - Fixed: buttons no longer flash square when you tap them; they squish a little and stay rounded.
 - Fixed: "Update now" in Settings › Account & app now really loads the new version instead of doing nothing.
 - Fixed: touching a slider in Settings while scrolling no longer changes it; a slider only moves when you drag it sideways. The sliders in Settings also all span the full width of their row now.

@@ -130,7 +130,6 @@ export default {
       approachWindow: {
         label: 'Wie weit die Leiste vorausschaut',
       },
-      tasksCalendar: { label: 'Kalender der Aufgabenlisten in Google zeigen', hint: 'Aufgabenlisten bleiben in jedem Fall in der App' },
     },
     tasklists: {
       carriedFrom: { label: 'Herkunft verschobener Listen zeigen', hint: 'Offene Listen, die auf heute weitergerückt sind, bekommen ein Etikett wie „Vom Sa., 10. Okt.“. Wenn aus, stehen sie einfach bei heute.' },

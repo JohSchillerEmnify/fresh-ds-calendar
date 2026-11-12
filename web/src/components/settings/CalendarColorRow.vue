@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** The colour of one calendar (feature calendar-colours): Google's palette, the current colour when it is none of them, a colour picker and a hex field. */
+/** The colour of one calendar, or of the tasks calendar (`tasks`) (feature calendar-colours): Google's palette, the current colour when it is none of them, a colour picker and a hex field. */
 import { computed, onMounted, ref, watch } from 'vue';
 import { GOOGLE_CALENDAR_COLORS, type CalendarColor } from '@calendar/shared/colors';
 import { api, ApiError } from '@/api/client';
@@ -11,15 +11,20 @@ import { useCalendarsStore } from '@/stores/calendars';
 import { useDeviceStore } from '@/stores/device';
 import { useUiStore } from '@/stores/ui';
 
-const props = defineProps<{ calendarId: string }>();
+const props = defineProps<{ calendarId?: string; tasks?: boolean }>();
 const cals = useCalendarsStore();
+const device = useDeviceStore();
 const cal = computed(() => cals.list.find((c) => c.id === props.calendarId));
-const current = computed(() => (cal.value?.color ?? '').toLowerCase());
+// the tasks calendar is no list entry: its colour is a device file, asked from the server until the device has it
+const asked = ref('');
+const tasksColor = computed(() => device.file<{ color: string }>('tasksCalendarColor')?.color ?? asked.value);
+const current = computed(() => ((props.tasks ? tasksColor.value : cal.value?.color) ?? '').toLowerCase());
 
 // the palette is a device file once synced; the built-in copy of Google's 24 shows until (or without) a fetch
 const palette = ref<readonly CalendarColor[]>(GOOGLE_CALENDAR_COLORS);
 onMounted(() => {
-  useDeviceStore().read('calendarColors', () => api.calendarColors()).then((r) => { if (r.colors.length) palette.value = r.colors; }, () => undefined);
+  device.read('calendarColors', () => api.calendarColors()).then((r) => { if (r.colors.length) palette.value = r.colors; }, () => undefined);
+  if (props.tasks) device.read('tasksCalendarColor', () => api.tasksCalendarColor()).then((r) => { asked.value = r.color; }, () => undefined);
 });
 
 const swatches = computed(() => {
@@ -31,9 +36,21 @@ const swatches = computed(() => {
 
 /** Recolours the calendar at once; a refused save puts the old colour back (the store rolls back) and says why. */
 function save(hex: string, colorId?: string) {
-  void cals.setColor(props.calendarId, hex, colorId).catch((e: unknown) => {
+  void (props.tasks ? saveTasks(hex, colorId) : cals.setColor(props.calendarId!, hex, colorId)).catch((e: unknown) => {
     useUiStore().notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
   });
+}
+/** Like a calendar's: shown at once, put back when the server refuses. */
+async function saveTasks(hex: string, colorId?: string): Promise<void> {
+  const old = current.value;
+  const put = (c: string) => { asked.value = c; device.putTasksColor(c); };
+  put(hex);
+  try {
+    put((await api.setTasksCalendarColor(colorId ? { colorId } : { color: hex })).color);
+  } catch (e) {
+    if (old) put(old);
+    throw e;
+  }
 }
 function pick(hex: string) {
   if (hex !== current.value) save(hex, palette.value.find((c) => c.background === hex)?.id);

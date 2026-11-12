@@ -10,7 +10,7 @@ import { itemSegments } from '@/lib/items';
 
 /** The per-person files a change set can carry, by name (API.md `GET /api/changes`); each is the answer of its own GET. */
 export type DeviceFileName =
-  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'tasksCalendarReminders' | 'calendarColors';
+  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'tasksCalendarReminders' | 'tasksCalendarColor' | 'calendarColors';
 
 /** Events from today minus a year to today plus a year, end exclusive. */
 export interface DeviceWindow { from: LocalDate; to: LocalDate }
@@ -79,6 +79,14 @@ export function recolourEvents(events: CalendarEvent[], before: DeviceData['cale
   return events.map((e) => (now.has(e.calendarId) && e.colorId === null && e.color.toLowerCase() === was.get(e.calendarId) ? { ...e, color: now.get(e.calendarId)! } : e));
 }
 
+/** Recolours the task lists that follow the tasks calendar when its colour changed (own colour only without a category; shared lists keep theirs); the same list when nothing changed. */
+export function recolourTaskLists(lists: TaskList[], before: string | undefined, after: string | undefined): TaskList[] {
+  if (!before || !after || before.toLowerCase() === after.toLowerCase()) return lists;
+  const was = before.toLowerCase();
+  return lists.map((l) => (l.id.startsWith('shared:') || l.calendarColor?.toLowerCase() !== was ? l
+    : { ...l, calendarColor: after, ...(l.color.toLowerCase() === was ? { color: after } : {}) }));
+}
+
 export type CalendarSetting = 'colour' | 'hidden' | 'default reminders';
 
 /** Which settings (colour, hidden, default reminders) differ per calendar between two lists. */
@@ -130,6 +138,8 @@ export function applyChanges(data: DeviceData, res: ChangeSet): DeviceData {
   for (const s of tl.series) lists = lists.filter((l) => !(l.seriesId === s || inSeries(l.id, s)));
   const removed = new Set(tl.removed);
   lists = lists.filter((l) => !removed.has(l.id));
+  const tasksColor = (f: DeviceData['files']) => (f.tasksCalendarColor as { color?: string } | undefined)?.color;
+  lists = recolourTaskLists(lists, tasksColor(data.files), tasksColor(res.files));
   const byId = new Map(lists.map((l) => [l.id, l]));
   for (const l of tl.upserts) byId.set(l.id, l);
 

@@ -215,8 +215,22 @@ export class CalendarService {
   /** Sets the person's list colour of a calendar (per person, also one they only read): a palette `colorId`, or a custom `#rrggbb` with a readable text colour. */
   async setColor(id: string, pick: { color: string } | { colorId: string }): Promise<void> {
     if (id === BIRTHDAYS_ID) return this.setBirthdaysColor(pick);
-    const cal = (await this.eventCalendars()).find((c) => c.id === id);
-    if (!cal) throw notFound('Calendar not found');
+    if (!(await this.eventCalendars()).some((c) => c.id === id)) throw notFound('Calendar not found');
+    await this.writeColor(id, pick);
+  }
+
+  /** The person's colour of their tasks calendar, which is not in {@link calendars} (created on first use like any task list access). */
+  async tasksColor(): Promise<string> {
+    return this.calendarColor(await this.tasks.id());
+  }
+
+  /** Sets the list colour of the tasks calendar like {@link setColor} does for the others; returns the colour as Google holds it. */
+  async setTasksColor(pick: { color: string } | { colorId: string }): Promise<string> {
+    await this.writeColor(await this.tasks.id(), pick);
+    return this.tasksColor();
+  }
+
+  private async writeColor(id: string, pick: { color: string } | { colorId: string }): Promise<void> {
     if ('colorId' in pick) {
       const entry = (await this.colorPalette()).find((c) => c.id === pick.colorId);
       if (!entry) throw validation('colorId is not one of Google\'s calendar colours', 'colorId');

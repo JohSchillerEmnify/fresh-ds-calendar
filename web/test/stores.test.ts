@@ -421,7 +421,7 @@ describe('prefs store', () => {
   it('starts with the Approaching card and its track on (3 h), applies loaded prefs and rolls back a refused change', async () => {
     let fail = false;
     mockFetch({
-      'GET /api/prefs': () => ({ labs: false, approachBar: false, approachWindowHours: 5, approachingCard: false, tasksCalendarVisible: false }),
+      'GET /api/prefs': () => ({ labs: false, approachBar: false, approachWindowHours: 5, approachingCard: false }),
       'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}),
     });
     const p = usePrefsStore();

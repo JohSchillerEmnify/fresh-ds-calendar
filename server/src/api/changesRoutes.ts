@@ -48,6 +48,7 @@ export interface ChangesViews {
 export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
   // Google's calendar colour palette (feature calendar-colours); also the per-person file `calendarColors` below
   r.get('/calendar-colors', async (c) => c.json({ colors: await v.cal(c).colorPalette() }));
+  r.get('/calendar-colors/tasks-calendar', async (c) => c.json({ color: await v.cal(c).tasksColor() }));
   r.get('/changes', async (c) => {
     const asked = c.req.query('today');
     if (asked !== undefined && !isLocalDate(asked)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
@@ -79,6 +80,10 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const tasksReminders = { defaultReminders: await cal.tasksDefaultReminders() };
     versions.tasksCalendarReminders = versionOf(tasksReminders);
     if (versions.tasksCalendarReminders !== prev?.files.tasksCalendarReminders) files.tasksCalendarReminders = tasksReminders;
+
+    const tasksColor = { color: await cal.tasksColor() };
+    versions.tasksCalendarColor = versionOf(tasksColor);
+    if (versions.tasksCalendarColor !== prev?.files.tasksCalendarColor) files.tasksCalendarColor = tasksColor;
 
     const palette = { colors: await cal.colorPalette() };
     versions.calendarColors = versionOf(palette);

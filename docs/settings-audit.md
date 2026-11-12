@@ -53,7 +53,7 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 | Approaching track | switch | track of what comes next in the card | on | P `approachBar` | no |
 | Track reaches ahead | select 3/6/12/Custom + number field | track length in hours | 3 | P `approachWindowHours` | no |
 | Sync indicator | switch | sync icon always vs only on failure | off | P `syncIndicator` | no |
-| Show the task lists calendar in Google | switch | the hidden task-lists calendar visible in Google | off | P `tasksCalendarVisible` | no |
+| Task lists calendar · Color | swatches, picker, hex | the colour of the task-lists calendar (Google's list colour) | Google's | G calendar list `backgroundColor` | no |
 | Left-handed mode | switch | mirrors the phone layout | off | P `leftHanded` | no |
 | View switcher · On phones | filled select | bottom/top/rail/side menu | Bottom | P `navPhone` | no |
 | View switcher · On desktop | filled select | bottom/top/rail | Rail | P `navDesktop` | no |

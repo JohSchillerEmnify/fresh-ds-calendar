@@ -98,7 +98,6 @@ export const PREFS = {
   approachingCard: bool(true),
   approachTimeLeft: bool(false),
   taskCategories: bool(true),
-  tasksCalendarVisible: bool(false),
   supportCat: oneOf(['off', 'sometimes', 'always'], 'sometimes', 'Invalid support cat setting'),
   versionInCorner: bool(false),
   labsOwnThemes: bool(false),

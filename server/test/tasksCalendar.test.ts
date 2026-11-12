@@ -68,23 +68,6 @@ describe('TasksCalendar (per-person tasks calendar)', () => {
     expect(prefs.tasksCalendarId('p1')).toBe(a);
     expect(prefs.tasksCalendarId('p2')).toBe(b);
   });
-
-  it('"Show tasks calendar in Google" sets hidden to match and remembers the choice', async () => {
-    const tasks = new TasksCalendar(mock, prefs, 'p1');
-    expect(tasks.visible()).toBe(false);
-    await tasks.setVisible(true);
-    expect(tasksCalendars()).toEqual([expect.objectContaining({ hidden: false })]);
-    expect(tasks.visible()).toBe(true);
-    await tasks.setVisible(false);
-    expect(tasksCalendars()).toEqual([expect.objectContaining({ hidden: true })]);
-    expect(tasks.visible()).toBe(false);
-  });
-
-  it('creates the calendar visible when the person chose to show it', async () => {
-    prefs.setTasksCalendarVisible('p1', true);
-    await new TasksCalendar(mock, prefs, 'p1').id();
-    expect(tasksCalendars()).toEqual([expect.objectContaining({ hidden: false })]);
-  });
 });
 
 describe('task lists through the API', () => {
@@ -111,11 +94,38 @@ describe('task lists through the API', () => {
     expect((await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items).toEqual([]);
   });
 
-  it('PATCH /api/prefs tasksCalendarVisible shows the tasks calendar in Google', async () => {
-    expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: true })).body).toMatchObject({ tasksCalendarVisible: true });
+  it('the switch to show the tasks calendar in Google is gone: the pref is not read, kept or applied', async () => {
+    await t.json('GET', '/api/__test/tasks-calendar');
+    const res = await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: true });
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('tasksCalendarVisible');
+    expect((await t.json('GET', '/api/prefs')).body).not.toHaveProperty('tasksCalendarVisible');
     const { calendars } = (await t.json('GET', '/api/__test/remote/calendars')).body;
-    expect(calendars.filter((c: any) => c.summary === TASKS_CALENDAR_SUMMARY)).toEqual([expect.objectContaining({ hidden: false })]);
-    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: any) => c.name)).toEqual(['Personal', 'Work', 'Birthdays']);
-    expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: 'yes' })).status).toBe(400);
+    expect(calendars.filter((c: any) => c.summary === TASKS_CALENDAR_SUMMARY)).toEqual([expect.objectContaining({ hidden: true })]);
+  });
+
+  it('GET/PATCH /api/calendar-colors/tasks-calendar reads and sets the list colour of the tasks calendar in Google', async () => {
+    const first = (await t.json('GET', '/api/calendar-colors/tasks-calendar')).body;
+    expect(first.color).toMatch(/^#[0-9a-f]{6}$/);
+    const set = await t.json('PATCH', '/api/calendar-colors/tasks-calendar', { colorId: '8' });
+    expect(set.status).toBe(200);
+    expect(set.body).toEqual({ color: '#16a765' });
+    const { calendars } = (await t.json('GET', '/api/__test/remote/calendars')).body;
+    expect(calendars.filter((c: any) => c.summary === TASKS_CALENDAR_SUMMARY)).toEqual([expect.objectContaining({ backgroundColor: '#16a765', hidden: true })]);
+    expect((await t.json('PATCH', '/api/calendar-colors/tasks-calendar', { color: '#123456' })).body).toEqual({ color: '#123456' });
+    expect((await t.json('PATCH', '/api/calendar-colors/tasks-calendar', { color: 'blue' })).status).toBe(400);
+    expect((await t.json('GET', '/api/calendar-colors/tasks-calendar')).body).toEqual({ color: '#123456' });
+  });
+
+  it('task lists are drawn in the tasks calendar colour', async () => {
+    await t.json('PATCH', '/api/calendar-colors/tasks-calendar', { colorId: '8' });
+    const created = await t.json('POST', '/api/tasklists', { title: 'Groceries', date: '2026-10-14', items: [{ title: 'Milk' }] });
+    expect(created.body).toMatchObject({ calendarColor: '#16a765' });
+  });
+
+  it('the tasks calendar colour is a device file of GET /api/changes', async () => {
+    await t.json('PATCH', '/api/calendar-colors/tasks-calendar', { colorId: '8' });
+    const res = (await t.json('GET', '/api/changes')).body;
+    expect(res.files.tasksCalendarColor).toEqual({ color: '#16a765' });
   });
 });

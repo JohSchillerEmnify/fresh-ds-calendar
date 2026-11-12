@@ -52,7 +52,7 @@ export async function setSwitch(world: World, control: Locator, on: boolean) {
 /** The settings page that holds each control (docs/settings-tree.md), by test id prefix; the first match wins. */
 const PAGE_OF: Array<[RegExp, string]> = [
   [/^settings-sunflowers/, 'theme'],
-  [/^settings-tasks-calendar-visible$/, 'calendars/tasks-calendar'],
+ 
   [/^settings-bedtime-/, 'focus/bedtime'],
   [/^settings-(view-switch-|default-view|min-event-length|month-scroll|day-side-by-side|week-side-by-side|approach)/, 'views'],
   [/^settings-(theme$|theme-name$|language|nav-|top-bar-size|bottom-bar-size|bar-size|left-handed|sync-indicator|version-corner)/, 'appearance'],
