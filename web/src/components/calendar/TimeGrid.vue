@@ -11,7 +11,7 @@ import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
-import { bindGridZoom, gridYUnder, hourHeight, previewShift, provideHourHeight, setHourHeight } from '@/composables/useHourHeight';
+import { bindGridZoom, gridTopMinutes, gridYUnder, hourHeight, previewShift, provideHourHeight, setHourHeight, swipeKeepsHours } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { alldayDropGrid, carriedGrid } from '@/features/calendar/dnd';
@@ -98,6 +98,8 @@ function initialScroll() {
   if (!el) return;
   // fit mode: pin the window's start to the top (the whole window fits, so there is nothing else to scroll to)
   if (props.fit) { el.scrollTop = Math.max(0, px(props.fit.start)); return; }
+  // a side swipe keeps the hours in view; the first opening and other navigation use the start below
+  if ((preview || swipeKeepsHours.value) && gridTopMinutes.value !== null) { el.scrollTop = Math.max(0, px(gridTopMinutes.value)); return; }
   const todayVisible = props.dates.some((d) => toIsoDate(d) === clock.today);
   el.scrollTop = Math.max(0, todayVisible ? px(clock.minutesNow) - el.clientHeight / 3 : px(7 * 60));
 }
@@ -129,6 +131,10 @@ function commitZoom(next: number) {
   if (!el || !z) return;
   const want = gridYUnder(el.scrollTop, z.off, z.k, z.t) * (v / old) - z.off;
   nextTick(() => { el.scrollTop = Math.max(0, want); });
+}
+/** The real grid reports its top time; swipe previews read it. */
+function rememberTop() {
+  if (scroller.value && !preview && !props.fit) gridTopMinutes.value = (scroller.value.scrollTop / hh.value) * 60;
 }
 let unbindZoom = () => {};
 let unbindDraw = () => {};
@@ -185,7 +191,7 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
         <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si] + 1 }" />
       </div>
     </div>
-    <div ref="scroller" class="scroll" data-scroll-area>
+    <div ref="scroller" class="scroll" data-scroll-area @scroll.passive="rememberTop">
       <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hh">
         <div class="gutter hours" data-testid="time-axis">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>

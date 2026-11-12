@@ -1192,6 +1192,8 @@ the now marker is in the column of {date}
 I do not see the now marker
 the now marker is visible on screen
 the time grid is scrolled to show {time} at the top
+I scroll the time grid to show {time} at the top
+the day {date} beside the current one shows {time} at the top
 the now card shows the line {string}
 the now card does not show a current event
 the now card shows no line and no progress bar
@@ -1206,6 +1208,8 @@ I dismiss the transition warning
 - `now-marker` has `data-time="HH:mm"`; "positioned at" checks it and its top against the time grid (±3 px).
 - "visible on screen": its bounding box is inside the viewport. "scrolled to show T at the top": the scroll position of
   `time-grid` equals T × hour height (±1 hour height / 4).
+- "I scroll the time grid to show T at the top" sets the scroller's `scrollTop` to T × hour height and waits a frame. "the day D
+  beside the current one shows T at the top": the `swipe-neighbour` with `data-period-start` D has its time grid scrolled to T (±1 hour height / 4).
 - Now card lines are the texts of `now-card-line` elements (exact match of one of them). "does not show a current
   event" = no `now-card-current`. Progress = `aria-valuenow` of `now-progress` (integer percent).
 
@@ -2440,6 +2444,7 @@ the task lists default reminders show {string}
   for the calendar C` step waits for that or `PATCH /api/calendars/:id`), and "the task lists default reminders show L" reads the
   chips of `reminders-tasks-calendar` in Settings › Reminders. "Google still has the calendar S switched off in its list": exactly
   one Google calendar with that summary, and it is hidden (the app's Show switch never writes it).
+  background colour C.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.

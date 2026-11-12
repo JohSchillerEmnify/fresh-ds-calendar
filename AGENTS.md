@@ -146,6 +146,7 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   "needs a connection" is a blocker in review. — Retro-fitting the cache cost a rewrite.
 
 ### Git & GitHub
+- **Reopen, never re-issue.** When something from a closed issue turns out not done, or a fix of it caused the problem, reopen that issue with a comment on what is missing and close the fix with `Fixes #<old>`; a new issue is only for genuinely new behaviour. Search closed issues, the spec and the ADRs first. — New issues for unfinished work showed broken things as done and made the owner explain them again.
 - **What's new in the same branch.** Every user-visible `feat`/`fix` brings its `CHANGELOG.md` bullets before it merges; `pnpm verify` fails without them. — The rule lived only in `docs/DEPLOYMENT.md` and was skipped.
 - **Issue first.** Every piece of work has a GitHub issue before the first commit; the branch is `<type>/<N>-<slug>`
   (`feat`, `fix`, `docs`, `chore`, `test`, `refactor`) and a commit or the merge says `Fixes #N`. — Board and issue

@@ -74,6 +74,27 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     When I open the day view for 2026-10-13
     Then the time grid is scrolled to show 07:00 at the top
 
+  # A side swipe in the day view keeps the hours in view (issue 145); the first opening keeps its start above
+  Scenario: Swiping to the next day keeps the hours in view
+    Given I am using a phone
+    And today is 2026-10-12
+    When I open the day view for 2026-11-16
+    And I scroll the time grid to show 09:00 at the top
+    And I start swiping left on the calendar by half the width
+    Then the day 2026-11-17 beside the current one shows 09:00 at the top
+    When I let go
+    Then the URL path is "/day/2026-11-17"
+    And the time grid is scrolled to show 09:00 at the top
+
+  Scenario: Swiping back to the previous day keeps the hours in view
+    Given I am using a phone
+    And today is 2026-10-12
+    When I open the day view for 2026-11-17
+    And I scroll the time grid to show 08:00 at the top
+    And I swipe right on the calendar
+    Then the URL path is "/day/2026-11-16"
+    And the time grid is scrolled to show 08:00 at the top
+
   Scenario: The Now card says how long until the next event
     Given the time is 2026-10-12 09:20 and the clock is running
     And the approaching track is off

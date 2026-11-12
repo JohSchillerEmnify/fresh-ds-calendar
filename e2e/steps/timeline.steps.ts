@@ -91,6 +91,21 @@ Then('the now marker is visible on screen', async function (this: World) {
   await expectInViewport(this.page, marker(this));
 });
 
+When('I scroll the time grid to show {time} at the top', async function (this: World, time: string) {
+  const hh = await hourHeight(this);
+  await this.page.getByTestId('time-grid').first().evaluate((el, top) => { el.parentElement!.scrollTop = top; }, (minutesOf(time) / 60) * hh);
+  await this.page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+});
+
+Then('the day {date} beside the current one shows {time} at the top', async function (this: World, date: string, time: string) {
+  const hh = await hourHeight(this);
+  const want = (minutesOf(time) / 60) * hh;
+  const grid = this.byTestId('swipe-neighbour', `[data-period-start="${date}"]`).getByTestId('time-grid');
+  await expect
+    .poll(async () => Math.abs((await grid.evaluate((el) => el.parentElement!.scrollTop)) - want) <= hh / 4)
+    .toBe(true);
+});
+
 Then('the time grid is scrolled to show {time} at the top', async function (this: World, time: string) {
   const hh = await hourHeight(this);
   const want = (minutesOf(time) / 60) * hh;
