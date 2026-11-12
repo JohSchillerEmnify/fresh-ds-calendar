@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Empty room under the Multi-day list's 24:00, so that half an hour before now can reach the top; its height is the top padding. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/blank"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:importantForAccessibility="no" />

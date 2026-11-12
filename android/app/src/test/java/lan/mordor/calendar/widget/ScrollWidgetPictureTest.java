@@ -88,7 +88,7 @@ public class ScrollWidgetPictureTest {
         if (timeline && scroll != null) {
             TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, days, new WidgetStrings("en"), hours, heightDp, now);
             if (plan.scrollRow >= 0) {
-                // the launcher's list brings the row to the bottom edge, so the wanted minute is at the top
+                // the launcher's list brings the partly visible first row's bottom to the list's bottom (ScrollPositionTest)
                 scroll.scrollTo(0, Math.max(0, rows.getChildAt(plan.scrollRow).getBottom() - scroll.getHeight()));
             }
         }
@@ -113,6 +113,8 @@ public class ScrollWidgetPictureTest {
             shoot(true, true, 3, hours, 300, 380, t, "multiday-" + hours + "h-dark.png");
         }
         shoot(false, true, 3, 16, 300, 380, LocalTime.of(14, 10), "multiday-16h-1410.png");
+        shoot(false, true, 3, 16, 300, 380, LocalTime.of(21, 30), "multiday-16h-2130.png");
+        shoot(false, true, 3, 8, 300, 380, LocalTime.of(14, 10), "multiday-8h-1410.png");
         shoot(false, true, 7, 12, 300, 380, t, "multiday-7days-12h.png");
         shoot(false, true, 1, 16, 200, 300, t, "multiday-1day.png");
     }

@@ -72,7 +72,7 @@ public class ScrollWidgetService extends RemoteViewsService {
 
         @Override
         public int getViewTypeCount() {
-            return 4;
+            return 3;
         }
 
         @Override

@@ -155,12 +155,18 @@ Feature: Scrolling phone widgets (List and Multi-day)
         | 16    |
         | 24    |
 
-    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:opensHalfAnHourBeforeNow
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollPositionTest.java:theListOpensWithTheWantedMinuteAtTheTop
     @unit
     Scenario: The Multi-day widget opens with half an hour before now at the top
-      When I look at the Multi-day widget at 14:10 with 16 hours in view
+      When I look at the Multi-day widget at 14:10 with 8 hours in view
       Then the widget scrolls so that 13:40 is at the top
-      And the list ends in blank space below 24:00 so that 13:40 can reach the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:lateInTheDayTheLastHoursShowAndTheListNeverScrollsPast24
+    @unit
+    Scenario: Late in the day the widget shows the last hours and never scrolls past 24:00
+      When I look at the Multi-day widget at 21:30 with 16 hours in view
+      Then the widget shows the last 16 hours of the day with 24:00 at the bottom of the list
+      And the list has no blank space below 24:00
 
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:aFullDayNeedsNoScrolling
     @unit

@@ -174,11 +174,9 @@ public class ScrollWidgetInflateTest {
     }
 
     @Test
-    public void multiDayRowsEndInBlankSpaceWhenNowMinusHalfAnHourNeedsIt() throws Exception {
+    public void multiDayRowsAreThePlansRows() throws Exception {
         new WidgetStore(ctx).saveSnapshot(snapshot(false, "timeline", 3, "2|Dentist|09:00|10:00"));
-        Bundle o = size(250, 380);
         TimelineRows.Plan plan = TimelineRows.plan(ScrollWidgetRenderer.load(ctx, TODAY).data, TODAY, 3, new WidgetStrings("en"), 16, 380, LocalTime.of(14, 10));
-        assertEquals(plan.rowCount(), ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), o, TODAY, LocalTime.of(14, 10), true).size());
-        assertTrue(plan.spacerDp > 0);
+        assertEquals(plan.rowCount(), ScrollWidgetRenderer.items(ctx, ScrollWidgetRenderer.load(ctx, TODAY), size(250, 380), TODAY, LocalTime.of(14, 10), true).size());
     }
 }

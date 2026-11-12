@@ -122,7 +122,7 @@ final class ScrollWidgetRenderer {
         }
         rv.setPendingIntentTemplate(R.id.list, template(context));
         if (items != null) {
-            RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(4);
+            RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(3);
             for (int i = 0; i < items.size(); i++) b.addItem(i, items.get(i));
             rv.setRemoteAdapter(R.id.list, b.build());
         } else {
@@ -165,11 +165,6 @@ final class ScrollWidgetRenderer {
                 row.setImageViewBitmap(R.id.slice, slice);
                 row.setOnClickFillInIntent(R.id.slice, fillIn("/day/" + today));
                 items.add(row);
-            }
-            if (plan.spacerDp > 0) {
-                RemoteViews blank = new RemoteViews(pkg, R.layout.scroll_blank_row);
-                blank.setViewPadding(R.id.blank, 0, Math.round(plan.spacerDp * dm.density), 0, 0);
-                items.add(blank);
             }
             return items;
         }

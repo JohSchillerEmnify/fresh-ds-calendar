@@ -1,5 +1,6 @@
 package lan.mordor.calendar.widget;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -83,40 +84,28 @@ public class TimelineRowsTest {
     @Test
     public void opensHalfAnHourBeforeNow() throws Exception {
         WeekData d = data(ev("Early", "2026-10-14", "06:00", "07:00"));
-        // 16 hours from 13:40 reach past midnight: blank space below 24:00 lets 13:40 reach the top
-        TimelineRows.Plan late = plan(d, 3, 16, 380, T1410);
-        assertEquals(13 * 60 + 40, late.startMin);
-        assertTrue(contains(late.marks, 13 * 60 + 40));
-        float after = (13 * 60 + 40 + 16 * 60 - 24 * 60) / 60f * late.hourDp;
-        assertEquals(after, late.spacerDp, 0.01);
-        assertEquals(late.rowCount() - 1, late.scrollRow);
-        // 8 hours from 07:40 end at 15:40: the row that ends there is the one to scroll to, and no blank space is needed
-        TimelineRows.Plan early = plan(d, 3, 8, 380, LocalTime.of(8, 10));
-        assertEquals(7 * 60 + 40, early.startMin);
-        assertEquals(0, early.spacerDp, 0);
-        assertTrue(contains(early.marks, 7 * 60 + 40));
-        assertTrue(contains(early.marks, 15 * 60 + 40));
-        int rowEndingAtEnd = early.bandRows + indexOf(early.marks, 15 * 60 + 40) - 1;
-        assertEquals(rowEndingAtEnd, early.scrollRow);
-        // the first minutes of the day: nothing to scroll
-        TimelineRows.Plan midnight = plan(d, 3, 16, 380, LocalTime.of(0, 20));
-        assertEquals(-1, midnight.scrollRow);
+        TimelineRows.Plan mid = plan(d, 3, 8, 380, LocalTime.of(10, 20));
+        assertEquals(9 * 60 + 50, mid.startMin);
+        // one row from the top to the end of the opening view, one after it; the list scrolls to the first
+        assertArrayEquals(new int[] {0, 9 * 60 + 50 + 8 * 60, 24 * 60}, mid.marks);
+        assertEquals(0, mid.scrollRow);
+        assertEquals(-1, plan(d, 3, 16, 380, LocalTime.of(0, 20)).scrollRow);
+    }
+
+    @Test
+    public void lateInTheDayTheLastHoursShowAndTheListNeverScrollsPast24() throws Exception {
+        WeekData d = data(ev("Late", "2026-10-14", "21:00", "22:00"));
+        for (LocalTime now : new LocalTime[] {LocalTime.of(14, 10), LocalTime.of(21, 30), LocalTime.of(23, 50)}) {
+            TimelineRows.Plan plan = plan(d, 3, 16, 380, now);
+            assertEquals("the top minute is 24:00 minus 16 hours at the latest", Math.min(now.getHour() * 60 + now.getMinute() - 30, 8 * 60 + Math.round(4 / plan.hourDp * 60)), plan.startMin);
+            assertEquals("one row to the end of the day", 1, plan.rowCount());
+            assertEquals(0, plan.scrollRow);
+        }
     }
 
     @Test
     public void aFullDayNeedsNoScrolling() throws Exception {
-        TimelineRows.Plan plan = plan(data(), 3, 24, 380, T1410);
-        assertEquals(-1, plan.scrollRow);
-        assertEquals(0, plan.spacerDp, 0);
-    }
-
-    private static boolean contains(int[] a, int v) {
-        return indexOf(a, v) >= 0;
-    }
-
-    private static int indexOf(int[] a, int v) {
-        for (int i = 0; i < a.length; i++) if (a[i] == v) return i;
-        return -1;
+        assertEquals(-1, plan(data(), 3, 24, 380, T1410).scrollRow);
     }
 
     @Test
@@ -127,7 +116,7 @@ public class TimelineRowsTest {
         assertTrue(plan.bandDp > 0);
         float scale = 2.75f;
         List<Bitmap> rows = TimelineRows.slices(d, plan, WidgetTheme.defaults(false), EN, TODAY, 10 * 60, Math.round(300 * scale), scale);
-        assertEquals(plan.bandRows + plan.marks.length - 1, rows.size());
+        assertEquals(plan.rowCount(), rows.size());
         int total = 0;
         for (Bitmap b : rows) {
             assertEquals(Math.round(300 * scale), b.getWidth());
