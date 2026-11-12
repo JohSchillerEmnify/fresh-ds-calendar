@@ -13,9 +13,10 @@ How the calendar app is built, deployed and installed. The GitHub repository is 
 | Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built, signed and shipped by CD when native code changed (ADR 0040); by hand with `scripts/android-build.sh --no-publish` and `scripts/vps.sh deploy` |
 
 There is no preview deployment: to show work before a merge, run it locally (`pnpm dev:server` and `pnpm dev:web`).
-The old home server is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`,
-`scripts/deploy.sh`, `scripts/preview-branch.sh`, and the auto-deploy git hooks in `scripts/hooks`, which the laptop
-does not enable) are still in the repo but not part of this flow.
+The old home server is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`, `auto-preview.sh`,
+`deploy.sh`, `deploy-status.sh`, `preview.sh`, `preview-branch.sh`, `rundir.sh`, `deploy/docker-compose.yaml` and the
+`post-commit` / `post-merge` git hooks in `scripts/hooks`, which `pnpm hooks:install` does not enable) are still in the
+repo but not part of this flow.
 
 ## Release flow
 
