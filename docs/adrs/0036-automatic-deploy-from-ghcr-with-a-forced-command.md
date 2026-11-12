@@ -1,6 +1,6 @@
 # 0036 — Automatic deploy: GHCR image, SSH with a forced command
 
-- Status: proposed (owner approved the four CI/CD changes, 2026-11-01)
+- Status: accepted and built (owner approved the four CI/CD changes, 2026-11-01); the "APK only from the laptop" part is superseded by 0040
 - Views shaped: `deployment`
 
 ## Decision
