@@ -88,6 +88,7 @@ dependencies {
     testImplementation 'org.robolectric:robolectric:4.17' // inflates the widgets like a launcher and draws them with the real Canvas (GraphicsMode NATIVE)
     testImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }

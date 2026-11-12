@@ -1,0 +1,92 @@
+name: Android emulator smoke
+
+# Boots a real Android system, installs the debug APK, starts the app, places every widget kind and fails on a crash.
+# Called by CI (when android/ or the web build changed) and by deploy.yml (always, before the APK is built and signed).
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to test
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Emulator smoke (API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest # plain hosted runner: free for a public repo, has /dev/kvm
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # 28: the widget list is fed by a RemoteViewsService; 34: the rows travel inside the widget (RemoteCollectionItems);
+        # minSdk is 26 (android/variables.gradle)
+        api-level: [28, 34]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;35.0.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec cap sync android
+      # without KVM the emulator runs with -accel off and is far slower (action README)
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: AVD cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-google_apis-x86_64
+      - name: Create the AVD and its boot snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD snapshot generated"
+      - name: Widget smoke test
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash scripts/android-emulator-smoke.sh build/emulator-logcat-${{ matrix.api-level }}.txt
+      - name: Upload the device log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: emulator-logcat-${{ matrix.api-level }}
+          path: |
+            android/build/emulator-logcat-*.txt*
+            android/app/build/reports/androidTests
+          if-no-files-found: ignore

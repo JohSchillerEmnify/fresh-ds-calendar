@@ -99,12 +99,23 @@ jobs:
           : "${APP_URL:?set the repository variable APP_URL, e.g. https://cal.example.org}"
           curl --retry 10 --retry-delay 3 --retry-all-errors -fsS "${APP_URL%/}/api/health"
 
+  # The widgets must survive a real Android system before an APK is built and signed (issue #18); a red run stops apk-build.
+  # Runs for every APK candidate, also when CI skipped its own emulator job because no native file changed.
+  android-emulator:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.force_apk))
+    uses: ./.github/workflows/android-emulator.yml
+    with:
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
   # APK (ADR 0040). apk-build has no secret but APP_URL (public inside the APK anyway) and never sees the keystore:
   # Gradle plugins run arbitrary code. Only apk-sign has the environment android-release.
   apk-build:
-    needs: deploy
+    needs: [deploy, android-emulator]
     if: >-
-      always() && vars.DEPLOY_ENABLED == 'true' && needs.deploy.outputs.skip != 'true' &&
+      always() && vars.DEPLOY_ENABLED == 'true' && needs.deploy.outputs.skip != 'true' && needs.android-emulator.result == 'success' &&
       ((needs.deploy.result == 'success' && github.event_name == 'workflow_run') ||
        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.force_apk))
     runs-on: ubuntu-latest
