@@ -4153,7 +4153,7 @@ the damaged file is kept as {string} with its old content
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
-filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the buttons of the switch S are drawn H pixels high" = the drawn (padding box) height of each button of that group, its transparent tap border left out. "every control of the dialog has a tap area" = the bounding box of every visible kit button, icon button, switch, choice, chip, checkbox and radio in the open dialog (their transparent border is part of the tap area). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
@@ -4191,6 +4191,13 @@ a text field has rounded top corners only and a line along its bottom
 an outlined text field has a {int} pixel outline that turns {int} pixels while it is focused
 the switch {string} is a connected button group of {string}
 a segmented choice is always drawn as a connected button group
+the buttons of the switch {string} are drawn {int} pixels high
+every control of the dialog has a tap area of at least {int} by {int} pixels
+the density steps of the theme
+Compact draws every control {int} pixels lower than Comfortable and Airy {int} pixels higher
+every button, icon button, choice, chip, field, list row and selection control reads its height from the one density setting
+none of them can be tapped on less than {int} by {int} pixels
+the corner sizes are {string} pixels from extra small to extra large
 the theme is {string}
 the bottom bar, the top bar and every button are drawn with fully round corners
 the bottom bar size is set to {string}

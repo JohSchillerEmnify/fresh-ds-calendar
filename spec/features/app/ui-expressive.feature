@@ -6,6 +6,11 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
   its secondary actions behind one overflow button (three dots, "More"). Open, Canvas and Archive are one connected
   button group. Raw hand-styled buttons outside `web/src/components/m3` are forbidden by a lint gate. Theme corners
   (Winter square, Neon pill) shape only events and cards; bars, pills and buttons stay round in every theme.
+  The theme's Density setting sets the height of every kit control in Material's 4 px density steps: Compact draws
+  them two steps lower, Comfortable at the Material 3 sizes and Airy one step higher; a text field never gets lower
+  than 52 px so its label still fits, and every control keeps a tap area of at least 48 by 48 px. The base corner
+  sizes are the Material 3 shape scale (4, 8, 12, 16 and 28 px, and full); the corners a theme sets (events, cards,
+  the checkbox shape) stay as the theme sets them.
   The scenarios without a viewport tag run on the phone only (`@mobile`).
 
   Background:
@@ -186,3 +191,59 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
     Scenario: A segmented choice cannot fall back to the old outlined look
       Given the style rules of the Material 3 components
       Then a segmented choice is always drawn as a connected button group
+
+  Rule: The Density setting makes every kit control compact
+
+    @mobile
+    Scenario Outline: With density <density> the Tasks tabs and the kind switch of a new entry are <height> pixels high
+      Given the density is "<density>"
+      When I open the path "/tasks"
+      Then the buttons of the switch "Tasks" are drawn <height> pixels high
+      When I start a new event
+      Then the buttons of the switch "New" are drawn <height> pixels high
+
+      Examples:
+        | density     | height |
+        | Compact     | 32     |
+        | Comfortable | 40     |
+        | Airy        | 44     |
+
+    @mobile
+    Scenario: With density Compact every control of the new event dialog can still be tapped on 48 by 48 pixels
+      Given the density is "Compact"
+      When I start a new event
+      Then every control of the dialog has a tap area of at least 48 by 48 pixels
+
+    @mobile
+    Scenario: With density Compact every icon button can still be tapped on 48 by 48 pixels
+      Given the density is "Compact"
+      When I open the week view for 2026-10-12
+      Then every icon button of the screen has a tap area of at least 48 by 48 pixels
+
+    @unit
+    # unit: web/test/theme-fine.test.ts:each density moves the control heights in Material's 4 px steps
+    Scenario: Compact takes two Material density steps off every control and Airy adds one
+      Given the density steps of the theme
+      Then Compact draws every control 8 pixels lower than Comfortable and Airy 4 pixels higher
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:every kit control takes its height from the one density shift
+    Scenario: Every kit control takes its height from the Density setting
+      Given the style rules of the Material 3 components
+      Then every button, icon button, choice, chip, field, list row and selection control reads its height from the one density setting
+      And none of them can be tapped on less than 48 by 48 pixels
+
+  Rule: The base corners follow the Material 3 shape scale, theme corners stay the theme's
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:the base corner sizes are the Material 3 shape scale
+    Scenario: The base corner sizes are the Material 3 shape scale
+      Given the style rules of the Material 3 components
+      Then the corner sizes are "4, 8, 12, 16, 28" pixels from extra small to extra large
+
+    @mobile
+    Scenario: The theme's event corners are unchanged by the shape scale
+      Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+      And the theme is "Default"
+      When I open the week view for 2026-10-12
+      Then the event "Dentist" has a corner radius of 8 px

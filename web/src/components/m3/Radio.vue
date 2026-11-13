@@ -14,9 +14,10 @@ const emit = defineEmits<{ 'update:modelValue': [v: string] }>();
 </template>
 
 <style scoped>
-.rb { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; color: var(--md-sys-color-on-surface); -webkit-tap-highlight-color: transparent; }
+.rb { --h: calc(40px + var(--md-density-shift)); position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; color: var(--md-sys-color-on-surface); -webkit-tap-highlight-color: transparent; }
 .rb.is-checked { color: var(--md-sys-color-primary); }
-.rb-layer { position: absolute; width: 40px; height: 40px; border-radius: var(--md-sys-shape-corner-full); background: currentColor; opacity: 0; pointer-events: none; transition: opacity var(--md-sys-motion-duration-short); }
+/* the state layer: 40 px at Comfortable, moved by the density shift; the 48 px target stays */
+.rb-layer { position: absolute; width: var(--h); height: var(--h); border-radius: var(--md-sys-shape-corner-full); background: currentColor; opacity: 0; pointer-events: none; transition: opacity var(--md-sys-motion-duration-short); }
 @media (hover: hover) { .rb:hover:not(.is-disabled) .rb-layer { opacity: 0.08; } }
 .rb:has(.rb-in:focus-visible) .rb-layer, .rb:active:not(.is-disabled) .rb-layer { opacity: 0.1; }
 .rb-ring { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-on-surface-variant); border-radius: var(--md-sys-shape-corner-full); pointer-events: none; }

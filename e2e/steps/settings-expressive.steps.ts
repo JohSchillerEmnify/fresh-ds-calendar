@@ -115,12 +115,15 @@ Then('the button {string} in the settings is a tonal button', async function (th
   expect(px(await style(b, 'border-top-left-radius'))).toBeGreaterThanOrEqual(20);
 });
 
-/** The buttons of a connected group touch: at most 4 px between neighbours, side by side or stacked. */
+/** The buttons of a connected group touch: at most 4 px between the drawn neighbours (tap borders left out), side by side or stacked. */
 async function expectConnected(group: Locator, labels: string[]) {
   const buttons = group.getByRole('button');
   await expect(buttons).toHaveCount(labels.length);
   expect((await buttons.allInnerTexts()).map((t) => t.trim())).toEqual(labels);
-  const boxes = await buttons.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+  const boxes = await buttons.evaluateAll((els) => els.map((e) => {
+    const r = e.getBoundingClientRect(), left = r.left + e.clientLeft, top = r.top + e.clientTop;
+    return { left, top, right: left + e.clientWidth, bottom: top + e.clientHeight };
+  }));
   for (let i = 1; i < boxes.length; i++) {
     const side = Math.abs(boxes[i].left - boxes[i - 1].right);
     const stacked = Math.abs(boxes[i].top - boxes[i - 1].bottom);

@@ -58,8 +58,7 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
 <template>
   <div class="rem" :data-use-default="modelValue.useDefault ? 'true' : 'false'">
     <p v-if="modelValue.useDefault" class="state" :data-testid="`${prefix}-reminders-state`">
-      <span class="muted">{{ t('calendar.reminders.defaultLabel') }}:</span>
-      <span class="list" :data-testid="`${prefix}-reminders-default-list`">{{ defaultMinutes?.length ? formatLeads(defaultMinutes) : t('calendar.reminders.defaultNone') }}</span>
+      <span class="muted">{{ t('calendar.reminders.defaultLabel') }}:</span>{{ ' ' }}<span class="list" :data-testid="`${prefix}-reminders-default-list`">{{ defaultMinutes?.length ? formatLeads(defaultMinutes) : t('calendar.reminders.defaultNone') }}</span>
     </p>
     <ul v-else-if="list.length" class="chips">
       <li v-for="m in list" :key="m" class="chip" :data-testid="`${prefix}-reminder`" :data-minutes="m">
