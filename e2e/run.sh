@@ -80,7 +80,8 @@ start_server() {
 }
 
 install_deps
-DOCKER_ARGS=(--rm --init --cpus=1.5 --memory=1536m --memory-swap=1536m --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
+# one run at a time behind the lock, so it may use 4 of the laptop's cores
+DOCKER_ARGS=(--rm --init --cpus=4 --memory=4g --memory-swap=4g --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
   -v "$ROOT:/work" -w /work/e2e)
 PW_ARGS=("$@")
 
