@@ -159,8 +159,6 @@ Then('the {string} still looks like {string}', async function (this: World, name
   if (name !== 'check-in message') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   if (name === 'time grid') await this.page.addStyleTag({ content: '[data-testid="create-fab-area"] { display: none !important; }' });
   // masked only where it lies inside the region: the mask paints on top, so a marker behind a sheet would show as a pink bar
-  // the picture shows the dialog from its top, whatever scroll offset its body picked up while opening
-  if (name === 'event dialog') await target.locator('.body').evaluate((b) => { b.scrollTop = 0; });
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [target.getByTestId('now-marker')] });
 });
 
