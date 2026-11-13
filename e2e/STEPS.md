@@ -4528,7 +4528,7 @@ a second upload within a minute is refused
   `device-log-send-status`. "the server holds N error log upload(s) for me with M entries" and "the stored upload does not
   contain X" read the test hook `GET /api/__test/diag-uploads`. The automatic sending switch is `device-log-auto`. "the Android app
   recorded a crash X with the message Y before this start" gives `window.Capacitor.Plugins.CrashReports` a `take()` that answers
-  one record once (with the message in it, which the app must not keep). The crash and upload-limit steps belong to `@unit` scenarios (Android and
+  one record once; like the native recorder it carries the message only when Android itself threw the exception (top frame in `android.`), so this app's own message never reaches the web app. The crash and upload-limit steps belong to `@unit` scenarios (Android and
   server tests); they are listed so the contract is complete.
 - "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
   "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the

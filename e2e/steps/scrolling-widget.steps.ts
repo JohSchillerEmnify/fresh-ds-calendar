@@ -57,13 +57,14 @@ Then('the hours slider is not shown', async function (this: World) {
 
 async function sliderBox(w: World) {
   const input = await slider(w);
+  // a finger can only touch what is on screen
+  await input.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = await input.boundingBox();
   if (!box) throw new Error('the slider has no box');
   return { box, y: box.y + box.height / 2 };
 }
 
 When('I swipe down with a finger starting on the fixed hours slider', async function (this: World) {
-  await (await slider(this)).evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const { box, y } = await sliderBox(this);
   this.sliderTopBefore = box.y;
   await touchDrag(this.page, { x: box.x + box.width * 0.25, y }, { x: box.x + box.width * 0.25, y: y + 160 }, { durationMs: 250, steps: 12 });
