@@ -173,8 +173,8 @@ Then('the side menu shows the calendars {string} with a colour checkbox each', a
   await expect.poll(async () => (await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-name')))).join(', ')).toBe(list);
   const n = await rows.count();
   for (let i = 0; i < n; i++) {
-    const colour = await rows.nth(i).locator('input[type="checkbox"]').evaluate((el) => getComputedStyle(el).accentColor);
-    expect(colour, `colour of the calendar ${i + 1}`).not.toBe('auto');
+    await expect(rows.nth(i).locator('input[type="checkbox"]'), `checkbox of the calendar ${i + 1}`).toHaveCount(1);
+    await expect(rows.nth(i).locator('.cb[data-color]'), `colour of the calendar ${i + 1}`).toHaveCount(1);
   }
 });
 

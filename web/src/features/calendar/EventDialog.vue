@@ -16,7 +16,9 @@ import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
+import ListItem from '@/components/m3/ListItem.vue';
 import Select from '@/components/m3/Select.vue';
+import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { enterNext } from '@/composables/useEnterNext';
 import { isPhone } from '@/composables/useViewport';
@@ -357,10 +359,10 @@ function remove() {
         <LocationField v-model="form.location" v-model:place="form.place" class="rise" style="--i: 2" :label="t('calendar.event.fields.location')" />
         <EventMap v-if="form.place" class="rise" style="--i: 2" :place="form.place" :tile-url="clock.config.mapTileUrl" />
       </template>
-      <label class="check rise" style="--i: 2">
-        <input v-model="form.allDay" type="checkbox" data-testid="event-all-day" data-field="allDay">
-        <span>{{ t('calendar.event.fields.allDay') }}</span>
-      </label>
+      <ListItem class="check rise" style="--i: 2">
+        {{ t('calendar.event.fields.allDay') }}
+        <template #trailing><Switch v-model="form.allDay" :label="t('calendar.event.fields.allDay')" data-testid="event-all-day" data-field="allDay" /></template>
+      </ListItem>
       <div class="pair rise" style="--i: 3">
         <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" data-enter-skip />
         <TextField v-if="!form.allDay" v-model="startTime" type="time" :label="t('calendar.event.fields.startTime')" data-testid="event-start-time" data-field="startTime" />
@@ -400,8 +402,7 @@ function remove() {
 .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); flex: none; transition: background 200ms; }
 .t { margin: 0; font: var(--md-sys-typescale-title-large); flex: 1; }
 .dur { font: var(--md-sys-typescale-label-large); padding: 2px 10px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--md-sys-color-surface-container-low)); font-variant-numeric: tabular-nums; }
-.check { display: flex; align-items: center; gap: 12px; min-height: 44px; font: var(--md-sys-typescale-body-large); cursor: pointer; }
-.check input { width: 22px; height: 22px; accent-color: var(--md-sys-color-primary); margin: 0 4px; }
+.check { padding: 0 4px 0 12px; }
 .pair { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
 .pair > :only-child { grid-column: 1 / -1; }
 .colors { display: flex; flex-direction: column; gap: 2px; }

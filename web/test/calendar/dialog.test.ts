@@ -135,7 +135,7 @@ describe('event dialog', () => {
   it('Escape and Cancel close without saving; all-day hides times and uses an exclusive end', async () => {
     const { w, m } = await open({ mode: 'create', date: '2026-10-16', time: '09:00' }, { 'POST /api/events': () => ({ status: 201, body: ev('h', '2026-10-16', '2026-10-17') }) });
     await fill(w, 'event-title', 'Holiday');
-    await w.get(tid('event-all-day')).setValue(true);
+    await w.get(tid('event-all-day')).trigger('click');
     expect(w.find(tid('event-start-time')).exists()).toBe(false);
     await w.get(tid('event-save')).trigger('submit');
     await flushPromises();

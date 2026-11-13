@@ -3,6 +3,7 @@
 import Pressable from '@/components/m3/Pressable.vue';
 import { IconDraw, IconKeyboard, IconUndo, IconInkEraser } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
+import CustomColor from '@/components/m3/CustomColor.vue';
 import { t } from '@/i18n';
 import { useInkStore } from '@/stores/ink';
 
@@ -13,8 +14,8 @@ const ink = useInkStore();
 const PRESETS: Array<{ id: 'default' | 'red' | 'blue' | 'green' | 'orange'; hex: string | null }> = [
   { id: 'default', hex: null }, { id: 'red', hex: '#d32f2f' }, { id: 'blue', hex: '#1565c0' }, { id: 'green', hex: '#2e7d32' }, { id: 'orange', hex: '#ef6c00' },
 ];
-function pick(e: Event): void {
-  ink.setColour((e.target as HTMLInputElement).value);
+function pick(hex: string): void {
+  ink.setColour(hex);
   ink.eraser = false;
 }
 </script>
@@ -33,9 +34,7 @@ function pick(e: Event): void {
           v-for="p in PRESETS" :key="p.id" type="button" class="dot" :class="{ on: ink.colour === p.hex }" :style="{ '--dot': p.hex ?? 'var(--md-sys-color-on-surface)' }"
           :aria-label="t(`ink.colour.preset.${p.id}`)" :aria-pressed="ink.colour === p.hex" :data-testid="`ink-color-${p.id}`" @click="ink.setColour(p.hex); ink.eraser = false"
         />
-        <label class="dot custom" :class="{ on: ink.colour !== null && !PRESETS.some((p) => p.hex === ink.colour) }" :style="{ '--dot': ink.colour ?? 'transparent' }" :title="t('ink.colour.custom')">
-          <input type="color" :value="ink.colour ?? '#000000'" :aria-label="t('ink.colour.custom')" data-testid="ink-color-custom" @input="pick" />
-        </label>
+        <CustomColor :model-value="ink.colour" :selected="ink.colour !== null && !PRESETS.some((p) => p.hex === ink.colour)" live :size="22" :label="t('ink.colour.custom')" data-testid="ink-color-custom" @update:model-value="pick" />
       </span>
     </template>
   </div>
@@ -47,9 +46,6 @@ function pick(e: Event): void {
 .colours { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px; }
 .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--md-sys-color-outline-variant); background: var(--dot); padding: 0; position: relative; cursor: pointer; }
 .dot.on { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); }
-.custom { overflow: hidden; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); }
-.custom.on { background: var(--dot); }
-.custom input { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
 /* left-handed: the tool row is mirrored (decision G7) */
 html[data-hand='left'][data-touch] .tools, html[data-hand='left'][data-touch] .colours { flex-direction: row-reverse; }
 </style>
