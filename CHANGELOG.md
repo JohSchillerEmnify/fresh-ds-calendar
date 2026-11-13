@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-13
+- Fixed: in a handwritten list, a pen stroke going downwards is drawn again instead of being lost when the lines shift under the pen.
 - Changed: the month picker, the plant card, the map picker, the place suggestions and the check-in message now look and behave like the app's other dialogs, lists and messages.
 - Changed: the Today button, the template button, reminder chips, count badges and the task list tray now share the standard Material look and follow the Density setting.
 - Changed: the Density setting in your theme now also makes buttons, switches, tabs and fields more compact (or roomier with Airy); everything can still be tapped as easily. Corners follow Material 3 more closely.
