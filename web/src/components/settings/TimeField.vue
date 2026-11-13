@@ -3,7 +3,7 @@
 import { computed, ref } from 'vue';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
-import TextField from '@/components/m3/TextField.vue';
+import TimeInput from '@/components/m3/TimeInput.vue';
 import { t } from '@/i18n';
 
 defineOptions({ inheritAttrs: false });
@@ -31,11 +31,10 @@ function ok() {
   <AdaptiveSheet :open="open" :label="t('settingsNav.time.title')" testid="time-picker" @close="open = false">
     <form class="f" @submit.prevent="ok">
       <h2 class="t">{{ label }}</h2>
-      <div class="hm">
-        <TextField v-model="hour" class="unit" :label="t('settingsNav.time.hour')" inputmode="numeric" maxlength="2" data-testid="time-picker-hour" />
-        <span class="colon" aria-hidden="true">:</span>
-        <TextField v-model="minute" class="unit" :label="t('settingsNav.time.minute')" inputmode="numeric" maxlength="2" data-testid="time-picker-minute" />
-      </div>
+      <TimeInput
+        v-model:hour="hour" v-model:minute="minute" :hour-label="t('settingsNav.time.hour')" :minute-label="t('settingsNav.time.minute')"
+        hour-testid="time-picker-hour" minute-testid="time-picker-minute"
+      />
       <div class="actions">
         <Button variant="text" data-testid="time-picker-cancel" @click="open = false">{{ t('settingsNav.time.cancel') }}</Button>
         <Button variant="text" type="submit" :disabled="!valid" data-testid="time-picker-ok">{{ t('settingsNav.time.ok') }}</Button>
@@ -47,8 +46,5 @@ function ok() {
 <style scoped>
 .f { display: flex; flex-direction: column; gap: 16px; }
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.hm { display: flex; align-items: flex-start; gap: 4px; }
-.unit { width: 112px; }
-.colon { font: var(--md-sys-typescale-headline-medium); line-height: 56px; width: 24px; text-align: center; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

@@ -32,6 +32,10 @@ Feature: The Archive keeps finished task lists
     When I search the Archive for "passp"
     Then the Archive lists "Trip"
 
+  Scenario: The Archive search is the same search bar as in the settings
+    When I search the Archive for "a"
+    Then the Archive search bar is full round and 56 px high
+
   Scenario: Unticking an item restores a list to Open
     Given the calendar contains a task list "Taxes" finished on 2026-10-10 with the item "Form"
     When I untick the item "Form" of the task list "Taxes" in the Archive

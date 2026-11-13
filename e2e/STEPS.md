@@ -1031,7 +1031,7 @@ I choose {string} for {string} in the settings
 every settings row shows its name first and its control at the end
 I open the setting {string}
 the time picker is shown
-the time picker fields are {int} px high text fields
+the time picker has large hour and minute boxes
 I search the settings for {string}
 the settings search shows {string} in {string}
 the settings search shows {string}
@@ -1068,7 +1068,7 @@ the setting {string} is highlighted
   "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
 - `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
 - `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
-- `the time picker fields are {int} px high text fields`: the hour and minute inputs sit in kit text fields at least that high.
+- `the time picker has large hour and minute boxes`: the hour and minute inputs are each at least 96 px wide and 80 px high.
 
 ## Language (`@i18n`)
 
@@ -2673,6 +2673,7 @@ the calendar contains a task list {string} finished on {date} with the item {str
 the setting {string} is {string}
 I open the Archive
 I search the Archive for {string}
+the Archive search bar is full round and {int} px high
 I untick the item {string} of the task list {string} in the Archive
 I choose {string} for the task list {string} in the Archive
 the Archive lists {string}
@@ -3307,7 +3308,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `time picker` (`time-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
