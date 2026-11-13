@@ -13,6 +13,7 @@ from PIL import Image, ImageChops, ImageDraw
 
 NOISE_PIXELS = 24      # fewer changed pixels than this ...
 NOISE_DELTA = 40       # ... and no channel moved more than this -> anti-aliasing noise
+NOISE_RATIO = 0.002     # under the e2e maxDiffPixelRatio (playwright.config.ts) the test passes anyway
 CELL = 16              # grid used to merge changed pixels into regions
 PAD = 12               # context around a region in the crop
 SCALE = 2
@@ -71,7 +72,7 @@ def main():
         gray = diff.convert('L')
         mask = gray.point(lambda v: 255 if v > 8 else 0)
         count = sum(mask.histogram()[1:])
-        if count == 0 or (count < NOISE_PIXELS and max(b[1] for b in diff.getextrema()) < NOISE_DELTA):
+        if count == 0 or count < NOISE_RATIO * new.width * new.height or (count < NOISE_PIXELS and max(b[1] for b in diff.getextrema()) < NOISE_DELTA):
             print(f'NOISE {p}')
             continue
         boxes = regions(mask)
