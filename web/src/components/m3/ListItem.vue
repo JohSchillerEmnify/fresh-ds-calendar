@@ -1,8 +1,7 @@
 <script setup lang="ts">
-/** The M3 list item (_md-comp-list, material-web tokens v0.192): leading, headline (default), supporting and trailing
- * slots; one line at least 56 px at Comfortable (moved by the density shift, never under 48), 16 px padding and gaps. `tag` sets the element;
- * `interactive` makes it a tappable row (pointer, hover state), `selected` is the highlighted choice,
- * `option` makes it a listbox option (selected state included). */
+/** The M3 list item (_md-comp-list, material-web tokens v0.192): leading, headline, supporting, trailing slots; at least 56 px
+ * at Comfortable (density-shifted, never under 48). `tag` sets the element; `interactive` = tappable row, `selected` = chosen,
+ * `option` = listbox option. */
 defineProps<{ tag?: string; interactive?: boolean; selected?: boolean; option?: boolean }>();
 </script>
 
