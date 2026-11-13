@@ -32,10 +32,9 @@ function startMonth(): Date {
 const weeks = computed(() => monthGrid(shown.value));
 const title = computed(() => formatDate(shown.value, 'monthYear'));
 const grid = ref<HTMLElement | null>(null);
-const WIDTH = 360;
-/** Opens right under the top app bar; beside the navigation rail on wide screens. */
+/** Expands right under the top app bar. */
 const bar = document.querySelector('[data-testid="top-bar"]')?.getBoundingClientRect().bottom ?? 0;
-const anchor = { left: window.innerWidth >= 768 ? 88 : 8, top: bar, maxH: window.innerHeight - bar - 8 };
+const anchor = { left: 0, top: bar, maxH: window.innerHeight - bar - 8 };
 
 function load() {
   const w = weeks.value;
@@ -77,7 +76,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 
 <template>
   <Teleport to="body">
-    <AdaptiveSheet open :label="t('calendar.picker.label')" :anchor="anchor" anchored-on-phone :panel-style="{ width: `min(${WIDTH}px, calc(100vw - 16px))` }" testid="month-picker" @close="ui.pickerOpen = false">
+    <AdaptiveSheet open :label="t('calendar.picker.label')" :anchor="anchor" drop testid="month-picker" @close="ui.pickerOpen = false">
       <div class="head">
         <IconButton :label="t('calendar.picker.previousMonth')" data-testid="month-picker-prev" @click="move(-1)"><IconPrev /></IconButton>
         <h2 class="ttl" data-testid="month-picker-title" aria-live="polite">{{ title }}</h2>

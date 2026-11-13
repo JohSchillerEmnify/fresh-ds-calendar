@@ -29,6 +29,10 @@ function region(w: World, name: string): Locator {
     case 'side menu': return w.byTestId('side-menu');
     case 'repeat question': return w.byTestId('repeat-scope-dialog');
     case 'event dialog': return w.byTestId('event-dialog');
+    case 'month picker': return w.byTestId('month-picker');
+    case 'plant card': return w.byTestId('plant-card');
+    case 'place suggestions': return w.byTestId('place-suggestions');
+    case 'check-in message': return w.byTestId('streak-message');
     case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }
@@ -151,10 +155,8 @@ Then('the {string} still looks like {string}', async function (this: World, name
   await expect(target).toBeVisible();
   // the floating "+" button would cover the bottom right of the time grid; it is not part of that picture
   // the 4 s check-in toast would sit in a picture or not by timing alone
-  await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
+  if (name !== 'check-in message') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   if (name === 'time grid') await this.page.addStyleTag({ content: '[data-testid="create-fab-area"] { display: none !important; }' });
-  // the check-in message slides over the top bar for a few seconds after the app opens; it is not part of that picture
-  if (name === 'top bar') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   // masked only where it lies inside the region: the mask paints on top, so a marker behind a sheet would show as a pink bar
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [target.getByTestId('now-marker')] });
 });

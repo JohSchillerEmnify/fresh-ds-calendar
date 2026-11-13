@@ -43,6 +43,23 @@ Feature: Places for an event's location
         | Zahnklinik Mitte         | Friedrichstraße 90, 10117 Berlin |
       And the suggestions credit OpenStreetMap
 
+    @visual @mobile
+    Scenario Outline: The place suggestions look as drawn, light and dark
+      Given the device prefers a <scheme> color scheme
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I type "Zahn" in the event field "location"
+      Then I see the place suggestions:
+        | name                     | address                          |
+        | Zahnarztpraxis Dr. Weber | Hauptstraße 12, 10827 Berlin     |
+        | Zahnklinik Mitte         | Friedrichstraße 90, 10117 Berlin |
+      And the "place suggestions" still looks like "place-suggestions-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |
+
     Scenario: Fewer than three characters suggest nothing
       When I open the week view for 2026-10-12
       And I start creating an event

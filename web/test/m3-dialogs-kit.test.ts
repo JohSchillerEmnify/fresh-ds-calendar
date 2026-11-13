@@ -35,6 +35,17 @@ describe('AdaptiveSheet full page', () => {
   });
 });
 
+describe('AdaptiveSheet drop strip', () => {
+  it('is a strip under the anchor with a scrim that starts below the bar', () => {
+    const w = mount(AdaptiveSheet, { props: { open: true, drop: true, anchor: { left: 0, top: 64, maxH: 500 }, label: 'Strip', testid: 'dr' }, slots: { default: 'x' }, attachTo: document.body });
+    const panel = w.find('[data-testid="dr"]');
+    expect(panel.attributes('data-presentation')).toBe('drop');
+    expect(panel.attributes('style')).toContain('top: 64px');
+    expect(w.find('[data-testid="sheet-scrim"]').attributes('style')).toContain('top: 64px');
+    w.unmount();
+  });
+});
+
 describe('ListItem as a choice', () => {
   it('marks the selected and tappable row', () => {
     const w = mount(ListItem, { props: { interactive: true, selected: true }, slots: { default: 'Berlin' } });

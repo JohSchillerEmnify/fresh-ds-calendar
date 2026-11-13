@@ -23,13 +23,15 @@ const props = withDefaults(defineProps<{
   wide?: boolean;
   /** A full-screen page (the map picker) on every screen: no scrim, handle or swipe. */
   full?: boolean;
+  /** With an `anchor`, a strip that expands down from under a bar (the month picker): full width on a phone, a card beside the rail from 768 px. */
+  drop?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
 /** Shown as a card at the anchor: on wide screens, and on phones when asked to. */
-const popover = computed(() => !props.full && !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
+const popover = computed(() => !props.full && !props.drop && !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
 /** Shown as a bottom sheet. */
-const sheet = computed(() => isPhone.value && !popover.value && !props.full);
+const sheet = computed(() => isPhone.value && !popover.value && !props.full && !props.drop);
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();
@@ -138,12 +140,12 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : full ? 'page' : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
-    <div v-if="!full" class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
+  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : full ? 'page' : drop ? 'drop' : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
+    <div v-if="!full" class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : drop && anchor ? { top: anchor.top + 'px' } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="side ? 'drawer' : full ? 'page' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
-      :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
+      :data-presentation="side ? 'drawer' : full ? 'page' : drop ? 'drop' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
+      :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, !side && drop && anchor ? { top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
       <div v-if="sheet && !side" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
@@ -168,6 +170,10 @@ onBeforeUnmount(() => stopTimer?.());
 .desk .panel.anchored.wide { width: min(640px, calc(100vw - 16px)); }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
+.drop { pointer-events: none; }
+.drop .scrim, .drop .panel { pointer-events: auto; }
+.drop .panel { position: fixed; left: 0; right: 0; width: 100%; border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); transform-origin: top; animation: expand 380ms var(--md-sys-motion-spring) both; }
+@media (min-width: 768px) { .drop .panel { left: 88px; right: auto; width: min(360px, calc(100vw - 96px)); border-radius: var(--md-sys-shape-corner-extra-large); } }
 .page .panel { width: 100%; height: 100%; max-height: none; background: var(--md-sys-color-surface); }
 .page .body { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .drawer { align-items: stretch; }
@@ -184,5 +190,6 @@ onBeforeUnmount(() => stopTimer?.());
 @keyframes up { from { transform: translateY(100%); } }
 @keyframes from-left { from { transform: translateX(-100%); } }
 @keyframes from-right { from { transform: translateX(100%); } }
+@keyframes expand { from { transform: scaleY(0.4); opacity: 0; } }
 @keyframes zoom { from { transform: scale(0.9); opacity: 0; } }
 </style>

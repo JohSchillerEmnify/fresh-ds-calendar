@@ -3305,7 +3305,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `month picker` (`month-picker`), `plant card` (`plant-card`), `place suggestions` (`place-suggestions`), `check-in message` (`streak-message`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.

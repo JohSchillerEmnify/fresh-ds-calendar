@@ -117,6 +117,20 @@ Feature: Plant companion
       | 140    | Leafy       |
       | 280    | Flowering   |
 
+  @visual @mobile
+  Scenario Outline: The open plant card looks as drawn, light and dark
+    Given the device prefers a <scheme> color scheme
+    And the streak is set to "Plant"
+    And the plant has 60 growth points and was last watered on 2026-10-12
+    When I open the app
+    And I open the plant card
+    Then the "plant card" still looks like "plant-card-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   Scenario: No guilt wording anywhere
     Given the streak is set to "Plant"
     And the plant has 70 growth points and was last watered on 2026-09-01

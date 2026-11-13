@@ -26,7 +26,19 @@ Feature: Month picker in the top app bar
     And I press Escape
     Then the month picker is closed
 
-  # the picker is a kit card under the top app bar: Back, Escape and a tap beside it all close it
+  @visual @mobile
+  Scenario Outline: The open month picker looks as drawn, light and dark
+    Given the device prefers a <scheme> color scheme
+    When I open the month view for 2026-10
+    And I open the month picker
+    Then the "month picker" still looks like "month-picker-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  # the picker is an AdaptiveSheet strip under the top app bar: Back, Escape and a tap beside it all close it
   Scenario: The browser Back button closes the picker
     When I open the week view for 2026-10-12
     And I open the month picker
