@@ -38,7 +38,7 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
     </SettingRow>
     <SettingRow id="androidWidgetHours" wide :label="t('settings.widgets.scroll.label')" :hint="t('settings.widgets.scroll.hint')">
       <div class="stack">
-      <SegmentedButton connected :model-value="prefs.androidWidgetHoursMode" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHoursMode: $event as AndroidWidgetHoursMode })" />
+      <SegmentedButton :model-value="prefs.androidWidgetHoursMode" :options="hourOptions" :label="t('settings.widgets.scroll.label')" data-testid="settings-widget-hours" @update:model-value="savePrefs({ androidWidgetHoursMode: $event as AndroidWidgetHoursMode })" />
       <Slider v-if="prefs.androidWidgetHoursMode === 'fixed'" class="track" :model-value="liveHours" :min="4" :max="24" :step="1" :label="t('settings.widgets.scroll.label')" :value-text="hoursText(liveHours)" testid="settings-widget-hours-slider" @update:model-value="liveHours = $event" @commit="savePrefs({ androidWidgetHours: $event })" />
       </div>
     </SettingRow>
@@ -46,7 +46,7 @@ const dayOptions = [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: 
 
   <SettingSection :title="t('settingsNav.sub.timeline')">
     <SettingRow id="widgetTimelineDays" wide :label="t('settings.widgets.scroll.days')" :hint="t('settings.widgets.timeline.hint')">
-      <SegmentedButton connected :model-value="String(timelineDays(prefs))" :options="dayOptions" :label="t('settings.widgets.scroll.days')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: Number($event) as WidgetTimelineDays })" />
+      <SegmentedButton :model-value="String(timelineDays(prefs))" :options="dayOptions" :label="t('settings.widgets.scroll.days')" data-testid="settings-widget-days" @update:model-value="savePrefs({ widgetTimelineDays: Number($event) as WidgetTimelineDays })" />
     </SettingRow>
     <SettingRow id="widgetTimelineTextSize" wide :label="t('settings.widgets.textSize.label')" :hint="t('settings.widgets.textSize.hint')">
       <Slider class="track" :model-value="liveSize" :min="90" :max="150" :step="5" :label="t('settings.widgets.textSize.label')" :value-text="sizeText(liveSize)" testid="settings-timeline-text-size" @update:model-value="liveSize = $event" @commit="savePrefs({ widgetTimelineTextSize: $event })" />

@@ -49,7 +49,7 @@ onBeforeUnmount(() => motivation.stop());
   <SettingSection :title="t('settingsNav.sub.motion')">
     <SettingRow id="animations" wide :label="t('settings.motion.animations')">
       <template v-if="systemReducedMotion" #sub><span class="sub" data-testid="settings-system-reduced-motion">{{ t('settings.motion.systemReduced') }}</span></template>
-      <SegmentedButton connected :model-value="s.animationLevel" :options="levels" :label="t('settings.motion.animations')" data-testid="settings-animation-level" @update:model-value="save({ animationLevel: $event as AnimationLevel })" />
+      <SegmentedButton :model-value="s.animationLevel" :options="levels" :label="t('settings.motion.animations')" data-testid="settings-animation-level" @update:model-value="save({ animationLevel: $event as AnimationLevel })" />
     </SettingRow>
     <SettingRow v-if="systemReducedMotion" id="ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" :hint="t('settings.motion.ignoreSystem.hint')">
       <Switch :model-value="s.ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" data-testid="settings-ignore-system-motion" @update:model-value="save({ ignoreSystemMotion: $event })" />
@@ -67,10 +67,10 @@ onBeforeUnmount(() => motivation.stop());
           {{ t('settings.motivation.bestStreak') }} <span data-testid="settings-best-streak">{{ best ?? '–' }}</span>
         </span>
       </template>
-      <SegmentedButton connected :model-value="prefs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" />
+      <SegmentedButton :model-value="prefs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" />
     </SettingRow>
     <SettingRow id="supportCat" wide :label="t('settings.motivation.supportCat')">
-      <SegmentedButton connected :model-value="prefs.supportCat" :options="supportCats" :label="t('settings.motivation.supportCat')" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" />
+      <SegmentedButton :model-value="prefs.supportCat" :options="supportCats" :label="t('settings.motivation.supportCat')" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" />
     </SettingRow>
   </SettingSection>
 

@@ -251,3 +251,14 @@ Then('the field {string} shows a {int} pixel line along its bottom in the primar
   await expect.poll(async () => (await bottomLine(this, label)).px, `bottom line of ${label}`).toBe(px);
   expect((await bottomLine(this, label)).primary, `bottom line of ${label} is primary`).toBe(true);
 });
+
+Then('the switch {string} is a connected button group of {string}', async function (this: World, name: string, labels: string) {
+  const g = this.page.getByRole('group', { name, exact: true }).first();
+  const buttons = g.getByRole('button');
+  await expect(buttons).toHaveCount(labels.split(', ').length);
+  expect((await buttons.allInnerTexts()).map((t) => t.trim()).join(', ')).toBe(labels);
+  // the expressive group: separate rounded buttons 2 px apart, no shared outline around them
+  expect(await g.evaluate((el) => getComputedStyle(el).borderTopWidth), 'outline of the group').toBe('0px');
+  const boxes = await buttons.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+  for (let i = 1; i < boxes.length; i++) expect(Math.round(boxes[i].left - boxes[i - 1].right), `gap before button ${i + 1}`).toBe(2);
+});

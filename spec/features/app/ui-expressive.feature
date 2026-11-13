@@ -168,3 +168,21 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       Given the style rules of the Material 3 components
       Then a text field has rounded top corners only and a line along its bottom
       And an outlined text field has a 1 pixel outline that turns 2 pixels while it is focused
+
+  Rule: Every segmented choice is the expressive connected button group
+
+    @mobile
+    Scenario: The kind switch of a new entry is a connected button group
+      When I start a new event
+      Then the switch "New" is a connected button group of "Event, Task list, Birthday"
+
+    @mobile
+    Scenario: The Tasks tabs are a connected button group
+      When I open the path "/tasks"
+      Then the switch "Tasks" is a connected button group of "Open, Canvas, Archive"
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a segmented choice has only the connected look
+    Scenario: A segmented choice cannot fall back to the old outlined look
+      Given the style rules of the Material 3 components
+      Then a segmented choice is always drawn as a connected button group

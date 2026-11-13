@@ -34,7 +34,7 @@ const weekSplitOptions = [
       <Switch :model-value="prefs.weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" data-testid="settings-week-two-row" @update:model-value="savePrefs({ weekTwoRow: $event })" />
     </SettingRow>
     <SettingRow v-if="prefs.weekTwoRow" id="weekTwoRowSplit" wide :label="t('settings.labs.weekTwoRow.split')">
-      <SegmentedButton connected :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
+      <SegmentedButton :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
     </SettingRow>
     <SettingRow id="handwriting" :label="t('ink.settings.label')" :hint="t('ink.settings.hint')">
       <Switch :model-value="prefs.labsHandwriting" :label="t('ink.settings.label')" data-testid="settings-labs-handwriting" @update:model-value="savePrefs({ labsHandwriting: $event })" />

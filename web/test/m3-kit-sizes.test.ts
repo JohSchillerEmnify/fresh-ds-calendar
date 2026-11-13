@@ -55,3 +55,13 @@ describe('m3 kit sizes', () => {
     expect(mount(TextField, { props: { modelValue: '', label: 'Name', variant: 'outlined' } }).classes()).toContain('outlined');
   });
 });
+
+describe('segmented choice', () => {
+  it('a segmented choice has only the connected look', () => {
+    const src = readFileSync(resolve(__dirname, '../src/components/m3/SegmentedButton.vue'), 'utf8');
+    // no opt-in: the expressive connected group is the one look (no `connected` prop, no outlined bar)
+    expect(src).not.toMatch(/connected\?:/);
+    expect(rule(css('SegmentedButton'), '.seg')).toMatch(/gap: 2px;/);
+    expect(rule(css('SegmentedButton'), '.seg')).not.toMatch(/border:/);
+  });
+});
