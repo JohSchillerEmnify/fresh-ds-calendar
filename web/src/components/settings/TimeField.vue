@@ -3,6 +3,7 @@
 import { computed, ref } from 'vue';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
+import TimeInput from '@/components/m3/TimeInput.vue';
 import { t } from '@/i18n';
 
 defineOptions({ inheritAttrs: false });
@@ -30,11 +31,10 @@ function ok() {
   <AdaptiveSheet :open="open" :label="t('settingsNav.time.title')" testid="time-picker" @close="open = false">
     <form class="f" @submit.prevent="ok">
       <h2 class="t">{{ label }}</h2>
-      <div class="hm">
-        <label class="box"><input v-model="hour" class="in" inputmode="numeric" maxlength="2" :aria-label="t('settingsNav.time.hour')" data-testid="time-picker-hour" /><span class="cap">{{ t('settingsNav.time.hour') }}</span></label>
-        <span class="colon" aria-hidden="true">:</span>
-        <label class="box"><input v-model="minute" class="in" inputmode="numeric" maxlength="2" :aria-label="t('settingsNav.time.minute')" data-testid="time-picker-minute" /><span class="cap">{{ t('settingsNav.time.minute') }}</span></label>
-      </div>
+      <TimeInput
+        v-model:hour="hour" v-model:minute="minute" :hour-label="t('settingsNav.time.hour')" :minute-label="t('settingsNav.time.minute')"
+        hour-testid="time-picker-hour" minute-testid="time-picker-minute"
+      />
       <div class="actions">
         <Button variant="text" data-testid="time-picker-cancel" @click="open = false">{{ t('settingsNav.time.cancel') }}</Button>
         <Button variant="text" type="submit" :disabled="!valid" data-testid="time-picker-ok">{{ t('settingsNav.time.ok') }}</Button>
@@ -46,14 +46,5 @@ function ok() {
 <style scoped>
 .f { display: flex; flex-direction: column; gap: 16px; }
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.hm { display: flex; align-items: flex-start; gap: 4px; }
-.box { display: flex; flex-direction: column; gap: 6px; }
-.in {
-  width: 96px; height: 72px; box-sizing: border-box; text-align: center; border: 0; border-radius: var(--md-sys-shape-corner-small);
-  background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font-size: 45px; line-height: 52px;
-}
-.in:focus { outline: 2px solid var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-.colon { font-size: 45px; line-height: 72px; width: 24px; text-align: center; }
-.cap { font: var(--md-sys-typescale-body-small); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

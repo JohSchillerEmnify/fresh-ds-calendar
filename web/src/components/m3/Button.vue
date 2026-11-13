@@ -34,7 +34,7 @@ withDefaults(defineProps<{
 .m3-btn:active:not(:disabled) { border-radius: var(--md-sys-shape-corner-medium); transform: scale(0.97); }
 .filled { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .tonal { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-.outlined { box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); color: var(--md-sys-color-primary); }
+.outlined { background-color: var(--md-sys-color-surface); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); color: var(--md-sys-color-primary); }
 .text { color: var(--md-sys-color-primary); padding: 0 12px; }
 .m3-btn:disabled { opacity: 0.38; cursor: default; }
 .ico { display: inline-flex; margin-left: -8px; }

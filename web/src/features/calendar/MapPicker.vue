@@ -6,7 +6,8 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import ListItem from '@/components/m3/ListItem.vue';
-import { IconClose, IconCloudOff, IconLocationOn, IconMyLocation, IconSearch } from '@/components/icons';
+import SearchField from '@/components/m3/SearchField.vue';
+import { IconClose, IconCloudOff, IconLocationOn, IconMyLocation } from '@/components/icons';
 import { language, t } from '@/i18n';
 import { currentPosition } from '@/native/location';
 import { createResolver, formatCoords } from './mapPicker';
@@ -144,15 +145,14 @@ function use(): void {
           <div class="stage">
             <div ref="mapEl" class="map" role="img" :aria-label="t('calendar.event.place.picker.map')" data-testid="map-picker-map" :data-lat="centre.lat.toFixed(4)" :data-lon="centre.lon.toFixed(4)" />
             <div class="search">
-              <IconSearch class="s-ico" aria-hidden="true" />
-              <input
-                class="s-in" type="search" :value="query" :placeholder="t('calendar.event.place.picker.search')" :aria-label="t('calendar.event.place.picker.search')"
-                autocomplete="off" enterkeyhint="search" data-testid="map-picker-search" @input="onSearch(($event.target as HTMLInputElement).value)"
-              >
+              <SearchField
+                :model-value="query" :label="t('calendar.event.place.picker.search')" bar-testid="map-picker-search-bar"
+                data-testid="map-picker-search" @update:model-value="onSearch"
+              />
             </div>
             <div v-if="hits.length" class="hits" role="listbox" :aria-label="t('calendar.event.place.picker.results')" data-testid="map-picker-results">
               <ListItem
-                v-for="h in hits" :key="`${h.lat},${h.lon},${h.name}`" interactive role="option" aria-selected="false" data-testid="map-picker-result" @click="pickHit(h)"
+                v-for="h in hits" :key="`${h.lat},${h.lon},${h.name}`" interactive option data-testid="map-picker-result" @click="pickHit(h)"
               >
                 <template #leading><IconLocationOn aria-hidden="true" /></template>
                 <span class="h-name" data-testid="map-picker-result-name">{{ h.name }}</span>
@@ -186,9 +186,7 @@ function use(): void {
 .title { margin: 0; font: var(--md-sys-typescale-title-large); }
 .stage { position: relative; flex: 1; min-height: 0; }
 .map { position: absolute; inset: 0; background: var(--md-sys-color-surface-container-highest); z-index: 0; }
-.search { position: absolute; z-index: 5; left: 16px; right: 16px; top: 12px; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-radius: var(--md-sys-shape-corner-full); background: var(--md-sys-color-surface-container); box-shadow: var(--md-sys-elevation-3); }
-.s-ico { width: 20px; height: 20px; flex: none; color: var(--md-sys-color-on-surface-variant); }
-.s-in { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }
+.search { position: absolute; z-index: 5; left: 16px; right: 16px; top: 12px; border-radius: var(--md-sys-shape-corner-full); box-shadow: var(--md-sys-elevation-3); }
 .hits { position: absolute; z-index: 5; left: 16px; right: 16px; top: 68px; max-height: 50%; overflow: auto; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); box-shadow: var(--md-sys-elevation-3); }
 .h-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .h-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

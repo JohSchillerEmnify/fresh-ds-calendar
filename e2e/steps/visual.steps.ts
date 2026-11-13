@@ -25,6 +25,7 @@ function region(w: World, name: string): Locator {
     case 'settings page': return w.byTestId('settings-view');
     case 'error log page': return w.byTestId('device-log-page');
     case 'theme page': return w.byTestId('theme-view');
+    case 'time picker': return w.byTestId('time-picker');
     case 'map picker': return w.byTestId('map-picker');
     case 'side menu': return w.byTestId('side-menu');
     case 'repeat question': return w.byTestId('repeat-scope-dialog');

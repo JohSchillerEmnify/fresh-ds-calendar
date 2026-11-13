@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 - Changed: the month picker, the plant card, the map picker, the place suggestions and the check-in message now look and behave like the app's other dialogs, lists and messages.
+- Changed: the Today button, the template button, reminder chips, count badges and the task list tray now share the standard Material look and follow the Density setting.
 - Changed: the Density setting in your theme now also makes buttons, switches, tabs and fields more compact (or roomier with Airy); everything can still be tapped as easily. Corners follow Material 3 more closely.
 - Fixed: the reminder line in the event dialog reads "Calendar default: no reminders" with a space after the colon.
 - Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.
@@ -9,6 +10,7 @@
 - Fixed: the app no longer keeps the first month you opened in memory for as long as it runs.
 - Changed: buttons, icon buttons, chips and text fields now have the standard Material sizes and shapes: icon buttons are easier to tap, and a text field shows a line along its bottom that thickens while you type in it.
 - Changed: the Event, Task list and Birthday switch and the Tasks tabs now look like the other choice buttons in the app.
+- Changed: the place search on the map, the settings search and the archive search now share one search bar look, and the time picker keeps its large hour and minute boxes.
 
 ## 2026-11-12
 - Changed: the task lists calendar works like your other calendars in Settings › Calendars: it has its colour dot and plan line, and its page lets you show or hide it, set its colour and plan, and choose its default reminders.

@@ -7,6 +7,7 @@
  * above it. Hidden outside calendar views.
  */
 import Pressable from '@/components/m3/Pressable.vue';
+import Chip from '@/components/m3/Chip.vue';
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import { barHostsRow } from '@/lib/barHost';
@@ -173,7 +174,7 @@ function toggleFold(id: string) {
         v-if="rowShown" v-ripple class="bar" :class="{ row2: inBar }" type="button" data-testid="task-tray-toggle" :aria-expanded="listShown" aria-controls="task-tray-list"
         :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
       >
-        <span class="chip" :class="{ none: !lists.count }" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}<IconExpand v-if="isPhone" class="chev in" :class="{ up: listShown }" data-testid="task-tray-chevron" aria-hidden="true" /></span>
+        <Chip static class="chip" :selected="!!lists.count" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}<IconExpand v-if="isPhone" class="chev in" :class="{ up: listShown }" data-testid="task-tray-chevron" aria-hidden="true" /></Chip>
         <span v-if="isPhone" class="names"><span v-for="(n, i) in names" :key="i" class="nm" data-testid="task-tray-chip">{{ n }}</span></span>
         <IconExpand v-if="!isPhone" class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
       </Pressable>
@@ -205,9 +206,6 @@ function toggleFold(id: string) {
 .bar.row2 { min-height: 40px; height: 40px; padding: 0 12px; flex: none; flex-direction: row-reverse; }
 /* the toggle chip sits on the thumb side: right, or left in left-handed mode */
 html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
-.chip { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 999px; padding: 4px 12px; font: var(--md-sys-typescale-label-large); }
-.chip.none { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-.chip { display: inline-flex; align-items: center; gap: 4px; flex: none; }
 .names { flex: 1; min-width: 0; display: flex; gap: 8px; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
 .nm { flex: none; padding: 4px 12px; border-radius: 999px; background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-label-large); }
 .chev { margin-left: auto; width: 24px; height: 24px; transition: transform 240ms var(--md-sys-motion-spring); }
@@ -260,7 +258,7 @@ html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
   .tray.collapsed { width: 56px; }
   .collapsed .bar { flex-direction: column; justify-content: flex-start; gap: 12px; padding: 12px 0; }
   .collapsed .chev { margin-left: 0; order: -1; }
-  .collapsed .chip { writing-mode: vertical-rl; padding: 12px 4px; white-space: nowrap; }
+  .collapsed .chip { writing-mode: vertical-rl; height: auto; padding: 12px 4px; }
   .list { flex: 1; min-height: 0; max-height: none; }
 }
 /* Left-handed mode (phone): the toggle chevron sits at the left, right of the "+" button's clearance; the fold toggle too. */

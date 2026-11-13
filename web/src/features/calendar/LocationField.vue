@@ -168,7 +168,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
     <div v-if="open" ref="list" class="list" data-testid="place-suggestions" @mousedown.prevent>
       <div :id="listId" role="listbox" :aria-label="t('calendar.event.place.suggestions')">
         <ListItem
-          v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" interactive :selected="i === active" role="option" :aria-selected="i === active"
+          v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" interactive option :selected="i === active"
           data-testid="place-suggestion" @click="pick(h, true)"
         >
           <template #leading><IconLocationOn aria-hidden="true" /></template>

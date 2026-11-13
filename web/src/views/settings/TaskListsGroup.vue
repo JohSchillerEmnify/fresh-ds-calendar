@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import type { Category, TaskOpen, UndatedDone } from '@/api/types';
 import { IconAdd, IconDragIndicator as IconGrip } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
+import IconButton from '@/components/m3/IconButton.vue';
 import Pressable from '@/components/m3/Pressable.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
@@ -49,10 +50,10 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
           <Pressable class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
             <i class="dot" :style="{ background: c.color }" /><span v-if="c.icon" class="em">{{ c.icon }}</span><span class="nm">{{ c.name }}</span>
           </Pressable>
-          <span
-            class="grip" role="button" tabindex="0" :aria-label="t('settingsNav.labels.moveCategory', { name: c.name })" data-testid="settings-category-grip"
+          <IconButton
+            class="grip" :label="t('settingsNav.labels.moveCategory', { name: c.name })" data-testid="settings-category-grip"
             @pointerdown="drag.down(i, $event)" @pointermove="drag.move" @pointerup="drag.up" @pointercancel="drag.up" @keydown="drag.key(i, $event, settings.categories.length)"
-          ><IconGrip /></span>
+          ><IconGrip /></IconButton>
         </li>
       </ul>
       <div class="add"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
@@ -83,8 +84,7 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
 .cats { list-style: none; margin: 0; padding: 0; }
 .cat { display: flex; align-items: center; padding: 0 0 0 4px; border-radius: var(--md-sys-shape-corner-large); transition: transform var(--md-sys-motion-duration-short); }
 .cat.lifted { position: relative; z-index: 1; transition: none; background: var(--md-sys-color-surface-container-high); box-shadow: var(--md-sys-elevation-2, 0 2px 6px rgb(0 0 0 / 0.3)); }
-.grip { width: 48px; height: 48px; display: grid; place-items: center; flex: none; color: var(--md-sys-color-on-surface-variant); cursor: grab; touch-action: none; border-radius: 50%; }
-.grip:focus-visible { outline: 2px solid var(--md-sys-color-primary); }
+.grip { cursor: grab; touch-action: none; }
 .catmain { flex: 1; min-height: 52px; display: flex; align-items: center; gap: 10px; text-align: left; min-width: 0; color: inherit; }
 .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
 .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--md-sys-typescale-body-large); }

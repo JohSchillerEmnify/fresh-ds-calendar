@@ -6,9 +6,9 @@
  * or "no reminders". The test ids carry `prefix`: `<prefix>-reminder` (chip, `data-minutes`), `-reminder-remove`,
  * `-reminder-add`, `-reminders-default`, `-reminder-option`, `-reminder-custom`.
  */
-import Pressable from '@/components/m3/Pressable.vue';
+import Chip from '@/components/m3/Chip.vue';
 import { computed, ref } from 'vue';
-import { IconAdd, IconClose } from '@/components/icons';
+import { IconAdd } from '@/components/icons';
 import type { Reminders } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
@@ -61,9 +61,8 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
       <span class="muted">{{ t('calendar.reminders.defaultLabel') }}:</span>{{ ' ' }}<span class="list" :data-testid="`${prefix}-reminders-default-list`">{{ defaultMinutes?.length ? formatLeads(defaultMinutes) : t('calendar.reminders.defaultNone') }}</span>
     </p>
     <ul v-else-if="list.length" class="chips">
-      <li v-for="m in list" :key="m" class="chip" :data-testid="`${prefix}-reminder`" :data-minutes="m">
-        <span class="txt">{{ formatLead(m) }}</span>
-        <Pressable type="button" class="x" :aria-label="t('calendar.reminders.remove', { label: formatLead(m) })" :data-testid="`${prefix}-reminder-remove`" @click="remove(m)"><IconClose /></Pressable>
+      <li v-for="m in list" :key="m">
+        <Chip variant="input" selected :remove-label="t('calendar.reminders.remove', { label: formatLead(m) })" :remove-testid="`${prefix}-reminder-remove`" :data-testid="`${prefix}-reminder`" :data-minutes="m" @remove="remove(m)">{{ formatLead(m) }}</Chip>
       </li>
     </ul>
     <p v-else class="state muted" :data-testid="`${prefix}-reminders-none`">{{ t('calendar.reminders.none') }}</p>
@@ -77,7 +76,7 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
 
     <div v-if="picking && !full" class="picker" role="group" :aria-label="t('calendar.reminders.pick')">
       <div class="opts">
-        <Pressable v-for="m in options" :key="m" type="button" class="opt" :data-testid="`${prefix}-reminder-option`" :data-minutes="m" @click="add(m)">{{ formatLead(m) }}</Pressable>
+        <Chip v-for="m in options" :key="m" variant="assist" :data-testid="`${prefix}-reminder-option`" :data-minutes="m" @click="add(m)">{{ formatLead(m) }}</Chip>
       </div>
       <div class="cust">
         <TextField v-model="custom" class="grow" type="number" inputmode="numeric" min="0" max="40320" step="1" :label="t('calendar.reminders.customLabel')" :error="customError" :data-testid="`${prefix}-reminder-custom`" data-enter-skip @keydown.enter.prevent.stop="addCustom" />
@@ -94,14 +93,9 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
 .note { margin: 0; font: var(--md-sys-typescale-label-medium); }
 .list { font: var(--md-sys-typescale-label-large); }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px 0 14px; border-radius: var(--md-sys-shape-corner-small); background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-label-large); }
-.x { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: inherit; }
-.x::after { content: ''; position: absolute; inset: -8px; }
-.x :deep(svg) { width: 18px; height: 18px; }
 .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .picker { display: flex; flex-direction: column; gap: 8px; padding: 8px; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); }
 .opts { display: flex; flex-wrap: wrap; gap: 8px; }
-.opt { min-height: 36px; padding: 0 14px; border-radius: var(--md-sys-shape-corner-small); border: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cust { display: flex; align-items: flex-start; gap: 8px; }
 .grow { flex: 1; min-width: 0; }
 </style>

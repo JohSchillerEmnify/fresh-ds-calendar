@@ -9,7 +9,7 @@ import { t } from '@/i18n';
 import type { TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
-import TextField from '@/components/m3/TextField.vue';
+import SearchField from '@/components/m3/SearchField.vue';
 import { displayTitle } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
@@ -77,7 +77,7 @@ onBeforeUnmount(() => stop?.());
     <TasksCanvas v-if="tasks.tab === 'canvas'" />
     <div v-if="tasks.tab === 'archive'" class="archive" data-testid="tasks-archive">
       <div class="controls">
-        <TextField v-model="search" :label="t('tasks.archive.search')" type="search" class="search" data-testid="tasks-archive-search" />
+        <SearchField v-model="search" :label="t('tasks.archive.search')" :clear-label="t('settingsNav.home.clear')" class="search" data-testid="tasks-archive-search" />
       </div>
       <div class="scroll" data-scroll-area>
         <p v-if="!archive.length" class="empty" data-testid="tasks-archive-empty">{{ search.trim() ? t('tasks.archive.noMatch') : t('tasks.archive.empty') }}</p>
