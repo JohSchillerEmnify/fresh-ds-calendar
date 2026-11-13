@@ -253,6 +253,7 @@ I press Enter in the event field {string}
 the event field {string} has focus
 I save the event
 I cancel the event dialog
+I tap the text {string} in the event form
 I press Escape
 I open the event {string}
 I delete the event
@@ -369,6 +370,7 @@ I tap the titleless task list
 the list sheet of the titleless task list is open
 the task lists {string} and {string} show one checkbox, the same type, no count and no progress bar
 I tick the checkbox of the titleless task list
+I press Space on the titleless task list
 I tick the checkbox of the task list {string}
 the titleless task list is struck through
 the titleless task list shows the text {string}
@@ -3303,7 +3305,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
@@ -4214,6 +4216,7 @@ I choose {string} in the side menu
 the side menu is closed
 the side menu shows the calendars {string} with a colour checkbox each
 I untick the calendar {string} in the side menu
+I tap the name of the calendar {string} in the side menu
 the top bar has no filter button and no settings button
 the top bar has no filter button
 the top bar size is set to {string}
@@ -4605,6 +4608,7 @@ in the {view} view of {date} the marker of {string} is {float} px
   `tasklist-progress-ring`, no visible `tasklist-card-item`, and the same card height, the same `tasklist-card-title` font
   size and weight and the same title box left and height as the other (only the text differs).
 - "I tick the checkbox of the (titleless) task list": clicks `tasklist-card-check` of the card.
+- "I press Space on the titleless task list": focuses the card and presses Space (it ticks the one task, the list does not open).
 - "the titleless task list is struck through": its `tasklist-card-title` has `data-struck="true"` and a visible strike line.
 - "the titleless task list shows X in its title slot with only its own checkbox": `tasklist-card-lead` has `data-title` X, the card has one
   `tasklist-card-check`, and the lead's `::before` item marker is not drawn.
@@ -4614,3 +4618,6 @@ in the {view} view of {date} the marker of {string} is {float} px
   `tasklist-card-title` (its box height over its computed line height) equal those of `event-chip-title` of the event E.
 - "the titleless task list shows the text T": its `tasklist-card-title` has exactly the text T.
 - "the task list X shows no placeholder": the card has no `tasklist-card-items`.
+
+- "I tap the text T in the event form": clicks the text T inside the event dialog's label row (not the control itself), e.g. "All day".
+- "I tap the name of the calendar C in the side menu": clicks the text of C's `side-menu-calendar` row (not its checkbox).

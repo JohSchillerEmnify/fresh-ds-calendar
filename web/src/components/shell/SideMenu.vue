@@ -2,6 +2,8 @@
 import { useRouter } from 'vue-router';
 import { IconSettingsOutline as IconSettings } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
+import Checkbox from '@/components/m3/Checkbox.vue';
+import ListItem from '@/components/m3/ListItem.vue';
 import NavigationDrawer from '@/components/m3/NavigationDrawer.vue';
 import type { NavItem } from '@/components/m3/types';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -33,10 +35,10 @@ function openSettings() {
 <template>
   <NavigationDrawer :open="ui.sideMenuOpen" :label="t('nav.menu')" :items="props.items" :model-value="props.modelValue" :side="side" @close="ui.sideMenuOpen = false" @update:model-value="choose">
     <h2 class="h">{{ t('nav.calendars') }}</h2>
-    <label v-for="k in calendars.list" :key="k.id" v-long-press="() => openPlan(k.id)" class="cal" data-testid="side-menu-calendar" :data-name="k.name" :data-calendar-id="k.id">
-      <input type="checkbox" :checked="!calendars.isHidden(k.id)" :style="{ accentColor: k.color }" @change="calendars.toggle(k.id)">
-      <span>{{ k.name }}</span>
-    </label>
+    <ListItem v-for="k in calendars.list" :key="k.id" v-long-press="() => openPlan(k.id)" tag="label" class="cal" data-testid="side-menu-calendar" :data-name="k.name" :data-calendar-id="k.id">
+      <template #leading><Checkbox :model-value="!calendars.isHidden(k.id)" :label="k.name" :color="k.color" @change="calendars.toggle(k.id)" /></template>
+      {{ k.name }}
+    </ListItem>
     <template #footer>
       <Button variant="text" class="set" data-testid="side-menu-settings" @click="openSettings"><template #icon><IconSettings /></template>{{ t('calendar.topBar.settings') }}</Button>
     </template>
@@ -45,7 +47,6 @@ function openSettings() {
 
 <style scoped>
 .h { margin: 0; padding: 4px 16px; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-on-surface-variant); }
-.cal { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; font: var(--md-sys-typescale-body-large); }
-.cal input { width: 20px; height: 20px; flex: none; }
+.cal { cursor: pointer; padding-left: 4px; gap: 4px; }
 .set { width: 100%; justify-content: flex-start; }
 </style>

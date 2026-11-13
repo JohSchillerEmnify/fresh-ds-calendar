@@ -5,6 +5,7 @@ import { GOOGLE_CALENDAR_COLORS, type CalendarColor } from '@calendar/shared/col
 import { api, ApiError } from '@/api/client';
 import { isHexColor } from '@/api/colors';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
+import CustomColor from '@/components/m3/CustomColor.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { t } from '@/i18n';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -67,8 +68,7 @@ function commitHex() {
   if (v !== current.value) save(v);
 }
 /** The native picker's final choice (`change`, not every drag step). */
-function picked(e: Event) {
-  const v = (e.target as HTMLInputElement).value.toLowerCase();
+function picked(v: string) {
   if (v !== current.value) save(v);
 }
 </script>
@@ -77,9 +77,7 @@ function picked(e: Event) {
   <div class="colors" data-testid="calendar-color-row">
     <div class="line">
       <ColorSwatchPicker :model-value="current || null" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="calendar-color" @update:model-value="pick" />
-      <label class="custom" :title="t('theme.fine.custom')">
-        <input :key="current" type="color" :value="current || '#000000'" :aria-label="t('theme.fine.custom')" data-testid="calendar-color-custom" @change="picked" />
-      </label>
+      <CustomColor :key="current" class="custom" :model-value="current || '#000000'" :label="t('theme.fine.custom')" data-testid="calendar-color-custom" @update:model-value="picked" />
     </div>
     <TextField v-model="hex" class="hex" :label="t('theme.fine.customHex')" data-testid="calendar-color-hex" :error="hexError" error-testid="calendar-color-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
   </div>
@@ -88,7 +86,6 @@ function picked(e: Event) {
 <style scoped>
 .colors { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
-.custom { position: relative; width: 36px; height: 36px; margin: 4px; border-radius: 50%; overflow: hidden; cursor: pointer; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); }
-.custom input { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.custom { margin: 4px; }
 .hex { max-width: 200px; }
 </style>

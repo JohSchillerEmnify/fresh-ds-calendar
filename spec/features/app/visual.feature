@@ -291,3 +291,48 @@ Feature: The calendar's states look right
     When I open the day view for 2026-10-24
     And I scroll the time grid to the end of the day
     Then the "time grid" still looks like "day-bedtime-saturday-end"
+
+  # Issue #48: checkboxes, radios and switches of the drawer, the repeat question and the event sheet are the M3 kit's
+  Scenario Outline: The side menu's calendar checkboxes look right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And the view switcher on phones is set to "side menu"
+    And the calendar contains an event "Standup" in the calendar "Work" on 2026-10-12 from 09:00 to 09:15
+    When I open the week view for 2026-10-12
+    And I open the side menu
+    And I untick the calendar "Work" in the side menu
+    Then the "side menu" still looks like "side-menu-calendars-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  Scenario Outline: The repeat question's radio buttons look right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And the calendar contains a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with items:
+      | item  | done |
+      | Sink  | no   |
+      | Floor | no   |
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I add the item "Mirror"
+    Then I am asked whether to change "This task list" or "This and all following task lists"
+    And the "repeat question" still looks like "repeat-scope-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  Scenario Outline: The event sheet's All day switch looks right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    And I fill in the event form with:
+      | all day | yes |
+    Then the "event dialog" still looks like "event-all-day-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
