@@ -127,6 +127,7 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   would make one state look wrong, ask before building it. — Changes are welcome, invented ones are not.
 - **Check what a screen is for** before placing a feature in it: read the component's doc comment and feature id, and
   prefer the place that already holds that object's settings. — A setting landed in an unrelated sheet.
+- **Opinionated, one look.** The design is aligned and consistent everywhere: a look is changed once, in the shared `m3` component, and every screen follows. No opt-in props or variants for a new look while the old one stays the default, no per-screen `:deep` restyling of kit parts; an audit reports causes per component, not per screen. — The create switcher stayed on the old look because the new one was an opt-in only settings used.
 - **One action vocabulary.** Buttons and icon buttons come from the `m3` kit; no new pill or icon variants per
   feature, mockups included. — Mixed styles clutter the UI.
 - **Scene art fills the whole bar.** Ground cover runs the full width; only characters and large props stay clear of
