@@ -210,7 +210,7 @@ Feature: An error log on this device that I can send
     And the app starts
     Then nothing is sent
 
-  @visual
+  @visual @mobile
   Scenario Outline: The error log page with Send to server and the automatic switch looks right in the <scheme> theme
     Given this device's error log holds:
       | at               | message                  |
