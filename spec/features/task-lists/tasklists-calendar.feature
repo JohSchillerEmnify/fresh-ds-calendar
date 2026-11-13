@@ -138,7 +138,7 @@ Feature: Task lists live in their own calendar
     And I search the settings for "Show the task lists calendar in Google"
     Then the settings search says nothing matches "Show the task lists calendar in Google"
 
-  @visual
+  @visual @mobile
   Scenario Outline: The task lists calendar's settings page looks right in light and dark
     Given the device prefers a <scheme> color scheme
     And Google has a hidden calendar "Calendar app: tasks"
