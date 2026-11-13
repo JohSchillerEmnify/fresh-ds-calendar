@@ -12,9 +12,11 @@ defineProps<{ selected?: boolean; variant?: 'filter' | 'assist' }>();
 </template>
 
 <style scoped>
-/* 32 px high with 8 px corners: container-height and corner-small of _md-comp-filter-chip / _md-comp-assist-chip */
+/* 32 px high at Comfortable (moved by the density shift) with small corners: container-height and container-shape of
+   _md-comp-filter-chip / _md-comp-assist-chip */
 .chip {
-  position: relative; flex: none; height: 32px; padding: 0 14px; border-radius: 8px;
+  --h: calc(32px + var(--md-density-shift)); height: var(--h);
+  position: relative; flex: none; padding: 0 14px; border-radius: var(--md-sys-shape-corner-small);
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   border: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large);
   transition: background var(--md-sys-motion-duration-short);

@@ -23,9 +23,10 @@ const rest = computed(() => { const { class: _c, style: _s, ...r } = attrs; retu
 
 <style scoped>
 /* the filled field of TextField (_md-comp-filled-text-field), so a select matches the text fields beside it */
-.sel { position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-extra-small) var(--md-sys-shape-corner-extra-small) 0 0; box-shadow: inset 0 -1px 0 var(--md-sys-color-on-surface-variant); }
+/* 56 px at Comfortable, moved by the density shift (--s), never under 52 px so the label fits; as TextField */
+.sel { --h: max(52px, calc(56px + var(--md-density-shift))); --s: calc(var(--h) - 56px); position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-extra-small) var(--md-sys-shape-corner-extra-small) 0 0; box-shadow: inset 0 -1px 0 var(--md-sys-color-on-surface-variant); }
 .sel:focus-within { box-shadow: inset 0 -2px 0 var(--md-sys-color-primary); }
-.in { width: 100%; min-height: 56px; appearance: none; background: transparent; border: 0; outline: 0; padding: 24px 40px 6px 16px; font-size: 16px; color: var(--md-sys-color-on-surface); border-radius: inherit; }
-.lbl { position: absolute; left: 16px; top: 8px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); pointer-events: none; }
-.chev { position: absolute; right: 12px; top: 16px; width: 24px; height: 24px; pointer-events: none; color: var(--md-sys-color-on-surface-variant); }
+.in { width: 100%; min-height: var(--h); appearance: none; background: transparent; border: 0; outline: 0; padding: calc(24px + var(--s) / 2) 40px 6px 16px; font-size: 16px; color: var(--md-sys-color-on-surface); border-radius: inherit; }
+.lbl { position: absolute; left: 16px; top: calc(8px + var(--s) / 2); font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); pointer-events: none; }
+.chev { position: absolute; right: 12px; top: calc(16px + var(--s) / 2); width: 24px; height: 24px; pointer-events: none; color: var(--md-sys-color-on-surface-variant); }
 </style>

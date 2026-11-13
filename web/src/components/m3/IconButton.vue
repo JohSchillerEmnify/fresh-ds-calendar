@@ -12,10 +12,12 @@ withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'fill
 </template>
 
 <style scoped>
-/* 40 px drawn (_md-comp-icon-button state-layer-size) in a 48 px tap area (material-web iconbutton touch target): the
-   transparent border is tappable, while the background, state layer and ripple stop at the 40 px padding box */
+/* 40 px drawn at Comfortable (_md-comp-icon-button state-layer-size, moved by the density shift) in a 48 px tap area
+   (material-web iconbutton touch target): the transparent border is tappable, while the background, state layer and
+   ripple stop at the drawn padding box */
 .icon-btn {
-  position: relative; width: 48px; height: 48px; border: 4px solid transparent; background-clip: padding-box; border-radius: var(--md-sys-shape-corner-full); flex: none;
+  --h: calc(40px + var(--md-density-shift)); --tap: max(0px, calc((48px - var(--h)) / 2));
+  position: relative; width: calc(var(--h) + 2 * var(--tap)); height: calc(var(--h) + 2 * var(--tap)); border: var(--tap) solid transparent; background-clip: padding-box; border-radius: var(--md-sys-shape-corner-full); flex: none;
   display: inline-flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);
 }
 .icon-btn :deep(svg) { width: 24px; height: 24px; }

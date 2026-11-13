@@ -11,7 +11,7 @@ Feature: Choosing and fine-tuning a theme
   picking a scene turns it Off. "Fine-tuning" is where every option shows itself as a small sample before it is
   picked: theme mode, seed colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square,
   round, pill), each with a slider for the value in between (glow strength, corner radius in px, entry tint in %), plus
-  density (compact, comfortable, airy), the checkbox shape and fill, the check mark and the icon set (Outlined, Rounded, Sharp, Solar, Phosphor, Pixel: three Material Symbols
+  density (compact, comfortable, airy: the text size and the height of buttons, switches and fields), the checkbox shape and fill, the check mark and the icon set (Outlined, Rounded, Sharp, Solar, Phosphor, Pixel: three Material Symbols
   variants and three clearly different families, each drawing every icon of the app); it always sits on top, in every Seasons & holidays mode, and choosing a preset resets it. There is no separate Mordor button; the Mordor preset does the same. A live
   preview is pinned at the top of the menu and stays in view while the person scrolls through the sections: a mini
   calendar made of the app's own components (the top bar with the current scene, a short week slice with sample events
