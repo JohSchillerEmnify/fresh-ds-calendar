@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Bottom sheet on phones, centered modal (<= 520 px) from 768 px up. Used by every dialog.
+ * Bottom sheet on phones, centered modal (<= 520 px) from 768 px up, or a full-screen page (`full`). Used by every dialog.
  * Renders nothing while closed (v-if), so no DOM or references are retained. Escape / Cancel close;
  * the scrim closes only when `dismissOnScrim` (feature dialogs pass `!dirty`).
  */
@@ -21,13 +21,15 @@ const props = withDefaults(defineProps<{
   anchoredOnPhone?: boolean;
   /** A wider panel for a writing area (handwritten lists); a phone keeps its sheet. */
   wide?: boolean;
+  /** A full-screen page (the map picker) on every screen: no scrim, handle or swipe. */
+  full?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
 /** Shown as a card at the anchor: on wide screens, and on phones when asked to. */
-const popover = computed(() => !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
+const popover = computed(() => !props.full && !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
 /** Shown as a bottom sheet. */
-const sheet = computed(() => isPhone.value && !popover.value);
+const sheet = computed(() => isPhone.value && !popover.value && !props.full);
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();
@@ -136,11 +138,11 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
-    <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
+  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : full ? 'page' : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
+    <div v-if="!full" class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="side ? 'drawer' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
+      :data-presentation="side ? 'drawer' : full ? 'page' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
       :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
       <div v-if="sheet && !side" class="handle" aria-hidden="true"><span /></div>
@@ -166,6 +168,8 @@ onBeforeUnmount(() => stopTimer?.());
 .desk .panel.anchored.wide { width: min(640px, calc(100vw - 16px)); }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
+.page .panel { width: 100%; height: 100%; max-height: none; background: var(--md-sys-color-surface); }
+.page .body { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .drawer { align-items: stretch; }
 .drawer.side-right { justify-content: flex-end; }
 .drawer .panel { width: min(320px, 86vw); max-height: none; padding: var(--safe-top) 0 var(--safe-bottom); box-shadow: var(--md-sys-elevation-3); }

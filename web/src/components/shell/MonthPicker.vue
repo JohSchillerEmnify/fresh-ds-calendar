@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { addMonths, isSameDay, isSameMonth } from 'date-fns';
@@ -31,6 +32,10 @@ function startMonth(): Date {
 const weeks = computed(() => monthGrid(shown.value));
 const title = computed(() => formatDate(shown.value, 'monthYear'));
 const grid = ref<HTMLElement | null>(null);
+const WIDTH = 360;
+/** Opens right under the top app bar; beside the navigation rail on wide screens. */
+const bar = document.querySelector('[data-testid="top-bar"]')?.getBoundingClientRect().bottom ?? 0;
+const anchor = { left: window.innerWidth >= 768 ? 88 : 8, top: bar, maxH: window.innerHeight - bar - 8 };
 
 function load() {
   const w = weeks.value;
@@ -49,7 +54,6 @@ const selected = (d: Date) => isSameDay(d, cal.focusDate);
 let stops: Disposer[] = [];
 watch(shown, load, { immediate: true });
 onMounted(() => {
-  stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape') ui.pickerOpen = false; }));
   if (grid.value) stops.push(bindSwipe(grid.value, { onLeft: () => move(1), onRight: () => move(-1) }));
   if (grid.value) {
     // Mouse drag counterpart of the touch swipe, for desktop: same distance and direction checks, but no time limit (a
@@ -72,9 +76,8 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 </script>
 
 <template>
-  <div class="wrap">
-    <div class="scrim" data-testid="month-picker-scrim" @click="ui.pickerOpen = false" />
-    <section class="picker" data-testid="month-picker" role="dialog" :aria-label="t('calendar.picker.label')">
+  <Teleport to="body">
+    <AdaptiveSheet open :label="t('calendar.picker.label')" :anchor="anchor" anchored-on-phone :panel-style="{ width: `min(${WIDTH}px, calc(100vw - 16px))` }" testid="month-picker" @close="ui.pickerOpen = false">
       <div class="head">
         <IconButton :label="t('calendar.picker.previousMonth')" data-testid="month-picker-prev" @click="move(-1)"><IconPrev /></IconButton>
         <h2 class="ttl" data-testid="month-picker-title" aria-live="polite">{{ title }}</h2>
@@ -94,18 +97,11 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
           </Pressable>
         </template>
       </div>
-    </section>
-  </div>
+    </AdaptiveSheet>
+  </Teleport>
 </template>
 
 <style scoped>
-.wrap { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; }
-.scrim { position: absolute; left: 0; right: 0; top: 0; height: 100dvh; background: rgb(0 0 0 / 0.32); z-index: -1; animation: fade 200ms both; }
-.picker {
-  background: var(--md-sys-color-surface-container-high); border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large);
-  padding: 4px 12px 12px; box-shadow: var(--md-sys-elevation-3); transform-origin: top; animation: open 380ms var(--md-sys-motion-spring) both;
-}
-@media (min-width: 768px) { .picker { max-width: 360px; margin-left: 88px; border-radius: var(--md-sys-shape-corner-extra-large); } }
 .head { display: flex; align-items: center; justify-content: space-between; }
 .ttl { margin: 0; font: var(--md-sys-typescale-title-medium); }
 .grid { display: grid; grid-template-columns: repeat(7, 1fr); touch-action: pan-y; }
@@ -118,6 +114,4 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 .day.sel .n { background: var(--md-sys-color-primary); box-shadow: none; }
 .dot { position: absolute; bottom: 1px; width: 5px; height: 5px; border-radius: 50%; background: var(--md-sys-color-primary); }
 .sel .dot { background: var(--md-sys-color-on-primary); bottom: 4px; }
-@keyframes fade { from { opacity: 0; } }
-@keyframes open { from { transform: scaleY(0.4); opacity: 0; } }
 </style>

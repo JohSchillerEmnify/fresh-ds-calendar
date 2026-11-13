@@ -26,6 +26,14 @@ Feature: Month picker in the top app bar
     And I press Escape
     Then the month picker is closed
 
+  # the picker is a kit card under the top app bar: Back, Escape and a tap beside it all close it
+  Scenario: The browser Back button closes the picker
+    When I open the week view for 2026-10-12
+    And I open the month picker
+    And I go back in the browser
+    Then the month picker is closed
+    And the URL path is "/week/2026-10-12"
+
   Scenario: Arrows and swipes change the month inside the picker
     When I open the month view for 2026-10
     And I open the month picker

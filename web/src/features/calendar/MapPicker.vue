@@ -2,11 +2,12 @@
 /** The full-screen map picker: a Leaflet map under a fixed pin (address from the place search once it rests); offline it says so, and Leaflet loads only when the map shows. */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Map as LeafletMap } from 'leaflet';
+import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import ListItem from '@/components/m3/ListItem.vue';
 import { IconClose, IconCloudOff, IconLocationOn, IconMyLocation, IconSearch } from '@/components/icons';
 import { language, t } from '@/i18n';
-import { useOverlayHistory } from '@/lib/overlayHistory';
 import { currentPosition } from '@/native/location';
 import { createResolver, formatCoords } from './mapPicker';
 import { photonLang, searchPlaces, type PlacePick } from './place';
@@ -25,7 +26,6 @@ const MIN_CHARS = 3;
 
 const loadFailed = ref(false);
 const offline = computed(() => navigator.onLine === false || !props.tileUrl || loadFailed.value);
-const root = ref<HTMLElement | null>(null);
 const mapEl = ref<HTMLElement | null>(null);
 const centre = ref(props.start ?? DEFAULT_VIEW);
 /** False until a place was chosen on purpose (the first move, search or position): "Use this place" waits for it. */
@@ -47,10 +47,7 @@ const resolver = createResolver(props.searchUrl, photonLang(language.value), {
   onFail: () => { address.value = null; state.value = 'idle'; },
 });
 
-useOverlayHistory(() => true, () => emit('cancel'));
-
 onMounted(async () => {
-  root.value?.focus();
   document.addEventListener('keydown', onEscape, true);
   if (offline.value || !mapEl.value) return;
   let L: typeof import('leaflet');
@@ -128,58 +125,63 @@ function use(): void {
 
 <template>
   <Teleport to="body">
-    <div ref="root" tabindex="-1" class="picker" role="dialog" aria-modal="true" :aria-label="t('calendar.event.place.picker.title')" data-testid="map-picker">
-      <header class="bar">
-        <IconButton :label="t('calendar.event.place.picker.close')" data-testid="map-picker-close" @click="emit('cancel')"><IconClose /></IconButton>
-        <h2 class="title">{{ t('calendar.event.place.picker.title') }}</h2>
-      </header>
+    <AdaptiveSheet open full :escape="false" :label="t('calendar.event.place.picker.title')" testid="map-picker" @close="emit('cancel')">
+      <div class="picker">
+        <header class="bar">
+          <IconButton :label="t('calendar.event.place.picker.close')" data-testid="map-picker-close" @click="emit('cancel')"><IconClose /></IconButton>
+          <h2 class="title">{{ t('calendar.event.place.picker.title') }}</h2>
+        </header>
 
-      <div v-if="offline" class="off" data-testid="map-picker-offline">
-        <span class="off-ico"><IconCloudOff aria-hidden="true" /></span>
-        <h3 class="off-title">{{ t('calendar.event.place.picker.offlineTitle') }}</h3>
-        <p class="off-text">{{ t('calendar.event.place.picker.offlineText') }}</p>
-        <Button data-testid="map-picker-type" @click="emit('type')">{{ t('calendar.event.place.picker.typeInstead') }}</Button>
-        <Button variant="text" data-testid="map-picker-cancel" @click="emit('cancel')">{{ t('calendar.event.place.picker.cancel') }}</Button>
-      </div>
-
-      <template v-else>
-        <div class="stage">
-          <div ref="mapEl" class="map" role="img" :aria-label="t('calendar.event.place.picker.map')" data-testid="map-picker-map" :data-lat="centre.lat.toFixed(4)" :data-lon="centre.lon.toFixed(4)" />
-          <div class="search">
-            <IconSearch class="s-ico" aria-hidden="true" />
-            <input
-              class="s-in" type="search" :value="query" :placeholder="t('calendar.event.place.picker.search')" :aria-label="t('calendar.event.place.picker.search')"
-              autocomplete="off" enterkeyhint="search" data-testid="map-picker-search" @input="onSearch(($event.target as HTMLInputElement).value)"
-            >
-          </div>
-          <div v-if="hits.length" class="hits" role="listbox" :aria-label="t('calendar.event.place.picker.results')" data-testid="map-picker-results">
-            <div v-for="h in hits" :key="`${h.lat},${h.lon},${h.name}`" class="hit" role="option" aria-selected="false" data-testid="map-picker-result" @click="pickHit(h)">
-              <IconLocationOn class="h-ico" aria-hidden="true" />
-              <span class="h-txt"><span class="h-name" data-testid="map-picker-result-name">{{ h.name }}</span><span v-if="h.address" class="h-sub">{{ h.address }}</span></span>
-            </div>
-          </div>
-          <IconLocationOn class="pin" aria-hidden="true" data-testid="map-picker-pin" />
-          <span class="shadow" aria-hidden="true" />
-          <Button variant="tonal" class="locate" data-testid="map-picker-locate" @click="locate"><template #icon><IconMyLocation /></template>{{ t('calendar.event.place.picker.locate') }}</Button>
-          <p v-if="note" class="note" role="status" data-testid="map-picker-locate-note" :data-note="note">{{ t(`calendar.event.place.picker.${note}`) }}</p>
-          <span class="credit" data-testid="map-picker-credit">{{ t('calendar.event.place.picker.credit') }}</span>
+        <div v-if="offline" class="off" data-testid="map-picker-offline">
+          <span class="off-ico"><IconCloudOff aria-hidden="true" /></span>
+          <h3 class="off-title">{{ t('calendar.event.place.picker.offlineTitle') }}</h3>
+          <p class="off-text">{{ t('calendar.event.place.picker.offlineText') }}</p>
+          <Button data-testid="map-picker-type" @click="emit('type')">{{ t('calendar.event.place.picker.typeInstead') }}</Button>
+          <Button variant="text" data-testid="map-picker-cancel" @click="emit('cancel')">{{ t('calendar.event.place.picker.cancel') }}</Button>
         </div>
-        <section class="panel">
-          <p class="sel">{{ t('calendar.event.place.picker.selected') }}</p>
-          <p class="addr" data-testid="map-picker-address">{{ !chosen ? t('calendar.event.place.picker.moveHint') : state === 'pending' ? t('calendar.event.place.picker.resolving') : label }}</p>
-          <p class="coords" data-testid="map-picker-coords">{{ chosen ? formatCoords(centre.lat, centre.lon) : '' }}&nbsp;</p>
-          <div class="actions">
-            <Button variant="text" data-testid="map-picker-cancel" @click="emit('cancel')">{{ t('calendar.event.place.picker.cancel') }}</Button>
-            <Button :disabled="!canUse" data-testid="map-picker-use" @click="use">{{ t('calendar.event.place.picker.use') }}</Button>
+
+        <template v-else>
+          <div class="stage">
+            <div ref="mapEl" class="map" role="img" :aria-label="t('calendar.event.place.picker.map')" data-testid="map-picker-map" :data-lat="centre.lat.toFixed(4)" :data-lon="centre.lon.toFixed(4)" />
+            <div class="search">
+              <IconSearch class="s-ico" aria-hidden="true" />
+              <input
+                class="s-in" type="search" :value="query" :placeholder="t('calendar.event.place.picker.search')" :aria-label="t('calendar.event.place.picker.search')"
+                autocomplete="off" enterkeyhint="search" data-testid="map-picker-search" @input="onSearch(($event.target as HTMLInputElement).value)"
+              >
+            </div>
+            <div v-if="hits.length" class="hits" role="listbox" :aria-label="t('calendar.event.place.picker.results')" data-testid="map-picker-results">
+              <ListItem
+                v-for="h in hits" :key="`${h.lat},${h.lon},${h.name}`" interactive role="option" aria-selected="false" data-testid="map-picker-result" @click="pickHit(h)"
+              >
+                <template #leading><IconLocationOn aria-hidden="true" /></template>
+                <span class="h-name" data-testid="map-picker-result-name">{{ h.name }}</span>
+                <template v-if="h.address" #supporting><span class="h-sub">{{ h.address }}</span></template>
+              </ListItem>
+            </div>
+            <IconLocationOn class="pin" aria-hidden="true" data-testid="map-picker-pin" />
+            <span class="shadow" aria-hidden="true" />
+            <Button variant="tonal" class="locate" data-testid="map-picker-locate" @click="locate"><template #icon><IconMyLocation /></template>{{ t('calendar.event.place.picker.locate') }}</Button>
+            <p v-if="note" class="note" role="status" data-testid="map-picker-locate-note" :data-note="note">{{ t(`calendar.event.place.picker.${note}`) }}</p>
+            <span class="credit" data-testid="map-picker-credit">{{ t('calendar.event.place.picker.credit') }}</span>
           </div>
-        </section>
-      </template>
-    </div>
+          <section class="panel">
+            <p class="sel">{{ t('calendar.event.place.picker.selected') }}</p>
+            <p class="addr" data-testid="map-picker-address">{{ !chosen ? t('calendar.event.place.picker.moveHint') : state === 'pending' ? t('calendar.event.place.picker.resolving') : label }}</p>
+            <p class="coords" data-testid="map-picker-coords">{{ chosen ? formatCoords(centre.lat, centre.lon) : '' }}&nbsp;</p>
+            <div class="actions">
+              <Button variant="text" data-testid="map-picker-cancel" @click="emit('cancel')">{{ t('calendar.event.place.picker.cancel') }}</Button>
+              <Button :disabled="!canUse" data-testid="map-picker-use" @click="use">{{ t('calendar.event.place.picker.use') }}</Button>
+            </div>
+          </section>
+        </template>
+      </div>
+    </AdaptiveSheet>
   </Teleport>
 </template>
 
 <style scoped>
-.picker { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); }
+.picker { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .bar { flex: none; height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 4px; padding-top: var(--safe-top, 0px); box-sizing: content-box; }
 .title { margin: 0; font: var(--md-sys-typescale-title-large); }
 .stage { position: relative; flex: 1; min-height: 0; }
@@ -188,12 +190,8 @@ function use(): void {
 .s-ico { width: 20px; height: 20px; flex: none; color: var(--md-sys-color-on-surface-variant); }
 .s-in { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }
 .hits { position: absolute; z-index: 5; left: 16px; right: 16px; top: 68px; max-height: 50%; overflow: auto; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); box-shadow: var(--md-sys-elevation-3); }
-.hit { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }
-.hit + .hit { border-top: 1px solid var(--md-sys-color-outline-variant); }
-.h-ico { width: 20px; height: 20px; flex: none; color: var(--md-sys-color-on-surface-variant); }
-.h-txt { display: flex; flex-direction: column; min-width: 0; }
-.h-name { font: var(--md-sys-typescale-body-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.h-sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the pin stays in the middle; its tip (bottom centre of the icon) marks the position */
 .pin { position: absolute; z-index: 4; left: 50%; top: 50%; width: 48px; height: 48px; transform: translate(-50%, -100%); color: var(--md-sys-color-primary); pointer-events: none; filter: drop-shadow(0 2px 2px color-mix(in srgb, black 35%, transparent)); }
 .shadow { position: absolute; z-index: 3; left: 50%; top: 50%; width: 16px; height: 6px; margin: -3px 0 0 -8px; border-radius: 50%; background: color-mix(in srgb, black 25%, transparent); pointer-events: none; }

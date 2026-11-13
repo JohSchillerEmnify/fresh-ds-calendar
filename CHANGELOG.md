@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-13
+- Changed: the month picker, the plant card, the map picker, the place suggestions and the check-in message now look and behave like the app's other dialogs, lists and messages.
 - Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.
 - Changed: the calendar checkboxes in the side menu, the repeat question, the All day setting and the template preview now use the app's standard checkboxes, radio buttons and switch; a one-line task list can also be ticked with the keyboard.
 - Fixed: the app no longer keeps the first month you opened in memory for as long as it runs.

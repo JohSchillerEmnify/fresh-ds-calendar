@@ -1478,7 +1478,7 @@ the plant card shows {string}
 - `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
 - `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
   lastWatered: D, todayPoints: 0 } }`.
-- Streak: `streak-flame` text content = count; message = `streak-message` (toast, auto-hides after 4 s).
+- Streak: `streak-flame` text content = count; message = `streak-message` (a snackbar, its text in `snackbar-text`, auto-hides after 4 s).
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```

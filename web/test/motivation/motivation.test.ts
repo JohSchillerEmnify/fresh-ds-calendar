@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
+import { useUiStore } from '@/stores/ui';
 import { __setSystemReducedForTest, setAnimationSetting, setCalmMode, __motionUsers } from '@/motion/level';
 import { clearEffects } from '@/motion/effects';
 import { diffMotivation, checkInMessage, useMotivationStore } from '@/features/motivation/store';
@@ -132,14 +133,14 @@ describe('components', () => {
     expect(document.querySelector('[data-testid="reward-effect"]')).toBeNull();
     expect(w.text()).toBe('4');
   });
-  it('toast shows text then auto-hides after 4 s and clears its timer', async () => {
+  it('toast hands its text to the kit snackbar, which hides it after 4 s; the timer is cleared', async () => {
     vi.useFakeTimers();
+    const ui = useUiStore();
     const w = mount(StreakToast, { props: { message: { id: 1, text: 'Checked in, day 4' } } });
-    expect(w.find('[data-testid="streak-message"]').text()).toBe('Checked in, day 4');
+    expect(ui.snackbars).toMatchObject([{ text: 'Checked in, day 4', testid: 'streak-message', duration: 4000 }]);
     vi.advanceTimersByTime(4001);
     await nextTick();
     expect(w.emitted('hide')).toBeTruthy();
-    expect(w.find('[data-testid="streak-message"]').exists()).toBe(false);
     w.unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -351,7 +352,7 @@ describe('LeadingWidgets', () => {
     stubMotivation();
     const w = mount(LeadingWidgets, { props: { streak, today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
     await flushPromises();
-    expect(document.querySelector('[data-testid="streak-message"]')!.textContent).toBe('Checked in, day 4');
+    expect(useUiStore().snackbars.map((m) => m.text)).toEqual(['Checked in, day 4']);
     w.unmount();
     vi.unstubAllGlobals();
   });

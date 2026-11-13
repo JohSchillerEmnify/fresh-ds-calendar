@@ -11,6 +11,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import TextField from '@/components/m3/TextField.vue';
 import Button from '@/components/m3/Button.vue';
+import ListItem from '@/components/m3/ListItem.vue';
 import { IconLocationOn, IconMapOutline } from '@/components/icons';
 import { language, t } from '@/i18n';
 import { useClockStore } from '@/stores/clock';
@@ -166,16 +167,14 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
     <p v-if="place?.address" class="addr" data-testid="event-location-address">{{ place.address }}</p>
     <div v-if="open" ref="list" class="list" data-testid="place-suggestions" @mousedown.prevent>
       <div :id="listId" role="listbox" :aria-label="t('calendar.event.place.suggestions')">
-        <div
-          v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" class="opt" :class="{ on: i === active }" role="option" :aria-selected="i === active"
+        <ListItem
+          v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" interactive :selected="i === active" role="option" :aria-selected="i === active"
           data-testid="place-suggestion" @click="pick(h, true)"
         >
-          <IconLocationOn class="pin" aria-hidden="true" />
-          <span class="txt">
-            <span class="name" data-testid="place-suggestion-name">{{ h.name }}</span>
-            <span v-if="h.address" class="sub" data-testid="place-suggestion-address">{{ h.address }}</span>
-          </span>
-        </div>
+          <template #leading><IconLocationOn aria-hidden="true" /></template>
+          <span class="name" data-testid="place-suggestion-name">{{ h.name }}</span>
+          <template v-if="h.address" #supporting><span class="sub" data-testid="place-suggestion-address">{{ h.address }}</span></template>
+        </ListItem>
       </div>
       <p class="credit" data-testid="place-suggestions-credit">{{ t('calendar.event.place.credit') }}</p>
     </div>
@@ -197,13 +196,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
 .pick-hint { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .addr { margin: 4px 16px 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 .list { scroll-margin-bottom: 88px; margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
-.opt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }
-.opt + .opt { border-top: 1px solid var(--md-sys-color-outline-variant); }
-@media (hover: hover) { .opt:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); } }
-.opt.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-.pin { width: 20px; height: 20px; flex: none; color: var(--md-sys-color-on-surface-variant); }
-.txt { display: flex; flex-direction: column; min-width: 0; }
-.name { font: var(--md-sys-typescale-body-large); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .credit { margin: 0; padding: 4px 16px 8px; border-top: 1px solid var(--md-sys-color-outline-variant); font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); text-align: right; }
 </style>

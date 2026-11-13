@@ -89,7 +89,7 @@ Then('the streak shows {int}', async function (this: World, count: number) {
 });
 
 Then('I see the streak message {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('streak-message')).toHaveText(exactText(text));
+  await expect(this.page.getByTestId('streak-message').getByTestId('snackbar-text')).toHaveText(exactText(text));
 });
 
 Then('I do not see a streak message', async function (this: World) {
