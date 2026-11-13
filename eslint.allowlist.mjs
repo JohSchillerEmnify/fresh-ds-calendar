@@ -19,9 +19,7 @@ export const GATE_ALLOWLIST = [
   { file: 'web/src/features/tasklists/TaskListView.vue', allow: ['field', 'role', 'click'], reason: 'TODO slice: rename field on TextField; ink cell tick as a kit control' },
   { file: 'web/src/features/tasklists/TasksCanvas.vue', allow: ['field'], reason: 'TODO slice: area name field on TextField' },
   // open slices of issue 48
-  { file: 'web/src/views/SettingsView.vue', allow: ['field'], reason: 'TODO slice fix/48-m3-search: search field' },
-  { file: 'web/src/components/settings/TimeField.vue', allow: ['field'], reason: 'TODO slice fix/48-m3-search: time input' },
-  { file: 'web/src/features/calendar/MapPicker.vue', allow: ['field', 'role', 'click'], reason: 'TODO slice fix/48-m3-dialogs: map picker dialog' },
+  { file: 'web/src/features/calendar/MapPicker.vue', allow: ['role', 'click'], reason: 'TODO slice fix/48-m3-dialogs: map picker dialog' },
   { file: 'web/src/features/calendar/LocationField.vue', allow: ['role', 'click'], reason: 'TODO slice fix/48-m3-dialogs: suggestion list' },
   { file: 'web/src/components/shell/MonthPicker.vue', allow: ['role', 'click'], reason: 'TODO slice fix/48-m3-dialogs: picker popup' },
   { file: 'web/src/features/motivation/PlantCard.vue', allow: ['role', 'click'], reason: 'TODO slice fix/48-m3-dialogs: plant card' },
