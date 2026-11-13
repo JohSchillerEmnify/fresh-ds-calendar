@@ -3,8 +3,17 @@ name: Pictures
 # Records the @visual pictures on GitHub instead of on the laptop: the chosen ref's scenarios run sharded in the pinned
 # Playwright image (the one the baselines were made in) with --update-snapshots=all; the last job merges the shards,
 # drops pure anti-aliasing noise (scripts/diff_summary.py) and uploads the changed PNGs at their repo paths plus the
-# summary and sheets. Never commits or pushes. Manual only, not a required check; fetch with ci-pictures (DEVELOPER-GUIDE).
+# summary and sheets. Never commits or pushes. Starts on every push to a branch other than main that touches the UI, the
+# e2e suite, the spec or the shared rules; manual start is a fallback. Not a required check; fetch with ci-pictures.
 on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - web/src/**
+      - e2e/**
+      - spec/features/**
+      - shared/**
+      - .github/workflows/pictures.yml
   workflow_dispatch:
     inputs:
       grep:
@@ -23,6 +32,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch replaces the older run.
+concurrency:
+  group: pictures-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -32,7 +46,7 @@ jobs:
     steps:
       - id: m
         env:
-          SHARDS: ${{ inputs.shards }}
+          SHARDS: ${{ inputs.shards || 4 }}
         run: echo "shards=$(seq 1 "$SHARDS" | paste -sd, | sed 's/^/[/;s/$/]/')" >> "$GITHUB_OUTPUT"
 
   record:
@@ -57,12 +71,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run build:e2e
-      - name: Record shard ${{ matrix.shard }} of ${{ inputs.shards }}
+      - name: Record shard ${{ matrix.shard }} of ${{ inputs.shards || 4 }}
         env:
           E2E_BASE_URL: http://localhost:3000
-          GREP: ${{ inputs.grep }}
-          PROJECTS: ${{ inputs.projects }}
-          SHARD: ${{ matrix.shard }}/${{ inputs.shards }}
+          GREP: ${{ inputs.grep || '@visual' }}
+          PROJECTS: ${{ inputs.projects || 'mobile,desktop' }}
+          SHARD: ${{ matrix.shard }}/${{ inputs.shards || 4 }}
         run: |
           # Same environment as nightly-e2e.yml and e2e/run.sh.
           HOST=127.0.0.1 PORT=3000 TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR="$RUNNER_TEMP/data" \
