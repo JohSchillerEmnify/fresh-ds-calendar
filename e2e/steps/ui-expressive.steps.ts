@@ -211,3 +211,43 @@ Then('the floating toolbar is shown', async function (this: World) {
   await expect(toolbar(this)).toHaveAttribute('data-hidden', 'false');
   await expect.poll(() => toolbar(this).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), { message: 'toolbar inside the viewport' }).toBe(true);
 });
+
+// --- kit sizes: icon button tap area, text field active indicator --------------------------------------------------------
+
+Then('every icon button of the screen has a tap area of at least {int} by {int} pixels', async function (this: World, w: number, h: number) {
+  await this.settled();
+  const small = await this.page.evaluate(([mw, mh]) => [...document.querySelectorAll<HTMLElement>('.icon-btn')].filter((b) => {
+    const r = b.getBoundingClientRect();
+    return r.width > 1 && !b.classList.contains('sr-only') && getComputedStyle(b).visibility !== 'hidden' && (r.width < mw - 0.5 || r.height < mh - 0.5);
+  }).map((b) => `${b.dataset.testid ?? b.getAttribute('aria-label')} ${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)}`), [w, h]);
+  const count = await this.page.locator('.icon-btn:visible').count();
+  expect(count, 'icon buttons on screen').toBeGreaterThan(0);
+  expect(small, 'icon buttons with a smaller tap area').toEqual([]);
+});
+
+const field = (w: World, label: string) => w.page.getByRole('dialog').getByLabel(label, { exact: true });
+
+When('I click into the field {string}', async function (this: World, label: string) {
+  await field(this, label).click();
+  await expect(field(this, label)).toBeFocused();
+});
+
+/** Thickness and colour of the field box's inset bottom line (the M3 active indicator). */
+async function bottomLine(w: World, label: string) {
+  return field(w, label).evaluate((el) => {
+    const shadow = getComputedStyle(el.parentElement!).boxShadow;
+    const i = document.createElement('i'); i.style.color = 'var(--md-sys-color-primary)'; document.body.appendChild(i);
+    const primary = getComputedStyle(i).color; i.remove();
+    const m = /^(rgba?\([^)]*\)) 0px (-?[\d.]+)px 0px 0px inset$/.exec(shadow);
+    return { px: m ? -Number(m[2]) : 0, primary: !!m && m[1] === primary, shadow };
+  });
+}
+
+Then('the field {string} shows a {int} pixel line along its bottom', async function (this: World, label: string, px: number) {
+  await expect.poll(async () => (await bottomLine(this, label)).px, `bottom line of ${label}`).toBe(px);
+});
+
+Then('the field {string} shows a {int} pixel line along its bottom in the primary colour', async function (this: World, label: string, px: number) {
+  await expect.poll(async () => (await bottomLine(this, label)).px, `bottom line of ${label}`).toBe(px);
+  expect((await bottomLine(this, label)).primary, `bottom line of ${label} is primary`).toBe(true);
+});

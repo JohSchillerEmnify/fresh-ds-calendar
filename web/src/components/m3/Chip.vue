@@ -12,14 +12,15 @@ defineProps<{ selected?: boolean; variant?: 'filter' | 'assist' }>();
 </template>
 
 <style scoped>
+/* 32 px high with 8 px corners: container-height and corner-small of _md-comp-filter-chip / _md-comp-assist-chip */
 .chip {
-  position: relative; flex: none; height: 36px; padding: 0 14px; border-radius: var(--md-sys-shape-corner-small);
+  position: relative; flex: none; height: 32px; padding: 0 14px; border-radius: 8px;
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   border: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large);
-  transition: background var(--md-sys-motion-duration-short), border-radius var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring);
+  transition: background var(--md-sys-motion-duration-short);
 }
 .chip::after { content: ''; position: absolute; inset: -4px 0; }
-.chip.selected { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; border-radius: var(--md-sys-shape-corner-medium); }
+.chip.selected { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
 .lead { display: inline-flex; align-items: center; }
 .lead :deep(svg) { width: 18px; height: 18px; }
 .txt { overflow: hidden; text-overflow: ellipsis; }
