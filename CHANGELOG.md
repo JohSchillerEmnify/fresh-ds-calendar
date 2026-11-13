@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-13
+- Fixed: dialogs opened from the settings, themes, templates or error log pages (such as the time picker) are a bottom sheet again instead of filling the whole screen.
 - Fixed: in a handwritten list, a pen stroke going downwards is drawn again instead of being lost when the lines shift under the pen.
 - Changed: the month picker, the plant card, the map picker, the place suggestions and the check-in message now look and behave like the app's other dialogs, lists and messages.
 - Changed: the Today button, the template button, reminder chips, count badges and the task list tray now share the standard Material look and follow the Density setting.

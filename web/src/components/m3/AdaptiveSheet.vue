@@ -140,7 +140,7 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : full ? 'page' : drop ? 'drop' : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
+  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : full ? 'full-page' : drop ? 'drop' : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
     <div v-if="!full" class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : drop && anchor ? { top: anchor.top + 'px' } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
@@ -174,8 +174,8 @@ onBeforeUnmount(() => stopTimer?.());
 .drop .scrim, .drop .panel { pointer-events: auto; }
 .drop .panel { position: fixed; left: 0; right: 0; width: 100%; border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); transform-origin: top; animation: expand 380ms var(--md-sys-motion-spring) both; }
 @media (min-width: 768px) { .drop .panel { left: 88px; right: auto; width: min(360px, calc(100vw - 96px)); border-radius: var(--md-sys-shape-corner-extra-large); } }
-.page .panel { width: 100%; height: 100%; max-height: none; background: var(--md-sys-color-surface); }
-.page .body { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.full-page .panel { width: 100%; height: 100%; max-height: none; background: var(--md-sys-color-surface); }
+.full-page .body { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .drawer { align-items: stretch; }
 .drawer.side-right { justify-content: flex-end; }
 .drawer .panel { width: min(320px, 86vw); max-height: none; padding: var(--safe-top) 0 var(--safe-bottom); box-shadow: var(--md-sys-elevation-3); }
