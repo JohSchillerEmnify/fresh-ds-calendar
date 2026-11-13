@@ -311,8 +311,8 @@ defineExpose({ root, busy });
     <header class="head">
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
       <div class="titles">
-        <input
-          v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.titleLabel')"
+        <TextField
+          v-if="renaming" v-model="nameDraft" inline class="name-in" data-testid="tasklist-expanded-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <Pressable v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-category-name="categoryName" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
@@ -345,9 +345,10 @@ defineExpose({ root, busy });
         <ul class="list">
           <ListItem v-for="(item, i) in tl.items" :key="item.id" tag="li" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item" :data-item-id="item.id" :data-title="item.title" :data-done="item.done">
             <template #leading><Checkbox class="cbx" :model-value="item.done" data-testid="tasklist-item-checkbox" :label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" /></template>
-            <div v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" :role="writing ? undefined : 'button'" :tabindex="writing ? undefined : 0" @click="!writing && tick(item, !item.done)" @keydown.enter.space.self.prevent="!writing && tick(item, !item.done)">
+            <!-- while writing the cell is a plain drawing surface: a button around it would swallow the pen's strokes -->
+            <component :is="writing ? 'div' : Pressable" v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
               <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
-            </div>
+            </component>
             <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" />
             <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
             <template #trailing>
@@ -394,11 +395,7 @@ html[data-motion='full'] .tlc-enter-active, html[data-motion='full'] .tlc-leave-
 html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to { opacity: 0; }
 .titles { flex: 1; min-width: 0; }
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
-.name-in {
-  width: 100%; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
-  border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0; min-width: 0;
-}
-.name-in:focus { outline: 2px solid var(--md-sys-color-primary); }
+.name-in { width: 100%; min-width: 0; }
 .emoji { margin-right: 6px; }
 /* done state: the hand-drawn strike line over the title text (drawn by the support cat's paw when it comes) */
 .tx { position: relative; --strike-w: 2.400px; }

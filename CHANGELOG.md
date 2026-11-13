@@ -7,6 +7,7 @@
 - Changed: the Density setting in your theme now also makes buttons, switches, tabs and fields more compact (or roomier with Airy); everything can still be tapped as easily. Corners follow Material 3 more closely.
 - Fixed: the reminder line in the event dialog reads "Calendar default: no reminders" with a space after the colon.
 - Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.
+- Changed: renaming a task list or a canvas area, the names in the task tray and the day-edge label while dragging an entry now use the app's standard fields and chips.
 - Changed: the calendar checkboxes in the side menu, the repeat question, the All day setting and the template preview now use the app's standard checkboxes, radio buttons and switch; a one-line task list can also be ticked with the keyboard.
 - Fixed: the app no longer keeps the first month you opened in memory for as long as it runs.
 - Changed: buttons, icon buttons, chips and text fields now have the standard Material sizes and shapes: icon buttons are easier to tap, and a text field shows a line along its bottom that thickens while you type in it.
