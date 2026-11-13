@@ -3,10 +3,10 @@
 import { computed, onMounted, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  IconAccountCircleOutline, IconCalendarMonth, IconChecklist, IconClose, IconNotificationsOutline, IconPaletteOutline,
-  IconScienceOutline, IconSearch, IconSelfImprovement, IconViewAgenda, IconWidgetsOutline,
+  IconAccountCircleOutline, IconCalendarMonth, IconChecklist, IconNotificationsOutline, IconPaletteOutline,
+  IconScienceOutline, IconSelfImprovement, IconViewAgenda, IconWidgetsOutline,
 } from '@/components/icons';
-import IconButton from '@/components/m3/IconButton.vue';
+import SearchField from '@/components/m3/SearchField.vue';
 import Pressable from '@/components/m3/Pressable.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingsShell from '@/components/settings/SettingsShell.vue';
@@ -57,14 +57,10 @@ function choose(hit: SearchHit) {
 <template>
   <SettingsShell :title="t('settings.title')" up="/">
     <div class="home" data-testid="settings-home">
-      <label class="search" data-testid="settings-search-bar">
-        <IconSearch class="glass" aria-hidden="true" />
-        <input
-          :value="query" type="search" enterkeyhint="search" autocomplete="off" :placeholder="t('settingsNav.home.search')" :aria-label="t('settingsNav.home.search')"
-          data-testid="settings-search" @input="setQuery(($event.target as HTMLInputElement).value)"
-        />
-        <IconButton v-if="query" :label="t('settingsNav.home.clear')" data-testid="settings-search-clear" @click="setQuery('')"><IconClose /></IconButton>
-      </label>
+      <SearchField
+        :model-value="query" :label="t('settingsNav.home.search')" :clear-label="t('settingsNav.home.clear')" bar-testid="settings-search-bar"
+        data-testid="settings-search" @update:model-value="setQuery"
+      />
 
       <ul v-if="query" class="list box" :aria-label="t('settingsNav.home.results')">
         <li v-for="h in hits" :key="h.id">
@@ -89,14 +85,6 @@ function choose(hit: SearchHit) {
 
 <style scoped>
 .home { display: flex; flex-direction: column; gap: 12px; }
-.search {
-  display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 4px 0 20px; border-radius: var(--md-sys-shape-corner-full);
-  background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface-variant);
-}
-.search:focus-within { outline: 2px solid var(--md-sys-color-primary); }
-.glass { width: 24px; height: 24px; flex: none; }
-.search input { flex: 1; min-width: 0; height: 48px; border: 0; outline: 0; background: transparent; color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-body-large); padding: 0 8px; }
-.search input::-webkit-search-cancel-button { display: none; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .box { padding: 8px; border-radius: var(--md-sys-shape-corner-extra-large); background: var(--md-sys-color-surface-container); }
 .result { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 64px; padding: 10px 8px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); }
