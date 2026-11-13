@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-13
+- Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.
+
 ## 2026-11-12
 - Changed: the task lists calendar works like your other calendars in Settings › Calendars: it has its colour dot and plan line, and its page lets you show or hide it, set its colour and plan, and choose its default reminders.
 - Fixed: the task lists calendar shows its colour dot in Settings › Calendars, like your other calendars.

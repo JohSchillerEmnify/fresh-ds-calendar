@@ -38,7 +38,8 @@
  */
 :root { --cb-r: 28%; --cb-rx: 5.5px; }
 [data-checkbox='round'] { --cb-r: 50%; --cb-rx: 9px; }
-[data-checkbox='square'] { --cb-r: 8%; --cb-rx: 1.5px; }
+/* square: the M3 checkbox corner (_md-comp-checkbox container-shape 2px) */
+[data-checkbox='square'] { --cb-r: 8%; --cb-rx: 2px; }
 [data-checkbox='rounded'] { --cb-r: 28%; --cb-rx: 5.5px; }
 .rcb-check { display: none; }
 html:not([data-check]) .rcb-check[data-glyph='tick'], html[data-check='tick'] .rcb-check[data-glyph='tick'],

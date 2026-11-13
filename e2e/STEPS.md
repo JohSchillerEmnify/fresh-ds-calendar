@@ -339,6 +339,13 @@ I pick up the item {string}
 I release the item without moving it
 the item {string} is lifted
 the item {string} has the drag handle {string}
+every item row of the expanded task list is at least {int} pixels tall
+the checkbox, the drag handle and the delete button of the item {string} each take a tap of at least {int} by {int} pixels
+I tap the corner of the checkbox area of the item {string}
+I start editing the item {string}
+the row of the item {string} is as tall as before editing
+the add field of the expanded task list is open, empty and has the focus
+I open the add field of the expanded task list
 I edit the task list details
 I delete the task list
 the task list tap setting is {string}
