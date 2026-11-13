@@ -7,6 +7,7 @@
  * as its content needs. Full motion scales it out of the pill's corner (transform and opacity only); Reduced fades;
  * Off just shows. Escape, a tap outside, the header pill or Tab leaving the panel close it.
  */
+import Button from '@/components/m3/Button.vue';
 import Pressable from '@/components/m3/Pressable.vue';
 import { elOf } from '@/lib/elOf';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
@@ -28,7 +29,7 @@ const cats = useTaskCategories();
 
 const open = ref(false);
 const pillRef = ref<unknown>(null);
-/** The `Pressable`'s element (a template ref points at the component). */
+/** The kit `Button`'s element (a template ref points at the component). */
 const pill = computed(() => elOf(pillRef.value) as HTMLButtonElement | null);
 const panel = ref<HTMLElement | null>(null);
 let closing = false;
@@ -116,22 +117,22 @@ defineExpose({ open });
 
 <template>
   <div class="tp">
-    <Pressable
-      ref="pillRef" v-ripple type="button" class="pill" :class="{ hidden: open }" aria-haspopup="true" :aria-expanded="open"
+    <Button
+      ref="pillRef" variant="tonal" class="pill" :class="{ hidden: open }" aria-haspopup="true" :aria-expanded="open"
       data-testid="tasklist-from-template" @click="show"
     >
       <span class="lab" data-testid="tasklist-from-template-label">{{ label }}</span>
       <IconDown class="caret" aria-hidden="true" />
-    </Pressable>
+    </Button>
     <div
       v-if="open" ref="panel" class="menu" role="group" tabindex="-1" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
       @keydown.esc.stop.prevent="hide(true)" @focusout="focusOut"
     >
       <div class="head">
-        <Pressable type="button" class="pill" aria-expanded="true" data-testid="template-picker-header" @click="hide(true)">
+        <Button variant="tonal" class="pill" aria-expanded="true" data-testid="template-picker-header" @click="hide(true)">
           <span class="lab">{{ label }}</span>
           <IconUp class="caret" aria-hidden="true" />
-        </Pressable>
+        </Button>
       </div>
       <div class="content">
         <Pressable
@@ -151,11 +152,7 @@ defineExpose({ open });
 
 <style scoped>
 .tp { position: relative; flex: none; }
-.pill {
-  display: inline-flex; align-items: center; gap: 2px; min-height: 36px; max-width: 200px; padding: 0 8px 0 14px;
-  border-radius: var(--md-sys-shape-corner-full); background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-label-large); position: relative; overflow: hidden;
-}
+.pill { max-width: 200px; }
 .pill.hidden { visibility: hidden; }
 .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .caret { flex: none; width: 20px; height: 20px; }

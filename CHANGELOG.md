@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-13
+- Changed: the Today button, the template button, reminder chips, count badges and the task list tray now share the standard Material look and follow the Density setting.
 - Changed: the Density setting in your theme now also makes buttons, switches, tabs and fields more compact (or roomier with Airy); everything can still be tapped as easily. Corners follow Material 3 more closely.
 - Fixed: the reminder line in the event dialog reads "Calendar default: no reminders" with a space after the colon.
 - Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.

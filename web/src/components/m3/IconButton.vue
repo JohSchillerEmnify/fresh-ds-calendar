@@ -2,7 +2,7 @@
 import { vRipple } from '@/lib/ripple';
 
 // `pressed` stays undefined unless given: a plain button must not announce itself as a toggle
-withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled'; pressed?: boolean; disabled?: boolean }>(), { pressed: undefined });
+withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'filled' | 'outlined'; pressed?: boolean; disabled?: boolean }>(), { pressed: undefined });
 </script>
 
 <template>
@@ -23,6 +23,8 @@ withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'fill
 .icon-btn :deep(svg) { width: 24px; height: 24px; }
 .tonal { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .filled { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+/* outlined sits on a solid surface so a scene behind never shows through */
+.outlined { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); }
 .icon-btn[aria-pressed='true'] { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .icon-btn:disabled { opacity: 0.38; }
 </style>

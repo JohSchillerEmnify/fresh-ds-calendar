@@ -4,7 +4,7 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
   one filled primary action (the + button, Save, Today); everything else is tonal or text. Actions in headers and
   toolbars are icon-only and carry an accessible label (their name for screen readers and as a tooltip). A card keeps
   its secondary actions behind one overflow button (three dots, "More"). Open, Canvas and Archive are one connected
-  button group. Raw hand-styled buttons outside `web/src/components/m3` are forbidden by a lint gate. Theme corners
+  button group. Raw hand-styled buttons, form fields, hand-made roles and clicks on plain elements outside `web/src/components/m3` are forbidden by a lint gate with a shrinking allowlist; badges, pills and removable values are kit parts (Badge, Chip, Button). Theme corners
   (Winter square, Neon pill) shape only events and cards; bars, pills and buttons stay round in every theme.
   The theme's Density setting sets the height of every kit control in Material's 4 px density steps: Compact draws
   them two steps lower, Comfortable at the Material 3 sizes and Airy one step higher; a text field never gets lower
@@ -100,6 +100,41 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       When the lint gate runs
       Then the lint gate fails and names that component
       And a button element inside "web/src/components/m3" passes the lint gate
+
+    @unit
+    # unit: web/test/lint-gate.test.ts:no raw fields, roles or clicks on plain elements outside m3
+    Scenario: The lint gate rejects a raw field, a hand-made role and a click on a plain element outside the m3 components
+      Given a component outside "web/src/components/m3" contains a raw form field, a hand-made role or a click on a plain element
+      When the lint gate runs
+      Then the lint gate fails and names that component
+      And the same elements inside "web/src/components/m3" pass the lint gate
+
+    @unit
+    # unit: web/test/lint-gate.test.ts:the allowlist only shrinks
+    Scenario: The allowlist of the lint gate only shrinks
+      Given the allowlist of the lint gate
+      Then every listed component still needs the release it holds
+
+  Rule: Badges, pills and chips are kit parts that follow the Density setting
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:is 6 px as a dot and 16 px high as a pill, in the error colours
+    Scenario: A badge is a 6 pixel dot or a 16 pixel pill in the error colours
+      Given the style rules of the Material 3 components
+      Then the badge is "6" pixels as a dot and "16" pixels high with a label, in the error colours
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:is no button itself; its x is the one button and says what it removes
+    Scenario: A removable value is an input chip with a named remove cross
+      Given the style rules of the Material 3 components
+      Then an input chip is no button itself and its remove cross is named by what it removes
+      And it follows the Density setting and keeps a 48 pixel tap area on its cross
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:sit on a solid surface so a scene never shows through
+    Scenario: An outlined button sits on a solid surface
+      Given the style rules of the Material 3 components
+      Then an outlined button and an outlined icon button are filled with the surface colour
 
   Rule: A pressed button squishes slightly and never turns square
 
