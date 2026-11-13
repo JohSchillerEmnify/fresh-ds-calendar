@@ -166,6 +166,9 @@ In practice:
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 
+### Recording pictures (@visual) on GitHub
+The Pictures workflow (`.github/workflows/pictures.yml`, manual, not a required check) records the `@visual` baselines sharded in the pinned Playwright image and never commits. Push the branch, then run `ci-pictures <branch> ["<grep>"]` (agent helper in `~/.local/share/calendar-tools/bin`): it dispatches the workflow, waits, downloads the changed PNGs to their paths plus the summary and sheets to `e2e/test-results/ci-pictures/`. Or in GitHub: Actions > Pictures > Run workflow (inputs `grep`, `projects`, `shards`), then download the `pictures` artifact. Look at the sheets, then commit the PNGs. `scripts/diff_summary.py` writes the summary and drops pure anti-aliasing noise; the laptop fallback `rebaseline` uses the same script.
+
 ### Credits (Settings > Account & app > Credits)
 The build lists every library in the web bundle on its own (`web/credits-plugin.ts`, rollup-plugin-license). Anything
 npm does not describe — an icon set, art, a native Android library — is **one entry in `web/src/credits/extra.ts`**

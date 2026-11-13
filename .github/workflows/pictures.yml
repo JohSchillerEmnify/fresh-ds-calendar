@@ -1,0 +1,129 @@
+name: Pictures
+
+# Records the @visual pictures on GitHub instead of on the laptop: the chosen ref's scenarios run sharded in the pinned
+# Playwright image (the one the baselines were made in) with --update-snapshots=all; the last job merges the shards,
+# drops pure anti-aliasing noise (scripts/diff_summary.py) and uploads the changed PNGs at their repo paths plus the
+# summary and sheets. Never commits or pushes. Manual only, not a required check; fetch with ci-pictures (DEVELOPER-GUIDE).
+on:
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: Playwright --grep for the scenarios to record
+        type: string
+        default: '@visual'
+      projects:
+        description: Comma-separated Playwright projects
+        type: string
+        default: mobile,desktop
+      shards:
+        description: Number of parallel shards
+        type: number
+        default: 4
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      shards: ${{ steps.m.outputs.shards }}
+    steps:
+      - id: m
+        env:
+          SHARDS: ${{ inputs.shards }}
+        run: echo "shards=$(seq 1 "$SHARDS" | paste -sd, | sed 's/^/[/;s/$/]/')" >> "$GITHUB_OUTPUT"
+
+  record:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:7852dc5a7d72f5fe458a597d690f6c42fbc8e9e26ddfa95f8e6ef552558d9bbf # keep in step with nightly-e2e.yml
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run build:e2e
+      - name: Record shard ${{ matrix.shard }} of ${{ inputs.shards }}
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          GREP: ${{ inputs.grep }}
+          PROJECTS: ${{ inputs.projects }}
+          SHARD: ${{ matrix.shard }}/${{ inputs.shards }}
+        run: |
+          # Same environment as nightly-e2e.yml and e2e/run.sh.
+          HOST=127.0.0.1 PORT=3000 TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR="$RUNNER_TEMP/data" \
+            POLL_INTERVAL_MS=30000 TZ=Europe/Berlin NODE_ENV=production ALLOW_INSECURE_MOCK=1 \
+            node --expose-gc server/dist/index.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
+          touch "$RUNNER_TEMP/marker"
+          projects=()
+          for p in ${PROJECTS//,/ }; do projects+=("--project=$p"); done
+          cd e2e
+          pnpm exec bddgen
+          # A failing scenario must not lose the pictures the others wrote.
+          pnpm exec playwright test "${projects[@]}" --workers=1 --shard="$SHARD" --update-snapshots=all --grep "$GREP" || echo "::warning::some scenarios failed in shard $SHARD"
+          cd ..
+          # Only the pictures this shard rewrote, at their repo paths.
+          mkdir -p "$RUNNER_TEMP/out"
+          find e2e/snapshots -name '*.png' -newer "$RUNNER_TEMP/marker" -print0 | xargs -0 -r cp --parents -t "$RUNNER_TEMP/out"
+          mv "$RUNNER_TEMP/out" shard-pictures
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: pictures-shard-${{ matrix.shard }}
+          path: shard-pictures
+          if-no-files-found: ignore
+          retention-days: 3
+
+  merge:
+    needs: record
+    if: always() && needs.record.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The shards' pictures land over the ref's committed ones at the same paths.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: pictures-shard-*
+          merge-multiple: true
+          path: .
+      - name: Summarise and collect
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pillow
+          out=ci-pictures-out
+          mkdir -p "$out/sheets"
+          mapfile -t changed < <(git diff --name-only -- 'e2e/snapshots/**/*.png'; git ls-files --others --exclude-standard -- 'e2e/snapshots')
+          if [ ${#changed[@]} -eq 0 ]; then echo "No picture changed." | tee "$out/summary.txt"; else
+            summary="$("$RUNNER_TEMP/venv/bin/python" scripts/diff_summary.py "$out/sheets/sheet.png" "${changed[@]}")"
+            mapfile -t noise < <(printf '%s\n' "$summary" | sed -n 's/^NOISE //p')
+            if [ ${#noise[@]} -gt 0 ]; then git checkout -q -- "${noise[@]}"; fi
+            { printf '%s\n' "$summary" | grep -v '^NOISE ' || true; echo "restored ${#noise[@]} picture(s) with only anti-aliasing noise"; } > "$out/summary.txt"
+            mapfile -t kept < <(git diff --name-only -- 'e2e/snapshots/**/*.png'; git ls-files --others --exclude-standard -- 'e2e/snapshots')
+            if [ ${#kept[@]} -gt 0 ]; then cp --parents -t "$out" "${kept[@]}"; fi
+          fi
+          { echo '```'; cat "$out/summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pictures
+          path: ci-pictures-out
+          retention-days: 7
