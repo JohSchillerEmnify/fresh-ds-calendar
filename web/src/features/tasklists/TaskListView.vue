@@ -434,13 +434,13 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .nextline { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); padding-left: 56px; }
 .nextline .draft { flex: 1; min-width: 0; }
 .done-slot { flex: none; width: 44px; display: inline-flex; }
-/* where a pen is used the lines are ruled and a little taller, so a word fits on one */
+/* where a pen is used the lines are ruled and a little taller, so a word fits on one; never shorter than a kit row, or the lines jump up under the first pen stroke */
 /* left-handed: checkbox on the right, grip on the left and a free strip before the writing, so the palm rests on the screen (decision G7) */
 html[data-hand='left'][data-touch] .mirror .row { flex-direction: row-reverse; }
 html[data-hand='left'][data-touch] .mirror .inkcell { margin-left: 40px; }
 html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; padding-right: 56px; }
 .ruled { --ink-h: 52px; }
-.ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
+.ruled .row { min-height: max(52px, var(--h)); border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
 .inktools { margin-top: 4px; }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes bump { 0% { transform: scale(0.7); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
