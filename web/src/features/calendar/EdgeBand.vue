@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * The edge band while a dragged entry rests at the side of the day or week view (feature drag-to-reschedule, design A1-A3):
- * a tinted strip over the edge zone and a pill naming the day or week the view turns to.
+ * a tinted strip over the edge zone and a kit chip naming the day or week the view turns to.
  * Fixed to the viewport at the place `edgeBand` reports; it never takes a pointer.
  */
 import { computed } from 'vue';
+import Chip from '@/components/m3/Chip.vue';
 import { EDGE_ZONE_PX } from './edgeTurn';
 import { edgeBand } from './dnd';
 
@@ -24,7 +25,7 @@ const pillTop = computed(() => {
 
 <template>
   <div v-if="edgeBand" class="band" :class="edgeBand.side" data-testid="drag-edge-band" :data-side="edgeBand.side" :style="style" aria-live="polite">
-    <span class="pill" :style="{ top: pillTop }">{{ edgeBand.label }}</span>
+    <Chip static selected class="pill" :style="{ top: pillTop }">{{ edgeBand.label }}</Chip>
   </div>
 </template>
 
@@ -35,11 +36,8 @@ const pillTop = computed(() => {
 }
 .band.right { border-left: 2px solid var(--md-sys-color-primary); }
 .band.left { border-right: 2px solid var(--md-sys-color-primary); }
-.pill {
-  position: absolute; height: 32px; padding: 0 14px; border-radius: 16px; display: flex; align-items: center; white-space: nowrap;
-  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font: var(--md-sys-typescale-label-large); font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-}
+/* a static selected kit chip (_md-comp-assist-chip container-height 32, secondary-container; material-web tokens v0.192) */
+.band .pill { position: absolute; }
 .band.right .pill { right: calc(100% + 6px); }
 .band.left .pill { left: calc(100% + 6px); }
 </style>

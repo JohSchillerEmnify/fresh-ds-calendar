@@ -8,6 +8,7 @@
  */
 import Pressable from '@/components/m3/Pressable.vue';
 import Chip from '@/components/m3/Chip.vue';
+import IconButton from '@/components/m3/IconButton.vue';
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import { barHostsRow } from '@/lib/barHost';
@@ -175,7 +176,7 @@ function toggleFold(id: string) {
         :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
       >
         <Chip static class="chip" :selected="!!lists.count" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}<IconExpand v-if="isPhone" class="chev in" :class="{ up: listShown }" data-testid="task-tray-chevron" aria-hidden="true" /></Chip>
-        <span v-if="isPhone" class="names"><span v-for="(n, i) in names" :key="i" class="nm" data-testid="task-tray-chip">{{ n }}</span></span>
+        <span v-if="isPhone" class="names"><Chip v-for="(n, i) in names" :key="i" static class="nm" data-testid="task-tray-chip">{{ n }}</Chip></span>
         <IconExpand v-if="!isPhone" class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
       </Pressable>
     </Teleport>
@@ -187,10 +188,10 @@ function toggleFold(id: string) {
         <div v-if="r.fin" class="head">
           <span v-if="displayTitle(r.list)" class="t" data-testid="task-tray-title">{{ displayTitle(r.list) }}</span>
           <span v-if="showProgress(r.list)" class="c" data-testid="task-tray-row-count">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
-          <Pressable
-            v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
-            :aria-label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: neutralName(r.list) }) : t('tasks.tray.showItems', { title: neutralName(r.list) })" @click="toggleFold(r.list.id)"
-          ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></Pressable>
+          <IconButton
+            class="mv" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
+            :label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: neutralName(r.list) }) : t('tasks.tray.showItems', { title: neutralName(r.list) })" @click="toggleFold(r.list.id)"
+          ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></IconButton>
         </div>
         <TaskListView v-if="opened && (!r.fin || unfolded.has(r.list.id))" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
       </li>
@@ -207,7 +208,6 @@ function toggleFold(id: string) {
 /* the toggle chip sits on the thumb side: right, or left in left-handed mode */
 html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
 .names { flex: 1; min-width: 0; display: flex; gap: 8px; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
-.nm { flex: none; padding: 4px 12px; border-radius: 999px; background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-label-large); }
 .chev { margin-left: auto; width: 24px; height: 24px; transition: transform 240ms var(--md-sys-motion-spring); }
 .chev.in { margin-left: 0; width: 18px; height: 18px; }
 .chev.in.up { transform: rotate(180deg); }
@@ -224,13 +224,11 @@ html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
 .fin { opacity: 0.6; }
 .row[data-flash] { outline: 3px solid var(--md-sys-color-primary); outline-offset: 1px; }
 .fin .t { text-decoration-line: line-through; }
-.fold { width: 22px; height: 22px; transform: rotate(180deg); transition: transform 200ms var(--md-sys-motion-spring); }
+.fold { transform: rotate(180deg); transition: transform 200ms var(--md-sys-motion-spring); }
 .fold.up { transform: none; }
 .tl-move { transition: transform 260ms var(--md-sys-motion-spring); }
 .t { flex: 1; min-width: 0; font: var(--md-sys-typescale-title-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.mv { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; color: var(--md-sys-color-on-surface-variant); }
-.mv :deep(svg) { width: 22px; height: 22px; }
 .empty { padding: 12px 16px; color: var(--md-sys-color-on-surface-variant); }
 .phone { border-top: 1px solid var(--md-sys-color-outline-variant); }
 /* Phone without a bottom bar: the tray is the bottom edge and pads the safe area itself. */

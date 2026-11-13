@@ -16,7 +16,4 @@ export const GATE_ALLOWLIST = [
   { file: 'web/src/features/calendar/ResizeHandles.vue', allow: ['click'], reason: 'swallows the click after a resize drag' },
   { file: 'web/src/views/MonthView.vue', allow: ['click'], reason: 'delegated clicks on the month grid cells and chip rows' },
   { file: 'web/src/features/tasklists/TaskListCard.vue', allow: ['click'], reason: 'delegated click on the card body' },
-  { file: 'web/src/features/tasklists/TaskListView.vue', allow: ['field', 'role', 'click'], reason: 'TODO slice: rename field on TextField; ink cell tick as a kit control' },
-  { file: 'web/src/features/tasklists/TasksCanvas.vue', allow: ['field'], reason: 'TODO slice: area name field on TextField' },
-  // open slices of issue 48
 ];
