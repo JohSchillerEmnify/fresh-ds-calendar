@@ -1,14 +1,17 @@
 @import './theme/tokens.css';
 
 /* ---- M3 (Expressive) design tokens other than color (color: theme/tokens.css) ----
-   Type scale: the font size follows the theme's density factor `--dz` (1 = Comfortable; line heights stay fixed). */
+   Type scale: the font size follows the theme's density factor `--dz` (1 = Comfortable; line heights stay fixed).
+   Shape scale: material-web tokens v0.192 _md-sys-shape.scss; theme corners (--r-chip, --r-block, --cb-rx) are separate. */
 :root {
-  --md-sys-shape-corner-extra-small: 6px;
-  --md-sys-shape-corner-small: 12px; /* text fields, selects, textareas */
-  --md-sys-shape-corner-medium: 16px;
-  --md-sys-shape-corner-large: 22px;
-  --md-sys-shape-corner-extra-large: 32px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
   --md-sys-shape-corner-full: 9999px;
+  /* the theme's Density in px (fineVars: 4 px per Material density step), added to every kit control's container height */
+  --md-density-shift: 0px;
 
   --md-sys-typescale-display-small: 400 calc(36px * var(--dz, 1))/44px var(--font);
   --md-sys-typescale-headline-small: 400 calc(24px * var(--dz, 1))/32px var(--font);

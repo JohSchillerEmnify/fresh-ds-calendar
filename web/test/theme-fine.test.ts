@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { applyAttrs } from '@/theme';
 import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
 import {
-  DENSITY_SCALE, fineVars, glowVars, GLOW_STEPS, radiusVars, RADIUS_STEPS, sanitizeFine, stepOf,
+  DENSITY_SCALE, DENSITY_STEP, fineVars, glowVars, GLOW_STEPS, radiusVars, RADIUS_STEPS, sanitizeFine, stepOf,
 } from '@/theme/fine';
 import { docToResolved, presetDoc, PRESETS, resolveTheme, sanitizePref } from '@/theme/presets';
 import { lookToDoc } from '@/theme/saveLook';
@@ -37,9 +37,17 @@ describe('step and slider value', () => {
   it('uses the tint only for tinted entries, and scales the font by density', () => {
     expect(fineVars({ tint: 30 }, 'tinted')).toEqual({ '--e-fill': '30%' });
     expect(fineVars({ tint: 30 }, 'solid')).toEqual({});
-    expect(fineVars({ density: 'compact' }, 'solid')).toEqual({ '--dz': '0.9' });
+    expect(fineVars({ density: 'compact' }, 'solid')).toEqual({ '--dz': '0.9', '--md-density-shift': '-8px' });
     expect(fineVars({}, 'tinted')).toEqual({});
     expect(DENSITY_SCALE).toEqual({ compact: 0.9, comfortable: 1, airy: 1.12 });
+  });
+
+  it("each density moves the control heights in Material's 4 px steps", () => {
+    // Material density scale: each step moves a container height by 4 px (MDC _density.scss $interval)
+    expect(DENSITY_STEP).toEqual({ compact: -2, comfortable: 0, airy: 1 });
+    expect(fineVars({ density: 'compact' }, 'solid')['--md-density-shift']).toBe('-8px');
+    expect(fineVars({ density: 'comfortable' }, 'solid')['--md-density-shift']).toBe('0px');
+    expect(fineVars({ density: 'airy' }, 'solid')['--md-density-shift']).toBe('4px');
   });
 });
 

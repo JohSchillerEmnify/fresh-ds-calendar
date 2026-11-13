@@ -262,3 +262,23 @@ Then('the switch {string} is a connected button group of {string}', async functi
   const boxes = await buttons.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
   for (let i = 1; i < boxes.length; i++) expect(Math.round(boxes[i].left - boxes[i - 1].right), `gap before button ${i + 1}`).toBe(2);
 });
+
+// --- density: drawn heights and tap areas -------------------------------------------------------------------------------
+
+Then('the buttons of the switch {string} are drawn {int} pixels high', async function (this: World, name: string, px: number) {
+  const buttons = this.page.getByRole('group', { name, exact: true }).first().getByRole('button');
+  await expect(buttons.first()).toBeVisible();
+  // clientHeight is the drawn padding box: the transparent tap border is left out
+  expect(await buttons.evaluateAll((els) => els.map((e) => e.clientHeight)), `drawn heights of "${name}"`).toEqual(Array(await buttons.count()).fill(px));
+});
+
+Then('every control of the dialog has a tap area of at least {int} by {int} pixels', async function (this: World, w: number, h: number) {
+  const dialog = this.page.getByRole('dialog').first();
+  await expect(dialog).toBeVisible();
+  const sizes = await dialog.evaluate((d) => [...d.querySelectorAll<HTMLElement>('.m3-btn, .icon-btn, .switch, .seg > .opt, .chip, .cb, .rb')].filter((e) => {
+    const r = e.getBoundingClientRect();
+    return r.width > 1 && getComputedStyle(e).visibility !== 'hidden';
+  }).map((e) => { const r = e.getBoundingClientRect(); return { name: e.dataset.testid ?? e.getAttribute('aria-label') ?? e.className, w: r.width, h: r.height }; }));
+  expect(sizes.length, 'controls in the dialog').toBeGreaterThan(0);
+  expect(sizes.filter((s) => s.w < w - 0.5 || s.h < h - 0.5).map((s) => `${s.name} ${Math.round(s.w)}x${Math.round(s.h)}`), 'controls with a smaller tap area').toEqual([]);
+});

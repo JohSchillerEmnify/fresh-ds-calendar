@@ -41,12 +41,12 @@ function onChange(e: Event) {
 
 <style scoped>
 .cb {
-  position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px;
+  --h: calc(40px + var(--md-density-shift)); position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px;
   color: var(--md-sys-color-on-surface); -webkit-tap-highlight-color: transparent;
 }
 .cb.is-checked { color: var(--cb-c, var(--md-sys-color-primary)); }
-/* the 40 px state layer: hover 8 %, focus and press 10 % (the kit's v-ripple values) */
-.cb-layer { position: absolute; width: 40px; height: 40px; border-radius: var(--md-sys-shape-corner-full); background: currentColor; opacity: 0; pointer-events: none; transition: opacity var(--md-sys-motion-duration-short); }
+/* the state layer (40 px at Comfortable, moved by the density shift): hover 8 %, focus and press 10 % (the kit's v-ripple values) */
+.cb-layer { position: absolute; width: var(--h); height: var(--h); border-radius: var(--md-sys-shape-corner-full); background: currentColor; opacity: 0; pointer-events: none; transition: opacity var(--md-sys-motion-duration-short); }
 @media (hover: hover) { .cb:hover:not(.is-disabled) .cb-layer { opacity: 0.08; } }
 .cb:has(.cb-in:focus-visible) .cb-layer, .cb:active:not(.is-disabled) .cb-layer { opacity: 0.1; }
 .cb:has(.cb-in:focus-visible) .cb-box { outline: 2px solid var(--md-sys-color-primary); outline-offset: 1px; border-radius: 4px; }

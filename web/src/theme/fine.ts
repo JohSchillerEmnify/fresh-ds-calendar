@@ -24,6 +24,8 @@ export const GLOW_STEPS = { off: 0, soft: 40, neon: 100 } as const;
 export const RADIUS_STEPS = { square: 2, round: 6, pill: 28 } as const;
 /** Font size factor of each density. */
 export const DENSITY_SCALE: Record<Density, number> = { compact: 0.9, comfortable: 1, airy: 1.12 };
+/** Material density step of each density; a step moves every kit control's container height by 4 px (MDC _density.scss). */
+export const DENSITY_STEP: Record<Density, number> = { compact: -2, comfortable: 0, airy: 1 };
 
 export const DENSITIES: Density[] = ['compact', 'comfortable', 'airy'];
 export const CHECKBOXES: CheckboxShape[] = ['round', 'square', 'rounded'];
@@ -74,7 +76,7 @@ export function fineVars(fine: ThemeFine, entries: string): Record<string, strin
     ...(fine.glowStrength !== undefined ? glowVars(fine.glowStrength) : {}),
     ...(fine.radius !== undefined ? radiusVars(fine.radius) : {}),
     ...(fine.tint !== undefined && entries === 'tinted' ? { '--e-fill': `${fine.tint}%` } : {}),
-    ...(fine.density ? { '--dz': String(DENSITY_SCALE[fine.density]) } : {}),
+    ...(fine.density ? { '--dz': String(DENSITY_SCALE[fine.density]), '--md-density-shift': `${DENSITY_STEP[fine.density] * 4}px` } : {}),
   };
 }
 

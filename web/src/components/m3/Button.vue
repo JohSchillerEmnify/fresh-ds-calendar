@@ -21,10 +21,12 @@ withDefaults(defineProps<{
 </template>
 
 <style scoped>
-/* 40 px drawn (_md-comp-filled-button container-height) in a 48 px tap area (material-web button touch target); the border
-   is tappable but transparent and its sides are given back by the margin; extra-large corners keep it round up to 56 px */
+/* 40 px drawn at Comfortable (_md-comp-filled-button container-height, moved by the density shift) in a 48 px tap area
+   (material-web button touch target): the transparent border is tappable, grows as the drawing shrinks, and its sides are
+   given back by the margin; extra-large corners keep it round */
 .m3-btn {
-  min-height: 48px; min-width: 48px; padding: 0 24px; border: 4px solid transparent; margin-inline: -4px; background-clip: padding-box; border-radius: var(--md-sys-shape-corner-extra-large);
+  --h: calc(40px + var(--md-density-shift)); --tap: max(0px, calc((48px - var(--h)) / 2));
+  min-height: calc(var(--h) + 2 * var(--tap)); min-width: 48px; padding: 0 24px; border: 4px solid transparent; border-block-width: var(--tap); margin-inline: -4px; background-clip: padding-box; border-radius: var(--md-sys-shape-corner-extra-large);
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font: var(--md-sys-typescale-label-large); letter-spacing: 0.1px; white-space: nowrap; text-decoration: none;
   transition: border-radius var(--md-sys-motion-duration-short) var(--md-sys-motion-spring), transform var(--md-sys-motion-duration-short) var(--md-sys-motion-spring);
