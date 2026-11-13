@@ -42,7 +42,7 @@ function pick(hex: string): void {
 
 <style scoped>
 .tools { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
-.on { background: var(--md-sys-color-secondary-container); }
+.on { background-color: var(--md-sys-color-secondary-container); }
 .colours { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px; }
 .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--md-sys-color-outline-variant); background: var(--dot); padding: 0; position: relative; cursor: pointer; }
 .dot.on { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); }

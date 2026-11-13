@@ -118,9 +118,9 @@ function toggleFilters() {
 .nav .sr-only { position: absolute; width: 1px; height: 1px; }
 .today { padding: 0 16px; }
 /* Today is the one filled button while today is on screen: the primary container, like the phone's pill (the tonal kit button is the secondary one) */
-.today:not(.off) { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.today:not(.off) { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 /* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
-.today.off { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
+.today.off { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
 .actions { grid-area: actions; display: flex; }
 .fwrap { position: relative; display: inline-flex; }
@@ -137,14 +137,14 @@ function toggleFilters() {
   [data-size='expressive'] .grid { min-height: 84px; padding-top: 4px; }
   /* Expressive's plant keeps the full 44 px tap area; Compact's is 32 wide so the row stays one row */
   [data-size='expressive'] .widgets :deep(.lw-btn) { min-width: 44px; width: 44px; }
-  .nav .today { padding: 0; background: transparent; width: 44px; }
+  .nav .today { padding: 0; background-color: transparent; width: 48px; }
   .nav .today :deep(.m3-layer), .nav .today :deep(.m3-ripple) { display: none; }
   .nav .today:focus-visible { outline: none; }
   .nav .today:focus-visible .pill { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
   .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, var(--md-sys-color-primary-container)); }
   /* Today is the one filled button; off today's period it is outlined on a solid surface, so a scene never shows through */
   .pill { width: 40px; height: 40px; border-radius: 20px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-  .nav .today.off { background: transparent; border: 0; }
+  .nav .today.off { background-color: transparent; box-shadow: none; }
   .today.off .pill { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
   .pill :deep(svg) { width: 24px; height: 24px; }
   .title { padding: 0 2px 0 8px; gap: 2px; }

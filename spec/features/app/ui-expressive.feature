@@ -134,3 +134,55 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       When I open the week view for 2026-10-12
       Then the event "Dentist" has a corner radius of 16 px
       And the bottom bar, the top bar and every button are drawn with fully round corners
+
+  Rule: The kit controls have the Material 3 sizes and shapes
+
+    @mobile
+    Scenario: Every icon button can be tapped on at least 48 by 48 pixels
+      When I open the week view for 2026-10-12
+      Then every icon button of the screen has a tap area of at least 48 by 48 pixels
+
+    @mobile
+    Scenario: A text field shows a line along its bottom that thickens while it is focused
+      When I start a new event
+      And I click into the field "Title"
+      Then the field "Title" shows a 2 pixel line along its bottom in the primary colour
+      And the field "Description" shows a 1 pixel line along its bottom
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a button is 40 px high on a 48 px tap area and stays round at any height
+    Scenario: A button is 40 pixels high, can be tapped on 48 pixels and stays round
+      Given the style rules of the Material 3 components
+      Then a button is drawn 40 pixels high on a tap area 48 pixels high
+      And its corners stay fully round however tall its label makes it
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a chip is 32 px high with 8 px corners
+    Scenario: A chip is 32 pixels high with 8 pixel corners
+      Given the style rules of the Material 3 components
+      Then a chip is drawn 32 pixels high with 8 pixel corners
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a text field is filled by default and outlined on request
+    Scenario: A text field is filled by default and can be outlined
+      Given the style rules of the Material 3 components
+      Then a text field has rounded top corners only and a line along its bottom
+      And an outlined text field has a 1 pixel outline that turns 2 pixels while it is focused
+
+  Rule: Every segmented choice is the expressive connected button group
+
+    @mobile
+    Scenario: The kind switch of a new entry is a connected button group
+      When I start a new event
+      Then the switch "New" is a connected button group of "Event, Task list, Birthday"
+
+    @mobile
+    Scenario: The Tasks tabs are a connected button group
+      When I open the path "/tasks"
+      Then the switch "Tasks" is a connected button group of "Open, Canvas, Archive"
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a segmented choice has only the connected look
+    Scenario: A segmented choice cannot fall back to the old outlined look
+      Given the style rules of the Material 3 components
+      Then a segmented choice is always drawn as a connected button group

@@ -57,10 +57,10 @@ const LAYOUT_OF = { auto: 'auto', expressive: 'two-rows', compact: 'one-row' } a
 
   <SettingSection :title="t('settingsNav.sub.bars')">
     <SettingRow id="topBarSize" wide :label="t('settings.calendar.topBarSize.label')" :hint="t('settings.calendar.topBarSize.hint')">
-      <SegmentedButton connected :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: LAYOUT_OF[$event] })" />
+      <SegmentedButton :model-value="topBarSize" :options="barSizes" :label="t('settings.calendar.topBarSize.label')" data-testid="settings-top-bar-size" @update:model-value="savePrefs({ headerLayout: LAYOUT_OF[$event] })" />
     </SettingRow>
     <SettingRow id="bottomBarSize" wide :label="t('settings.calendar.bottomBarSize.label')" :hint="t('settings.calendar.bottomBarSize.hint')">
-      <SegmentedButton connected :model-value="prefs.bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event })" />
+      <SegmentedButton :model-value="prefs.bottomBarSize" :options="barSizes" :label="t('settings.calendar.bottomBarSize.label')" data-testid="settings-bottom-bar-size" @update:model-value="savePrefs({ bottomBarSize: $event })" />
     </SettingRow>
   </SettingSection>
 

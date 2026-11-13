@@ -61,7 +61,7 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
 
   <SettingSection :title="t('settingsNav.sub.behaviour')">
     <SettingRow id="taskOpen" wide :label="t('settings.tasklists.taskOpen.label')">
-      <SegmentedButton connected :model-value="prefs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" />
+      <SegmentedButton :model-value="prefs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" />
     </SettingRow>
     <SettingRow v-if="prefs.taskOpen === 'inline'" id="growSeveral" :label="t('settings.tasklists.growSeveral.label')" :hint="t('settings.tasklists.growSeveral.hint')">
       <Switch :model-value="prefs.growSeveral" :label="t('settings.tasklists.growSeveral.label')" data-testid="settings-grow-several" @update:model-value="savePrefs({ growSeveral: $event })" />
@@ -70,7 +70,7 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
       <Switch :model-value="prefs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" />
     </SettingRow>
     <SettingRow id="undatedDone" wide :label="t('settings.tasklists.undatedDone.label')">
-      <SegmentedButton connected :model-value="prefs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" />
+      <SegmentedButton :model-value="prefs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" />
     </SettingRow>
     <SettingRow id="templates" to="/settings/templates" :label="t('tasks.templates.page')" :hint="t('tasks.templates.pageHint')" testid="settings-templates" />
   </SettingSection>

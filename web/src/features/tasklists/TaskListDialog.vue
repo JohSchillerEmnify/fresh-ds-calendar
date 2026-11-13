@@ -304,7 +304,7 @@ function remove() {
 .datecell { display: flex; align-items: center; }
 /* with a date the × sits beside it: the date column takes a little more room so the full date stays readable on a phone */
 .two.dated { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
-.datecell .clear { width: 32px; }
+.datecell .clear { width: 32px; border-inline-width: 0; }
 .catrow { display: flex; gap: 10px; align-items: center; }
 .dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .grow { flex: 1; min-width: 0; }

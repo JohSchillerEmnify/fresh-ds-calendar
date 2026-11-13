@@ -4153,7 +4153,7 @@ the damaged file is kept as {string} with its old content
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
-filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
@@ -4180,6 +4180,17 @@ a button element inside {string} passes the lint gate
 the style rules of the Material 3 components
 a control is pressed
 its corners change smoothly and only a little, and never look square
+every icon button of the screen has a tap area of at least {int} by {int} pixels
+I click into the field {string}
+the field {string} shows a {int} pixel line along its bottom
+the field {string} shows a {int} pixel line along its bottom in the primary colour
+a button is drawn {int} pixels high on a tap area {int} pixels high
+its corners stay fully round however tall its label makes it
+a chip is drawn {int} pixels high with {int} pixel corners
+a text field has rounded top corners only and a line along its bottom
+an outlined text field has a {int} pixel outline that turns {int} pixels while it is focused
+the switch {string} is a connected button group of {string}
+a segmented choice is always drawn as a connected button group
 the theme is {string}
 the bottom bar, the top bar and every button are drawn with fully round corners
 the bottom bar size is set to {string}

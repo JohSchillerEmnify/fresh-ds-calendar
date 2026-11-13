@@ -111,7 +111,7 @@ onBeforeUnmount(() => { clearInterval(timer); document.removeEventListener('visi
 .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .act { display: flex; flex-wrap: wrap; align-items: center; column-gap: 4px; min-height: 32px; }
 .act.link { flex-direction: column; align-items: flex-start; }
-.act.link :deep(.m3-btn) { margin-left: -12px; }
+.act.link :deep(.m3-btn) { margin-left: -16px; }
 .hint, .note { margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .connected { margin: 0; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-primary); }
 .sr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
