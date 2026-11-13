@@ -144,7 +144,7 @@ function use(): void {
         <template v-else>
           <div class="stage">
             <div ref="mapEl" class="map" role="img" :aria-label="t('calendar.event.place.picker.map')" data-testid="map-picker-map" :data-lat="centre.lat.toFixed(4)" :data-lon="centre.lon.toFixed(4)" />
-            <div class="search">
+            <div class="search-pos">
               <SearchField
                 :model-value="query" :label="t('calendar.event.place.picker.search')" bar-testid="map-picker-search-bar"
                 data-testid="map-picker-search" @update:model-value="onSearch"
@@ -186,7 +186,7 @@ function use(): void {
 .title { margin: 0; font: var(--md-sys-typescale-title-large); }
 .stage { position: relative; flex: 1; min-height: 0; }
 .map { position: absolute; inset: 0; background: var(--md-sys-color-surface-container-highest); z-index: 0; }
-.search { position: absolute; z-index: 5; left: 16px; right: 16px; top: 12px; border-radius: var(--md-sys-shape-corner-full); box-shadow: var(--md-sys-elevation-3); }
+.search-pos { position: absolute; z-index: 5; left: 16px; right: 16px; top: 12px; border-radius: var(--md-sys-shape-corner-full); box-shadow: var(--md-sys-elevation-3); }
 .hits { position: absolute; z-index: 5; left: 16px; right: 16px; top: 68px; max-height: 50%; overflow: auto; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); box-shadow: var(--md-sys-elevation-3); }
 .h-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .h-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
