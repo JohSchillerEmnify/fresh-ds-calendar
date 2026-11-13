@@ -3973,9 +3973,8 @@ the top bar's widgets are in reverse order
 - "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
   `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
 - "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
-  built-in tonal look: the computed background of its drawn shape, the `.pill` inside on phones and the button itself on
-  wide screens, is the secondary container colour, no outline). "does not show":
-  `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
+  kit filled look: its computed background is the primary colour, no outline). "does not show":
+  `data-today-shown="false"`, it has an outline (an inset box-shadow) and its computed background is the surface
   colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
   month's own days, not the neighbouring months' days in its grid; the week; the day; on the Labs timeline, the now
   marker inside the timeline's box). The views must have rendered (`month-cell`, `week-header`, `day-column` or
@@ -4019,7 +4018,7 @@ the top bar's widgets are in reverse order
 - Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
   `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
   `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are decoration and are not judged (owner 2026-10-30:
-  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
+  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today button's text (its icon on phones). The sunflower field has no cat.
 
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)
@@ -4157,7 +4156,7 @@ the damaged file is kept as {string} with its old content
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
-filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the buttons of the switch S are drawn H pixels high" = the drawn (padding box) height of each button of that group, its transparent tap border left out. "every control of the dialog has a tap area" = the bounding box of every visible kit button, icon button, switch, choice, chip, checkbox and radio in the open dialog (their transparent border is part of the tap area). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the buttons of the switch S are drawn H pixels high" = the drawn (padding box) height of each button of that group, its transparent tap border left out. "every control of the dialog has a tap area" = the bounding box of every visible kit button, icon button, switch, choice, chip, checkbox and radio in the open dialog (their transparent border is part of the tap area). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
@@ -4181,6 +4180,14 @@ a component outside {string} contains a raw button element
 the lint gate runs
 the lint gate fails and names that component
 a button element inside {string} passes the lint gate
+a component outside {string} contains a raw form field, a hand-made role or a click on a plain element
+the same elements inside {string} pass the lint gate
+the allowlist of the lint gate
+every listed component still needs the release it holds
+the badge is {string} pixels as a dot and {string} pixels high with a label, in the error colours
+an input chip is no button itself and its remove cross is named by what it removes
+it follows the Density setting and keeps a {int} pixel tap area on its cross
+an outlined button and an outlined icon button are filled with the surface colour
 the style rules of the Material 3 components
 a control is pressed
 its corners change smoothly and only a little, and never look square
@@ -4279,6 +4286,11 @@ the floating toolbar is shown
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
   shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
   the viewport (`data-hidden="true"`), "shown" = fully inside it. "the surface" is the visible screen without an open dialog.
+- "no raw fields, roles or clicks": the same gate (`vue/no-restricted-html-elements` for `<input>`, `<textarea>`, `<select>`; `vue/no-restricted-syntax`
+  for `role="button|checkbox|dialog|option"` and `@click` on `div`, `span`, `li`, `header`) outside `web/src/components/m3`. Files that
+  still need one are listed with a reason in `eslint.allowlist.mjs`; the unit test fails for an entry that no longer holds its element, so the list only shrinks.
+  Badge (`m3/Badge.vue`): 6 px dot, 16 px pill with a label, error colours (material-web `_md-comp-badge` v0.192). Input chip (`Chip variant="input"`):
+  a span with a remove button (`_md-comp-input-chip`). All unit-tested, `@unit`.
 - "no raw buttons outside m3": the lint gate (`vue/no-restricted-html-elements` in `eslint.config.js`, run by `pnpm verify`; its message says
   "no raw buttons outside m3") rejects a bare `<button>` in `web/src/**` outside `web/src/components/m3`. Proven by a unit
   test; the scenario is `@unit` and skipped by e2e.

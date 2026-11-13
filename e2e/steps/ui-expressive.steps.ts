@@ -12,7 +12,7 @@ const controlId = (name: string) => {
   return id;
 };
 
-/** The look of every visible button of the page outside dialogs: its testid, drawn background (the Today `.pill` for Today) and whether it shows text. */
+/** The look of every visible button of the page outside dialogs: its testid, drawn background and whether it shows text. */
 async function buttonLooks(w: World, inDialog = false) {
   // the settings are not a calendar view: `settled` waits for one
   if (!(await w.page.getByTestId('settings-view').isVisible())) await w.settled();
@@ -24,8 +24,7 @@ async function buttonLooks(w: World, inDialog = false) {
       const r = b.getBoundingClientRect();
       return r.width > 1 && r.height > 1 && getComputedStyle(b).visibility !== 'hidden' && (dialog ? !!b.closest('[role="dialog"]') : !b.closest('[role="dialog"]'));
     }).map((b) => {
-      const drawn = b.querySelector<HTMLElement>('.pill') ?? b;
-      const cs = getComputedStyle(drawn);
+      const cs = getComputedStyle(b);
       return { id: b.dataset.testid ?? '', filled: primary.includes(cs.backgroundColor), alpha: alpha(cs.backgroundColor), blur: cs.backdropFilter, text: (b.innerText ?? '').trim(), label: b.getAttribute('aria-label') ?? b.getAttribute('title') ?? '' };
     });
   }, inDialog);
@@ -76,7 +75,7 @@ Then('the bottom bar, the top bar and every button are drawn with fully round co
     });
     const bar = document.querySelector('[data-testid="top-bar"]')!;
     const flat = parseFloat(getComputedStyle(bar).borderTopLeftRadius) === 0;
-    return [...bars, ...buttons].filter((e) => !round(e) && !(e.matches('[data-testid="nav-today"]') && round(e.querySelector('.pill')!))).map((e) => (e as HTMLElement).dataset.testid ?? e.tagName).concat(flat ? [] : ['top-bar corners']);
+    return [...bars, ...buttons].filter((e) => !round(e)).map((e) => (e as HTMLElement).dataset.testid ?? e.tagName).concat(flat ? [] : ['top-bar corners']);
   });
   expect(bad, 'not fully round').toEqual([]);
 });

@@ -6,6 +6,7 @@
  * the calendar's resize-handle pattern. Membership of notes is by position and drawn nowhere.
  */
 import { computed } from 'vue';
+import Pressable from '@/components/m3/Pressable.vue';
 import { t } from '@/i18n';
 import type { CanvasArea } from '@/api/types';
 
@@ -21,12 +22,12 @@ const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}
     class="area" data-testid="canvas-area" data-canvas-drag="area-body" :data-canvas-id="area.id" :data-area-id="area.id" :data-name="area.name" :data-color="area.color" :data-x="Math.round(x)" :data-y="Math.round(y)"
     :data-w="Math.round(w)" :data-h="Math.round(h)" :data-editing="editing || undefined" :data-selected="selected || undefined" :data-dragging="dragging || undefined" :style="style"
   >
-    <header
-      class="head" data-testid="canvas-area-header" data-canvas-drag="area-head" :data-canvas-id="area.id" role="button" tabindex="0"
+    <Pressable
+      class="head" data-testid="canvas-area-header" data-canvas-drag="area-head" :data-canvas-id="area.id"
       :aria-label="t('canvas.area.edit', { name: area.name })" @keydown.enter.prevent="emit('edit')" @keydown.space.prevent="emit('edit')"
     >
       <span class="name">{{ area.name }}</span>
-    </header>
+    </Pressable>
     <template v-if="selected">
       <span
         v-for="c in CORNERS" :key="c" class="rh" :class="c" data-testid="canvas-area-handle" data-canvas-drag="area-resize" :data-canvas-id="area.id"
@@ -43,7 +44,7 @@ const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}
 }
 .area[data-editing], .area[data-selected] { border-style: solid; }
 .head {
-  cursor: grab; display: flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 14px 14px 0 0;
+  cursor: grab; display: flex; align-items: center; width: 100%; text-align: left; height: 40px; padding: 0 14px; border-radius: 14px 14px 0 0;
   background: color-mix(in srgb, var(--c) 28%, transparent); font: var(--md-sys-typescale-title-small);
 }
 .head:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; }

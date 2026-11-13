@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday, IconMenu } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import Badge from '@/components/m3/Badge.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
@@ -77,7 +78,8 @@ function toggleFilters() {
       <div v-if="!route.meta.tasks && (!dateless || dateless.today)" class="nav">
         <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
         <IconButton v-if="!dateless" :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
-        <Button variant="tonal" class="today" :class="{ off: !todayShown }" data-testid="nav-today" :data-today-shown="todayShown" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="onToday"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
+        <IconButton v-if="oneRow" :variant="todayShown ? 'filled' : 'outlined'" :label="t('calendar.topBar.today')" data-testid="nav-today" :data-today-shown="todayShown" @click="onToday"><IconToday /></IconButton>
+        <Button v-else :variant="todayShown ? 'filled' : 'outlined'" data-testid="nav-today" :data-today-shown="todayShown" @click="onToday">{{ t('calendar.topBar.today') }}</Button>
         <IconButton v-if="!dateless" :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
@@ -93,7 +95,7 @@ function toggleFilters() {
       <div class="actions">
         <span v-if="!route.meta.tasks && !drawer" class="fwrap">
           <IconButton :label="t('calendar.topBar.filters')" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
-          <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
+          <Badge v-if="filters.count.value" :label="filters.count.value" aria-hidden="true" />
         </span>
         <IconButton v-if="!drawer" :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
@@ -116,15 +118,9 @@ function toggleFilters() {
 .nav { grid-area: nav; display: flex; align-items: center; gap: 2px; }
 /* the m3 button's size rule and the ripple's position: relative outrank the global .sr-only: restate them so the arrows take no room */
 .nav .sr-only { position: absolute; width: 1px; height: 1px; }
-.today { padding: 0 16px; }
-/* Today is the one filled button while today is on screen: the primary container, like the phone's pill (the tonal kit button is the secondary one) */
-.today:not(.off) { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-/* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
-.today.off { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
 .actions { grid-area: actions; display: flex; }
 .fwrap { position: relative; display: inline-flex; }
-.badge { position: absolute; top: 4px; right: 2px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font: var(--md-sys-typescale-label-small); display: flex; align-items: center; justify-content: center; padding: 0 4px; }
 @media (min-width: 768px) {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
@@ -137,16 +133,6 @@ function toggleFilters() {
   [data-size='expressive'] .grid { min-height: 84px; padding-top: 4px; }
   /* Expressive's plant keeps the full 44 px tap area; Compact's is 32 wide so the row stays one row */
   [data-size='expressive'] .widgets :deep(.lw-btn) { min-width: 44px; width: 44px; }
-  .nav .today { padding: 0; background-color: transparent; width: 48px; }
-  .nav .today :deep(.m3-layer), .nav .today :deep(.m3-ripple) { display: none; }
-  .nav .today:focus-visible { outline: none; }
-  .nav .today:focus-visible .pill { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
-  .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, var(--md-sys-color-primary-container)); }
-  /* Today is the one filled button; off today's period it is outlined on a solid surface, so a scene never shows through */
-  .pill { width: 40px; height: 40px; border-radius: 20px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-  .nav .today.off { background-color: transparent; box-shadow: none; }
-  .today.off .pill { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
-  .pill :deep(svg) { width: 24px; height: 24px; }
   .title { padding: 0 2px 0 8px; gap: 2px; }
   .chev { width: 20px; height: 20px; }
   .widgets { gap: 0; }
@@ -156,8 +142,6 @@ function toggleFilters() {
   .widgets :deep(.sf-flame) { width: 17px; height: 20px; }
   .widgets :deep([data-testid='sync-status']) { width: 24px; }
 }
-/* Today's drawn shape: on wide screens the tonal button itself, on phones a pill inside a larger tap area. */
-.pill { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 /* Left-handed mode (phone, touch tablet): the settings group and the leading widgets sit at the left, title and navigation at the right. */
 html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
 html[data-hand='left'][data-touch] .lead { flex-direction: row-reverse; }
