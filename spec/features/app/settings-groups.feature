@@ -145,3 +145,4 @@ Feature: Settings in a few groups
       And I turn on "Morning overview" in the settings
       And I open the setting "Time of the overview"
       Then the time picker is shown
+      And the time picker fields are 56 px high text fields

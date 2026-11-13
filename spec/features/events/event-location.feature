@@ -262,6 +262,12 @@ Feature: Places for an event's location
       And I start creating an event
       Then I see the action "Pick on map" at the event location
 
+    Scenario: The picker search is the same search bar as in the settings
+      When I open the week view for 2026-10-12
+      And I start creating an event
+      And I open the map picker
+      Then the map picker search bar is full round and 56 px high
+
     Scenario: Searching in the picker moves the map and shows the address of the pin
       When I open the week view for 2026-10-12
       And I start creating an event

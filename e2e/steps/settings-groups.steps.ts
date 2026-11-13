@@ -105,6 +105,14 @@ Then('the time picker is shown', async function (this: World) {
   await expect(this.page.getByTestId('time-picker')).toBeVisible();
 });
 
+Then('the time picker fields are {int} px high text fields', async function (this: World, h: number) {
+  for (const id of ['time-picker-hour', 'time-picker-minute']) {
+    const field = this.page.getByTestId(id);
+    await expect(field).toBeVisible();
+    expect((await field.locator('xpath=ancestor::div[contains(@class,"tf")][1]').boundingBox())!.height).toBeGreaterThanOrEqual(h);
+  }
+});
+
 When('I open the calendar {string} in the settings', async function (this: World, name: string) {
   await row(this, name).click();
   await expect(groupPage(this)).toHaveAttribute('data-group', name);

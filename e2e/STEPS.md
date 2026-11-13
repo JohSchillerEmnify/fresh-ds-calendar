@@ -1031,6 +1031,7 @@ I choose {string} for {string} in the settings
 every settings row shows its name first and its control at the end
 I open the setting {string}
 the time picker is shown
+the time picker fields are {int} px high text fields
 I search the settings for {string}
 the settings search shows {string} in {string}
 the settings search shows {string}
@@ -1067,6 +1068,7 @@ the setting {string} is highlighted
   "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
 - `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
 - `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
+- `the time picker fields are {int} px high text fields`: the hour and minute inputs sit in kit text fields at least that high.
 
 ## Language (`@i18n`)
 
@@ -3582,6 +3584,7 @@ mocked geolocation, never a real one.
 I see the action {string} at the event location
 I open the map picker
 I search the map picker for {string}
+the map picker search bar is full round and {int} px high
 I pick the map picker result {string}
 the map picker is centred on the place {string}
 the map picker shows the address {string}
