@@ -75,6 +75,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the time grid is scrolled to show 07:00 at the top
 
   # A side swipe in the day view keeps the hours in view (issue 145); the first opening keeps its start above
+  @mobile
   Scenario: Swiping to the next day keeps the hours in view
     Given I am using a phone
     And today is 2026-10-12
@@ -86,6 +87,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the URL path is "/day/2026-11-17"
     And the time grid is scrolled to show 09:00 at the top
 
+  @mobile
   Scenario: Swiping back to the previous day keeps the hours in view
     Given I am using a phone
     And today is 2026-10-12
