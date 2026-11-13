@@ -109,13 +109,15 @@ interface Upload { sub: string; entries: Array<{ kind: string; summary: string }
 const uploads = async (w: World): Promise<Upload[]> => (await w.api.get<{ uploads: Upload[] }>('/api/__test/diag-uploads')).uploads;
 
 Given('the Android app recorded a crash {string} with the message {string} before this start', async function (this: World, exception: string, message: string) {
-  // the plugin hands a record over once: a reload finds none; the message is there to prove the app drops it
+  // the plugin hands a record over once: a reload finds none; like CrashRecorder it leaves the message out unless Android itself threw it
   await this.context.addInitScript(([cls, msg]) => {
     const w = window as unknown as { Capacitor?: unknown };
     w.Capacitor = { Plugins: { CrashReports: { take: async () => {
       if (sessionStorage.getItem('crashTaken')) return { records: [] };
       sessionStorage.setItem('crashTaken', '1');
-      return { records: [{ source: 'java', exception: cls, message: msg, frames: ['lan.mordor.calendar.widget.WeekFetcher.fetch(WeekFetcher.java:50)'], thread: 'main', app: '1.1.9', android: 35, time: new Date('2026-10-12T08:10:00').getTime() }] };
+      const frames = ['lan.mordor.calendar.widget.WeekFetcher.fetch(WeekFetcher.java:50)'];
+      const message = /^(android|com\.android)\./.test(frames[0]) ? { message: msg } : {};
+      return { records: [{ source: 'java', exception: cls, ...message, frames, thread: 'main', app: '1.1.9', android: 35, time: new Date('2026-10-12T08:10:00').getTime() }] };
     } } } };
   }, [exception, message] as const);
 });
