@@ -37,6 +37,11 @@ concurrency:
   group: pictures-${{ github.ref }}
   cancel-in-progress: true
 
+# the Playwright container runs steps with sh otherwise; the steps use bash syntax
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
