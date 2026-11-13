@@ -253,6 +253,7 @@ I press Enter in the event field {string}
 the event field {string} has focus
 I save the event
 I cancel the event dialog
+I tap the text {string} in the event form
 I press Escape
 I open the event {string}
 I delete the event
@@ -4215,6 +4216,7 @@ I choose {string} in the side menu
 the side menu is closed
 the side menu shows the calendars {string} with a colour checkbox each
 I untick the calendar {string} in the side menu
+I tap the name of the calendar {string} in the side menu
 the top bar has no filter button and no settings button
 the top bar has no filter button
 the top bar size is set to {string}
@@ -4616,3 +4618,6 @@ in the {view} view of {date} the marker of {string} is {float} px
   `tasklist-card-title` (its box height over its computed line height) equal those of `event-chip-title` of the event E.
 - "the titleless task list shows the text T": its `tasklist-card-title` has exactly the text T.
 - "the task list X shows no placeholder": the card has no `tasklist-card-items`.
+
+- "I tap the text T in the event form": clicks the text T inside the event dialog's label row (not the control itself), e.g. "All day".
+- "I tap the name of the calendar C in the side menu": clicks the text of C's `side-menu-calendar` row (not its checkbox).

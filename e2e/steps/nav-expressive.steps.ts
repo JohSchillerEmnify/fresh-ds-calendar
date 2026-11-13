@@ -182,6 +182,10 @@ When('I untick the calendar {string} in the side menu', async function (this: Wo
   await menu(this).locator(`[data-testid="side-menu-calendar"][data-name="${name}"] input`).uncheck();
 });
 
+When('I tap the name of the calendar {string} in the side menu', async function (this: World, name: string) {
+  await menu(this).locator(`[data-testid="side-menu-calendar"][data-name="${name}"]`).getByText(name, { exact: true }).click();
+});
+
 Then('the top bar has no filter button and no settings button', async function (this: World) {
   await expect(this.page.getByTestId('top-bar')).toBeVisible();
   await expect(this.page.getByTestId('filter-button')).toHaveCount(0);

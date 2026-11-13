@@ -359,7 +359,7 @@ function remove() {
         <LocationField v-model="form.location" v-model:place="form.place" class="rise" style="--i: 2" :label="t('calendar.event.fields.location')" />
         <EventMap v-if="form.place" class="rise" style="--i: 2" :place="form.place" :tile-url="clock.config.mapTileUrl" />
       </template>
-      <ListItem class="check rise" style="--i: 2">
+      <ListItem tag="label" class="check rise" style="--i: 2">
         {{ t('calendar.event.fields.allDay') }}
         <template #trailing><Switch v-model="form.allDay" :label="t('calendar.event.fields.allDay')" data-testid="event-all-day" data-field="allDay" /></template>
       </ListItem>
@@ -402,7 +402,7 @@ function remove() {
 .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); flex: none; transition: background 200ms; }
 .t { margin: 0; font: var(--md-sys-typescale-title-large); flex: 1; }
 .dur { font: var(--md-sys-typescale-label-large); padding: 2px 10px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 22%, var(--md-sys-color-surface-container-low)); font-variant-numeric: tabular-nums; }
-.check { padding: 0 4px 0 12px; }
+.check { padding: 0 4px 0 12px; cursor: pointer; }
 .pair { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
 .pair > :only-child { grid-column: 1 / -1; }
 .colors { display: flex; flex-direction: column; gap: 2px; }
