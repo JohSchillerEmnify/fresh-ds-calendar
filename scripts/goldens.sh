@@ -28,7 +28,7 @@ IMAGE="mcr.microsoft.com/playwright:v${IMAGE_VERSION}-noble@sha256:7852dc5a7d72f
 port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')"
 name="calendar-goldens-$port"
 # The whole checkout read-only at the same path: pnpm's node_modules are symlinks into the root store.
-docker run -d --rm --init --name "$name" --cpus=1.5 --memory=1536m --memory-swap=1536m --ipc=host \
+docker run -d --rm --init --name "$name" --cpus=4 --memory=4g --memory-swap=4g --ipc=host \
   -u "$(id -u):$(id -g)" -e HOME=/tmp -p "127.0.0.1:${port}:3000" -v "$ROOT:$ROOT:ro" -w "$ROOT/web" \
   "$IMAGE" node node_modules/playwright/cli.js run-server --port 3000 --host 0.0.0.0 >/dev/null
 trap 'docker stop "$name" >/dev/null 2>&1 || true' EXIT
