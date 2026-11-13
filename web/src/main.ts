@@ -10,7 +10,7 @@ import { enableTimerCounting } from './lib/timers';
 import { useAuthStore } from './stores/auth';
 import { useClockStore } from './stores/clock';
 import { useInkStore } from './stores/ink';
-import { useTaskListsStore } from './features/tasklists/store';
+import { useTaskListsStore } from './features/tasklists';
 import { useItemsStore } from './stores/items';
 import { useOutboxStore } from './stores/outbox';
 import { useDeviceStore } from './stores/device';
