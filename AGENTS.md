@@ -85,6 +85,9 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   routine with `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md`. — A four-line fix must not cost an hour.
 - **One review pass.** A second only for a blocking finding. Never re-run a green set "to be sure". — Reviews and
   e2e runs cost shared time and tokens.
+- **Parallel only on separate files.** Run tracks side by side only when the files they will change do not overlap
+  (list them in each brief); tracks that share a file, a kit component or a picture set run one after the other. —
+  Parallel slices on the same files cost a day of merge conflicts and re-recorded pictures.
 - **Keep output short.** Read files by section, show test results as counts and failing names. — Long logs burn context.
 - **Throttle tests.** Run them with `nice -n 10` and at most 4 Vitest workers, one full `pnpm verify` at the end, no
   repeat or stress loops. — Parallel agents share one machine.
@@ -125,6 +128,15 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   breakage to states nobody looked at.
 - **Build to the stated look.** Read the spec section and the owner's rules first; no self-invented designs. If a rule
   would make one state look wrong, ask before building it. — Changes are welcome, invented ones are not.
+- **Every visible change names its source.** The report quotes, per visible change, the spec line, ADR or owner
+  decision it follows; a change without one is a question, not a build. — Unsourced look changes were built, rejected
+  and rebuilt several times in one pass.
+- **Audit by cause.** A UI or compliance audit first lists the shared causes (which kit component or token is wrong
+  and every screen it reaches), then fixes each cause once; never a screen-by-screen list. — Screen lists hid that one
+  component fix covered many screens.
+- **CI pictures before a UI merge.** A branch that changes what the app looks like merges only after the Pictures run
+  for its head commit finished and its summary and sheets were looked at (`ci-pictures <branch>`); laptop pictures are
+  a fallback only. — Laptop pictures differed from CI and the comparison was repeated after the merge.
 - **Check what a screen is for** before placing a feature in it: read the component's doc comment and feature id, and
   prefer the place that already holds that object's settings. — A setting landed in an unrelated sheet.
 - **Opinionated, one look.** The design is aligned and consistent everywhere: a look is changed once, in the shared `m3` component, and every screen follows. No opt-in props or variants for a new look while the old one stays the default, no per-screen `:deep` restyling of kit parts; an audit reports causes per component, not per screen. — The create switcher stayed on the old look because the new one was an opt-in only settings used.
