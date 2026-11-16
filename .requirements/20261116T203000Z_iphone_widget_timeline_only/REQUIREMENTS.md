@@ -60,3 +60,6 @@ Scenarios in `spec/features/app/iphone-widget.feature` (tagged `@backlog` until 
 - Colour mix: no helper in `shared/`; a six-line per-channel sRGB mix in the script (a Scriptable script cannot import `shared/`).
 - Unverified on a device: that `WidgetStack.backgroundImage` shows a transparent picture over the widget's background colour,
   that stacks keep exact sizes inside the widget's own margins, and that running the script in the app redraws the widget.
+- Review fix (owner: "Own thin strip"): edge markers of a fixed range get a strip above or below the hours, only when a
+  marker exists, because a stack cannot overlap the blocks; a block raised to the minimum height ends where the next one
+  starts, so later blocks keep their hours. Owner: "Ship tonight" before the on-device check.
