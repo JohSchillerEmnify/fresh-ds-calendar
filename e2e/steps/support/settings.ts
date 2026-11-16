@@ -57,7 +57,7 @@ const PAGE_OF: Array<[RegExp, string]> = [
   [/^settings-(view-switch-|default-view|min-event-length|month-scroll|day-side-by-side|week-side-by-side|approach)/, 'views'],
   [/^settings-(theme$|theme-name$|language|nav-|top-bar-size|bottom-bar-size|bar-size|left-handed|sync-indicator|version-corner)/, 'appearance'],
   [/^settings-(task-|category|carried-from|undated-done|templates)/, 'tasklists'],
-  [/^(reminders-|tasks-default-|settings-notify-)/, 'reminders'],
+  [/^(reminders-|settings-notify-)/, 'reminders'],
   [/^settings-(calm-mode|animation-level|system-reduced-motion|ignore-system-motion|sounds|streak|best-streak|support-cat|bedtime$)/, 'focus'],
   [/^settings-(labs|week-two-row)/, 'labs'],
   [/^(iphone-widget|settings-widget-|settings-android-widgets|settings-scrolling-)/, 'widgets'],

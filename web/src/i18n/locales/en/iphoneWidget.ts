@@ -15,7 +15,7 @@ export default {
   failed: 'The widget could not be added. Try again.',
   done: 'Done',
   circle: { label: 'Lock screen circle', time: 'Start time', countdown: 'Countdown', hint: 'Countdown may lag a few minutes behind.' },
-  hours: { label: 'Hours in the Timeline', auto: 'Automatic', fixed: 'Fixed range', from: 'From', to: 'To', hint: 'With “Automatic” the range follows your appointments. With “Fixed range” you set the start and the end yourself.' },
+  hours: { label: 'Hours (Multi-day)', auto: 'Automatic', fixed: 'Fixed range', from: 'From', to: 'To', hint: 'With “Automatic” the range follows your appointments. With “Fixed range” you set the start and the end yourself.' },
   guide: {
     s1: 'Install the free Scriptable app:',
     getScriptable: 'Get Scriptable',

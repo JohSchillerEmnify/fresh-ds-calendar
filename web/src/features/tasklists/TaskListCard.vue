@@ -148,8 +148,8 @@ const oneLines = computed(() => {
   }).lines;
 });
 const lists = useTaskListsStore();
-/** A tap on the list's checkbox ticks the one task; the card's own tap (open the list) does not run. */
-function tickOne(e: MouseEvent) {
+/** A tap on the list's checkbox, or Space on the card, ticks the one task; the card's own tap (open the list) does not run. */
+function tickOne(e: Event) {
   if (!one.value || (el.value && monthTapOpensDay(el.value))) return;
   e.stopPropagation();
   if (!one.value.done) lists.markFinished(tl.value.id);
@@ -202,14 +202,14 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     :is="grown ? 'div' : Pressable" ref="elRef" v-ripple class="tl skin" :class="[variant, { untitled: !title, one: !!one, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, single: tl.items.length === 1, up: grown && growDir === 'up' }]" :type="grown ? undefined : 'button'" :role="grown ? 'group' : undefined" :tabindex="grown ? 0 : undefined" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-short="fit.shortBlock || undefined" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" :data-one-line="(variant === 'block' && !!one && oneLines === 1) || undefined" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown && emit('openList')"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="grown ? undefined : expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%', '--lines': oneLines }" :data-one-line="(variant === 'block' && !!one && oneLines === 1) || undefined" @click="grown ? onGrownTap($event) : cardClick($event, toggle)" @keydown.enter.self.prevent="grown && emit('openList')" @keydown.space.self.prevent="grown ? emit('openList') : tickOne($event)" @keyup.space.self="one && $event.preventDefault()"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <component :is="grown ? Pressable : 'span'" class="row" :class="{ pillbtn: grown }" :aria-label="grown ? t(title ? 'tasks.card.collapse' : 'tasks.card.collapseUntitled', { title }) : undefined" data-testid="tasklist-card-pill">
       <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span v-if="!one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span v-fade:x class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" role="checkbox" :aria-checked="one.done" :aria-label="t('tasks.list.itemDone', { title: one.text })" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
+       <span v-if="slot" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span v-fade:x class="tx"><span v-if="one" class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" @click="tickOne" /><InkLine v-if="slot.item?.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(slot.item.id)" :label="t('ink.placeholder')" /><template v-else>{{ slot.text }}</template><StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ leadText }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>

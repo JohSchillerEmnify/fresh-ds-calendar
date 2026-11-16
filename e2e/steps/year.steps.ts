@@ -55,7 +55,12 @@ const pickerTitle = (w: World) => w.page.getByTestId('month-picker-title');
 
 When('I open the month picker', async function (this: World) {
   // The title toggles the picker (STEPS.md), so closing it with this step is valid: no visibility assertion here.
-  await this.page.getByTestId('period-title').click();
+  // An open picker's scrim lies over the title, so a tap there lands on the scrim, as a finger's would.
+  const title = this.page.getByTestId('period-title');
+  if (await picker(this).isVisible()) {
+    const box = (await title.boundingBox())!;
+    await this.page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  } else await title.click();
 });
 
 Then('the month picker is open', async function (this: World) {

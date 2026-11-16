@@ -245,6 +245,10 @@ When('I save the event', async function (this: World) {
   await dialog(this).getByTestId('event-save').click();
 });
 
+When('I tap the text {string} in the event form', async function (this: World, text: string) {
+  await dialog(this).locator('.check').getByText(text, { exact: true }).click();
+});
+
 When('I cancel the event dialog', async function (this: World) {
   await dialog(this).getByTestId('event-cancel').click();
 });

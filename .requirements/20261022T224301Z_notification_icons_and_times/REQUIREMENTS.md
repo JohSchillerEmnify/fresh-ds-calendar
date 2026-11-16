@@ -137,7 +137,7 @@ One PR: the pieces share the payload contract and ship together.
   app's server chooser removed: the server is configuration (`ServerConfig.BASE_URL` = `https://cal.example.org`,
   ADR 0022). Gone: the chooser page (the bundled `index.html` is now an empty start page Capacitor requires), the Settings
   "Server" row and its texts, the plugin's `get`/`choose`, the "Choose another calendar" link of the offline page (which
-  keeps "Try again"), the cleartext exception for `cal.mordor.lan`, and the widget's server-change clean-up. The plugin
+  keeps "Try again"), the cleartext exception for the old LAN host, and the widget's server-change clean-up. The plugin
   keeps the name `ServerChoice` for the deployed web app's `appVersion` call. No migration: a phone that chose the
   home-network server signs in once on the public one; its widget follows with the next fetch.
 - Also in this branch (coordinator): the widget's own week fetch uses the calendar colour for task lists while task

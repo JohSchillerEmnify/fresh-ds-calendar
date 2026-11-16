@@ -1,10 +1,30 @@
 # Changelog
 
 ## 2026-11-16
-- iPhone widget: all sizes now show the multi-day view, with every day labelled, the hours as text and the entries in your calendar colours. It follows light and dark mode, and a tap on the widget updates it. The small widget shows today.
-- iPhone widget: the "Layout" choice is gone from Settings › Widgets, since the multi-day view is the only one. The number of days, the text size and the hours still work.
+- iPhone widget: all sizes now show the Multi-day view, with every day labelled, the hours as text and the entries in your calendar colours. It follows light and dark mode, and a tap on the widget updates it. The small widget shows today.
+- iPhone widget: the "Layout" choice is gone from Settings › Widgets, since Multi-day is the only view. The number of days, the text size and the hours still work.
+
+## 2026-11-13
+- Fixed: dialogs opened from the settings, themes, templates or error log pages (such as the time picker) are a bottom sheet again instead of filling the whole screen.
+- Fixed: in a handwritten list, a pen stroke going downwards is drawn again instead of being lost when the lines shift under the pen.
+- Changed: the month picker, the plant card, the map picker, the place suggestions and the check-in message now look and behave like the app's other dialogs, lists and messages.
+- Changed: the Today button, the template button, reminder chips, count badges and the task list tray now share the standard Material look and follow the Density setting.
+- Changed: the Density setting in your theme now also makes buttons, switches, tabs and fields more compact (or roomier with Airy); everything can still be tapped as easily. Corners follow Material 3 more closely.
+- Fixed: the reminder line in the event dialog reads "Calendar default: no reminders" with a space after the colon.
+- Changed: task lists: ticking, adding and editing items now look and feel like the rest of the app, with larger tap areas.
+- Changed: renaming a task list or a canvas area, the names in the task tray and the day-edge label while dragging an entry now use the app's standard fields and chips.
+- Changed: the calendar checkboxes in the side menu, the repeat question, the All day setting and the template preview now use the app's standard checkboxes, radio buttons and switch; a one-line task list can also be ticked with the keyboard.
+- Fixed: the app no longer keeps the first month you opened in memory for as long as it runs.
+- Changed: buttons, icon buttons, chips and text fields now have the standard Material sizes and shapes: icon buttons are easier to tap, and a text field shows a line along its bottom that thickens while you type in it.
+- Changed: the Event, Task list and Birthday switch and the Tasks tabs now look like the other choice buttons in the app.
+- Changed: the place search on the map, the settings search and the archive search now share one search bar look, and the time picker keeps its large hour and minute boxes.
 
 ## 2026-11-12
+- Changed: the task lists calendar works like your other calendars in Settings › Calendars: it has its colour dot and plan line, and its page lets you show or hide it, set its colour and plan, and choose its default reminders.
+- Fixed: the task lists calendar shows its colour dot in Settings › Calendars, like your other calendars.
+- Changed: swiping to another day in the day view now keeps the hours you were looking at in view, instead of jumping back to the morning.
+- Changed: the Multi-day view is now called "Multi-day" (German: "Mehrere Tage") on iPhone and Android alike, and the iPhone layout "Standard" is now "List & week".
+- Fixed: the Multi-day widget on Android no longer jumps to 00:00 and back when it refreshes. It moves straight from where it is to half an hour before now.
 - Fixed: text and buttons can no longer be selected by accident; event descriptions, places and notes can still be copied.
 - New: the calendar that holds your task lists has a colour setting now (Settings › Calendars › Task lists calendar), just like your other calendars. Task lists follow it.
 - Removed: the switch "Show the task lists calendar in Google" is gone; it never worked. The calendar stays out of your Google calendar list.
@@ -176,7 +196,6 @@
 
 ## Iteration 1 — walking skeleton (2026-10-12)
 
-Live at **http://cal.mordor.local** (also linked on Homepage as "Calendar").
 
 What you can see:
 - App shell, mobile first (works at 375px): top bar with the current period, **Today**, previous/next.
@@ -193,7 +212,7 @@ Not yet: events, task lists, Google sync (no data is shown yet).
 Under the hood:
 - `server/`: Fastify (Node 22, TypeScript), `GET /api/health`, serves the built web app with SPA fallback.
 - `web/`: Vue 3 + Vite + Pinia + Vue Router + date-fns.
-- Single Docker image; compose file at `/home/sauron/docker-compose/calendar/docker-compose.yaml`.
+- Single Docker image; one compose file runs it.
 - Redeploy: `scripts/deploy.sh` (runs tests, rebuilds, waits for health).
 
 ## Iteration 1.1 — stack migration (2026-10-12)
@@ -217,7 +236,7 @@ No visible feature change; the app looks and works as before, with Material 3 co
 - Redeploy: `pnpm redeploy` or `scripts/deploy.sh` (renamed from `deploy`, because `pnpm deploy` is a pnpm command).
 
 ## Iteration 2 — full feature set (2026-10-12 ~06:00)
-Live at http://cal.mordor.local (mock Google backend with demo data).
+First running version (mock Google backend with demo data).
 - Server: mock Google Calendar provider (JSON in DATA_DIR), full REST API, task lists stored as Google events,
   settings + categories, streak/plant/sunflowers rules, demo seed, inactive real Google adapter.
 - Web: Material 3 shell (month picker from title, year/month/week/day, swipe), settings (theme presets incl. Mordor,

@@ -11,6 +11,8 @@ import type { TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
+import Checkbox from '@/components/m3/Checkbox.vue';
+import ListItem from '@/components/m3/ListItem.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
@@ -64,7 +66,7 @@ async function save(): Promise<void> {
       <div class="preview">
         <span class="lab">{{ t('tasks.templates.preview') }}</span>
         <ul v-if="list?.items.length" class="items">
-          <li v-for="i in list.items" :key="i.id" class="item" data-testid="template-save-item"><span class="box" aria-hidden="true" />{{ i.ink ? t('ink.placeholder') : i.title }}</li>
+          <ListItem v-for="i in list.items" :key="i.id" tag="li" class="item" data-testid="template-save-item"><template #leading><Checkbox :model-value="false" disabled /></template>{{ i.ink ? t('ink.placeholder') : i.title }}</ListItem>
         </ul>
         <p v-else class="none">{{ t('tasks.templates.noItems') }}</p>
       </div>
@@ -83,8 +85,7 @@ async function save(): Promise<void> {
 .preview { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); }
 .lab { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 30vh; overflow-y: auto; }
-.item { display: flex; align-items: center; gap: 10px; min-height: 28px; font: var(--md-sys-typescale-body-medium); overflow-wrap: anywhere; }
-.box { flex: none; width: 14px; height: 14px; border: 2px solid var(--md-sys-color-outline); border-radius: 3px; }
+.item { padding: 0; gap: 4px; font: var(--md-sys-typescale-body-medium); overflow-wrap: anywhere; }
 .none { margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 /* Left-handed mode (phone): the primary action is at the bottom left. */

@@ -8,7 +8,7 @@ Feature: iPhone widgets through Scriptable
   decides when a widget is redrawn, so it can be a few minutes to an hour behind. The script runs on the iPhone and
   the key works only for the widget data: these scenarios are proven by the server's own tests and on a device, not
   in the browser suite, except the Settings ones.
-  The home screen shows only the Timeline, in every size: small shows today as one column, medium and large show as many
+  The home screen shows only the Multi-day view, in every size: small shows today as one column, medium and large show as many
   days from today as the person picks. Each day is a column with its label at the top ("WED 14", today highlighted), an
   all-day band, an hour scale at the side and a block per entry, placed by its start and as tall as it lasts, with a red
   line for now. Every day label, the hours and the blocks are widget text and stacks, so they follow the iPhone's light or
@@ -26,11 +26,11 @@ Feature: iPhone widgets through Scriptable
   the days shown, because the widget cannot scroll. The iPhone has no layout choice any more: the earlier "Standard"
   layout (today's list, today and tomorrow, the Monday week) is gone, and a choice stored for it is ignored. The lock
   screen does not change. The day count is one setting in
-  its own section "Timeline (iPhone and Android)" of Widgets settings, shared with the Android List widget's Timeline, and a day
+  its own section "Multi-day (iPhone and Android)" of Widgets settings, shared with the Android Multi-day widget, and a day
   count chosen earlier for the Android widget carries over until one is chosen there. The same section holds the
-  "Text size in the Timeline": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
-  Timeline and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
-  The iPhone section also holds "Hours in the Timeline": "Automatic" (the default, the hours fit the entries of the days
+  "Text size": 90 % to 150 % in steps of 5 % (110 % by default), which scales the texts of the iPhone
+  Multi-day view and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
+  The iPhone section also holds "Hours (Multi-day)": "Automatic" (the default, the hours fit the entries of the days
   shown) or "Fixed range" with a start ("From") and an end ("To"). An entry outside a fixed range is not dropped: it
   gets a small marker at the edge of its day, "▾ Cinema 19:00" at the bottom or "▴ Run 06:00" at the top (the nearest
   one, with "+1" for each further one); an entry that reaches into the range is drawn clipped to it. A stored choice is never
@@ -164,7 +164,7 @@ Feature: iPhone widgets through Scriptable
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
 
-    Scenario: The iPhone section has no layout choice and the number of days is set in the Timeline section
+    Scenario: The iPhone section has no layout choice and the number of days is set in the Multi-day section
       When I open the iPhone widget settings
       Then the iPhone section offers no widget layout choice
       And the timeline days are set to "3"

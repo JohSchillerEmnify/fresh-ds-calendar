@@ -66,7 +66,7 @@ describe('M3 theme', () => {
 
 describe('snackbar look follows the theme', () => {
   const src = (p: string) => fs.readFileSync(path.join(import.meta.dirname, '../src', p), 'utf8');
-  const surfaces = ['components/m3/Snackbar.vue', 'components/shell/SyncErrorBanner.vue', 'features/motivation/StreakToast.vue'];
+  const surfaces = ['components/m3/Snackbar.vue', 'components/shell/SyncErrorBanner.vue'];
 
   it('the one snackbar look is built from theme tokens, corner radius and glow', () => {
     const skin = src('theme/theme.css').match(/\.snack-skin \{([^}]*)\}/)![1];

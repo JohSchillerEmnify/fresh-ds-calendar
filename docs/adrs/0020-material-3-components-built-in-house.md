@@ -22,3 +22,5 @@ seed colour at runtime. No component library. Navigation rail on desktop, naviga
 ## Consequences
 
 - Hand-rolled components cost about 10–25 kB and look exactly M3 Expressive, but every component is ours to maintain.
+- Sizes and shapes come from the material-web token files (`tokens/versions/v0_192`, e.g. `_md-comp-checkbox`,
+  `_md-comp-list`, `_md-comp-filled-text-field`); the kit's `Checkbox`, `ListItem` and `TextField` (inline mode) name them.

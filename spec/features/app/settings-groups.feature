@@ -145,3 +145,18 @@ Feature: Settings in a few groups
       And I turn on "Morning overview" in the settings
       And I open the setting "Time of the overview"
       Then the time picker is shown
+      And the time picker has large hour and minute boxes
+
+    @visual @mobile
+    Scenario Outline: The time picker looks as drawn, light and dark
+      Given the device prefers a <scheme> color scheme
+      When I open the settings
+      And I open the settings group "Reminders"
+      And I turn on "Morning overview" in the settings
+      And I open the setting "Time of the overview"
+      Then the "time picker" still looks like "time-picker-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |

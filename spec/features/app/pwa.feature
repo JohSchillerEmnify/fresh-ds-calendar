@@ -3,7 +3,7 @@ Feature: Installable progressive web app
   The app is installable on Android (Chrome) and iOS (Safari, "Add to Home Screen").
   Service workers and the Android install prompt need a secure context: they work on
   http://localhost (tests) and in production only once the app is served over HTTPS.
-  Over plain http://cal.mordor.local the app must still work, just without a service worker.
+  Over plain http://cal.example.test the app must still work, just without a service worker.
 
   Background:
     Given the calendar is empty

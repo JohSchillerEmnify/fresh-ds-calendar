@@ -237,7 +237,7 @@ Then('the {string} switch in the settings is off', async function (this: World, 
   await expect(control).toHaveAttribute('aria-checked', 'false');
 });
 
-/** The Today button's drawn fill and border: the pill inside on phones, the button itself on wide screens; `token` resolved to a colour. */
+/** The Today button's drawn fill and whether it carries an outline; `token` resolved to a colour. */
 async function todayLook(w: World, token: string) {
   await expect(w.page.locator('[data-testid="month-cell"], [data-testid="week-header"], [data-testid="day-column"], [data-testid="timeline-now"]').first()).toBeVisible();
   return today(w).evaluate((btn, tok) => {
@@ -246,24 +246,21 @@ async function todayLook(w: World, token: string) {
     document.body.appendChild(probe);
     const token = getComputedStyle(probe).backgroundColor;
     probe.remove();
-    const pill = btn.querySelector('.pill') as HTMLElement;
-    const alpha = (c: string) => (c.startsWith('rgba') ? Number(c.split(',')[3].replace(')', '')) : 1);
-    const drawn = [pill, btn as HTMLElement].find((el) => alpha(getComputedStyle(el).backgroundColor) > 0) ?? (btn as HTMLElement);
-    const cs = getComputedStyle(drawn);
-    return { shown: btn.getAttribute('data-today-shown'), bg: cs.backgroundColor, token, border: parseFloat(cs.borderTopWidth) };
+    const cs = getComputedStyle(btn);
+    return { shown: btn.getAttribute('data-today-shown'), bg: cs.backgroundColor, token, outlined: cs.boxShadow !== 'none' };
   }, token);
 }
 
 Then('the Today button shows that today is on screen', async function (this: World) {
-  await expect.poll(() => todayLook(this, '--md-sys-color-primary-container')).toMatchObject({ shown: 'true', border: 0 });
-  const look = await todayLook(this, '--md-sys-color-primary-container');
-  expect(look.bg, 'filled with the primary container colour').toBe(look.token);
+  await expect.poll(() => todayLook(this, '--md-sys-color-primary')).toMatchObject({ shown: 'true', outlined: false });
+  const look = await todayLook(this, '--md-sys-color-primary');
+  expect(look.bg, 'filled with the primary colour').toBe(look.token);
 });
 
 Then('the Today button does not show that today is on screen', async function (this: World) {
   await expect.poll(async () => (await todayLook(this, '--md-sys-color-surface')).shown).toBe('false');
   const look = await todayLook(this, '--md-sys-color-surface');
-  expect(look.border, 'outlined').toBeGreaterThanOrEqual(1);
+  expect(look.outlined, 'outlined').toBe(true);
   expect(look.bg, 'a solid surface fill').toBe(look.token);
 });
 

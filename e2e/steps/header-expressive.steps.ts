@@ -47,8 +47,8 @@ const HEROES = ['cat', 'hare', 'mordor-eye', 'mordor-tower', 'moon', 'sun', 'sun
 /** The other large props are decoration (owner 2026-10-30): they stay where they are, even partly under a control or cut by the bar, so only the heroes are judged. */
 const PROPS = ['autumn-tree', 'snowy-tree', 'bare-tree', 'sprouting-tree', 'jack-o-lantern', 'sledge', 'leaf-pile'];
 const LARGE_SEL = [...HEROES, ...PROPS].map((p) => `${SCENE} [data-part="${p}"]`).join(', ');
-/** The drawn controls of the bar (the Today pill, not its larger tap area). */
-const DRAWN = ['[data-testid=period-title] .t', '[data-testid=period-title] > svg', '[data-testid=menu-button] svg', '[data-testid=nav-prev] svg', '[data-testid=nav-next] svg', '[data-testid=nav-today] .pill',
+/** The drawn controls of the bar (the icon, not its larger tap area). */
+const DRAWN = ['[data-testid=period-title] .t', '[data-testid=period-title] > svg', '[data-testid=menu-button] svg', '[data-testid=nav-prev] svg', '[data-testid=nav-next] svg', '[data-testid=nav-today] svg', '[data-testid=nav-today]:not(:has(svg))',
   '[data-testid=streak-flame]', '[data-testid=plant-button]', '[data-testid=sync-status] svg', '[data-testid=filter-button] svg', '[data-testid=settings-button] svg'];
 
 interface Rect { l: number; r: number; t: number; b: number }

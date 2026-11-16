@@ -57,7 +57,6 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('reminders', 'where', 'push', 'settingsNav.labels.push', { hint: 'settingsNav.labels.pushHint', synonyms: 'settingsNav.synonyms.push' }),
   e('reminders', 'appointments', 'notifyEvents', 'settings.notifications.events.label', { hint: 'settingsNav.labels.notifyEventsHint', synonyms: 'settingsNav.synonyms.notifyEvents' }),
   e('reminders', 'tasklists', 'notifyTasklists', 'settings.notifications.tasklists', { hint: 'settingsNav.labels.notifyTasklistsHint' }),
-  e('reminders', 'tasklists', 'tasklistDefaults', 'settings.reminders.tasklists.default'),
   e('reminders', 'appointments', 'morning', 'settings.notifications.morning.label', { hint: 'settings.notifications.morning.hint', synonyms: 'settingsNav.synonyms.morning' }),
   e('reminders', 'appointments', 'morningTime', 'settings.notifications.morning.time', { parent: 'morning' }),
 

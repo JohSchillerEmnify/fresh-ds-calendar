@@ -201,14 +201,14 @@ describe('seed and demo reset (mock mode, TEST_MODE off)', () => {
 
 describe('CORS and config', () => {
   it('allows only configured origins', async () => {
-    const p = makeApp({ PUBLIC_URL: 'http://cal.mordor.local/', ALLOWED_ORIGINS: 'http://localhost:5173' });
+    const p = makeApp({ PUBLIC_URL: 'http://cal.example.test/', ALLOWED_ORIGINS: 'http://localhost:5173' });
     try {
-      expect(p.app.ctx.config.allowedOrigins).toEqual(['http://cal.mordor.local', 'http://localhost:5173']);
+      expect(p.app.ctx.config.allowedOrigins).toEqual(['http://cal.example.test', 'http://localhost:5173']);
       const ok = await p.req('GET', '/api/health', undefined, { Origin: 'http://localhost:5173' });
       expect(ok.headers.get('access-control-allow-origin')).toBe('http://localhost:5173');
       const bad = await p.req('GET', '/api/health', undefined, { Origin: 'http://evil.example' });
       expect(bad.headers.get('access-control-allow-origin')).toBeNull();
-      expect((await p.json('GET', '/api/config')).body.publicUrl).toBe('http://cal.mordor.local');
+      expect((await p.json('GET', '/api/config')).body.publicUrl).toBe('http://cal.example.test');
     } finally { p.cleanup(); }
   });
 });

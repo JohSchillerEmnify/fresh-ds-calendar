@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Installs the laptop hooks (pre-commit, pre-push, commit-msg) into this clone's .git/hooks. The post-* hooks are for the home
-# server and are deliberately not touched. Each installed file is a stub that runs the hook of the current worktree.
+# Installs the hooks (pre-commit, pre-push, commit-msg) into this clone's .git/hooks. Each installed file is a stub that runs the hook of the current worktree.
 set -euo pipefail
 dir="$(git rev-parse --git-path hooks)"
 mkdir -p "$dir"

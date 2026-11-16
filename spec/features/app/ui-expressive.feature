@@ -4,8 +4,13 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
   one filled primary action (the + button, Save, Today); everything else is tonal or text. Actions in headers and
   toolbars are icon-only and carry an accessible label (their name for screen readers and as a tooltip). A card keeps
   its secondary actions behind one overflow button (three dots, "More"). Open, Canvas and Archive are one connected
-  button group. Raw hand-styled buttons outside `web/src/components/m3` are forbidden by a lint gate. Theme corners
+  button group. Raw hand-styled buttons, form fields, hand-made roles and clicks on plain elements outside `web/src/components/m3` are forbidden by a lint gate with a shrinking allowlist; badges, pills and removable values are kit parts (Badge, Chip, Button). Theme corners
   (Winter square, Neon pill) shape only events and cards; bars, pills and buttons stay round in every theme.
+  The theme's Density setting sets the height of every kit control in Material's 4 px density steps: Compact draws
+  them two steps lower, Comfortable at the Material 3 sizes and Airy one step higher; a text field never gets lower
+  than 52 px so its label still fits, and every control keeps a tap area of at least 48 by 48 px. The base corner
+  sizes are the Material 3 shape scale (4, 8, 12, 16 and 28 px, and full); the corners a theme sets (events, cards,
+  the checkbox shape) stay as the theme sets them.
   The scenarios without a viewport tag run on the phone only (`@mobile`).
 
   Background:
@@ -96,6 +101,41 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       Then the lint gate fails and names that component
       And a button element inside "web/src/components/m3" passes the lint gate
 
+    @unit
+    # unit: web/test/lint-gate.test.ts:no raw fields, roles or clicks on plain elements outside m3
+    Scenario: The lint gate rejects a raw field, a hand-made role and a click on a plain element outside the m3 components
+      Given a component outside "web/src/components/m3" contains a raw form field, a hand-made role or a click on a plain element
+      When the lint gate runs
+      Then the lint gate fails and names that component
+      And the same elements inside "web/src/components/m3" pass the lint gate
+
+    @unit
+    # unit: web/test/lint-gate.test.ts:the allowlist only shrinks
+    Scenario: The allowlist of the lint gate only shrinks
+      Given the allowlist of the lint gate
+      Then every listed component still needs the release it holds
+
+  Rule: Badges, pills and chips are kit parts that follow the Density setting
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:is 6 px as a dot and 16 px high as a pill, in the error colours
+    Scenario: A badge is a 6 pixel dot or a 16 pixel pill in the error colours
+      Given the style rules of the Material 3 components
+      Then the badge is "6" pixels as a dot and "16" pixels high with a label, in the error colours
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:is no button itself; its x is the one button and says what it removes
+    Scenario: A removable value is an input chip with a named remove cross
+      Given the style rules of the Material 3 components
+      Then an input chip is no button itself and its remove cross is named by what it removes
+      And it follows the Density setting and keeps a 48 pixel tap area on its cross
+
+    @unit
+    # unit: web/test/m3-badge-input-chip.test.ts:sit on a solid surface so a scene never shows through
+    Scenario: An outlined button sits on a solid surface
+      Given the style rules of the Material 3 components
+      Then an outlined button and an outlined icon button are filled with the surface colour
+
   Rule: A pressed button squishes slightly and never turns square
 
     @unit
@@ -134,3 +174,111 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
       When I open the week view for 2026-10-12
       Then the event "Dentist" has a corner radius of 16 px
       And the bottom bar, the top bar and every button are drawn with fully round corners
+
+  Rule: The kit controls have the Material 3 sizes and shapes
+
+    @mobile
+    Scenario: Every icon button can be tapped on at least 48 by 48 pixels
+      When I open the week view for 2026-10-12
+      Then every icon button of the screen has a tap area of at least 48 by 48 pixels
+
+    @mobile
+    Scenario: A text field shows a line along its bottom that thickens while it is focused
+      When I start a new event
+      And I click into the field "Title"
+      Then the field "Title" shows a 2 pixel line along its bottom in the primary colour
+      And the field "Description" shows a 1 pixel line along its bottom
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a button is 40 px high on a 48 px tap area and stays round at any height
+    Scenario: A button is 40 pixels high, can be tapped on 48 pixels and stays round
+      Given the style rules of the Material 3 components
+      Then a button is drawn 40 pixels high on a tap area 48 pixels high
+      And its corners stay fully round however tall its label makes it
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a chip is 32 px high with 8 px corners
+    Scenario: A chip is 32 pixels high with 8 pixel corners
+      Given the style rules of the Material 3 components
+      Then a chip is drawn 32 pixels high with 8 pixel corners
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a text field is filled by default and outlined on request
+    Scenario: A text field is filled by default and can be outlined
+      Given the style rules of the Material 3 components
+      Then a text field has rounded top corners only and a line along its bottom
+      And an outlined text field has a 1 pixel outline that turns 2 pixels while it is focused
+
+  Rule: Every segmented choice is the expressive connected button group
+
+    @mobile
+    Scenario: The kind switch of a new entry is a connected button group
+      When I start a new event
+      Then the switch "New" is a connected button group of "Event, Task list, Birthday"
+
+    @mobile
+    Scenario: The Tasks tabs are a connected button group
+      When I open the path "/tasks"
+      Then the switch "Tasks" is a connected button group of "Open, Canvas, Archive"
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:a segmented choice has only the connected look
+    Scenario: A segmented choice cannot fall back to the old outlined look
+      Given the style rules of the Material 3 components
+      Then a segmented choice is always drawn as a connected button group
+
+  Rule: The Density setting makes every kit control compact
+
+    @mobile
+    Scenario Outline: With density <density> the Tasks tabs and the kind switch of a new entry are <height> pixels high
+      Given the density is "<density>"
+      When I open the path "/tasks"
+      Then the buttons of the switch "Tasks" are drawn <height> pixels high
+      When I start a new event
+      Then the buttons of the switch "New" are drawn <height> pixels high
+
+      Examples:
+        | density     | height |
+        | Compact     | 32     |
+        | Comfortable | 40     |
+        | Airy        | 44     |
+
+    @mobile
+    Scenario: With density Compact every control of the new event dialog can still be tapped on 48 by 48 pixels
+      Given the density is "Compact"
+      When I start a new event
+      Then every control of the dialog has a tap area of at least 48 by 48 pixels
+
+    @mobile
+    Scenario: With density Compact every icon button can still be tapped on 48 by 48 pixels
+      Given the density is "Compact"
+      When I open the week view for 2026-10-12
+      Then every icon button of the screen has a tap area of at least 48 by 48 pixels
+
+    @unit
+    # unit: web/test/theme-fine.test.ts:each density moves the control heights in Material's 4 px steps
+    Scenario: Compact takes two Material density steps off every control and Airy adds one
+      Given the density steps of the theme
+      Then Compact draws every control 8 pixels lower than Comfortable and Airy 4 pixels higher
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:every kit control takes its height from the one density shift
+    Scenario: Every kit control takes its height from the Density setting
+      Given the style rules of the Material 3 components
+      Then every button, icon button, choice, chip, field, list row and selection control reads its height from the one density setting
+      And none of them can be tapped on less than 48 by 48 pixels
+
+  Rule: The base corners follow the Material 3 shape scale, theme corners stay the theme's
+
+    @unit
+    # unit: web/test/m3-kit-sizes.test.ts:the base corner sizes are the Material 3 shape scale
+    Scenario: The base corner sizes are the Material 3 shape scale
+      Given the style rules of the Material 3 components
+      Then the corner sizes are "4, 8, 12, 16, 28" pixels from extra small to extra large
+
+    @mobile
+    Scenario: The theme's event corners are unchanged by the shape scale
+      Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+      And the theme is "Default"
+      When I open the week view for 2026-10-12
+      Then the event "Dentist" has a corner radius of 8 px

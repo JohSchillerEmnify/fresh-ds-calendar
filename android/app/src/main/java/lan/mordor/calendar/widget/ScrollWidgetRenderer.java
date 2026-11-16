@@ -95,17 +95,10 @@ final class ScrollWidgetRenderer {
         return (int) ChronoUnit.DAYS.between(from, today) + ScrollRows.DAYS;
     }
 
+    /** The widget with its list: the rows themselves on Android 12 and newer, the {@link ScrollWidgetService} on older ones. */
     static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now, boolean timeline) {
-        return build(context, widgetId, options, today, now, timeline, false);
-    }
-
-    /**
-     * The widget with its list: the rows themselves on Android 12 and newer, the {@link ScrollWidgetService} on older ones. {@code alt}
-     * picks the copy of the layout, so that a launcher builds the views afresh instead of reapplying them (see ScrollWidgetProvider#push).
-     */
-    static RemoteViews build(Context context, int widgetId, Bundle options, LocalDate today, LocalTime now, boolean timeline, boolean alt) {
         Model m = load(context, today);
-        RemoteViews rv = new RemoteViews(context.getPackageName(), alt ? R.layout.widget_scroll_alt : R.layout.widget_scroll);
+        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_scroll);
         rv.setInt(R.id.bg, "setColorFilter", m.theme.surface);
         rv.setInt(R.id.refresh, "setColorFilter", m.theme.onSurfaceVariant);
         rv.setOnClickPendingIntent(R.id.refresh, WeekWidgetProvider.refreshIntent(context));
@@ -135,7 +128,8 @@ final class ScrollWidgetRenderer {
         rv.setPendingIntentTemplate(R.id.list, template(context));
         int row = timeline && m.data != null ? plan(context, m, options, today, now).scrollRow : -1;
         if (items != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // a freshly built list has no rows yet and ignores a scroll; an adapter whose data then changes defers it to its first layout
+            // a freshly built list has no rows yet and ignores a scroll; an adapter whose data then changes defers it to its first layout,
+            // and a reused list keeps its place until then, so the scroll runs from there (TimelineRows#plan)
             if (row >= 0) rv.setRemoteAdapter(R.id.list, new RemoteViews.RemoteCollectionItems.Builder().setViewTypeCount(3).build());
             RemoteViews.RemoteCollectionItems.Builder b = new RemoteViews.RemoteCollectionItems.Builder().setHasStableIds(false).setViewTypeCount(3);
             for (int i = 0; i < items.size(); i++) b.addItem(i, items.get(i));

@@ -65,11 +65,11 @@ async function remove() {
     </div>
     <SettingRow id="widgetCircle" wide :label="t('iphoneWidget.circle.label')">
       <template #sub><span class="sub" data-testid="settings-widget-circle-hint">{{ t('iphoneWidget.circle.hint') }}</span></template>
-      <SegmentedButton connected :model-value="prefs.widgetCircle" :options="circleOptions" :label="t('iphoneWidget.circle.label')" data-testid="settings-widget-circle" @update:model-value="savePrefs({ widgetCircle: $event as WidgetCircle })" />
+      <SegmentedButton :model-value="prefs.widgetCircle" :options="circleOptions" :label="t('iphoneWidget.circle.label')" data-testid="settings-widget-circle" @update:model-value="savePrefs({ widgetCircle: $event as WidgetCircle })" />
     </SettingRow>
     <SettingRow id="widgetTimelineHours" wide :label="t('iphoneWidget.hours.label')">
       <template #sub><span class="sub" data-testid="settings-widget-range-hint">{{ t('iphoneWidget.hours.hint') }}</span></template>
-      <SegmentedButton connected :model-value="prefs.widgetTimelineHours.mode" :options="hoursOptions" :label="t('iphoneWidget.hours.label')" data-testid="settings-widget-range" @update:model-value="saveHours({ mode: $event as TimelineHours['mode'] })" />
+      <SegmentedButton :model-value="prefs.widgetTimelineHours.mode" :options="hoursOptions" :label="t('iphoneWidget.hours.label')" data-testid="settings-widget-range" @update:model-value="saveHours({ mode: $event as TimelineHours['mode'] })" />
     </SettingRow>
     <div v-if="prefs.widgetTimelineHours.mode === 'fixed'" class="range">
       <TextField :model-value="prefs.widgetTimelineHours.from" type="time" :label="t('iphoneWidget.hours.from')" data-testid="settings-widget-range-from" @update:model-value="$event && saveHours({ from: $event })" />

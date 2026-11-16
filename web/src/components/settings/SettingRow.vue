@@ -32,7 +32,7 @@ function open() {
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: 8px 8px; margin: 0 -8px; width: calc(100% + 16px); min-height: 64px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 8px; padding: calc(8px + var(--md-density-shift) / 2) 8px; margin: 0 -8px; width: calc(100% + 16px); min-height: calc(64px + var(--md-density-shift)); text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); scroll-margin: 96px; }
 .ico { display: flex; color: var(--md-sys-color-on-surface-variant); }
 .ico :deep(svg) { width: 24px; height: 24px; }
 .text { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; }

@@ -8,6 +8,7 @@ import { useTaskListsStore } from './store';
 import { useTemplatesStore } from './templatesStore';
 
 export { showProgress } from './format';
+export { useTaskListsStore } from './store';
 export { dropIndex, moveTo, rowShifts, type RowSpan } from './reorder';
 
 const Tray = defineAsyncComponent(() => import('./TaskTray.vue'));

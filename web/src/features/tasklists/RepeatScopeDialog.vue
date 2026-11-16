@@ -9,6 +9,8 @@ import type { ChangeScope } from '@/api/types';
 import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
+import ListItem from '@/components/m3/ListItem.vue';
+import Radio from '@/components/m3/Radio.vue';
 
 /** `open`: a question is being asked. */
 const props = defineProps<{ open: boolean }>();
@@ -26,10 +28,10 @@ const options = (): { value: ChangeScope; label: string }[] => [
   <AdaptiveSheet :open="open" :label="t('tasks.repeatScope.title')" testid="repeat-scope-dialog" @close="emit('answer', null)">
     <h2 class="t">{{ t('tasks.repeatScope.title') }}</h2>
     <div v-if="open" class="opts" role="radiogroup" :aria-label="t('tasks.repeatScope.title')">
-      <label v-for="o in options()" :key="o.value" class="opt" :data-testid="`repeat-scope-${o.value}`" :data-checked="choice === o.value ? 'true' : undefined">
-        <input v-model="choice" type="radio" name="repeat-scope" :value="o.value" />
-        <span>{{ o.label }}</span>
-      </label>
+      <ListItem v-for="o in options()" :key="o.value" tag="label" class="opt" :data-testid="`repeat-scope-${o.value}`" :data-checked="choice === o.value ? 'true' : undefined">
+        <template #leading><Radio :model-value="choice" :value="o.value" name="repeat-scope" :label="o.label" @update:model-value="choice = $event as ChangeScope" /></template>
+        {{ o.label }}
+      </ListItem>
     </div>
     <div class="actions">
       <Button variant="text" data-testid="repeat-scope-cancel" @click="emit('answer', null)">{{ t('tasks.dialog.cancel') }}</Button>
@@ -41,8 +43,7 @@ const options = (): { value: ChangeScope; label: string }[] => [
 <style scoped>
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-title-large); }
 .opts { display: flex; flex-direction: column; margin-top: 12px; }
-.opt { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 0 4px; border-radius: 12px; cursor: pointer; font: var(--md-sys-typescale-body-large); }
-.opt input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--md-sys-color-primary); }
+.opt { cursor: pointer; padding: 0 4px; gap: 4px; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 /* Left-handed mode (phone): the primary action is at the bottom left. */
 html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }

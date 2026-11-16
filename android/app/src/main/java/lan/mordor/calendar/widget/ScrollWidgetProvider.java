@@ -118,16 +118,8 @@ public class ScrollWidgetProvider extends AppWidgetProvider {
         return true;
     }
 
-    /**
-     * Hands one instance to the system. The Multi-day widget's scroll only lands from the list's top, so each of its updates takes the
-     * other copy of the layout: the launcher then builds the list afresh (RemoteViews.canRecycleView) instead of scrolling on from
-     * where it was, which took the list back to 00:00.
-     */
+    /** Hands one instance to the system, always in the same layout: the launcher reuses the shown list, which scrolls on from where it is. */
     static boolean push(Context context, BitmapBudget.Updater out, int widgetId, Bundle options, boolean timeline, LocalDate today, LocalTime now) {
-        WidgetStore store = new WidgetStore(context);
-        boolean alt = timeline && !store.altLayout(widgetId);
-        if (!BitmapBudget.push(context, out, widgetId, () -> ScrollWidgetRenderer.build(context, widgetId, options, today, now, timeline, alt))) return false;
-        if (timeline) store.setAltLayout(widgetId, alt);
-        return true;
+        return BitmapBudget.push(context, out, widgetId, () -> ScrollWidgetRenderer.build(context, widgetId, options, today, now, timeline));
     }
 }

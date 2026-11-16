@@ -118,7 +118,9 @@ const ticked = computed(() => SAMPLE_TASKS.map((x) => x.done));
 .list { align-self: stretch; box-sizing: border-box; padding: 6px 8px; border-radius: var(--r-block); display: flex; flex-direction: column; font: var(--md-sys-typescale-label-medium); }
 .lt { font: var(--md-sys-typescale-label-large); padding-bottom: 2px; }
 .list :deep(.rcb) { min-height: 28px; gap: 4px; }
-.list :deep(.rcb-box) { width: 26px; height: 26px; }
+/* a miniature: the kit checkbox's 48 px target shrinks with the sample */
+.list :deep(.cb) { width: 28px; height: 28px; }
+.list :deep(.cb-layer) { width: 26px; height: 26px; }
 .side :deep(.fab) { width: 48px; height: 48px; }
 .collapsed .bar { visibility: hidden; min-height: 36px; }
 .handle { display: flex; align-items: center; justify-content: center; height: 24px; border: 0; background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface-variant); cursor: pointer; }

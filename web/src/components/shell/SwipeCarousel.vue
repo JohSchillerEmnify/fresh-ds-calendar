@@ -13,6 +13,7 @@
 import { markRaw, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, type Component } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNav } from '@/composables/useNav';
+import { swipeKeepsHours } from '@/composables/useHourHeight';
 import { bindSwipe } from '@/composables/useSwipe';
 import { bindSwipeCarousel, settleVelocity, type SwipeDir } from '@/composables/useSwipeCarousel';
 import { fetchRange, periodBounds, shiftPeriod, toIsoDate, type ViewKind } from '@/lib/dates';
@@ -90,16 +91,24 @@ async function end(target: SwipeDir | 0, vx: number) {
     const to = nb.value ? target : 0;
     await slide(offset, -to * (area.value?.clientWidth ?? 0), vx);
     if (to) {
+      swipeKeepsHours.value = true;
       await (to === 1 ? nav.next() : nav.prev());
       // the routed view has re-rendered the new period (and run its initial scroll) before the neighbour goes
       await nextTick();
       await nextTick();
     }
   } finally {
+    swipeKeepsHours.value = false;
     nb.value = null;
     setX(0);
     busy = false;
   }
+}
+
+/** The instant swipe (reduced motion) keeps the hours too. */
+async function keepHours(turn: Promise<unknown> | unknown) {
+  swipeKeepsHours.value = true;
+  try { await turn; await nextTick(); await nextTick(); } finally { swipeKeepsHours.value = false; }
 }
 
 let stops: Array<() => void> = [];
@@ -107,8 +116,8 @@ onMounted(() => {
   const el = area.value!;
   stops = [
     bindSwipe(el, {
-      onLeft: () => void nav.next(),
-      onRight: () => void nav.prev(),
+      onLeft: () => void keepHours(nav.next()),
+      onRight: () => void keepHours(nav.prev()),
       disabled: () => props.disabled() || live(),
     }),
     bindSwipeCarousel(el, {

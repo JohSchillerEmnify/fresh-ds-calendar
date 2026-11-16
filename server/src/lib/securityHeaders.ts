@@ -1,7 +1,7 @@
 /**
  * Browser security headers (CSP, X-Frame-Options, Permissions-Policy) for the server's own answers.
  *
- * The public instance gets the same headers from Caddy (`deploy/vps/Caddyfile`); sauron has no Caddy, so the server
+ * The public instance gets the same headers from Caddy (`deploy/vps/Caddyfile`); a local run has no Caddy, so the server
  * sends them itself. The CSP allows exactly the inline scripts found in the served `index.html` by sha256, computed
  * from the built file at start, so the policy cannot go stale against the page it protects. `test/security-headers.test.ts`
  * keeps the Caddyfile copy in step.
@@ -65,7 +65,7 @@ export function contentSecurityPolicy(scriptHashes: string[], hosts: PlaceHosts 
 export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()';
 
 /**
- * The Referrer-Policy value: the browsers' own default, sent explicitly so sauron matches the public instance. Never
+ * The Referrer-Policy value: the browsers' own default, sent explicitly so a local run matches the public instance. Never
  * stricter: the OSM tile policy asks web pages to send their origin as Referer.
  */
 export const REFERRER_POLICY = 'strict-origin-when-cross-origin';

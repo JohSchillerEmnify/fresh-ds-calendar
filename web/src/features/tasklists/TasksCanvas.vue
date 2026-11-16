@@ -11,6 +11,7 @@ import { t } from '@/i18n';
 import type { CanvasArea as Area, TaskList } from '@/api/types';
 import { IconAdd, IconDeleteOutline } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
+import TextField from '@/components/m3/TextField.vue';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -144,7 +145,7 @@ const hooks: CanvasPointerHooks = {
 const editing = ref<string | null>(null);
 const editArea = computed<Area | null>(() => canvas.areas.find((a) => a.id === editing.value) ?? null);
 const nameDraft = ref('');
-const nameInput = ref<HTMLInputElement | null>(null);
+const nameInput = ref<{ $el: HTMLElement } | null>(null);
 
 // the phone's create button must not cover the editor's buttons
 watch(editArea, (a) => ui.setPanel('canvas-area-editor', !!a));
@@ -157,8 +158,9 @@ watch(editing, async (id) => {
   if (!a) return;
   nameDraft.value = a.name;
   await nextTick();
-  nameInput.value?.focus();
-  nameInput.value?.select();
+  const input = nameInput.value?.$el.querySelector('input');
+  input?.focus();
+  input?.select();
 });
 function addArea(): void {
   const a = canvas.addArea(centeredArea(canvas.view, size.w, size.h));
@@ -239,9 +241,9 @@ onBeforeUnmount(() => {
     </div>
 
     <section v-if="editArea" class="editor" data-testid="canvas-area-editor" role="group" :aria-label="t('canvas.area.editor')" @keydown.esc.stop="editing = null">
-      <input
-        ref="nameInput" v-model="nameDraft" class="name-in" data-testid="canvas-area-name-input" type="text" maxlength="60" enterkeyhint="done"
-        :aria-label="t('canvas.area.name')" @keydown.enter.prevent="finishEditing" @blur="commitName"
+      <TextField
+        ref="nameInput" v-model="nameDraft" inline class="name-in" data-testid="canvas-area-name-input" maxlength="60" enterkeyhint="done"
+        :label="t('canvas.area.name')" @keydown.enter.prevent="finishEditing" @blur="commitName"
       />
       <div class="swatches" role="group" :aria-label="t('canvas.area.color')">
         <Pressable
@@ -275,11 +277,6 @@ onBeforeUnmount(() => {
   position: absolute; left: 12px; right: 12px; bottom: calc(12px + var(--navbar-h, 0px) + var(--safe-bottom, 0px)); max-width: 420px; margin: 0 auto; padding: 12px; border-radius: 20px;
   display: flex; flex-direction: column; gap: 12px; background: var(--md-sys-color-surface-container-high); box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
 }
-.name-in {
-  width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
-  border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0;
-}
-.name-in:focus { outline: 2px solid var(--md-sys-color-primary); }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--s); border: 2px solid transparent; }
 .swatch[aria-pressed='true'] { border-color: var(--md-sys-color-on-surface); box-shadow: 0 0 0 2px var(--md-sys-color-surface-container-high) inset; }

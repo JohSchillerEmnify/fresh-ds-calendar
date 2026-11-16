@@ -77,7 +77,7 @@ Where things live:
 | `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `docs/architecture/`, `docs/adrs/` | LikeC4 model and views; architecture decision records |
-| `BRIEF.md`, `PLAN.md` | The original owner brief and the first build day's notes (history; the spec and ADRs are current) |
+| `BRIEF.md` | The original owner brief (history; the spec and ADRs are current) |
 | `docs/` | Research, deployment and backlog notes |
 
 Android: `scripts/android-build.sh` (needs `CAL_DOMAIN` or `CAL_SERVER_URL`) builds the APK in Docker and signs it with
@@ -165,6 +165,9 @@ In practice:
 | Edit permission: `server/src/services/ownership.ts` | ESLint error on `accessRole` / `dataOwner` in `web/src` | `writable` (calendar) and `readOnly` (event) from the API |
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
+
+### Recording pictures (@visual) on GitHub
+The Pictures workflow (`.github/workflows/pictures.yml`, not a required check) starts by itself on every push to a branch other than `main` that touches `web/src`, `e2e`, `spec/features` or `shared`; a newer push replaces the older run. It records the `@visual` baselines (mobile and desktop) in 4 shards in the pinned Playwright image and never commits. Fetch the result with `ci-pictures <branch>` (agent helper in `~/.local/share/calendar-tools/bin`; it waits for the run, then downloads the changed PNGs to their paths plus the summary and sheets to `e2e/test-results/ci-pictures/`), or download the `pictures` artifact from the run. Actions > Pictures > Run workflow is the manual fallback (inputs `grep`, `projects`, `shards`). Look at the sheets, then commit the PNGs. `scripts/diff_summary.py` writes the summary and drops pure anti-aliasing noise; the laptop fallback `rebaseline` uses the same script.
 
 ### Credits (Settings > Account & app > Credits)
 The build lists every library in the web bundle on its own (`web/credits-plugin.ts`, rollup-plugin-license). Anything

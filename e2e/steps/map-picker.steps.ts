@@ -25,6 +25,13 @@ When('I search the map picker for {string}', async function (this: World, text: 
   await f.pressSequentially(text, { delay: 30 });
 });
 
+Then('the map picker search bar is full round and {int} px high', async function (this: World, h: number) {
+  const bar = picker(this).getByTestId('map-picker-search-bar');
+  await expect(bar).toBeVisible();
+  expect((await bar.boundingBox())!.height).toBe(h);
+  expect(await bar.evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThanOrEqual(h / 2);
+});
+
 When('I pick the map picker result {string}', async function (this: World, name: string) {
   await picker(this).getByTestId('map-picker-result')
     .filter({ has: this.page.getByTestId('map-picker-result-name').filter({ hasText: exactText(name) }) }).click();

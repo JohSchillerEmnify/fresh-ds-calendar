@@ -14,6 +14,8 @@ describe('ReminderEditor', () => {
   it('shows the calendar default in words and switches to an own list on add', async () => {
     const w = editor({ useDefault: true, minutes: [] });
     expect(w.get(tid('e-reminders-default-list')).text()).toBe('30 min, 10 min');
+    // a space after the colon: the template's line break between the two spans is dropped by the compiler
+    expect(w.get(tid('e-reminders-state')).element.textContent).toBe('Calendar default: 30 min, 10 min');
     expect(w.find(tid('e-reminders-default')).exists()).toBe(false);
     await w.get(tid('e-reminder-add')).trigger('click');
     await w.get('[data-testid="e-reminder-option"][data-minutes="90"]').trigger('click');

@@ -12,7 +12,7 @@ const controlId = (name: string) => {
   return id;
 };
 
-/** The look of every visible button of the page outside dialogs: its testid, drawn background (the Today `.pill` for Today) and whether it shows text. */
+/** The look of every visible button of the page outside dialogs: its testid, drawn background and whether it shows text. */
 async function buttonLooks(w: World, inDialog = false) {
   // the settings are not a calendar view: `settled` waits for one
   if (!(await w.page.getByTestId('settings-view').isVisible())) await w.settled();
@@ -24,8 +24,7 @@ async function buttonLooks(w: World, inDialog = false) {
       const r = b.getBoundingClientRect();
       return r.width > 1 && r.height > 1 && getComputedStyle(b).visibility !== 'hidden' && (dialog ? !!b.closest('[role="dialog"]') : !b.closest('[role="dialog"]'));
     }).map((b) => {
-      const drawn = b.querySelector<HTMLElement>('.pill') ?? b;
-      const cs = getComputedStyle(drawn);
+      const cs = getComputedStyle(b);
       return { id: b.dataset.testid ?? '', filled: primary.includes(cs.backgroundColor), alpha: alpha(cs.backgroundColor), blur: cs.backdropFilter, text: (b.innerText ?? '').trim(), label: b.getAttribute('aria-label') ?? b.getAttribute('title') ?? '' };
     });
   }, inDialog);
@@ -76,7 +75,7 @@ Then('the bottom bar, the top bar and every button are drawn with fully round co
     });
     const bar = document.querySelector('[data-testid="top-bar"]')!;
     const flat = parseFloat(getComputedStyle(bar).borderTopLeftRadius) === 0;
-    return [...bars, ...buttons].filter((e) => !round(e) && !(e.matches('[data-testid="nav-today"]') && round(e.querySelector('.pill')!))).map((e) => (e as HTMLElement).dataset.testid ?? e.tagName).concat(flat ? [] : ['top-bar corners']);
+    return [...bars, ...buttons].filter((e) => !round(e)).map((e) => (e as HTMLElement).dataset.testid ?? e.tagName).concat(flat ? [] : ['top-bar corners']);
   });
   expect(bad, 'not fully round').toEqual([]);
 });
@@ -210,4 +209,75 @@ Then('the floating toolbar is hidden', async function (this: World) {
 Then('the floating toolbar is shown', async function (this: World) {
   await expect(toolbar(this)).toHaveAttribute('data-hidden', 'false');
   await expect.poll(() => toolbar(this).evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }), { message: 'toolbar inside the viewport' }).toBe(true);
+});
+
+// --- kit sizes: icon button tap area, text field active indicator --------------------------------------------------------
+
+Then('every icon button of the screen has a tap area of at least {int} by {int} pixels', async function (this: World, w: number, h: number) {
+  await this.settled();
+  const small = await this.page.evaluate(([mw, mh]) => [...document.querySelectorAll<HTMLElement>('.icon-btn')].filter((b) => {
+    const r = b.getBoundingClientRect();
+    return r.width > 1 && !b.classList.contains('sr-only') && getComputedStyle(b).visibility !== 'hidden' && (r.width < mw - 0.5 || r.height < mh - 0.5);
+  }).map((b) => `${b.dataset.testid ?? b.getAttribute('aria-label')} ${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)}`), [w, h]);
+  const count = await this.page.locator('.icon-btn:visible').count();
+  expect(count, 'icon buttons on screen').toBeGreaterThan(0);
+  expect(small, 'icon buttons with a smaller tap area').toEqual([]);
+});
+
+const field = (w: World, label: string) => w.page.getByRole('dialog').getByLabel(label, { exact: true });
+
+When('I click into the field {string}', async function (this: World, label: string) {
+  await field(this, label).click();
+  await expect(field(this, label)).toBeFocused();
+});
+
+/** Thickness and colour of the field box's inset bottom line (the M3 active indicator). */
+async function bottomLine(w: World, label: string) {
+  return field(w, label).evaluate((el) => {
+    const shadow = getComputedStyle(el.parentElement!).boxShadow;
+    const i = document.createElement('i'); i.style.color = 'var(--md-sys-color-primary)'; document.body.appendChild(i);
+    const primary = getComputedStyle(i).color; i.remove();
+    const m = /^(rgba?\([^)]*\)) 0px (-?[\d.]+)px 0px 0px inset$/.exec(shadow);
+    return { px: m ? -Number(m[2]) : 0, primary: !!m && m[1] === primary, shadow };
+  });
+}
+
+Then('the field {string} shows a {int} pixel line along its bottom', async function (this: World, label: string, px: number) {
+  await expect.poll(async () => (await bottomLine(this, label)).px, `bottom line of ${label}`).toBe(px);
+});
+
+Then('the field {string} shows a {int} pixel line along its bottom in the primary colour', async function (this: World, label: string, px: number) {
+  await expect.poll(async () => (await bottomLine(this, label)).px, `bottom line of ${label}`).toBe(px);
+  expect((await bottomLine(this, label)).primary, `bottom line of ${label} is primary`).toBe(true);
+});
+
+Then('the switch {string} is a connected button group of {string}', async function (this: World, name: string, labels: string) {
+  const g = this.page.getByRole('group', { name, exact: true }).first();
+  const buttons = g.getByRole('button');
+  await expect(buttons).toHaveCount(labels.split(', ').length);
+  expect((await buttons.allInnerTexts()).map((t) => t.trim()).join(', ')).toBe(labels);
+  // the expressive group: separate rounded buttons 2 px apart, no shared outline around them
+  expect(await g.evaluate((el) => getComputedStyle(el).borderTopWidth), 'outline of the group').toBe('0px');
+  const boxes = await buttons.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+  for (let i = 1; i < boxes.length; i++) expect(Math.round(boxes[i].left - boxes[i - 1].right), `gap before button ${i + 1}`).toBe(2);
+});
+
+// --- density: drawn heights and tap areas -------------------------------------------------------------------------------
+
+Then('the buttons of the switch {string} are drawn {int} pixels high', async function (this: World, name: string, px: number) {
+  const buttons = this.page.getByRole('group', { name, exact: true }).first().getByRole('button');
+  await expect(buttons.first()).toBeVisible();
+  // clientHeight is the drawn padding box: the transparent tap border is left out
+  expect(await buttons.evaluateAll((els) => els.map((e) => e.clientHeight)), `drawn heights of "${name}"`).toEqual(Array(await buttons.count()).fill(px));
+});
+
+Then('every control of the dialog has a tap area of at least {int} by {int} pixels', async function (this: World, w: number, h: number) {
+  const dialog = this.page.getByRole('dialog').first();
+  await expect(dialog).toBeVisible();
+  const sizes = await dialog.evaluate((d) => [...d.querySelectorAll<HTMLElement>('.m3-btn, .icon-btn, .switch, .seg > .opt, .chip, .cb, .rb')].filter((e) => {
+    const r = e.getBoundingClientRect();
+    return r.width > 1 && getComputedStyle(e).visibility !== 'hidden';
+  }).map((e) => { const r = e.getBoundingClientRect(); return { name: e.dataset.testid ?? e.getAttribute('aria-label') ?? e.className, w: r.width, h: r.height }; }));
+  expect(sizes.length, 'controls in the dialog').toBeGreaterThan(0);
+  expect(sizes.filter((s) => s.w < w - 0.5 || s.h < h - 0.5).map((s) => `${s.name} ${Math.round(s.w)}x${Math.round(s.h)}`), 'controls with a smaller tap area').toEqual([]);
 });

@@ -90,6 +90,16 @@ Feature: Creating, editing and deleting events
     Then I see the all-day event "Holiday" on 2026-10-16
     And Google contains an all-day event "Holiday" from 2026-10-16 to 2026-10-16
 
+  Scenario: Tapping the text "All day" turns the All day setting on
+    When I open the month view for 2026-10
+    And I start creating an event
+    And I tap the text "All day" in the event form
+    Then the event form shows:
+      | all day | yes |
+    When I tap the text "All day" in the event form
+    Then the event form shows:
+      | all day | no |
+
   Scenario: Create a multi-day all-day event
     When I open the month view for 2026-10
     And I start creating an event

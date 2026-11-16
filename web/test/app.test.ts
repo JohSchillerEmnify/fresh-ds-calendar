@@ -276,31 +276,36 @@ describe('top bar: streak choice and sync icon', () => {
 });
 
 describe('month picker', () => {
+  // the picker is an AdaptiveSheet teleported to the body
+  const picker = () => document.querySelector(tid('month-picker'));
+  const pick = (id: string) => document.querySelector<HTMLElement>(tid(id))!;
+  const day = (d: string) => document.querySelector<HTMLElement>(`[data-testid="picker-day"][data-date="${d}"]`)!;
   it('opens from the title, shows the month, marks days with items and picks a day', async () => {
     const { w, router } = await mountAt('/week/2026-10-12');
     await w.get(tid('period-title')).trigger('click');
-    expect(w.find(tid('month-picker')).exists()).toBe(true);
-    expect(w.get(tid('month-picker-title')).text()).toBe('October 2026');
-    await wait(() => expect(w.get('[data-testid="picker-day"][data-date="2026-10-14"]').attributes('data-has-items')).toBe('true'));
-    expect(w.get('[data-testid="picker-day"][data-date="2026-10-13"]').attributes('data-has-items')).toBe('false');
-    expect(w.get('[data-testid="picker-day"][data-date="2026-10-12"]').attributes('aria-selected')).toBe('true');
-    await w.get(tid('month-picker-next')).trigger('click');
-    expect(w.get(tid('month-picker-title')).text()).toBe('November 2026');
+    expect(picker()).not.toBeNull();
+    expect(pick('month-picker-title').textContent).toBe('October 2026');
+    await wait(() => expect(day('2026-10-14').getAttribute('data-has-items')).toBe('true'));
+    expect(day('2026-10-13').getAttribute('data-has-items')).toBe('false');
+    expect(day('2026-10-12').getAttribute('aria-selected')).toBe('true');
+    pick('month-picker-next').click();
+    await flushPromises();
+    expect(pick('month-picker-title').textContent).toBe('November 2026');
     expect(router.currentRoute.value.path).toBe('/week/2026-10-12');
-    await w.get('[data-testid="picker-day"][data-date="2026-11-18"]').trigger('click');
+    day('2026-11-18').click();
     await wait(() => expect(router.currentRoute.value.path).toBe('/week/2026-11-16'));
-    expect(w.find(tid('month-picker')).exists()).toBe(false);
+    expect(picker()).toBeNull();
   });
   it('closes on the title toggle and Escape', async () => {
     const { w } = await mountAt('/day/2027-02-03');
     await w.get(tid('period-title')).trigger('click');
-    expect(w.get(tid('month-picker-title')).text()).toBe('February 2027');
+    expect(pick('month-picker-title').textContent).toBe('February 2027');
     await w.get(tid('period-title')).trigger('click');
-    expect(w.find(tid('month-picker')).exists()).toBe(false);
+    expect(picker()).toBeNull();
     await w.get(tid('period-title')).trigger('click');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await flushPromises();
-    expect(w.find(tid('month-picker')).exists()).toBe(false);
+    expect(picker()).toBeNull();
   });
 });
 

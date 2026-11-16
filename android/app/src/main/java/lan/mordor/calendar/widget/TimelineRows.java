@@ -57,11 +57,11 @@ final class TimelineRows {
         final float bandDp;
         /** Offset of the first column in the data's days. */
         final int offset;
-        /** The minutes of the day where the picture is cut into rows, ascending, from 0 to 1440: the end of the opening view, if before 24:00. */
+        /** The minutes of the day where the picture is cut into rows, ascending, from 0 to 1440: around the opening view, which is one row. */
         final int[] marks;
         /** The minute that is at the top once the list has scrolled; -1 when the list opens at its start. */
         final int startMin;
-        /** The row to scroll to (0, the first), so that {@code startMin} is at the top; -1 for none. */
+        /** The row that is the opening view, exactly as tall as the list, to scroll to; -1 for none (the whole day fits). */
         final int scrollRow;
 
         Plan(List<Column> columns, float hourDp, float bandDp, int offset, int[] marks, int startMin, int scrollRow) {
@@ -118,11 +118,15 @@ final class TimelineRows {
         int padMinutes = Math.round(WeekCanvas.PAD / hourDp * 60); // the picture ends 4 dp below 24:00
         int start = hours >= 24 ? 0 : Math.max(lo, Math.min(now.getHour() * 60 + now.getMinute() - LEAD_MINUTES, hi + (hi == DAY_MINUTES ? padMinutes : 0) - hours * 60));
         int end = start + hours * 60;
-        // The list opens at its first row, which ends where the opening view ends, so it reaches below the list: scrolling to a row that is
-        // partly visible takes one step that puts the row's bottom at the list's bottom (AbsListView.PositionScroller.scrollToVisible),
-        // which is the wanted minute at the top. A farther row is reached in several steps that overshoot (and add the fading edge).
-        int[] marks = start > 0 && end < DAY_MINUTES ? new int[] {0, end, DAY_MINUTES} : new int[] {0, DAY_MINUTES};
-        return new Plan(columns, hourDp, bandDp, offset, marks, start > 0 ? start : -1, start > 0 ? 0 : -1);
+        // The opening view is one row exactly as tall as the list: AbsListView.PositionScroller puts a partly shown row's top or bottom at
+        // the list's edge, and a farther one at the edge plus the list's padding (widget_scroll.xml), so it lands from anywhere.
+        if (hours >= 24) return new Plan(columns, hourDp, bandDp, offset, new int[] {0, DAY_MINUTES}, -1, -1);
+        if (start == 0) {
+            int cut = Math.max(1, end - Math.round((WeekCanvas.PAD + bandDp) / hourDp * 60)); // the first row also holds the all-day band
+            return new Plan(columns, hourDp, bandDp, offset, new int[] {0, cut, DAY_MINUTES}, -1, 0);
+        }
+        int[] marks = end < DAY_MINUTES ? new int[] {0, start, end, DAY_MINUTES} : new int[] {0, start, DAY_MINUTES};
+        return new Plan(columns, hourDp, bandDp, offset, marks, start, 1);
     }
 
     /** The picture cut into list rows, top to bottom; {@code scale} is pixels per dp, {@code widthPx} the picture's width. */

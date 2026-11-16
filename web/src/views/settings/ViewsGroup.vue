@@ -53,7 +53,7 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
       <MenuField :model-value="settings.settings.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" />
     </SettingRow>
     <SettingRow id="minEventLength" wide :label="t('settings.calendar.minEventLength.label')" :hint="t('settings.calendar.minEventLength.hint')">
-      <SegmentedButton connected :model-value="String(prefs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" />
+      <SegmentedButton :model-value="String(prefs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" />
     </SettingRow>
   </SettingSection>
 
@@ -66,10 +66,10 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
   <SettingSection :title="t('settingsNav.sub.weekDay')">
     <p class="note">{{ t('settings.calendar.sideBySide.hint') }}</p>
     <SettingRow id="daySideBySide" wide :label="t('settingsNav.labels.sideBySideDay')">
-      <SegmentedButton connected :model-value="String(prefs.daySideBySide)" :options="dayOptions" :label="t('settingsNav.labels.sideBySideDay')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" />
+      <SegmentedButton :model-value="String(prefs.daySideBySide)" :options="dayOptions" :label="t('settingsNav.labels.sideBySideDay')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" />
     </SettingRow>
     <SettingRow id="weekSideBySide" wide :label="t('settingsNav.labels.sideBySideWeek')">
-      <SegmentedButton connected :model-value="String(prefs.weekSideBySide)" :options="weekOptions" :label="t('settingsNav.labels.sideBySideWeek')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" />
+      <SegmentedButton :model-value="String(prefs.weekSideBySide)" :options="weekOptions" :label="t('settingsNav.labels.sideBySideWeek')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" />
     </SettingRow>
   </SettingSection>
 

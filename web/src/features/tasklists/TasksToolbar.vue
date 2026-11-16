@@ -10,6 +10,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, TasksWhen } from '@/api/types';
 import { IconClose, IconFilterList as IconFilter, IconSwapVert as IconSort, IconUnfoldLess, IconUnfoldMore } from '@/components/icons';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
+import Badge from '@/components/m3/Badge.vue';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -85,7 +86,7 @@ const orderDisabled = computed(() => props.tab !== 'open');
     <p v-if="!orderDisabled" class="summary" data-testid="tasks-sort-summary">{{ summary }}</p>
     <div class="ftb" :class="{ away }" role="group" :aria-label="t('tasks.view.toolbar')" data-testid="tasks-floating-toolbar" :data-hidden="away ? 'true' : 'false'" :inert="away">
       <IconButton :label="active ? t('tasks.filter.labelActive', { count: chips.length }) : t('tasks.filter.label')" :variant="active ? 'tonal' : undefined" data-testid="tasks-filter-open" aria-haspopup="dialog" @click="filterOpen = true">
-        <IconFilter /><b v-if="active" class="badge" data-testid="tasks-filter-count">{{ chips.length }}</b>
+        <IconFilter /><Badge v-if="active" :label="chips.length" data-testid="tasks-filter-count" />
       </IconButton>
       <IconButton :label="t('tasks.view.sortLabel')" :disabled="orderDisabled" data-testid="tasks-sort-open" aria-haspopup="dialog" @click="sortOpen = true"><IconSort /></IconButton>
       <IconButton
@@ -166,7 +167,6 @@ const orderDisabled = computed(() => props.tab !== 'open');
 html[data-hand='left'][data-touch] .ftb { left: auto; right: calc(16px + var(--safe-right)); }
 html[data-nav-pos='rail'] .ftb { left: calc(var(--rail-w) + 16px + var(--safe-left)); }
 @media (min-width: 768px) { .ftb { bottom: calc(var(--navbar-h) + var(--safe-bottom) + 24px); } }
-.badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; font: var(--md-sys-typescale-label-small); display: inline-flex; align-items: center; justify-content: center; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .x { width: 16px; height: 16px; margin-left: 4px; }
 .sheet { display: flex; flex-direction: column; gap: 12px; }
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-title-large); }

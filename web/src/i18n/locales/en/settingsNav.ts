@@ -39,7 +39,7 @@ export default {
     app: 'App',
     tasksCalendar: 'Task lists calendar',
     iphone: 'iPhone',
-    timeline: 'Timeline (iPhone and Android)',
+    timeline: 'Multi-day (iPhone and Android)',
     android: 'Android',
   },
   labels: {
@@ -90,7 +90,7 @@ export default {
     bedtimeReminder: 'bedtime reminder, sleep reminder',
     labs: 'experimental, beta',
     backup: 'google drive, restore',
-    androidWidget: 'android, widget, home screen, week, day, clock, list, agenda, timeline, apk',
+    androidWidget: 'android, widget, home screen, week, day, clock, list, agenda, multi-day, apk',
     iphoneWidget: 'iphone, ios, widget, lock screen, scriptable, countdown',
     errorLog: 'errors, crash, problems, diagnostics',
     version: 'build, about',

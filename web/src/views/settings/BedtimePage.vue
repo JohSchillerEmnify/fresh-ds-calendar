@@ -40,7 +40,7 @@ function saveReminder(minutes: number) {
     </SettingRow>
     <template v-if="bt.enabled">
       <SettingRow id="bedtimeMode" wide :label="t('bedtime.settings.mode.label')">
-        <SegmentedButton connected :model-value="bt.mode" :options="bedtimeModes" :label="t('bedtime.settings.mode.label')" data-testid="settings-bedtime-mode" @update:model-value="saveBedtime({ mode: $event as BedtimeMode })" />
+        <SegmentedButton :model-value="bt.mode" :options="bedtimeModes" :label="t('bedtime.settings.mode.label')" data-testid="settings-bedtime-mode" @update:model-value="saveBedtime({ mode: $event as BedtimeMode })" />
       </SettingRow>
       <SettingRow id="bedtimeTime" :label="t('bedtime.settings.bedtime')">
         <TimeField :model-value="bt.bedtime" :label="t('bedtime.settings.bedtime')" data-testid="settings-bedtime-time" @update:model-value="saveBedtime({ bedtime: $event })" />

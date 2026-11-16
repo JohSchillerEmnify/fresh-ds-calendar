@@ -201,6 +201,19 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
       And I see the event "Dentist" on 2026-10-12
 
     @mobile
+    Scenario: Tapping a calendar's name in the drawer unticks and ticks it
+      Given the view switcher on phones is set to "side menu"
+      When I open the week view for 2026-10-12
+      And I open the side menu
+      And I tap the name of the calendar "Work" in the side menu
+      And I close the side menu
+      Then I do not see the event "Standup"
+      When I open the side menu
+      And I tap the name of the calendar "Work" in the side menu
+      And I close the side menu
+      Then I see the event "Standup" on 2026-10-12
+
+    @mobile
     Scenario: With the side menu the top bar has only Today at its right
       Given the view switcher on phones is set to "side menu"
       When I open the week view for 2026-10-12

@@ -10,7 +10,8 @@ defineEmits<{ 'update:modelValue': [v: boolean] }>();
 </template>
 
 <style scoped>
-.switch { width: 60px; height: 44px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+/* 48 px high tap target around the 32 px track (_md-comp-switch track-height; the track does not follow the density) */
+.switch { width: 60px; height: 48px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 .track {
   position: relative; width: 52px; height: 32px; border-radius: var(--md-sys-shape-corner-full); border: 2px solid var(--md-sys-color-outline);
   background: var(--md-sys-color-surface-container-highest); transition: background var(--md-sys-motion-duration-short);

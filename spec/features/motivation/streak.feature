@@ -20,6 +20,19 @@ Feature: Daily check-in streak
     And a "streak" effect appears and is removed within 1500 ms
     And I see the streak message "Checked in, day 4"
 
+  @visual @mobile
+  Scenario Outline: The check-in message looks as drawn, light and dark
+    Given the device prefers a <scheme> color scheme
+    And I checked in on 2026-10-09, 2026-10-10 and 2026-10-11
+    And today is 2026-10-12
+    When I open the app
+    Then the "check-in message" still looks like "check-in-message-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   Scenario: Opening the app again on the same day does not count twice
     Given I checked in on 2026-10-11 and 2026-10-12
     And today is 2026-10-12

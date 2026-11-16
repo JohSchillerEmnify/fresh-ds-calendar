@@ -207,7 +207,7 @@ function back() {
 
       <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
         <h2 id="h-cal">{{ t('theme.seasonal.title') }}</h2>
-        <SegmentedButton connected :model-value="theme.pref.seasonal" :options="seasonalOptions" :label="t('theme.seasonal.title')" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" :label="t('theme.seasonal.title')" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
         <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
       </section>
 
@@ -238,7 +238,7 @@ function back() {
         <div class="group">
           <span class="lab">{{ t('settings.sunflowers.label') }}</span>
           <span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span>
-          <SegmentedButton connected :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" />
+          <SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" />
         </div>
       </section>
 
@@ -246,7 +246,7 @@ function back() {
         <h2 id="h-fine">{{ t('theme.fine.title') }}</h2>
         <div class="group">
           <span class="lab">{{ t('theme.fine.mode') }}</span>
-          <SegmentedButton connected :model-value="s.themeMode" :options="modes" :label="t('theme.fine.mode')" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
+          <SegmentedButton :model-value="s.themeMode" :options="modes" :label="t('theme.fine.mode')" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
         </div>
         <div class="group">
           <span class="lab">{{ t('theme.fine.seed') }}</span>
@@ -267,7 +267,7 @@ function back() {
         </template>
         <div v-for="c in choices" :key="c.key" class="group">
           <span class="lab">{{ c.label }}</span>
-          <SegmentedButton connected :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
+          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
             <template v-if="c.key === 'icons'" #option="{ option }">
               <span class="isamp" aria-hidden="true"><component :is="ic" :set="option.value as 'sharp'" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
             </template>

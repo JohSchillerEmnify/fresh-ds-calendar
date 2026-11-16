@@ -44,8 +44,9 @@ Settings page: best streak = `store.motivation.streak.best`.
   The shell must call `spawnSparkle`/`spawnBling` only through these; `eye-open`, `butterfly`, `streak`, `bloom`,
   `grow`, `perk-up`, `water` are spawned by the motivation components themselves.
 - `haptic(ms|pattern)` (guarded `navigator.vibrate`).
-- `<RewardCheckbox v-model label disabled>`: emits `update:modelValue` + `change` synchronously; sparkle only on
-  user tick; testid `reward-checkbox`.
+- `<RewardCheckbox v-model label disabled>`: the kit `Checkbox` (`components/m3`) with a striking label; emits
+  `update:modelValue` + `change` synchronously; sparkle only on user tick; testid `reward-checkbox`.
+- `useRewardTick().play(box)`: the tick reward (haptic, pop, drawn mark, sparkle) the kit `Checkbox` plays.
 - `<ProgressRing :done :total | :value :size>`: `tasklist-progress-ring`, `data-percent`, `role=progressbar`.
 - `useCelebrate(cardElRef).celebrate()`: confetti + card bounce. Call when the last item is ticked (render
   `tasklist-complete-message` yourself).

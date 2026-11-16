@@ -136,6 +136,34 @@ Feature: Working with task list items
     Scenario: Every item has a labelled drag handle
       Then the item "Eggs" has the drag handle "Drag Eggs to reorder"
 
+  Rule: Item rows look and feel like the rest of the app and are easy to hit (Material 3)
+
+    Each item is a list row at least 56 pixels tall with its checkbox at the start. The checkbox, the drag handle and
+    the delete button each take a tap of at least 48 by 48 pixels, so a tap near the box still ticks the item. Tapping
+    an item's text edits it in place and the row keeps its height. The add field is a row of its own with a "+" at the
+    start; Enter adds the item and keeps the field open, empty, for the next one.
+
+    @mobile
+    Scenario: Item rows and their buttons are big enough to hit
+      Then every item row of the expanded task list is at least 56 pixels tall
+      And the checkbox, the drag handle and the delete button of the item "Eggs" each take a tap of at least 48 by 48 pixels
+
+    @mobile
+    Scenario: A tap at the corner of an item's checkbox area ticks the item
+      When I tap the corner of the checkbox area of the item "Eggs"
+      Then the item "Eggs" is ticked
+
+    @mobile
+    Scenario: Editing an item keeps its row the same height
+      When I start editing the item "Eggs"
+      Then the row of the item "Eggs" is as tall as before editing
+
+    @mobile
+    Scenario: Enter adds an item and keeps the add field open for the next one
+      When I add the item "Butter"
+      Then the expanded task list items are "Milk, Eggs, Bread, Butter"
+      And the add field of the expanded task list is open, empty and has the focus
+
   Rule: A task list too big to store in Google is refused, and nothing is lost
 
     @backlog

@@ -50,8 +50,7 @@ Settings  [search bar: "Search settings"]
 │  │  └─ Reminders in this browser      switch  (moved from the Reminders page)
 │  ├─ Before appointments               switch  (notify.events) — default reminders: per calendar, see Calendars
 │  ├─ Task lists
-│  │  ├─ Before task lists with a time  switch  (merged: was twice — Notifications + Reminders page)
-│  │  └─ Default reminders of task lists list   (moved from the Reminders page)
+│  │  └─ Before task lists with a time  switch  (merged: was twice — Notifications + Reminders page; the task lists' default reminders are on the task lists calendar's page)
 │  ├─ Morning overview                  switch
 │  │  └─ Time of the overview           time picker (only while on)
 │  └─ Bedtime reminder                  → shown in Focus & calm › Bedtime (one row, see there)

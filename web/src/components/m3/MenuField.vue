@@ -50,10 +50,11 @@ const { onKey } = useMenuNav({ open: () => open.value, panel, trigger, close, it
 </template>
 
 <style scoped>
-.fw { position: relative; width: 100%; margin: 10px 0; }
+/* an outlined text field (_md-comp-outlined-text-field: extra-small corners): 56 px at Comfortable, moved by the density shift, never under 52 px */
+.fw { --h: max(52px, calc(56px + var(--md-density-shift))); position: relative; width: 100%; margin: 10px 0; }
 .field {
-  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 56px; padding: 0 12px 0 16px; box-sizing: border-box;
-  border: 1px solid var(--md-sys-color-outline); border-radius: var(--md-sys-shape-corner-small); text-align: left; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface);
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: var(--h); padding: 0 12px 0 16px; box-sizing: border-box;
+  border: 1px solid var(--md-sys-color-outline); border-radius: var(--md-sys-shape-corner-extra-small); text-align: left; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface);
 }
 .field.open, .field:focus-visible { border: 2px solid var(--md-sys-color-primary); padding: 0 11px 0 15px; outline: 0; }
 .lab { position: absolute; top: -10px; left: 12px; padding: 0 4px; background: var(--md-sys-color-surface-container); font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
@@ -61,7 +62,7 @@ const { onKey } = useMenuNav({ open: () => open.value, panel, trigger, close, it
 .val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; color: var(--md-sys-color-on-surface-variant); }
 .menu {
-  position: absolute; left: 0; right: 0; top: 60px; z-index: 5; max-height: min(320px, 50vh); overflow-y: auto; padding: 8px 0;
+  position: absolute; left: 0; right: 0; top: calc(var(--h) + 4px); z-index: 5; max-height: min(320px, 50vh); overflow-y: auto; padding: 8px 0;
   border-radius: var(--md-sys-shape-corner-small); background: var(--md-sys-color-surface-container-high); box-shadow: var(--md-sys-elevation-3);
 }
 .opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 16px; text-align: left; font: var(--md-sys-typescale-body-large); color: var(--md-sys-color-on-surface); }

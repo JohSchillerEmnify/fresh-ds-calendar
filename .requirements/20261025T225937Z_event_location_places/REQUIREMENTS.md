@@ -92,7 +92,7 @@ or a placeholder with pin + name.
     the configured URLs' origins, so an override stays consistent) and `deploy/vps/Caddyfile` (the defaults);
     `server/test/security-headers.test.ts` keeps the two in step. The Referrer-Policy stays
     `strict-origin-when-cross-origin` (never `no-referrer`/`same-origin`, which OSM forbids for web traffic); the
-    server's own headers add the same value so sauron matches the public instance. Images carry no
+    server's own headers add the same value so a local run matches the public instance. Images carry no
     `referrerpolicy="no-referrer"`.
 12b. **Android app identity.** The WebView already sends a Referer (the page origin) and a browser User-Agent, which the
     OSM policy accepts for browser traffic ("Modern browsers, with default settings, already satisfy these technical

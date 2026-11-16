@@ -5,7 +5,20 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
 import sonarjs from 'eslint-plugin-sonarjs';
+import { GATE_ALLOWLIST } from './eslint.allowlist.mjs';
 import commentStyle from './scripts/quality/comment-style.mjs';
+
+const KIT_ELEMENTS = [
+  { element: 'button', message: 'no raw buttons outside m3: use Button, IconButton, Chip or Pressable from web/src/components/m3' },
+  { element: ['input', 'textarea', 'select'], message: 'no raw form fields outside m3: use TextField, Select, Checkbox, Radio, Switch or Slider from web/src/components/m3' },
+];
+const KIT_SYNTAX = [
+  { kind: 'role', selector: 'VAttribute[directive=false][key.name="role"][value.value=/^(button|checkbox|dialog|option)$/]', message: 'no hand-made role outside m3: use Pressable, IconButton, Checkbox, AdaptiveSheet or Menu from web/src/components/m3' },
+  { kind: 'click', selector: 'VStartTag[parent.name=/^(div|span|li|header)$/] > VAttribute[directive=true][key.name.name="on"][key.argument.name="click"]', message: 'no click on a plain element outside m3: use Pressable or a kit control from web/src/components/m3' },
+];
+
+// a severity alone would inherit the earlier options, so an empty list switches the rule off
+const syntaxRules = (list) => (list.length ? ['error', ...list.map(({ selector, message }) => ({ selector, message }))] : 'off');
 
 export default tseslint.config(
   {
@@ -48,11 +61,19 @@ export default tseslint.config(
     },
   },
   {
-    // The one action vocabulary (ADR 0032): a raw <button> belongs only inside the m3 components; elsewhere use Button, IconButton, Chip, Pressable, ...
+    // The one action vocabulary (ADR 0032): raw controls, hand-made roles and clickable plain elements belong only inside the m3 components
     files: ['web/src/**/*.vue'],
     ignores: ['web/src/components/m3/**'],
-    rules: { 'vue/no-restricted-html-elements': ['error', { element: 'button', message: 'no raw buttons outside m3: use Button, IconButton, Chip or Pressable from web/src/components/m3' }] },
+    rules: { 'vue/no-restricted-html-elements': ['error', ...KIT_ELEMENTS], 'vue/no-restricted-syntax': syntaxRules(KIT_SYNTAX) },
   },
+  // the ratchet: each allowlisted file is released from exactly the checks it still needs
+  ...GATE_ALLOWLIST.map(({ file, allow }) => ({
+    files: [file],
+    rules: {
+      'vue/no-restricted-html-elements': ['error', ...(allow.includes('field') ? [KIT_ELEMENTS[0]] : KIT_ELEMENTS)],
+      'vue/no-restricted-syntax': syntaxRules(KIT_SYNTAX.filter((r) => !allow.includes(r.kind))),
+    },
+  })),
   {
     // Edit permission has one source: server/src/services/ownership.ts. The web app reads `writable` / `readOnly` from the API.
     files: ['web/src/**/*.{ts,vue}'],

@@ -60,7 +60,7 @@ export async function applySeed(seedHex: string, doc: Document = document, look:
 
 const DEFAULT_FINE_ATTR = { checkbox: 'rounded', checkFill: 'filled', check: 'tick', icons: 'outlined' } as const;
 /** Every custom property `fineVars` can set, so a value that is gone is removed again. */
-const FINE_VARS = ['--glow-r', '--glow-s', '--glow-a', '--glow-anim', '--r-chip', '--r-block', '--e-fill', '--dz'];
+const FINE_VARS = ['--glow-r', '--glow-s', '--glow-a', '--glow-anim', '--r-chip', '--r-block', '--e-fill', '--dz', '--md-density-shift'];
 
 /** Mirrors the theme's attributes onto `<html>` (read by theme.css and the shell) and caches them for the next first paint. */
 export function applyAttrs(t: ResolvedTheme, root: HTMLElement = document.documentElement): void {

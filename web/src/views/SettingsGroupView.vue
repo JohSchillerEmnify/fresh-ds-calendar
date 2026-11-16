@@ -14,7 +14,6 @@ import FocusGroup from './settings/FocusGroup.vue';
 import LabsGroup from './settings/LabsGroup.vue';
 import RemindersGroup from './settings/RemindersGroup.vue';
 import TaskListsGroup from './settings/TaskListsGroup.vue';
-import TasksCalendarPage from './settings/TasksCalendarPage.vue';
 import ViewsGroup from './settings/ViewsGroup.vue';
 import WidgetsGroup from './settings/WidgetsGroup.vue';
 
@@ -31,7 +30,7 @@ const view = computed(() => {
   if (!props.page) return { component: GROUPS[props.group], title: groupTitle, up: '/settings', props: {} };
   const up = `/settings/${props.group}`;
   if (props.page === 'bedtime') return { component: BedtimePage, title: t('settings.sections.bedtime'), up, props: {} };
-  if (props.page === 'tasks-calendar') return { component: TasksCalendarPage, title: t('settingsNav.labels.tasksCalendar'), up, props: {} };
+  if (props.page === 'tasks-calendar') return { component: CalendarPage, title: t('settingsNav.labels.tasksCalendar'), up, props: { calendarId: cals.tasksCalendar?.id ?? '' } };
   const name = cals.list.find((c) => c.id === props.page)?.name ?? '';
   return { component: CalendarPage, title: name, up, props: { calendarId: props.page } };
 });

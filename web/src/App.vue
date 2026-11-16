@@ -118,7 +118,6 @@ watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v)
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
 useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
-useOverlayHistory(() => ui.pickerOpen, () => { ui.pickerOpen = false; });
 // Close transient UI on navigation.
 watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; barHide.show(); });
 </script>

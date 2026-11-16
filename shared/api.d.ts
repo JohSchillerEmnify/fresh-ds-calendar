@@ -19,6 +19,8 @@ export interface Calendar {
   virtual?: true;
   /** True for a Google holiday calendar (`...#holiday@group.v.calendar.google.com`): listed under Settings › Calendars › Holidays, removable. */
   holiday?: true;
+  /** True for the entry of the task lists calendar: it holds no events, so it is no filter chip and no calendar to create events in, but its page offers the same settings (feature tasklists-own-calendar). */
+  tasks?: true;
   /** Only on the virtual `birthdays`: whether the person's token has `contacts.readonly` (contact birthdays are read) or not (feature contact-birthdays). */
   contactsPermission?: 'granted' | 'missing';
 }

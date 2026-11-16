@@ -451,6 +451,12 @@ When('I tick the checkbox of the titleless task list', async function (this: Wor
   await untitledCard(this).getByTestId('tasklist-card-check').click();
 });
 
+When('I press Space on the titleless task list', async function (this: World) {
+  const card = untitledCard(this);
+  await card.focus();
+  await card.press('Space');
+});
+
 When('I tick the checkbox of the task list {string}', async function (this: World, title: string) {
   await this.taskCard(title).getByTestId('tasklist-card-check').click();
 });

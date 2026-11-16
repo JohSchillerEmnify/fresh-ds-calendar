@@ -1,5 +1,5 @@
 /** Task list dialog, cards and expanded list steps (STEPS.md "Task lists"). */
-import { expect } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 import type { DataTable } from 'playwright-bdd';
 import { Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
@@ -401,6 +401,69 @@ Then('the item {string} is lifted', async function (this: World, title: string) 
 
 Then('the item {string} has the drag handle {string}', async function (this: World, title: string, label: string) {
   await expect(this.expandedItem(title).getByTestId('tasklist-item-grip')).toHaveAttribute('aria-label', label);
+});
+
+Then('every item row of the expanded task list is at least {int} pixels tall', async function (this: World, min: number) {
+  const rows = this.expanded.getByTestId('tasklist-item');
+  await expect(rows.first()).toBeVisible();
+  const heights = await rows.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+  for (const h of heights) expect(h).toBeGreaterThanOrEqual(min);
+});
+
+/** True when a tap at the middle of each edge of the control (1 px inside) lands on the control, not on a neighbour. */
+const edgesHit = (el: Element) => {
+  const r = el.getBoundingClientRect();
+  const [cx, cy] = [(r.left + r.right) / 2, (r.top + r.bottom) / 2];
+  return [[r.left + 1, cy], [r.right - 1, cy], [cx, r.top + 1], [cx, r.bottom - 1]]
+    .every(([x, y]) => { const hit = document.elementFromPoint(x, y); return !!hit && el.contains(hit); });
+};
+
+Then('the checkbox, the drag handle and the delete button of the item {string} each take a tap of at least {int} by {int} pixels', async function (this: World, title: string, w: number, h: number) {
+  const row = await itemById(this, title);
+  for (const id of ['tasklist-item-checkbox', 'tasklist-item-grip', 'tasklist-item-delete']) {
+    const control = row.getByTestId(id);
+    const b = await box(control);
+    expect(b.width, `${id} width`).toBeGreaterThanOrEqual(w);
+    expect(b.height, `${id} height`).toBeGreaterThanOrEqual(h);
+    expect(await control.evaluate(edgesHit), `${id} takes taps at its edges`).toBe(true);
+  }
+});
+
+When('I tap the corner of the checkbox area of the item {string}', async function (this: World, title: string) {
+  const cb = (await itemById(this, title)).getByTestId('tasklist-item-checkbox');
+  const b = await box(cb);
+  // 23 px left of and above the middle of the box: inside a 48 px tap area, outside the box itself
+  await this.page.touchscreen.tap(Math.round(b.x + b.width / 2 - 23), Math.round(b.y + b.height / 2 - 23));
+});
+
+const editedRow = new WeakMap<World, { row: Locator; height: number }>();
+
+When('I start editing the item {string}', async function (this: World, title: string) {
+  // an open add field closes on blur and the sheet shrinks under the tap: let it close first
+  await this.page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
+  const row = await itemById(this, title);
+  editedRow.set(this, { row, height: (await box(row)).height });
+  await row.getByTestId('tasklist-item-title').click();
+  await expect(row.getByTestId('tasklist-item-title-input')).toBeFocused();
+});
+
+Then('the row of the item {string} is as tall as before editing', async function (this: World, title: string) {
+  const edited = editedRow.get(this);
+  expect(edited, `"${title}" is being edited`).toBeDefined();
+  await expect(edited!.row.getByTestId('tasklist-item-title-input')).toBeVisible();
+  expect((await box(edited!.row)).height).toBeCloseTo(edited!.height, 0);
+});
+
+When('I open the add field of the expanded task list', async function (this: World) {
+  await this.expanded.getByTestId('tasklist-add').click();
+  await expect(this.expanded.getByTestId('tasklist-new-item')).toBeFocused();
+});
+
+Then('the add field of the expanded task list is open, empty and has the focus', async function (this: World) {
+  const input = this.expanded.getByTestId('tasklist-new-item');
+  await expect(input).toBeVisible();
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
 });
 
 When('I edit the task list details', async function (this: World) {

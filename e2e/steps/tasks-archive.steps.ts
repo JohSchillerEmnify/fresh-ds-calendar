@@ -55,6 +55,13 @@ When('I open the Archive', async function (this: World) {
   await openTab(this, 'archive');
 });
 
+Then('the Archive search bar is full round and {int} px high', async function (this: World, h: number) {
+  const bar = this.page.getByTestId('tasks-archive-search').locator('xpath=ancestor::label[1]');
+  await expect(bar).toBeVisible();
+  expect((await bar.boundingBox())!.height).toBe(h);
+  expect(await bar.evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThanOrEqual(h / 2);
+});
+
 When('I search the Archive for {string}', async function (this: World, text: string) {
   await openTab(this, 'archive');
   await this.page.getByTestId('tasks-archive-search').fill(text);

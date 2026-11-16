@@ -253,6 +253,7 @@ I press Enter in the event field {string}
 the event field {string} has focus
 I save the event
 I cancel the event dialog
+I tap the text {string} in the event form
 I press Escape
 I open the event {string}
 I delete the event
@@ -339,6 +340,13 @@ I pick up the item {string}
 I release the item without moving it
 the item {string} is lifted
 the item {string} has the drag handle {string}
+every item row of the expanded task list is at least {int} pixels tall
+the checkbox, the drag handle and the delete button of the item {string} each take a tap of at least {int} by {int} pixels
+I tap the corner of the checkbox area of the item {string}
+I start editing the item {string}
+the row of the item {string} is as tall as before editing
+the add field of the expanded task list is open, empty and has the focus
+I open the add field of the expanded task list
 I edit the task list details
 I delete the task list
 the task list tap setting is {string}
@@ -362,6 +370,7 @@ I tap the titleless task list
 the list sheet of the titleless task list is open
 the task lists {string} and {string} show one checkbox, the same type, no count and no progress bar
 I tick the checkbox of the titleless task list
+I press Space on the titleless task list
 I tick the checkbox of the task list {string}
 the titleless task list is struck through
 the titleless task list shows the text {string}
@@ -1015,12 +1024,14 @@ the settings page shows the setting {string}
 the settings page does not show the setting {string}
 I turn off {string} in the settings
 I open the calendar {string} in the settings
+the calendar {string} in the settings shows the colour {string}
 the settings show the plan {string} for the calendar {string}
 I choose {string} for {string} in the settings
 {string} is chosen for {string} in the settings
 every settings row shows its name first and its control at the end
 I open the setting {string}
 the time picker is shown
+the time picker has large hour and minute boxes
 I search the settings for {string}
 the settings search shows {string} in {string}
 the settings search shows {string}
@@ -1057,6 +1068,7 @@ the setting {string} is highlighted
   "shows the plan P for the calendar C" goes to the Calendars page and reads the supporting text of row C.
 - `I open the setting S` taps row S when it opens a page or sheet, else the control at its end.
 - `the time picker is shown`: the M3 time picker sheet `time-picker` is open.
+- `the time picker has large hour and minute boxes`: the hour and minute inputs are each at least 96 px wide and 80 px high.
 
 ## Language (`@i18n`)
 
@@ -1191,6 +1203,8 @@ the now marker is in the column of {date}
 I do not see the now marker
 the now marker is visible on screen
 the time grid is scrolled to show {time} at the top
+I scroll the time grid to show {time} at the top
+the day {date} beside the current one shows {time} at the top
 the now card shows the line {string}
 the now card does not show a current event
 the now card shows no line and no progress bar
@@ -1205,6 +1219,8 @@ I dismiss the transition warning
 - `now-marker` has `data-time="HH:mm"`; "positioned at" checks it and its top against the time grid (±3 px).
 - "visible on screen": its bounding box is inside the viewport. "scrolled to show T at the top": the scroll position of
   `time-grid` equals T × hour height (±1 hour height / 4).
+- "I scroll the time grid to show T at the top" sets the scroller's `scrollTop` to T × hour height and waits a frame. "the day D
+  beside the current one shows T at the top": the `swipe-neighbour` with `data-period-start` D has its time grid scrolled to T (±1 hour height / 4).
 - Now card lines are the texts of `now-card-line` elements (exact match of one of them). "does not show a current
   event" = no `now-card-current`. Progress = `aria-valuenow` of `now-progress` (integer percent).
 
@@ -1464,7 +1480,7 @@ the plant card shows {string}
 - `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
 - `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
   lastWatered: D, todayPoints: 0 } }`.
-- Streak: `streak-flame` text content = count; message = `streak-message` (toast, auto-hides after 4 s).
+- Streak: `streak-flame` text content = count; message = `streak-message` (a snackbar, its text in `snackbar-text`, auto-hides after 4 s).
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```
@@ -2421,6 +2437,7 @@ the main calendar has no event {string}
 Google has exactly one calendar {string}
 the filter bar does not offer the calendar {string}
 I turn on {string} in the settings
+Google still has the calendar {string} switched off in its list
 ```
 
 - "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
@@ -2431,6 +2448,11 @@ I turn on {string} in the settings
 - The task lists calendar's settings page is opened like a calendar's: `I open the calendar "Task lists calendar" in the
   settings`. Its Color row is the one of `@id:calendar-colours` (same steps; the save is `PATCH /api/calendar-colors/tasks-calendar`
   here), and "Google lists the calendar {string} with the palette colour N" also finds a calendar by its Google summary.
+- "the calendar X in the settings shows the colour C": the colour dot (`::before`) of X's row in the Calendars group has
+  background colour C. The task lists calendar's page has the rows of any calendar's page (`Show this calendar`, `Color`, `Plan`,
+  `Default reminders`); its reminders are saved with `PATCH /api/reminders/tasks-calendar` (the `I add the default reminder R
+  for the calendar C` step waits for that or `PATCH /api/calendars/:id`). "Google still has the calendar S switched off in its list": exactly
+  one Google calendar with that summary, and it is hidden (the app's Show switch never writes it).
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
@@ -2651,6 +2673,7 @@ the calendar contains a task list {string} finished on {date} with the item {str
 the setting {string} is {string}
 I open the Archive
 I search the Archive for {string}
+the Archive search bar is full round and {int} px high
 I untick the item {string} of the task list {string} in the Archive
 I choose {string} for the task list {string} in the Archive
 the Archive lists {string}
@@ -3285,7 +3308,8 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `month picker` (`month-picker`), `plant card` (`plant-card`), `place suggestions` (`place-suggestions`), `check-in message` (`streak-message`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `time picker` (`time-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
@@ -3562,6 +3586,7 @@ mocked geolocation, never a real one.
 I see the action {string} at the event location
 I open the map picker
 I search the map picker for {string}
+the map picker search bar is full round and {int} px high
 I pick the map picker result {string}
 the map picker is centred on the place {string}
 the map picker shows the address {string}
@@ -3777,7 +3802,7 @@ the iPhone widget asks to be redrawn at {time}
 - Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`; the widget ignores it) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `timelineGrid` for D and the N-1 days after it; the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-days` (the Timeline section, always shown); "the iPhone section offers no widget layout choice" = no `settings-widget-layout` control.
 - The unit steps read the widget as a tree: day labels, hours, all-day chips and blocks are text in stacks laid out with fixed sizes and spacers (the fake Scriptable works the positions out), blocks are tinted stacks (`Color.dynamic`) with a bar in the full colour, and only the hour lines and the now-line are drawn into the picture (a `DrawContext` that refuses `Color.dynamic`, as Scriptable cannot draw it). "the iPhone widget picture is W by H points" = the size of the picture behind the stacks, which comes from Apple's widget size table for the screen (`Device.screenSize()`); "runs the script C in Scriptable" = the widget's `url` is `scriptable:///run/C`.
 - iPhone Timeline hours: pref `widgetTimelineHours` `{ mode: 'auto'|'fixed', from, to }` (default auto, 08:00 to 20:00 kept for when Fixed is chosen), set through `PATCH /api/prefs` (a partial object is merged); Settings controls `settings-widget-range` (Automatic / Fixed range) and, while fixed, the time fields `settings-widget-range-from` and `settings-widget-range-to`. The script's `timelineGrid(..., hours)` takes the fixed whole hours (start rounded down, end rounded up; an end not after the start counts as automatic) and gives each column `above` and `below` markers (`{ label }`) for entries wholly outside it.
-- Timeline text size: pref `widgetTimelineTextSize` (percent, 90 to 150 in steps of 5, default 110) set through `PATCH /api/prefs`; the Settings control is the slider `settings-timeline-text-size` in the Timeline section ("set to" reads its value text, e.g. "110 %"; "I set ... to N" moves it and waits for the saved PATCH). The iPhone script scales its fonts, header, chip and gutter sizes by it (`textScale` in the grid) and still fits the hours to the height; the data route and the Android snapshot (`scrollTextPercent`) carry the number.
+- Timeline text size: pref `widgetTimelineTextSize` (percent, 90 to 150 in steps of 5, default 110) set through `PATCH /api/prefs`; the Settings control is the slider `settings-timeline-text-size` in the Multi-day section ("set to" reads its value text, e.g. "110 %"; "I set ... to N" moves it and waits for the saved PATCH). The iPhone script scales its fonts, header, chip and gutter sizes by it (`textScale` in the grid) and still fits the hours to the height; the data route and the Android snapshot (`scrollTextPercent`) carry the number.
 - Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").
 - "the iPhone widget counts down live to T": the circle draws a `WidgetDate` for T with the relative style (iOS updates it), no static minutes. "the lock screen circle is chosen as C" sets `prefs.widgetCircle` (`time`/`countdown`) through `PATCH /api/prefs`; the Settings row (`settings-widget-circle`, hook for the hint `settings-widget-circle-hint`) is a segmented choice "Start time" / "Countdown".
 - The widget and the installer speak the person's app language (`prefs.language`, sent in the widget data and into the installer), `auto` follows the iPhone, the fun German variants read as German, anything else English; German is the primary language: every widget, guide, setting and error text is written in German first. iOS and Scriptable menu names in the German guide ("Bearbeiten › Widget hinzufügen", "Einsetzen") are unverified until a real iPhone is checked.
@@ -3829,6 +3854,10 @@ the widget scrolls so that {time} is at the top
 I place the Multi-day widget at {time} with {int} hours in view
 the Multi-day widget shows {time} at the top at {time} with {int} hours in view
 I scroll the widget down a little
+I scroll the widget so that {time} is at the top
+the widget refreshes at {time}
+the time line is at {time}
+the list moved straight there from where it was
 the home screen builds the widget again
 the widget shows the last {int} hours of the day with 24:00 at the bottom of the list
 the list has no blank space below 24:00
@@ -3948,9 +3977,8 @@ the top bar's widgets are in reverse order
 - "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
   `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
 - "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
-  built-in tonal look: the computed background of its drawn shape, the `.pill` inside on phones and the button itself on
-  wide screens, is the secondary container colour, no outline). "does not show":
-  `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
+  kit filled look: its computed background is the primary colour, no outline). "does not show":
+  `data-today-shown="false"`, it has an outline (an inset box-shadow) and its computed background is the surface
   colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
   month's own days, not the neighbouring months' days in its grid; the week; the day; on the Labs timeline, the now
   marker inside the timeline's box). The views must have rendered (`month-cell`, `week-header`, `day-column` or
@@ -3994,7 +4022,7 @@ the top bar's widgets are in reverse order
 - Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
   `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
   `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are decoration and are not judged (owner 2026-10-30:
-  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
+  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today button's text (its icon on phones). The sunflower field has no cat.
 
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)
@@ -4132,7 +4160,7 @@ the damaged file is kept as {string} with its old content
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
-filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "tap area" of an icon button = the bounding box of each visible `.icon-btn` (the kit IconButton). "the switch S is a connected button group of L" = the `role=group` named S shows the buttons L in order, the group has no outline of its own and neighbours are 2 px apart (separate rounded buttons, not one outlined bar). "the buttons of the switch S are drawn H pixels high" = the drawn (padding box) height of each button of that group, its transparent tap border left out. "every control of the dialog has a tap area" = the bounding box of every visible kit button, icon button, switch, choice, chip, checkbox and radio in the open dialog (their transparent border is part of the tap area). "the field F" = the input or textarea labelled F in the open dialog; its "line along its bottom" = the inset bottom box-shadow of the field box (`.box`), "the primary colour" = `--md-sys-color-primary`. "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
@@ -4156,9 +4184,35 @@ a component outside {string} contains a raw button element
 the lint gate runs
 the lint gate fails and names that component
 a button element inside {string} passes the lint gate
+a component outside {string} contains a raw form field, a hand-made role or a click on a plain element
+the same elements inside {string} pass the lint gate
+the allowlist of the lint gate
+every listed component still needs the release it holds
+the badge is {string} pixels as a dot and {string} pixels high with a label, in the error colours
+an input chip is no button itself and its remove cross is named by what it removes
+it follows the Density setting and keeps a {int} pixel tap area on its cross
+an outlined button and an outlined icon button are filled with the surface colour
 the style rules of the Material 3 components
 a control is pressed
 its corners change smoothly and only a little, and never look square
+every icon button of the screen has a tap area of at least {int} by {int} pixels
+I click into the field {string}
+the field {string} shows a {int} pixel line along its bottom
+the field {string} shows a {int} pixel line along its bottom in the primary colour
+a button is drawn {int} pixels high on a tap area {int} pixels high
+its corners stay fully round however tall its label makes it
+a chip is drawn {int} pixels high with {int} pixel corners
+a text field has rounded top corners only and a line along its bottom
+an outlined text field has a {int} pixel outline that turns {int} pixels while it is focused
+the switch {string} is a connected button group of {string}
+a segmented choice is always drawn as a connected button group
+the buttons of the switch {string} are drawn {int} pixels high
+every control of the dialog has a tap area of at least {int} by {int} pixels
+the density steps of the theme
+Compact draws every control {int} pixels lower than Comfortable and Airy {int} pixels higher
+every button, icon button, choice, chip, field, list row and selection control reads its height from the one density setting
+none of them can be tapped on less than {int} by {int} pixels
+the corner sizes are {string} pixels from extra small to extra large
 the theme is {string}
 the bottom bar, the top bar and every button are drawn with fully round corners
 the bottom bar size is set to {string}
@@ -4195,6 +4249,7 @@ I choose {string} in the side menu
 the side menu is closed
 the side menu shows the calendars {string} with a colour checkbox each
 I untick the calendar {string} in the side menu
+I tap the name of the calendar {string} in the side menu
 the top bar has no filter button and no settings button
 the top bar has no filter button
 the top bar size is set to {string}
@@ -4235,6 +4290,11 @@ the floating toolbar is shown
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
   shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
   the viewport (`data-hidden="true"`), "shown" = fully inside it. "the surface" is the visible screen without an open dialog.
+- "no raw fields, roles or clicks": the same gate (`vue/no-restricted-html-elements` for `<input>`, `<textarea>`, `<select>`; `vue/no-restricted-syntax`
+  for `role="button|checkbox|dialog|option"` and `@click` on `div`, `span`, `li`, `header`) outside `web/src/components/m3`. Files that
+  still need one are listed with a reason in `eslint.allowlist.mjs`; the unit test fails for an entry that no longer holds its element, so the list only shrinks.
+  Badge (`m3/Badge.vue`): 6 px dot, 16 px pill with a label, error colours (material-web `_md-comp-badge` v0.192). Input chip (`Chip variant="input"`):
+  a span with a remove button (`_md-comp-input-chip`). All unit-tested, `@unit`.
 - "no raw buttons outside m3": the lint gate (`vue/no-restricted-html-elements` in `eslint.config.js`, run by `pnpm verify`; its message says
   "no raw buttons outside m3") rejects a bare `<button>` in `web/src/**` outside `web/src/components/m3`. Proven by a unit
   test; the scenario is `@unit` and skipped by e2e.
@@ -4506,7 +4566,7 @@ a second upload within a minute is refused
   `device-log-send-status`. "the server holds N error log upload(s) for me with M entries" and "the stored upload does not
   contain X" read the test hook `GET /api/__test/diag-uploads`. The automatic sending switch is `device-log-auto`. "the Android app
   recorded a crash X with the message Y before this start" gives `window.Capacitor.Plugins.CrashReports` a `take()` that answers
-  one record once (with the message in it, which the app must not keep). The crash and upload-limit steps belong to `@unit` scenarios (Android and
+  one record once; like the native recorder it carries the message only when Android itself threw the exception (top frame in `android.`), so this app's own message never reaches the web app. The crash and upload-limit steps belong to `@unit` scenarios (Android and
   server tests); they are listed so the contract is complete.
 - "I download / share the error log": `device-log-download` / `device-log-share`, waiting for the browser download.
   "this device cannot share files" removes `navigator.share` and `navigator.canShare` before the app loads. "the
@@ -4527,6 +4587,7 @@ I add the holiday region {string} as {string}
 I add the holiday region {string} without a question
 I remove the holiday calendar
 I switch the calendar off in its settings page
+I switch the calendar on in its settings page
 Google's holiday calendar of {string} has the holiday {string} on {date}
 Google knows only the public holidays of {string}
 Google has no holiday calendar for {string}
@@ -4550,7 +4611,7 @@ the sheet says that adding a region needs a connection
 - Region names are English (the e2e app language) and the mock's regions are the curated list; "offer"/"do not offer" read the
   `holiday-region` buttons left after the search. "I remove the holiday calendar" clicks `holiday-calendar-remove` on the calendar's
   settings page and waits for `DELETE /api/holiday-calendars/:id`, after which the calendars list is shown. "I switch the calendar
-  off": clicks `settings-calendar-shown` while it is on and waits for `PATCH /api/calendars/:id`.
+  off": clicks `settings-calendar-shown` while it is on and waits for `PATCH /api/calendars/:id`; "on" does the same while it is off.
 - Givens work on the mock Google: "Google's holiday calendar of R has the holiday H on D" puts an all-day event into the public
   calendar `en.<region>.official#holiday@group.v.calendar.google.com` (Google's public calendars exist without being subscribed);
   "knows only the public holidays of R" / "has no holiday calendar for R" make the plain / every variant answer 404 to the
@@ -4585,6 +4646,7 @@ in the {view} view of {date} the marker of {string} is {float} px
   `tasklist-progress-ring`, no visible `tasklist-card-item`, and the same card height, the same `tasklist-card-title` font
   size and weight and the same title box left and height as the other (only the text differs).
 - "I tick the checkbox of the (titleless) task list": clicks `tasklist-card-check` of the card.
+- "I press Space on the titleless task list": focuses the card and presses Space (it ticks the one task, the list does not open).
 - "the titleless task list is struck through": its `tasklist-card-title` has `data-struck="true"` and a visible strike line.
 - "the titleless task list shows X in its title slot with only its own checkbox": `tasklist-card-lead` has `data-title` X, the card has one
   `tasklist-card-check`, and the lead's `::before` item marker is not drawn.
@@ -4594,3 +4656,6 @@ in the {view} view of {date} the marker of {string} is {float} px
   `tasklist-card-title` (its box height over its computed line height) equal those of `event-chip-title` of the event E.
 - "the titleless task list shows the text T": its `tasklist-card-title` has exactly the text T.
 - "the task list X shows no placeholder": the card has no `tasklist-card-items`.
+
+- "I tap the text T in the event form": clicks the text T inside the event dialog's label row (not the control itself), e.g. "All day".
+- "I tap the name of the calendar C in the side menu": clicks the text of C's `side-menu-calendar` row (not its checkbox).

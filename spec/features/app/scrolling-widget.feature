@@ -2,7 +2,7 @@
 Feature: Scrolling phone widgets (List and Multi-day)
   Two Android home-screen widgets that scroll, both in the widget picker. "List" (Agenda) shows today and the coming days
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
-  hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Days in the Timeline"
+  hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Number of days"
   setting). The Multi-day widget opens with half an hour before now at the top. Its hours in view are "Automatic" (the hours
   fit the appointments of the days shown, by the same rule as the week grid, and the person scrolls for the rest of the day)
   or "Fixed" (a free choice of 4 to 24 hours that fit into its height, 16 by default), in Settings > Widgets > Android; a
@@ -290,6 +290,32 @@ Feature: Scrolling phone widgets (List and Multi-day)
       And I scroll the widget down a little
       When the app hands the widget its copy
       Then the widget scrolls so that 06:50 is at the top
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshLaterInTheDayMovesOnToHalfAnHourBeforeTheNewNowAndDrawsTheNewTime
+    @unit
+    Scenario: A refresh later in the day moves on to half an hour before the new time
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 16 hours in view
+      When the widget refreshes at 09:40
+      Then the widget scrolls so that 09:10 is at the top
+      And the time line is at 09:40
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshFromFarBelowComesStraightBackUp
+    @unit
+    Scenario: A refresh after scrolling far down goes straight back up, without showing 00:00 first
+      Given the Multi-day widget shows 06:50 at the top at 07:20 with 8 hours in view
+      And I scroll the widget so that 16:00 is at the top
+      When the widget refreshes at 07:20
+      Then the widget scrolls so that 06:50 is at the top
+      And the list moved straight there from where it was
+
+    # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRefreshFromFarAboveComesStraightDown
+    @unit
+    Scenario: A refresh after scrolling to the top goes straight down
+      Given the Multi-day widget shows 11:50 at the top at 12:20 with 8 hours in view
+      And I scroll the widget so that 00:00 is at the top
+      When the widget refreshes at 12:50
+      Then the widget scrolls so that 12:20 is at the top
+      And the list moved straight there from where it was
 
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/ScrollWidgetHostTest.java:aRebuiltLauncherOpensTheKeptViewsAtTheSamePlace
     @unit

@@ -156,7 +156,8 @@ describe('collapsed card', () => {
       expect(w.findAll(tid('tasklist-card-check')).length).toBe(1);
       expect(w.find(tid('tasklist-card-items')).exists()).toBe(false);
       expect(w.find(tid('tasklist-card-count')).exists()).toBe(false);
-      expect(w.get(tid('tasklist-card-check')).attributes('role')).toBe('checkbox');
+      expect(w.get(tid('tasklist-card-check')).attributes('role')).toBeUndefined();
+      expect(w.get(tid('tasklist-card-check')).attributes('aria-hidden')).toBe('true');
     }
     expect(titleOnly.get(tid('tasklist-card')).classes()).toContain('one');
     expect(itemOnly.get(tid('tasklist-card')).classes()).toContain('one');
@@ -165,6 +166,12 @@ describe('collapsed card', () => {
     expect(useUiStore().dialog).toBeNull();
     await itemOnly.get(tid('tasklist-card')).trigger('click');
     expect(useUiStore().dialog?.kind).toBe('tasklist-expanded');
+    // no interactive control nests in the card's button: Space on the card ticks the task instead
+    useUiStore().dialog = null;
+    const before = useOutboxStore().entries.length;
+    await itemOnly.get(tid('tasklist-card')).trigger('keydown', { key: ' ', code: 'Space' });
+    expect(useOutboxStore().entries.length).toBeGreaterThan(before);
+    expect(useUiStore().dialog).toBeNull();
     titleOnly.unmount();
     itemOnly.unmount();
   });

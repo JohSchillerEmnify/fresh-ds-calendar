@@ -23,7 +23,7 @@ function run(cmd, args, cwd) {
   });
 }
 
-// Two workers per suite (server + web run side by side): several agents verify at once on the laptop (owner, 2026-10-14).
+// Two workers per suite (server + web run side by side): several agents verify at once on one machine.
 const tests = (dir) => ({
   cmd: ['pnpm', ['exec', 'vitest', 'run', '--maxWorkers=2'], resolve(root, dir)],
   /** Test count from vitest's "Tests  N passed" line. */
