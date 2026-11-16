@@ -32,7 +32,7 @@ Feature: iPhone widgets through Scriptable
   Multi-day view and of the Android Multi-day widget alike; the iPhone widget still fits its hours into its height. All are per person.
   The iPhone section also holds "Hours (Multi-day)": "Automatic" (the default, the hours fit the entries of the days
   shown) or "Fixed range" with a start ("From") and an end ("To"). An entry outside a fixed range is not dropped: it
-  gets a small marker at the edge of its day, "▾ Cinema 19:00" at the bottom or "▴ Run 06:00" at the top (the nearest
+  gets a small marker in a thin strip at the edge of its day, so the hours stay in place: "▾ Cinema 19:00" at the bottom or "▴ Run 06:00" at the top (the nearest
   one, with "+1" for each further one); an entry that reaches into the range is drawn clipped to it. A stored choice is never
   overwritten, and the Android Multi-day widget has its own choice (Automatic or Fixed hours).
 

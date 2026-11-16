@@ -20,14 +20,14 @@ const RED = '#d93025';
 
 const TEXTS = {
   en: {
-    allDay: 'all day', more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
+    more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
     until: 'until', now: 'now', inWord: 'in',
     from: (t) => `Data from ${t}`, noData: 'No data yet. The widget loads it as soon as your iPhone is online.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
-    allDay: 'ganztägig', more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
+    more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
     until: 'bis', now: 'jetzt', inWord: 'in',
     from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
@@ -164,8 +164,14 @@ function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed
   const chips = days.map((date) => entriesOn(entries, date).filter((e) => e.allDay));
   const rows = Math.min(WEEK.maxChips, Math.max(0, ...chips.map((c) => c.length)));
   const head = WEEK.head * k, chip = WEEK.chip * k;
-  const top = head + 2 + rows * chip + (rows ? 2 : 0);
-  const hourH = (H - 2 - top) / (last - first);
+  const aboves = all.map((day, i) => edge(day, days[i], true));
+  const belows = all.map((day, i) => edge(day, days[i], false));
+  // a stack cannot overlap, so edge markers get their own strip above or below the hours, only when there is one
+  const markH = 9 * k;
+  const aboveStrip = aboves.some(Boolean) ? markH + 1 : 0;
+  const belowStrip = belows.some(Boolean) ? markH + 1 : 0;
+  const top = head + 2 + rows * chip + (rows ? 2 : 0) + aboveStrip;
+  const hourH = (H - 2 - top - belowStrip) / (last - first);
   const yOf = (min) => top + ((min - first * 60) / 60) * hourH;
   const cols = days.map((date, i) => {
     const x = WEEK.gutter + i * colW;
@@ -176,12 +182,17 @@ function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed
       const w = (colW - 2) / g.lanes;
       blocks.push({ e: g.e, lane: g.lane, lanes: g.lanes, cluster: g.cluster, label: `${g.e.startDate === date ? g.e.startTime : ''} ${g.e.title}`.trim(), x: x + 1 + g.lane * w, y: yOf(s), w: w - 1, h: Math.max(8, yOf(en) - yOf(s) - 1) });
     }
+    // a block raised to the minimum height ends where the next one in its lane or a later cluster starts (stacks cannot overlap)
+    for (const b of blocks) {
+      const next = blocks.filter((o) => o !== b && o.y >= b.y && (o.cluster !== b.cluster || o.lane === b.lane) && !(o.y === b.y && o.cluster === b.cluster));
+      if (next.length) b.h = Math.max(0.5, Math.min(b.h, Math.min(...next.map((o) => o.y)) - b.y));
+    }
     // the last chip row says how many more there are, so the band keeps its height
     const shown = chips[i].length > WEEK.maxChips ? chips[i].slice(0, WEEK.maxChips - 1) : chips[i];
-    return { date, x, today: date === today, blocks, chips: shown, moreChips: chips[i].length - shown.length, above: edge(all[i], date, true), below: edge(all[i], date, false) };
+    return { date, x, today: date === today, blocks, chips: shown, moreChips: chips[i].length - shown.length, above: aboves[i], below: belows[i] };
   });
   const nowLine = nowMin >= first * 60 && nowMin <= last * 60 ? { y: yOf(nowMin), col: cols.findIndex((c) => c.today) } : null;
-  return { first, last, hourH, top, colW, cols, nowLine, yOf, k, head, chip };
+  return { first, last, hourH, top, colW, cols, nowLine, yOf, k, head, chip, markH };
 }
 
 /** The Timeline: `days` (1 to 7, else 3) columns from today. */
@@ -312,8 +323,8 @@ function dayColumn(parent, g, c, o) {
     f.done(g.chip - 1);
   }
   const bottom = g.yOf(g.last * 60);
-  const marker = (m, y) => { f.to(col, y); entryBlock(col, { w: g.colW - 2, h: 9 * g.k }, m.e.color, m.label, 7 * g.k); f.done(9 * g.k); };
-  if (c.above) marker(c.above, g.top);
+  const marker = (m, y) => { f.to(col, y); entryBlock(col, { w: g.colW - 2, h: g.markH }, m.e.color, m.label, 7 * g.k); f.done(g.markH); };
+  if (c.above) marker(c.above, g.top - g.markH - 1);
   const groups = new Map();
   for (const p of piecesAt(c.blocks, nowY)) {
     const key = `${p.cluster}:${p.section}`;
@@ -333,7 +344,7 @@ function dayColumn(parent, g, c, o) {
     f.done(y1 - y0);
   }
   if (!striped) stripe();
-  if (c.below) marker(c.below, bottom - 9 * g.k);
+  if (c.below) marker(c.below, bottom + 1);
   return col;
 }
 

@@ -198,7 +198,35 @@ describe('the widget script: Timeline in every size', () => {
     const d = await draw([dentist, early, cinema], 'large', at('08:00'), {}, { widgetTimelineHours: fixed('08:00', '12:00') });
     expect(d.said).toEqual(expect.arrayContaining(['▾ Cinema 19:00', '▴ Run 06:00', '09:00 Dentist']));
     const below = blockOf(d, '▾ Cinema 19:00')!;
-    expect(below.y + below.h).toBeCloseTo(PAD.top + g.yOf(12 * 60), 0);
+    expect(below.y).toBeCloseTo(PAD.top + g.yOf(12 * 60) + 1, 0);
+  });
+
+  it('edge markers get their own strip, so the blocks stay on their hours and nothing runs past the bottom', async () => {
+    const early = ev('Run', T14('06:00'), T14('07:00'));
+    const first = ev('First', T14('08:00'), T14('09:00'));
+    const last = ev('Last', T14('11:00'), T14('12:00'));
+    const cinema = ev('Cinema', T14('19:00'), T14('21:00'));
+    const hours = fixed('08:00', '12:00');
+    const g = await timelineAt([early, first, last, cinema], hours);
+    const d = await draw([early, first, last, cinema], 'large', at('07:30'), {}, { widgetTimelineHours: hours });
+    expect(blockOf(d, '08:00 First')!.y).toBeCloseTo(PAD.top + g.yOf(8 * 60));
+    expect(blockOf(d, '11:00 Last')!.y).toBeCloseTo(PAD.top + g.yOf(11 * 60));
+    const above = blockOf(d, '▴ Run 06:00')!;
+    const below = blockOf(d, '▾ Cinema 19:00')!;
+    expect(above.y + above.h).toBeLessThanOrEqual(PAD.top + g.yOf(8 * 60) + 0.01);
+    expect(below.y).toBeGreaterThanOrEqual(PAD.top + g.yOf(12 * 60) - 0.01);
+    expect(below.y + below.h).toBeLessThanOrEqual(LARGE[1] - PAD.bottom + 0.01);
+  });
+
+  it('a block raised to the minimum height does not push the blocks after it', async () => {
+    const tiny = ev('Tiny', T14('09:00'), T14('09:02'));
+    const next = ev('Next', T14('09:02'), T14('09:30'));
+    const later = ev('Later', T14('10:00'), T14('11:00'));
+    const g = await gridFor([tiny, next, later], LARGE, 3);
+    const d = await draw([tiny, next, later], 'large', at('08:00'));
+    expect(blockOf(d, '10:00 Later')!.y).toBeCloseTo(PAD.top + g.yOf(10 * 60));
+    const n = blockOf(d, '09:02 Next')!;
+    expect(n.y + n.h).toBeCloseTo(PAD.top + g.yOf(9 * 60 + 30) - 1, 0);
   });
 
   it('an entry that reaches into the fixed range is clipped to it and gets no marker; several outside count as +n', async () => {
