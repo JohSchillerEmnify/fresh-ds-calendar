@@ -63,6 +63,11 @@ async function penDrag(world: World, grab: { x: number; y: number }, to: { x: nu
   await cdp.detach().catch(() => {});
 }
 
+/** The check-in message floats over the bottom of a phone sheet for 4 s and takes the touch: a finger waits until it is gone. */
+export async function checkInMessageGone(world: World) {
+  await expect(world.page.getByTestId('streak-message')).toBeHidden({ timeout: 8000 });
+}
+
 /**
  * Drag the item `title` inside `list` (a `tasklist-view` or the sheet) and drop it where `drop` says: `above` an item (the place
  * just before it), or `home` (away and back). A mouse (or `byGrip`) grabs the drag handle; a finger long-presses the row,
@@ -70,6 +75,7 @@ async function penDrag(world: World, grab: { x: number; y: number }, to: { x: nu
  */
 export async function dragItem(world: World, list: Locator, title: string | number, drop: { above: string | number } | 'home', byGrip: boolean | 'pen' = false) {
   const rows = list.getByTestId('tasklist-item');
+  await checkInMessageGone(world);
   // a number is the 0-based place of the row (an ink item has no title to find it by)
   const row = typeof title === 'number' ? rows.nth(title) : rows.filter({ has: world.page.locator(attr('data-title', title)) }).or(rows.and(world.page.locator(attr('data-title', title)))).first();
   await row.scrollIntoViewIfNeeded();
