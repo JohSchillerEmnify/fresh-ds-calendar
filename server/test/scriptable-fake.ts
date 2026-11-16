@@ -24,8 +24,8 @@ export interface Options {
   removeFails?: boolean;
 }
 
-export interface El { kind: 'stack' | 'text' | 'date' | 'image' | 'spacer' }
-export interface Img { kind: 'picture'; size: { width: number; height: number }; rects: { x: number; y: number; w: number; h: number; color: string; alpha: number }[] }
+interface El { kind: 'stack' | 'text' | 'date' | 'image' | 'spacer' }
+interface Img { kind: 'picture'; size: { width: number; height: number }; rects: { x: number; y: number; w: number; h: number; color: string; alpha: number }[] }
 
 export interface Fakes {
   texts: { text: string; bold: boolean; size?: number; color?: unknown; where: string; relative?: boolean; rect?: { x: number; y: number; w: number; h: number } }[];
