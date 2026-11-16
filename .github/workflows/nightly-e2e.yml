@@ -119,7 +119,7 @@ jobs:
           curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
           cd e2e
           pnpm exec bddgen
-          pnpm exec playwright test --project=mobile --project=desktop --project=tablet --workers=1 --shard=${{ matrix.shard }}/8
+          pnpm exec playwright test --project=mobile --project=desktop --project=tablet --workers=1 --retries=1 --shard=${{ matrix.shard }}/8
       - name: Upload the report and results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -188,10 +188,11 @@ jobs:
     permissions:
       contents: read
 
-  # One issue for the whole night: every failed job and scenario. The only job with a write permission.
+  # One issue for the whole night: every failed job and scenario, and the flaky ones (passed on the retry). The only job
+  # with a write permission; it runs after every real run because a shard with only flaky tests passes.
   report:
     needs: [changes, verify, goldens, e2e, android-unit, leaks, webkit]
-    if: always() && needs.changes.outputs.changed == 'true' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
+    if: always() && needs.changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

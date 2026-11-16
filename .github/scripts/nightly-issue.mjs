@@ -1,6 +1,6 @@
 /**
- * Opens (or updates) the "Nightly e2e failed <date>" issue: every failed job and every failed Playwright scenario, with
- * the run link. Env: NEEDS (JSON of the needs context), RESULTS_DIR (downloaded artifacts), RUN_URL, DATE, GH_TOKEN, GH_REPO.
+ * Opens (or updates) the nightly issue: every failed job, every failed Playwright scenario and every flaky one (failed,
+ * then passed on the retry), with the run link; nothing when all passed. Env: NEEDS (JSON of the needs context), RESULTS_DIR (downloaded artifacts), RUN_URL, DATE, GH_TOKEN, GH_REPO.
  */
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -12,11 +12,13 @@ const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8' });
 // results.json files of the Playwright runs, wherever the artifact download put them
 const files = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? files(join(dir, n)) : n === 'results.json' ? [join(dir, n)] : []));
 const failedScenarios = new Set();
+const flakyScenarios = new Set();
 const walk = (suite, file = '') => {
   for (const spec of suite.specs ?? []) {
     for (const t of spec.tests ?? []) {
-      if (!['unexpected', 'flaky'].includes(t.status)) continue;
-      failedScenarios.add(`${spec.title} (${t.projectName}, ${spec.file ?? file})${t.status === 'flaky' ? ' [flaky]' : ''}`);
+      const name = `${spec.title} (${t.projectName}, ${spec.file ?? file})`;
+      if (t.status === 'unexpected') failedScenarios.add(name);
+      else if (t.status === 'flaky') flakyScenarios.add(name);
     }
   }
   for (const s of suite.suites ?? []) walk(s, s.file ?? file);
@@ -24,16 +26,21 @@ const walk = (suite, file = '') => {
 for (const f of files(RESULTS_DIR)) for (const s of JSON.parse(readFileSync(f, 'utf8')).suites ?? []) walk(s, s.file);
 
 const failedJobs = Object.entries(JSON.parse(NEEDS)).filter(([, v]) => v.result === 'failure' || v.result === 'cancelled').map(([k, v]) => `${k} (${v.result})`);
+const failed = failedJobs.length > 0 || failedScenarios.size > 0;
+if (!failed && !flakyScenarios.size) process.exit(0);
+const list = (set, none) => (set.size ? [...set].sort().map((s) => `- ${s}`) : [`- ${none}`]);
 const body = [
-  `The nightly run failed: ${RUN_URL}`,
+  failed ? `The nightly run failed: ${RUN_URL}` : `The nightly run passed, but some scenarios only passed on the retry: ${RUN_URL}`,
   '', '### Failed jobs', ...(failedJobs.length ? failedJobs.map((j) => `- ${j}`) : ['- none (see the run)']),
-  '', '### Failed e2e scenarios', ...(failedScenarios.size ? [...failedScenarios].sort().map((s) => `- ${s}`) : ['- none recorded (a job failed before its report, or a non-e2e job failed)']),
+  '', '### Failed e2e scenarios', ...list(failedScenarios, failed ? 'none recorded (a job failed before its report, or a non-e2e job failed)' : 'none'),
+  '', '### Flaky e2e scenarios (failed, then passed on the retry)', ...list(flakyScenarios, 'none'),
   '', 'Screenshots, traces, videos and logs are in the run\'s artifacts.',
 ].join('\n');
 
 // one issue at a time: a failure on a following night is added to the open one
 try { gh('label', 'create', 'tests', '--color', 'D93F0B', '--description', 'Test failures'); } catch { /* already there */ }
-const open = JSON.parse(gh('issue', 'list', '--label', 'tests', '--state', 'open', '--search', 'Nightly e2e failed in:title', '--json', 'number,title'));
-const existing = open.find((i) => i.title.startsWith('Nightly e2e failed'));
-if (existing) gh('issue', 'comment', String(existing.number), '--body', `Failed again on ${DATE}.\n\n${body}`);
-else gh('issue', 'create', '--title', `Nightly e2e failed ${DATE}`, '--label', 'tests', '--body', body);
+const open = JSON.parse(gh('issue', 'list', '--label', 'tests', '--state', 'open', '--search', 'Nightly e2e in:title', '--json', 'number,title'));
+const existing = open.find((i) => i.title.startsWith('Nightly e2e'));
+const word = failed ? 'failed' : 'flaky';
+if (existing) gh('issue', 'comment', String(existing.number), '--body', `${failed ? 'Failed' : 'Flaky'} again on ${DATE}.\n\n${body}`);
+else gh('issue', 'create', '--title', `Nightly e2e ${word} ${DATE}`, '--label', 'tests', '--body', body);
