@@ -20,8 +20,9 @@ withDefaults(defineProps<{ label: string; variant?: 'standard' | 'tonal' | 'fill
   position: relative; width: calc(var(--h) + 2 * var(--tap)); height: calc(var(--h) + 2 * var(--tap)); border: var(--tap) solid transparent; background-clip: padding-box; border-radius: var(--md-sys-shape-corner-full); flex: none;
   display: inline-flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant);
 }
-/* the global .sr-only (visually hidden, still focusable) must outrank the size and tap border above */
+/* the global .sr-only (visually hidden, still focusable) must outrank the size and tap border above; nothing of it is drawn */
 .icon-btn.sr-only { position: absolute; width: 1px; height: 1px; border-width: 0; }
+.icon-btn.sr-only :deep(svg) { display: none; }
 .icon-btn :deep(svg) { width: 24px; height: 24px; }
 .tonal { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .filled { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
