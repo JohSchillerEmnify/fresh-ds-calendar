@@ -175,7 +175,7 @@ function toggleFold(id: string) {
         v-if="rowShown" v-ripple class="bar" :class="{ row2: inBar }" type="button" data-testid="task-tray-toggle" :aria-expanded="listShown" aria-controls="task-tray-list"
         :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
       >
-        <Chip static class="chip" :selected="!!lists.count" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}<IconExpand v-if="isPhone" class="chev in" :class="{ up: listShown }" data-testid="task-tray-chevron" aria-hidden="true" /></Chip>
+        <Chip static class="chip" :selected="!!lists.count" data-testid="task-tray-count" :data-count="lists.count"><span class="cnt">{{ countText }}<IconExpand v-if="isPhone" class="chev in" :class="{ up: listShown }" data-testid="task-tray-chevron" aria-hidden="true" /></span></Chip>
         <span v-if="isPhone" class="names"><Chip v-for="(n, i) in names" :key="i" static class="nm" data-testid="task-tray-chip">{{ n }}</Chip></span>
         <IconExpand v-if="!isPhone" class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
       </Pressable>
@@ -208,6 +208,8 @@ function toggleFold(id: string) {
 /* the toggle chip sits on the thumb side: right, or left in left-handed mode */
 html[data-hand='left'][data-touch] .bar.row2 { flex-direction: row; }
 .names { flex: 1; min-width: 0; display: flex; gap: 8px; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+/* flex, so the chevron's order puts it before the count in left-handed mode (the kit chip's text span is not flex) */
+.cnt { display: inline-flex; align-items: center; gap: 4px; }
 .chev { margin-left: auto; width: 24px; height: 24px; transition: transform 240ms var(--md-sys-motion-spring); }
 .chev.in { margin-left: 0; width: 18px; height: 18px; }
 .chev.in.up { transform: rotate(180deg); }
