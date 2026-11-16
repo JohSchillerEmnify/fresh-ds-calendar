@@ -4,7 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
 import { expectPositioned } from './support/grid.js';
-import { dragItem, expandTaskList, itemById } from './support/tasklist.js';
+import { checkInMessageGone, dragItem, expandTaskList, itemById } from './support/tasklist.js';
 import { cellValue, formRows } from './support/tables.js';
 import { box, chooseListAction, expectInViewport, expectJoined } from './support/ui.js';
 import { attr, exactText, tid, type World } from './support/world.js';
@@ -334,6 +334,7 @@ When('I drag the item {string} and drop it where it was', async function (this: 
 });
 
 When('I drag the item {string} over the gap between {string} and {string} and hold', async function (this: World, title: string, upper: string, lower: string) {
+  await checkInMessageGone(this);
   const grip = (await box((await itemById(this, title)).getByTestId('tasklist-item-grip')));
   const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
   // just inside the upper half of the lower item: the place right after the upper one
