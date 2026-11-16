@@ -116,8 +116,6 @@ function toggleFilters() {
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }
 .nav { grid-area: nav; display: flex; align-items: center; gap: 2px; }
-/* the m3 button's size rule and the ripple's position: relative outrank the global .sr-only: restate them so the arrows take no room */
-.nav .sr-only { position: absolute; width: 1px; height: 1px; }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
 .actions { grid-area: actions; display: flex; }
 .fwrap { position: relative; display: inline-flex; }
