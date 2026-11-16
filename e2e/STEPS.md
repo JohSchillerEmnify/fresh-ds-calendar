@@ -3684,7 +3684,6 @@ the widget key {string} was last used on {date} at {time}
 the widget key {string} was never used
 the widget key {string} belongs to {string}
 {string} has the calendar {string}
-the calendar contains {int} more events on {date} after {time}
 the iPhone widget refreshes with the key {string}
 the iPhone widget refreshes with the key {string} {int} times within a minute
 the iPhone widget refreshes with a key that does not exist
@@ -3698,13 +3697,14 @@ I look at the iPhone widget in the {string} size
 I tap the iPhone widget
 the iPhone widget shows the event {string}
 the iPhone widget does not show the event {string}
-the iPhone widget shows the entry {string} with its start {string}
-the iPhone widget places the event {string} in the week grid from {time} to {time}
+the iPhone widget shows the day label {string} as text
+the iPhone widget shows today alone as one column
+the iPhone widget draws no text into its picture
+the iPhone widget does not show {string}
 the iPhone widget shows {string} in the all-day band
 the iPhone widget shows the hours from {time} to {time}
 the iPhone widget draws a red now-line at {time} in today's column
 the iPhone widget shows no date line above the box
-the iPhone widget shows the week of {date} with the event {string} on {date}
 the iPhone widget shows {string}
 the iPhone widget says {string}
 the iPhone widget says its data is from {time}
@@ -3714,6 +3714,8 @@ the iPhone widget counts down live to {time}
 the lock screen circle is chosen as {string}
 the app language is chosen as {string}
 I look at the iPhone widget in the {string} size on an iPhone set to {string}
+I look at the iPhone widget in the {string} size on an iPhone with a {int} by {int} point screen
+the iPhone widget picture is {int} by {int} points
 the widget data carries the app language {string}
 the widget data carries the lock screen circle {string}
 the lock screen circle is set to {string}
@@ -3740,12 +3742,11 @@ setting the iPhone Timeline range to an end of {string} is refused
 the widget data carries a timeline text size of {int} %
 the Android widget snapshot carries a timeline text size of {int} %
 setting the timeline text size to {int} is refused
-the widget data carries the iPhone widget layout {string} and {int} timeline days
+the widget data carries {int} timeline days and no layout
 setting the timeline days to {int} is refused
 the iPhone widget shows the timeline of {int} days from {date}
 the iPhone widget places the event {string} in the timeline from {time} to {time}
-the iPhone widget layout is set to {string}
-I set the iPhone widget layout to {string}
+the iPhone section offers no widget layout choice
 the timeline days are set to {string}
 I set the timeline days to {string}
 the iPhone Timeline hours are set to {string}
@@ -3756,7 +3757,8 @@ the iPhone Timeline range reads from {time} to {time}
 the timeline text size is set to {string}
 I set the timeline text size to {int}
 the iPhone widget keeps no calendar data
-the iPhone widget opens the app at the day view of {date}
+the iPhone widget runs the script {string} in Scriptable
+the iPhone widget does not open Safari
 the iPhone widget asks to be redrawn at {time}
 ```
 
