@@ -46,3 +46,17 @@ Scenarios in `spec/features/app/iphone-widget.feature` (tagged `@backlog` until 
 4. The stored `widgetLayout` preference stays in the prefs store (never overwritten) but is no longer read or sent.
 5. Whether running the script in the app redraws the home-screen widget is unverified (no docs or reports either way);
    the device check decides whether the tap also needs `Script.setWidget` or a note.
+
+## Implementation notes (built)
+- Look: option B (tinted block, bar on the left, ink text), decided by the owner "B, but not with translucent blocks": blocks are
+  stacks with `Color.dynamic(mix(colour, light surface, .24), mix(colour, dark surface, .24))`, so they follow light and dark;
+  the picture (`DrawContext`) holds only the hour lines and the now-line (a DrawContext cannot hold `Color.dynamic`).
+- Tree: `ListWidget` (dynamic surface) > page stack (size = Apple's widget size, `backgroundImage` = the lines picture) > one
+  row: hour-label gutter + one fixed-size column stack per day. A stack has no absolute positions, so every element has a fixed
+  size and spacers walk to its top (`flow`); overlapping blocks of one cluster are lanes (side-by-side stacks) from `dayGrid`.
+- The now-line is also a 1.5 pt red stripe stack in today's column, cutting a running entry in two, because the picture is behind
+  the opaque blocks and would be hidden exactly while an entry runs.
+- All-day chips: when more than two, the last row says "+N more" (the band keeps its height).
+- Colour mix: no helper in `shared/`; a six-line per-channel sRGB mix in the script (a Scriptable script cannot import `shared/`).
+- Unverified on a device: that `WidgetStack.backgroundImage` shows a transparent picture over the widget's background colour,
+  that stacks keep exact sizes inside the widget's own margins, and that running the script in the app redraws the widget.

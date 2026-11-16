@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-16
+- iPhone widget: all sizes now show the multi-day view, with every day labelled, the hours as text and the entries in your calendar colours. It follows light and dark mode, and a tap on the widget updates it. The small widget shows today.
+- iPhone widget: the "Layout" choice is gone from Settings › Widgets, since the multi-day view is the only one. The number of days, the text size and the hours still work.
+
 ## 2026-11-12
 - Fixed: text and buttons can no longer be selected by accident; event descriptions, places and notes can still be copied.
 - New: the calendar that holds your task lists has a colour setting now (Settings › Calendars › Task lists calendar), just like your other calendars. Task lists follow it.
