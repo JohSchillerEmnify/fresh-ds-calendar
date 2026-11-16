@@ -1,6 +1,6 @@
 name: Nightly
 
-# Everything, once a night, but only when main changed since the last nightly run: full verify, goldens, the whole e2e suite
+# Everything, once a night, unless main has not changed since a passing nightly run: full verify, goldens, the whole e2e suite
 # (mobile, desktop, tablet and the @perf, @visual, @slow scenarios; sharded), the Android unit tests, the leak check and the
 # WebKit job on a Mac. A failure opens (or updates) one "Nightly e2e failed" issue. Not a required check.
 on:
@@ -38,11 +38,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
         run: |
-          # The last run that really tested something (success or failure; skipped and cancelled runs do not count).
+          # The last finished run (cancelled ones do not count). A failure is run again the next night, so a skip only ever
+          # follows a passing run of the same commit.
           last="$(gh run list --workflow nightly-e2e.yml --branch main --status completed --limit 30 \
-            --json headSha,conclusion --jq '[.[] | select(.conclusion == "success" or .conclusion == "failure")][0].headSha // ""')"
-          echo "this run: $GITHUB_SHA, last tested: ${last:-none}"
-          if [ "$FORCE" = true ] || [ "$last" != "$GITHUB_SHA" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; echo "main has not changed: skipping" >> "$GITHUB_STEP_SUMMARY"; fi
+            --json headSha,conclusion --jq '[.[] | select(.conclusion == "success" or .conclusion == "failure")][0] | "\(.headSha) \(.conclusion)"' 2>/dev/null)"
+          echo "this run: $GITHUB_SHA, last: ${last:-none}"
+          if [ "$FORCE" = true ] || [ "$last" != "$GITHUB_SHA success" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; echo "main has not changed since a passing run: skipping" >> "$GITHUB_STEP_SUMMARY"; fi
 
   verify:
     needs: changes
@@ -118,7 +119,7 @@ jobs:
           curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
           cd e2e
           pnpm exec bddgen
-          pnpm exec playwright test --project=mobile --project=desktop --project=tablet --workers=1 --shard=${{ matrix.shard }}/8
+          pnpm exec playwright test --project=mobile --project=desktop --project=tablet --workers=1 --retries=1 --shard=${{ matrix.shard }}/8
       - name: Upload the report and results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -187,10 +188,11 @@ jobs:
     permissions:
       contents: read
 
-  # One issue for the whole night: every failed job and scenario. The only job with a write permission.
+  # One issue for the whole night: every failed job and scenario, and the flaky ones (passed on the retry). The only job
+  # with a write permission; it runs after every real run because a shard with only flaky tests passes.
   report:
     needs: [changes, verify, goldens, e2e, android-unit, leaks, webkit]
-    if: always() && needs.changes.outputs.changed == 'true' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
+    if: always() && needs.changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
