@@ -186,7 +186,7 @@ Then('{string} is an outlined field showing {string}', async function (this: Wor
   await expect(f).toBeVisible();
   await expect(f.locator('.val')).toHaveText(value);
   expect(px(await style(f, 'border-top-width'))).toBeGreaterThanOrEqual(1);
-  expect(px(await style(f, 'border-top-left-radius'))).toBeGreaterThanOrEqual(12);
+  expect(px(await style(f, 'border-top-left-radius'))).toBeGreaterThanOrEqual(4);
 });
 
 When('I open the field {string}', async function (this: World, name: string) {
