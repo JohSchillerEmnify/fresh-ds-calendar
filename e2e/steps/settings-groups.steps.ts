@@ -107,9 +107,10 @@ Then('the time picker is shown', async function (this: World) {
 
 Then('the time picker has large hour and minute boxes', async function (this: World) {
   for (const id of ['time-picker-hour', 'time-picker-minute']) {
-    const box = await this.page.getByTestId(id).boundingBox();
-    expect(box!.width).toBeGreaterThanOrEqual(96);
-    expect(box!.height).toBeGreaterThanOrEqual(80);
+    // layout size, not boundingBox: the desktop dialog scales in, which would shrink the rect mid-animation
+    const box = await this.page.getByTestId(id).evaluate((el) => ({ width: (el as HTMLElement).offsetWidth, height: (el as HTMLElement).offsetHeight }));
+    expect(box.width).toBeGreaterThanOrEqual(96);
+    expect(box.height).toBeGreaterThanOrEqual(80);
   }
 });
 
@@ -147,7 +148,7 @@ Then('the settings search says nothing matches {string}', async function (this: 
 });
 
 When('I clear the settings search', async function (this: World) {
-  await this.page.getByTestId('settings-search-clear').click();
+  await this.page.getByTestId('search-clear').click();
 });
 
 When('I choose the search result {string}', async function (this: World, name: string) {

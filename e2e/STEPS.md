@@ -1043,7 +1043,7 @@ the setting {string} is highlighted
 ```
 
 - Hooks: the home is `settings-home` with one `settings-group` per group (`data-group` = its visible name, in order;
-  `data-group-id` = its route name); the search bar is `settings-search` (an input) with `settings-search-clear`; a
+  `data-group-id` = its route name); the search bar is `settings-search` (an input) with `search-clear`; a
   group page is `settings-group-page` with `data-group` (its title) and `data-group-id` (`views`, `focus/bedtime`, …);
   each setting is a `settings-row` with `data-setting` = its visible name and `data-setting-id`; Back is
   `settings-back`. Every settings page keeps `settings-view` as its root.
