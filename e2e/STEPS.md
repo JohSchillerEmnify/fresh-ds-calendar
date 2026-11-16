@@ -3709,7 +3709,6 @@ the widget key {string} was last used on {date} at {time}
 the widget key {string} was never used
 the widget key {string} belongs to {string}
 {string} has the calendar {string}
-the calendar contains {int} more events on {date} after {time}
 the iPhone widget refreshes with the key {string}
 the iPhone widget refreshes with the key {string} {int} times within a minute
 the iPhone widget refreshes with a key that does not exist
@@ -3723,13 +3722,14 @@ I look at the iPhone widget in the {string} size
 I tap the iPhone widget
 the iPhone widget shows the event {string}
 the iPhone widget does not show the event {string}
-the iPhone widget shows the entry {string} with its start {string}
-the iPhone widget places the event {string} in the week grid from {time} to {time}
+the iPhone widget shows the day label {string} as text
+the iPhone widget shows today alone as one column
+the iPhone widget draws no text into its picture
+the iPhone widget does not show {string}
 the iPhone widget shows {string} in the all-day band
 the iPhone widget shows the hours from {time} to {time}
 the iPhone widget draws a red now-line at {time} in today's column
 the iPhone widget shows no date line above the box
-the iPhone widget shows the week of {date} with the event {string} on {date}
 the iPhone widget shows {string}
 the iPhone widget says {string}
 the iPhone widget says its data is from {time}
@@ -3739,6 +3739,8 @@ the iPhone widget counts down live to {time}
 the lock screen circle is chosen as {string}
 the app language is chosen as {string}
 I look at the iPhone widget in the {string} size on an iPhone set to {string}
+I look at the iPhone widget in the {string} size on an iPhone with a {int} by {int} point screen
+the iPhone widget picture is {int} by {int} points
 the widget data carries the app language {string}
 the widget data carries the lock screen circle {string}
 the lock screen circle is set to {string}
@@ -3765,12 +3767,11 @@ setting the iPhone Timeline range to an end of {string} is refused
 the widget data carries a timeline text size of {int} %
 the Android widget snapshot carries a timeline text size of {int} %
 setting the timeline text size to {int} is refused
-the widget data carries the iPhone widget layout {string} and {int} timeline days
+the widget data carries {int} timeline days and no layout
 setting the timeline days to {int} is refused
 the iPhone widget shows the timeline of {int} days from {date}
 the iPhone widget places the event {string} in the timeline from {time} to {time}
-the iPhone widget layout is set to {string}
-I set the iPhone widget layout to {string}
+the iPhone section offers no widget layout choice
 the timeline days are set to {string}
 I set the timeline days to {string}
 the iPhone Timeline hours are set to {string}
@@ -3781,7 +3782,8 @@ the iPhone Timeline range reads from {time} to {time}
 the timeline text size is set to {string}
 I set the timeline text size to {int}
 the iPhone widget keeps no calendar data
-the iPhone widget opens the app at the day view of {date}
+the iPhone widget runs the script {string} in Scriptable
+the iPhone widget does not open Safari
 the iPhone widget asks to be redrawn at {time}
 ```
 
@@ -3797,7 +3799,8 @@ the iPhone widget asks to be redrawn at {time}
   later requests). "was last used on D at T" / "was never used" set `lastUsedAt` through a test-only endpoint.
 - "I request M with the widget key K" sends `Authorization: Bearer <secret of K>`; "refused as R" checks status 401 and
   the error code `WIDGET_KEY_REVOKED` (revoked) or `WIDGET_KEY_INVALID` (unknown).
-- Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `weekGrid` for D and the N-1 days after it (the same geometry as the week); the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-layout` (iPhone section) and `settings-widget-days` (the Timeline section, always shown).
+- Timeline: "the iPhone widget layout is chosen as L" and "the timeline days are chosen as N" set `prefs.widgetLayout` (`standard`/`timeline`; the widget ignores it) and `prefs.widgetTimelineDays` (1 to 7, default 3) through `PATCH /api/prefs`. "shows the timeline of N days from D" = the script's `timelineGrid` for D and the N-1 days after it; the hours come from the entries of those days only (`hourRange`). The Settings steps use the controls `settings-widget-days` (the Timeline section, always shown); "the iPhone section offers no widget layout choice" = no `settings-widget-layout` control.
+- The unit steps read the widget as a tree: day labels, hours, all-day chips and blocks are text in stacks laid out with fixed sizes and spacers (the fake Scriptable works the positions out), blocks are tinted stacks (`Color.dynamic`) with a bar in the full colour, and only the hour lines and the now-line are drawn into the picture (a `DrawContext` that refuses `Color.dynamic`, as Scriptable cannot draw it). "the iPhone widget picture is W by H points" = the size of the picture behind the stacks, which comes from Apple's widget size table for the screen (`Device.screenSize()`); "runs the script C in Scriptable" = the widget's `url` is `scriptable:///run/C`.
 - iPhone Timeline hours: pref `widgetTimelineHours` `{ mode: 'auto'|'fixed', from, to }` (default auto, 08:00 to 20:00 kept for when Fixed is chosen), set through `PATCH /api/prefs` (a partial object is merged); Settings controls `settings-widget-range` (Automatic / Fixed range) and, while fixed, the time fields `settings-widget-range-from` and `settings-widget-range-to`. The script's `timelineGrid(..., hours)` takes the fixed whole hours (start rounded down, end rounded up; an end not after the start counts as automatic) and gives each column `above` and `below` markers (`{ label }`) for entries wholly outside it.
 - Timeline text size: pref `widgetTimelineTextSize` (percent, 90 to 150 in steps of 5, default 110) set through `PATCH /api/prefs`; the Settings control is the slider `settings-timeline-text-size` in the Multi-day section ("set to" reads its value text, e.g. "110 %"; "I set ... to N" moves it and waits for the saved PATCH). The iPhone script scales its fonts, header, chip and gutter sizes by it (`textScale` in the grid) and still fits the hours to the height; the data route and the Android snapshot (`scrollTextPercent`) carry the number.
 - Week grid: hours are picked by `hourRange` in `shared/weekHours.js` (the rule of `WeekLayout.hourRange` of the Android week widget: earliest start to latest end of the week's timed entries, at least 6 hours growing the later side first, 08 to 18 for an empty week); every timed entry is shown. A block's top is its start and its height its duration (a shorter entry as tall as the setting "minimum event length").

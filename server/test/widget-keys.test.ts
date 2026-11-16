@@ -95,13 +95,15 @@ describe('the widget data (/api/widget/data)', () => {
     expect((await t.json('PATCH', '/api/prefs', { widgetCircle: 'soon' }, as(jo))).status).toBe(400);
   });
 
-  it('carries the layout and the timeline days of the key\'s person, standard and 3 by default', async () => {
+  it('carries the timeline days and no layout of the key\'s person, 3 by default', async () => {
     const key = await mint(jo);
-    expect((await data(key.key)).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: 3 });
+    const body = async (k: { key: string }) => (await data(k.key)).body;
+    expect(await body(key)).toMatchObject({ widgetTimelineDays: 3 });
+    expect(await body(key)).not.toHaveProperty('widgetLayout');
     await t.json('PATCH', '/api/prefs', { widgetLayout: 'timeline', widgetTimelineDays: 5 }, as(jo));
-    expect((await data(key.key)).body).toMatchObject({ widgetLayout: 'timeline', widgetTimelineDays: 5 });
-    const other = await mint(ann);
-    expect((await data(other.key)).body).toMatchObject({ widgetLayout: 'standard', widgetTimelineDays: 3 });
+    expect(await body(key)).toMatchObject({ widgetTimelineDays: 5 });
+    expect(await body(key)).not.toHaveProperty('widgetLayout');
+    expect(await body(await mint(ann))).toMatchObject({ widgetTimelineDays: 3 });
   });
 
   it('carries the timeline hours of the key\'s person, automatic by default', async () => {
@@ -123,7 +125,8 @@ describe('the widget data (/api/widget/data)', () => {
   it('falls back to the earlier Android day count until the shared one is chosen', async () => {
     const key = await mint(ann);
     await t.json('PATCH', '/api/prefs', { androidWidgetDays: 5 }, as(ann));
-    expect((await data(key.key)).body.widgetTimelineDays).toBe(5);
+    expect((await data(key.key)).body).toMatchObject({ widgetTimelineDays: 5 });
+    expect((await data(key.key)).body).not.toHaveProperty('widgetLayout');
     await t.json('PATCH', '/api/prefs', { widgetTimelineDays: 2 }, as(ann));
     expect((await data(key.key)).body.widgetTimelineDays).toBe(2);
     expect((await t.json('GET', '/api/prefs', undefined, as(ann))).body.androidWidgetDays).toBe(5);

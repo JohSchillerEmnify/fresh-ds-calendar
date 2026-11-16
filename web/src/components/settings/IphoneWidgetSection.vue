@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** The iPhone widget section of Settings › Widgets (feature iphone-widget): the devices with a widget key, add and remove. */
 import { computed, onMounted, ref } from 'vue';
-import type { TimelineHours, WidgetCircle, WidgetKey, WidgetLayout } from '@/api/types';
+import type { TimelineHours, WidgetCircle, WidgetKey } from '@/api/types';
 import TextField from '@/components/m3/TextField.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Button from '@/components/m3/Button.vue';
@@ -24,7 +24,6 @@ const ui = useUiStore();
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
 const circleOptions = computed(() => (['time', 'countdown'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.circle.${v}`), testid: `settings-widget-circle-${v}` })));
-const layoutOptions = computed(() => (['standard', 'timeline'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.layout.${v}`), testid: `settings-widget-layout-${v}` })));
 const hoursOptions = computed(() => (['auto', 'fixed'] as const).map((v) => ({ value: v, label: t(`iphoneWidget.hours.${v}`), testid: `settings-widget-range-${v}` })));
 const saveHours = (patch: Partial<TimelineHours>) => savePrefs({ widgetTimelineHours: patch as TimelineHours });
 const adding = ref(false);
@@ -67,10 +66,6 @@ async function remove() {
     <SettingRow id="widgetCircle" wide :label="t('iphoneWidget.circle.label')">
       <template #sub><span class="sub" data-testid="settings-widget-circle-hint">{{ t('iphoneWidget.circle.hint') }}</span></template>
       <SegmentedButton :model-value="prefs.widgetCircle" :options="circleOptions" :label="t('iphoneWidget.circle.label')" data-testid="settings-widget-circle" @update:model-value="savePrefs({ widgetCircle: $event as WidgetCircle })" />
-    </SettingRow>
-    <SettingRow id="widgetLayout" wide :label="t('iphoneWidget.layout.label')">
-      <template #sub><span class="sub" data-testid="settings-widget-layout-hint">{{ t('iphoneWidget.layout.hint') }}</span></template>
-      <SegmentedButton :model-value="prefs.widgetLayout" :options="layoutOptions" :label="t('iphoneWidget.layout.label')" data-testid="settings-widget-layout" @update:model-value="savePrefs({ widgetLayout: $event as WidgetLayout })" />
     </SettingRow>
     <SettingRow id="widgetTimelineHours" wide :label="t('iphoneWidget.hours.label')">
       <template #sub><span class="sub" data-testid="settings-widget-range-hint">{{ t('iphoneWidget.hours.hint') }}</span></template>

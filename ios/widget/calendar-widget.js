@@ -1,25 +1,33 @@
-// calendar-widget version=4
+// calendar-widget version=5
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
-// Small = today, medium = today and tomorrow (the same rows), large = the week as a time grid (or, as chosen in Settings, medium and large show the Timeline: 1 to 7 days from today as columns); the lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
-const VERSION = 4;
+// The home screen shows the Timeline in every size (small = today, medium and large = 1 to 7 days from today as columns); a tap runs this script. The lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
+const VERSION = 5;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
 const CACHE_FILE = 'calendar-widget-data.json';
 const STALE_AFTER_MS = 2 * 3600e3;
 const MAX_AHEAD_MS = 3600e3;
 const GREY = '#8a8a8a';
-const SIZES = { small: [158, 158], medium: [338, 158], large: [338, 354] };
+const PAD = { x: 6, top: 6, bottom: 4 };
+const NOTE_H = 12;
+// Apple's widget sizes in points by screen size [screen w, screen h, small side, wide width, large height] (developer.apple.com/design/human-interface-guidelines/widgets); medium is wide x small side
+const WIDGET_SIZES = [[430, 932, 170, 364, 382], [428, 926, 170, 364, 382], [414, 896, 169, 360, 379], [393, 852, 158, 338, 354], [390, 844, 158, 338, 354], [375, 812, 155, 329, 345], [375, 667, 148, 321, 324]];
+// the app's light and dark surface and ink (web/src/theme/tokens.css), because a widget has no CSS to follow
+const LIGHT = { surface: '#faf9fe', ink: '#2f323a' };
+const DARK = { surface: '#0d0e12', ink: '#e3e5f0' };
+const LINE = '#8e8e93';
+const RED = '#d93025';
 
 const TEXTS = {
   en: {
-    today: 'TODAY', tomorrow: 'TOMORROW', allDay: 'all day', more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
+    more: (n) => `+${n} more`, after: 'After', nothing: 'Nothing planned',
     until: 'until', now: 'now', inWord: 'in',
     from: (t) => `Data from ${t}`, noData: 'No data yet. The widget loads it as soon as your iPhone is online.',
     revoked: 'This widget was removed in the app. Add it again in Settings.', invalid: 'This widget is not valid. Add it again in Settings.',
     setup: 'Not set up yet. Run the installer in Scriptable first.',
   },
   de: {
-    today: 'HEUTE', tomorrow: 'MORGEN', allDay: 'ganztägig', more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
+    more: (n) => `+${n} weitere`, after: 'Danach', nothing: 'Nichts geplant',
     until: 'bis', now: 'jetzt', inWord: 'in',
     from: (t) => `Stand ${t}`, noData: 'Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.',
     revoked: 'Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.',
@@ -52,7 +60,7 @@ function weekStart(date) {
 /** One calendar event as the widget draws it; other kinds (task lists) are not drawn. */
 function entryOf(item) {
   if (item.kind !== 'event') return null;
-  const base = { title: item.title, color: item.color || GREY, allDay: item.allDay };
+  const base = { title: item.title, color: /^#[0-9a-f]{6}$/i.test(item.color || '') ? item.color : GREY, allDay: item.allDay };
   if (item.allDay) return { ...base, startDate: item.start, endDate: addDays(item.end, -1), startMs: null, endMs: null };
   const startDate = item.start.slice(0, 10);
   let endDate = item.end.slice(0, 10);
@@ -81,11 +89,6 @@ function nextRedraw(entries, nowMs, offsetMin, circle) {
   return Math.min(nowMs + MAX_AHEAD_MS, midnight, ...changes, ...(next ? [circleRedraw(next, nowMs)] : []));
 }
 
-function textColor(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.6 ? '#1b1b1f' : '#ffffff';
-}
-
 const dyn = (light, dark) => Color.dynamic(new Color(light), new Color(dark));
 
 function addLine(parent, s, size, opts = {}) {
@@ -103,71 +106,6 @@ function weekdayName(date, lang, style) {
 
 const dayName = (date, lang) => `${weekdayName(date, lang, 'short').replace(/\.$/, '').toUpperCase()} ${Number(date.slice(8))}`;
 
-/** One day: a compact bold header, the all-day band, one coloured row per entry ("<start> <title>") and "+N more". */
-function dayColumn(parent, header, headerColor, entries, T, dim, maxRows) {
-  const col = parent.addStack();
-  col.layoutVertically();
-  col.spacing = 2;
-  addLine(col, header, 12, { bold: true, color: headerColor });
-  const bands = entries.filter((e) => e.allDay);
-  const timed = entries.filter((e) => !e.allDay);
-  const band = bands.length ? col.addStack() : null;
-  if (band) {
-    band.layoutVertically();
-    band.setPadding(1, 4, 1, 4);
-    band.cornerRadius = 4;
-    band.backgroundColor = dyn('#e8e8ee', '#2c2c32');
-    bands.slice(0, 1).forEach((e) => addLine(band, e.title, 10));
-  }
-  if (!entries.length) addLine(col, T.nothing, 10);
-  const room = maxRows - (band ? 1 : 0);
-  timed.slice(0, room).forEach((e) => {
-    const row = col.addStack();
-    row.layoutHorizontally();
-    row.setPadding(2, 4, 2, 4);
-    row.cornerRadius = 4;
-    const color = dim ? GREY : e.color;
-    row.backgroundColor = new Color(color);
-    const ink = new Color(dim ? '#ffffff' : textColor(color));
-    addLine(row, e.startTime, 10, { bold: true, color: ink });
-    row.addSpacer(4);
-    addLine(row, e.title, 10, { color: ink });
-  });
-  const more = timed.length - room + Math.max(0, bands.length - 1);
-  if (more > 0) addLine(col, T.more(more), 10);
-  return col;
-}
-
-/** What is still to come today: entries that have not ended and the all-day ones. */
-const remainingToday = (entries, today, nowMs) => entriesOn(entries, today).filter((e) => e.allDay || e.endMs > nowMs);
-
-const red = () => dyn('#b3261e', '#f2b8b5');
-
-/** The small widget: today only, in the same rows as the medium columns. */
-function smallWidget(entries, nowMs, today, lang, T, dim) {
-  const w = new ListWidget();
-  w.setPadding(10, 10, 10, 10);
-  dayColumn(w, dayName(today, lang), red(), remainingToday(entries, today, nowMs), T, dim, 6);
-  return w;
-}
-
-/** The medium widget: today and tomorrow as two identical columns with a thin divider. */
-function mediumWidget(entries, nowMs, today, lang, T, dim) {
-  const w = new ListWidget();
-  w.setPadding(10, 10, 10, 10);
-  const body = w.addStack();
-  body.layoutHorizontally();
-  const tomorrow = addDays(today, 1);
-  dayColumn(body, `${T.today} · ${dayName(today, lang)}`, red(), remainingToday(entries, today, nowMs), T, dim, 4);
-  body.addSpacer(8);
-  const rule = body.addStack();
-  rule.size = new Size(1, 0);
-  rule.backgroundColor = dyn('#d8d8de', '#3a3a40');
-  body.addSpacer(8);
-  dayColumn(body, `${T.tomorrow} · ${dayName(tomorrow, lang)}`, new Color(GREY), entriesOn(entries, tomorrow), T, dim, 4);
-  return w;
-}
-
 const WEEK = { gutter: 20, head: 16, chip: 11, maxChips: 2 };
 
 /** One entry's part on one day, in minutes since that day's midnight (a shorter entry counts as `minLen` long). */
@@ -181,6 +119,7 @@ function segmentOn(e, date, minLen) {
 
 /** Side-by-side lanes for the overlapping blocks of one day. */
 function lanes(day) {
+  let id = 0;
   const sorted = [...day].sort((a, b) => a.start - b.start || b.end - a.end);
   let cluster = [];
   let clusterEnd = 0;
@@ -188,11 +127,13 @@ function lanes(day) {
     const n = Math.max(1, ...cluster.map((g) => g.lane + 1));
     cluster.forEach((g) => { g.lanes = n; });
     cluster = [];
+    id++;
   };
   for (const g of sorted) {
     if (cluster.length && g.start >= clusterEnd) flush();
     const taken = cluster.filter((x) => x.end > g.start).map((x) => x.lane);
     g.lane = 0;
+    g.cluster = id;
     while (taken.includes(g.lane)) g.lane++;
     cluster.push(g);
     clusterEnd = Math.max(clusterEnd, g.end);
@@ -204,7 +145,7 @@ function lanes(day) {
 /**
  * Days as a time grid (like the Android week widget): one column per day from `from`, an all-day band, an hour scale and a
  * block per timed entry placed by its start and as tall as it lasts. The hours fit the entries of these days only (a widget
- * cannot scroll). Pure geometry in points; drawing follows it.
+ * cannot scroll). Pure geometry in points; the stacks follow it.
  */
 function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed = null) {
   const colW = (W - WEEK.gutter) / count;
@@ -223,8 +164,14 @@ function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed
   const chips = days.map((date) => entriesOn(entries, date).filter((e) => e.allDay));
   const rows = Math.min(WEEK.maxChips, Math.max(0, ...chips.map((c) => c.length)));
   const head = WEEK.head * k, chip = WEEK.chip * k;
-  const top = head + 2 + rows * chip + (rows ? 2 : 0);
-  const hourH = (H - 2 - top) / (last - first);
+  const aboves = all.map((day, i) => edge(day, days[i], true));
+  const belows = all.map((day, i) => edge(day, days[i], false));
+  // a stack cannot overlap, so edge markers get their own strip above or below the hours, only when there is one
+  const markH = 9 * k;
+  const aboveStrip = aboves.some(Boolean) ? markH + 1 : 0;
+  const belowStrip = belows.some(Boolean) ? markH + 1 : 0;
+  const top = head + 2 + rows * chip + (rows ? 2 : 0) + aboveStrip;
+  const hourH = (H - 2 - top - belowStrip) / (last - first);
   const yOf = (min) => top + ((min - first * 60) / 60) * hourH;
   const cols = days.map((date, i) => {
     const x = WEEK.gutter + i * colW;
@@ -233,17 +180,20 @@ function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed
       const s = g.start;
       const en = g.end;
       const w = (colW - 2) / g.lanes;
-      blocks.push({ e: g.e, label: `${g.e.startDate === date ? g.e.startTime : ''} ${g.e.title}`.trim(), x: x + 1 + g.lane * w, y: yOf(s), w: w - 1, h: Math.max(8, yOf(en) - yOf(s) - 1) });
+      blocks.push({ e: g.e, lane: g.lane, lanes: g.lanes, cluster: g.cluster, label: `${g.e.startDate === date ? g.e.startTime : ''} ${g.e.title}`.trim(), x: x + 1 + g.lane * w, y: yOf(s), w: w - 1, h: Math.max(8, yOf(en) - yOf(s) - 1) });
     }
-    const shown = chips[i].slice(0, WEEK.maxChips);
-    return { date, x, today: date === today, blocks, chips: shown, moreChips: chips[i].length - shown.length, above: edge(all[i], date, true), below: edge(all[i], date, false) };
+    // a block raised to the minimum height ends where the next one in its lane or a later cluster starts (stacks cannot overlap)
+    for (const b of blocks) {
+      const next = blocks.filter((o) => o !== b && o.y >= b.y && (o.cluster !== b.cluster || o.lane === b.lane) && !(o.y === b.y && o.cluster === b.cluster));
+      if (next.length) b.h = Math.max(0.5, Math.min(b.h, Math.min(...next.map((o) => o.y)) - b.y));
+    }
+    // the last chip row says how many more there are, so the band keeps its height
+    const shown = chips[i].length > WEEK.maxChips ? chips[i].slice(0, WEEK.maxChips - 1) : chips[i];
+    return { date, x, today: date === today, blocks, chips: shown, moreChips: chips[i].length - shown.length, above: aboves[i], below: belows[i] };
   });
   const nowLine = nowMin >= first * 60 && nowMin <= last * 60 ? { y: yOf(nowMin), col: cols.findIndex((c) => c.today) } : null;
-  return { first, last, hourH, top, colW, cols, nowLine, yOf, k, head, chip };
+  return { first, last, hourH, top, colW, cols, nowLine, yOf, k, head, chip, markH };
 }
-
-/** The week of today's Monday, seven columns. */
-const weekGrid = (entries, today, nowMin, minLen, W, H) => dayGrid(entries, today, weekStart(today), 7, nowMin, minLen, W, H);
 
 /** The Timeline: `days` (1 to 7, else 3) columns from today. */
 const timelineGrid = (entries, today, nowMin, minLen, W, H, days, k = 1, hours = null) => dayGrid(entries, today, today, timelineDays(days), nowMin, minLen, W, H, k, fixedHours(hours));
@@ -262,66 +212,185 @@ const textScale = (p) => (Number.isInteger(p) && p >= 90 && p <= 150 && p % 5 ==
 
 const timelineDays = (n) => (Number.isInteger(n) && n >= 1 && n <= 7 ? n : 3);
 
-/** Draws the text `s` into a rectangle with the font and colour given. */
-function drawText(ctx, s, rect, size, bold, color) {
-  ctx.setFont(bold ? Font.boldSystemFont(size) : Font.systemFont(size));
-  ctx.setTextColor(color);
-  ctx.drawTextInRect(s, new Rect(...rect));
+/** An element of a fixed size in a stack; every element of the grid has one, so stacks line up with the geometry. */
+function fixedStack(parent, w, h, horizontal) {
+  const s = parent.addStack();
+  s.size = new Size(w, h);
+  s.setPadding(0, 0, 0, 0);
+  if (horizontal) s.layoutHorizontally(); else s.layoutVertically();
+  return s;
 }
 
-/** The hour scale with its faint hour lines. */
-function drawHours(ctx, g, W) {
-  const faint = dyn('#d8d8de', '#3a3a40');
+/** Walks along a stack: `to(y)` adds the spacer up to y, `done(len)` moves past what was placed (a stack has no absolute positions). */
+function flow(origin = 0) {
+  let at = origin;
+  return { to(parent, y) { if (y > at) parent.addSpacer(y - at); at = Math.max(at, y); }, done(len) { at += len; } };
+}
+
+/** `c` mixed into a surface by the share `a` (the app's tinted entries: 24 % of the colour), per sRGB channel; Scriptable has no colour mixing. */
+function mix(hex, surface, a) {
+  const part = (h, i) => parseInt(h.slice(i, i + 2), 16);
+  return '#' + [1, 3, 5].map((i) => Math.round(part(hex, i) * a + part(surface, i) * (1 - a)).toString(16).padStart(2, '0')).join('');
+}
+
+const ink = () => dyn(LIGHT.ink, DARK.ink);
+
+/** A block as the app draws a tinted entry: an opaque tint of its colour that follows light and dark, a bar in the full colour, ink text. */
+function entryBlock(parent, box, color, label, size) {
+  const s = fixedStack(parent, box.w, box.h, true);
+  s.backgroundColor = dyn(mix(color, LIGHT.surface, 0.24), mix(color, DARK.surface, 0.24));
+  s.cornerRadius = 2;
+  s.topAlignContent();
+  fixedStack(s, Math.min(3, box.w / 4), box.h, false).backgroundColor = new Color(color);
+  s.addSpacer(2);
+  if (label) {
+    const t = addLine(s, label, size, { color: ink(), lines: Math.max(1, Math.floor((box.h - 1) / (size * 1.2))) });
+    t.minimumScaleFactor = 0.8;
+  }
+  return s;
+}
+
+/** The hour numbers, each in a fixed box centred on its line. */
+function hourLabels(parent, g, H) {
+  const gutter = fixedStack(parent, WEEK.gutter, H, false);
+  const f = flow();
   const step = g.hourH < 18 * g.k ? 2 : 1;
-  for (let h = g.first; h < g.last; h++) {
-    const y = g.yOf(h * 60);
-    ctx.setFillColor(faint);
-    ctx.fillRect(new Rect(WEEK.gutter, y, W - WEEK.gutter, 0.5));
-    if ((h - g.first) % step === 0) drawText(ctx, pad2(h), [0, y - 1, WEEK.gutter - 3, 10 * g.k], 8 * g.k, false, new Color(GREY));
+  const half = 5 * g.k;
+  for (let h = g.first; h < g.last; h += step) {
+    f.to(gutter, g.yOf(h * 60) - half);
+    const slot = fixedStack(gutter, WEEK.gutter, 2 * half, true);
+    addLine(slot, pad2(h), 8 * g.k, { color: new Color(GREY) });
+    f.done(2 * half);
   }
 }
 
-/** One day column: its header, all-day chips and blocks. */
-function drawColumn(ctx, g, c, lang, T, dim) {
-  const ink = dyn('#1b1b1f', '#f2f0f4');
-  if (c.today) {
-    ctx.setFillColor(new Color('#b3261e'));
-    ctx.fillRect(new Rect(c.x + 1, 0, g.colW - 2, g.head));
+/** The pieces of one column's blocks, cut at the now-line (a stripe is drawn between them) so the line also shows across a running entry. */
+function piecesAt(blocks, nowY) {
+  const half = 0.75;
+  return blocks.flatMap((b) => {
+    if (nowY === null || b.y + b.h <= nowY - half) return [{ ...b, section: 0 }];
+    if (b.y >= nowY + half) return [{ ...b, section: 1 }];
+    const top = nowY - half - b.y;
+    const bottom = b.y + b.h - nowY - half;
+    const out = [];
+    if (top > 0.5) out.push({ ...b, h: top, label: top >= bottom ? b.label : '', section: 0 });
+    if (bottom > 0.5) out.push({ ...b, y: nowY + half, h: bottom, label: top >= bottom ? '' : b.label, section: 1 });
+    return out;
+  });
+}
+
+/** Overlapping blocks of one cluster: lanes side by side, each lane a stack with spacers to the block's top. */
+function blockGroup(col, g, group, size) {
+  const y0 = Math.min(...group.map((p) => p.y));
+  const y1 = Math.max(...group.map((p) => p.y + p.h));
+  const row = fixedStack(col, g.colW, y1 - y0, true);
+  row.addSpacer(1);
+  const laneW = (g.colW - 2) / group[0].lanes;
+  for (let lane = 0; lane < group[0].lanes; lane++) {
+    const stack = fixedStack(row, laneW, y1 - y0, false);
+    const f = flow(y0);
+    for (const p of group.filter((x) => x.lane === lane).sort((a, b) => a.y - b.y)) {
+      f.to(stack, p.y);
+      entryBlock(stack, p, p.e.color, p.label, size);
+      f.done(p.h);
+    }
   }
-  const head = g.colW >= 56 ? dayName(c.date, lang) : `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`;
-  drawText(ctx, head, [c.x + 2, 2, g.colW - 4, g.head - 2], 10 * g.k, true, c.today ? new Color('#ffffff') : ink);
-  const paint = (e, rect, label, size) => {
-    const color = dim ? GREY : e.color;
-    ctx.setFillColor(new Color(color));
-    ctx.fillRect(new Rect(...rect));
-    drawText(ctx, label, [rect[0] + 1, rect[1], rect[2] - 2, rect[3]], size, false, new Color(dim ? '#ffffff' : textColor(color)));
-  };
-  c.chips.forEach((e, i) => paint(e, [c.x + 1, g.head + 2 + i * g.chip, g.colW - 2, g.chip - 1], e.title, 8 * g.k));
-  if (c.moreChips > 0) drawText(ctx, T.more(c.moreChips), [c.x + 2, g.head + 2 + WEEK.maxChips * g.chip - 1, g.colW - 4, 9 * g.k], 7 * g.k, false, ink);
-  c.blocks.forEach((b) => paint(b.e, [b.x, b.y, b.w, b.h], b.label, 8 * g.k));
+  return { y0, y1 };
+}
+
+/** One day: its label (today a red pill), the all-day band, the blocks and an edge marker where a fixed range hides entries. */
+function dayColumn(parent, g, c, o) {
+  const { H, nowY, lang, T } = o;
+  const col = fixedStack(parent, g.colW, H, false);
+  const f = flow();
+  const head = fixedStack(col, g.colW - 2, g.head, true);
+  head.cornerRadius = 3;
+  if (c.today) head.backgroundColor = new Color('#b3261e');
+  head.addSpacer(2);
+  const label = g.colW >= 56 ? dayName(c.date, lang) : `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`;
+  addLine(head, label, 10 * g.k, { bold: true, color: c.today ? new Color('#ffffff') : ink() });
+  f.done(g.head);
+  c.chips.forEach((e, i) => {
+    f.to(col, g.head + 2 + i * g.chip);
+    entryBlock(col, { w: g.colW - 2, h: g.chip - 1 }, e.color, e.title, 8 * g.k);
+    f.done(g.chip - 1);
+  });
+  if (c.moreChips > 0) {
+    f.to(col, g.head + 2 + c.chips.length * g.chip);
+    const more = fixedStack(col, g.colW - 2, g.chip - 1, true);
+    more.addSpacer(2);
+    addLine(more, T.more(c.moreChips), 8 * g.k, { color: new Color(GREY) });
+    f.done(g.chip - 1);
+  }
   const bottom = g.yOf(g.last * 60);
-  if (c.above) paint(c.above.e, [c.x + 1, g.top, g.colW - 2, 9 * g.k], c.above.label, 7 * g.k);
-  if (c.below) paint(c.below.e, [c.x + 1, bottom - 9 * g.k, g.colW - 2, 9 * g.k], c.below.label, 7 * g.k);
+  const marker = (m, y) => { f.to(col, y); entryBlock(col, { w: g.colW - 2, h: g.markH }, m.e.color, m.label, 7 * g.k); f.done(g.markH); };
+  if (c.above) marker(c.above, g.top - g.markH - 1);
+  const groups = new Map();
+  for (const p of piecesAt(c.blocks, nowY)) {
+    const key = `${p.cluster}:${p.section}`;
+    groups.set(key, [...(groups.get(key) || []), p]);
+  }
+  let striped = nowY === null;
+  const stripe = () => {
+    f.to(col, nowY - 0.75);
+    fixedStack(col, g.colW, 1.5, false).backgroundColor = new Color(RED);
+    f.done(1.5);
+    striped = true;
+  };
+  for (const group of [...groups.values()].sort((a, b) => a[0].y - b[0].y)) {
+    if (!striped && group[0].section === 1) stripe();
+    f.to(col, Math.min(...group.map((p) => p.y)));
+    const { y0, y1 } = blockGroup(col, g, group, 8 * g.k);
+    f.done(y1 - y0);
+  }
+  if (!striped) stripe();
+  if (c.below) marker(c.below, bottom + 1);
+  return col;
 }
 
-/** The grid as one picture in a widget of `size`: the week, or the Timeline when `days` is given. */
-function gridWidget(size, entries, today, nowMin, minLen, lang, T, dim, days, k, hours) {
-  const [W, H] = SIZES[size];
-  const g = days ? timelineGrid(entries, today, nowMin, minLen, W, H, days, k, hours) : weekGrid(entries, today, nowMin, minLen, W, H);
+/** The hour lines and the now-line: the only things drawn into the picture (a DrawContext cannot hold dynamic colours and its text would not follow dark mode). */
+function linesPicture(W, H, g) {
   const ctx = new DrawContext();
   ctx.size = new Size(W, H);
   ctx.opaque = false;
   ctx.respectScreenScale = true;
-  drawHours(ctx, g, W);
-  g.cols.forEach((c) => drawColumn(ctx, g, c, lang, T, dim));
+  ctx.setFillColor(new Color(LINE, 0.4));
+  for (let h = g.first; h < g.last; h++) ctx.fillRect(new Rect(PAD.x + WEEK.gutter, PAD.top + g.yOf(h * 60), g.cols.length * g.colW, 0.5));
   if (g.nowLine && g.nowLine.col >= 0) {
-    ctx.setFillColor(new Color('#d93025'));
-    ctx.fillRect(new Rect(g.cols[g.nowLine.col].x, g.nowLine.y - 0.75, g.colW, 1.5));
+    ctx.setFillColor(new Color(RED));
+    ctx.fillRect(new Rect(PAD.x + g.cols[g.nowLine.col].x, PAD.top + g.nowLine.y - 0.75, g.colW, 1.5));
   }
+  return ctx.getImage();
+}
+
+/** The widget size in points from Apple's table, by the iPhone's screen; a screen the table lacks uses the nearest smaller one. */
+function widgetSize(size) {
+  const s = Device.screenSize();
+  const [w, h] = [Math.min(s.width, s.height), Math.max(s.width, s.height)];
+  const [, , side, wide, tall] = WIDGET_SIZES.find((r) => r[0] <= w && r[1] <= h) || WIDGET_SIZES[WIDGET_SIZES.length - 1];
+  return size === 'small' ? [side, side] : size === 'medium' ? [wide, side] : [wide, tall];
+}
+
+/** The Timeline as a widget of `size`: stacks (text, tinted blocks) over a picture of the lines; small shows today only. */
+function gridWidget(size, { entries, today, nowMin, lang, T, data, note }) {
+  const [W, H] = widgetSize(size);
+  const gh = H - PAD.top - PAD.bottom - (note ? NOTE_H : 0);
+  const g = timelineGrid(entries, today, nowMin, data.minEventMinutes, W - 2 * PAD.x, gh, size === 'small' ? 1 : timelineDays(data.widgetTimelineDays), textScale(data.widgetTimelineTextSize), data.widgetTimelineHours);
   const w = new ListWidget();
-  w.setPadding(6, 6, 4, 6);
-  const img = w.addImage(ctx.getImage());
-  img.imageSize = new Size(W - 12, H - 10);
+  w.setPadding(0, 0, 0, 0);
+  w.backgroundColor = dyn(LIGHT.surface, DARK.surface);
+  const page = fixedStack(w, W, H, false);
+  page.backgroundImage = linesPicture(W, H, g);
+  page.addSpacer(PAD.top);
+  const row = fixedStack(page, W, gh, true);
+  row.addSpacer(PAD.x);
+  hourLabels(row, g, gh);
+  g.cols.forEach((c, i) => dayColumn(row, g, c, { H: gh, nowY: g.nowLine && g.nowLine.col === i ? g.nowLine.y : null, lang, T }));
+  if (note) {
+    const line = fixedStack(page, W, NOTE_H, true);
+    line.addSpacer(PAD.x);
+    addLine(line, note, 9, { color: new Color(GREY), lines: 1 });
+  }
   return w;
 }
 
@@ -476,28 +545,26 @@ function pickLanguage(setting) {
   return 'en';
 }
 
-/** The home-screen widget of a size: small = today; medium and large = the Timeline when chosen, else two columns and the week. */
-function homeWidget(family, { entries, today, nowMs, offset, data }, lang, T) {
-  const big = family === 'large' || family === 'extraLarge';
-  const nowMin = localNow(nowMs, offset).minutes;
-  if (data.widgetLayout === 'timeline' && (big || family === 'medium')) return gridWidget(big ? 'large' : 'medium', entries, today, nowMin, data.minEventMinutes, lang, T, false, timelineDays(data.widgetTimelineDays), textScale(data.widgetTimelineTextSize), data.widgetTimelineHours);
-  if (big) return gridWidget('large', entries, today, nowMin, data.minEventMinutes, lang, T, false);
-  return family === 'medium' ? mediumWidget(entries, nowMs, today, lang, T, false) : smallWidget(entries, nowMs, today, lang, T, false);
+/** The home-screen widget of a size: the Timeline in every size; `note` is the stale text. */
+function homeWidget(family, { entries, today, nowMs, offset, data }, lang, T, note) {
+  const size = family === 'small' || family === 'medium' ? family : 'large';
+  return gridWidget(size, { entries, today, nowMin: localNow(nowMs, offset).minutes, lang, T, data, note });
 }
 
-/** Builds the widget for a size from one answer; `note` is the stale or refusal text, `dim` greys the picture. */
-function buildWidget(family, data, nowMs, lang, T) {
+/** Builds the widget for a size from one answer; `note` (the stale text) is added to the home-screen sizes. */
+function buildWidget(family, data, nowMs, lang, T, note) {
   const offset = offsetMinutesOf(data.generatedAt);
   const today = localNow(nowMs, offset).date;
   const entries = data.items.map(entryOf).filter(Boolean);
-  const w = family.startsWith('accessory') ? lockWidget(family, entries, nowMs, T, data.widgetCircle) : homeWidget(family, { entries, today, nowMs, offset, data }, lang, T);
+  const w = family.startsWith('accessory') ? lockWidget(family, entries, nowMs, T, data.widgetCircle) : homeWidget(family, { entries, today, nowMs, offset, data }, lang, T, note);
   w.refreshAfterDate = new Date(nextRedraw(entries, nowMs, offset, family === 'accessoryCircular' ? data.widgetCircle : null));
   return { w, today, entries, offset, data };
 }
 
 async function run() {
   const T0 = TEXTS[pickLanguage()];
-  const family = config.widgetFamily || 'medium';
+  // in the app (a tap on the widget runs it there) there is no family: show the large preview
+  const family = config.widgetFamily || 'large';
   const finish = (w) => {
     if (config.runsInWidget) Script.setWidget(w);
     else if (family.startsWith('accessory')) w.presentAccessoryRectangular();
@@ -527,25 +594,16 @@ async function run() {
   if (!data) return finish(messageWidget(T0.noData));
   const lang = pickLanguage(data.language);
   const T = TEXTS[lang];
-  const built = buildWidget(family, data, nowMs, lang, T);
-  let w = built.w;
-  if (got.fail && nowMs - cached.savedAt >= STALE_AFTER_MS) w = withNote(family, built, lang, T, T.from(data.generatedAt.slice(11, 16)));
-  w.url = `${base}/day/${built.today}`;
+  const stale = got.fail && nowMs - cached.savedAt >= STALE_AFTER_MS;
+  const built = buildWidget(family, data, nowMs, lang, T, stale ? T.from(data.generatedAt.slice(11, 16)) : null);
+  const w = built.w;
+  // a tap runs this script, which loads fresh data; a link would open Safari (iOS cannot open the installed web app)
+  w.url = family.startsWith('accessory') ? `${base}/day/${built.today}` : `scriptable:///run/${encodeURIComponent(Script.name())}`;
   finish(w);
 }
 
-/** The same picture with the stale note added. */
-function withNote(family, built, lang, T, note) {
-  const { w } = built;
-  if (family.startsWith('accessory')) return w;
-  const again = homeWidget(family, { ...built, nowMs: api.now() }, lang, T);
-  addLine(again, note, 10, { color: new Color(GREY), lines: 2 });
-  again.refreshAfterDate = w.refreshAfterDate;
-  return again;
-}
-
 const api = {
-  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, weekGrid, timelineGrid, textScale, hourRange, nextRedraw, localNow, weekStart, addDays, rangeFor, buildWidget, fetchData, updateScript, run,
+  now: () => Date.now(), VERSION, TEXTS, entryOf, nowAndNext, timelineGrid, textScale, hourRange, nextRedraw, localNow, weekStart, addDays, rangeFor, buildWidget, fetchData, updateScript, run,
 };
 module.exports = api;
 if (typeof CALENDAR_WIDGET_TEST === 'undefined') await run();

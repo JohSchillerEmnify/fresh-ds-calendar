@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-16
+- iPhone widget: all sizes now show the Multi-day view, with every day labelled, the hours as text and the entries in your calendar colours. It follows light and dark mode, and a tap on the widget updates it. The small widget shows today.
+- iPhone widget: the "Layout" choice is gone from Settings › Widgets, since Multi-day is the only view. The number of days, the text size and the hours still work.
+
 ## 2026-11-13
 - Fixed: dialogs opened from the settings, themes, templates or error log pages (such as the time picker) are a bottom sheet again instead of filling the whole screen.
 - Fixed: in a handwritten list, a pen stroke going downwards is drawn again instead of being lost when the lines shift under the pen.
