@@ -11,10 +11,11 @@ Feature: iPhone widgets through Scriptable
   The home screen shows only the Timeline, in every size: small shows today as one column, medium and large show as many
   days from today as the person picks. Each day is a column with its label at the top ("WED 14", today highlighted), an
   all-day band, an hour scale at the side and a block per entry, placed by its start and as tall as it lasts, with a red
-  line for now. Every day label and the hours are widget text, so they follow the iPhone's light or dark mode; only the
-  blocks, the hour lines and the now-line are drawn as a picture, because Scriptable cannot draw light and dark colours
-  into a picture. iOS tells the widget its size, so nothing is typed into the widget's Parameter field; the picture is
-  sized for the iPhone's screen from Apple's table of widget sizes. Tapping the widget runs it in Scriptable, which loads
+  line for now. Every day label, the hours and the blocks are widget text and stacks, so they follow the iPhone's light or
+  dark mode (a block is an opaque tint of its calendar colour with a bar in the full colour on the left); only the hour
+  lines and the now-line are drawn as a picture, because Scriptable cannot draw light and dark colours into a picture.
+  iOS tells the widget its family (small, medium, large), so nothing is typed into the widget's Parameter field; the size
+  comes from Apple's table of widget sizes for the iPhone's screen. Tapping the widget runs it in Scriptable, which loads
   fresh data: that is how the person updates it by hand. A widget cannot open the installed web app (iOS sends links
   to Safari), and Scriptable widgets have no buttons.
   The lock screen has the accessory families inline and rectangular; the circular one shows the next start time (the default) or, if the person chooses it in Settings, a live countdown that iOS updates by itself and that may lag a few minutes behind. The widget draws
@@ -163,7 +164,6 @@ Feature: iPhone widgets through Scriptable
       When I set the lock screen circle to "Countdown"
       Then the lock screen circle is set to "Countdown"
 
-    @backlog
     Scenario: The iPhone section has no layout choice and the number of days is set in the Timeline section
       When I open the iPhone widget settings
       Then the iPhone section offers no widget layout choice
@@ -276,7 +276,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget does not show the event "Yoga"
 
     # unit: server/test/ios-widget.test.ts:draws its texts in German
-    @backlog
+    @unit
     Scenario: The widget speaks German when the app language is German
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
@@ -304,7 +304,7 @@ Feature: iPhone widgets through Scriptable
       Then the widget data carries the app language "de"
 
     # unit: server/test/ios-widget.test.ts:the small widget shows today as one column
-    @backlog
+    @unit
     Scenario: The small widget shows today as a one-day Timeline
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
@@ -317,7 +317,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget does not show the event "Gym"
 
     # unit: server/test/ios-widget.test.ts:the timeline shows the chosen days
-    @backlog
+    @unit
     Scenario: The medium widget shows the Timeline of the next days from today
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
@@ -331,7 +331,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget does not show the event "Dinner"
 
     # unit: server/test/ios-widget.test.ts:every day label is text
-    @backlog
+    @unit
     Scenario: Every day of the Timeline has its label, not only today
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the timeline days are chosen as 3
@@ -343,7 +343,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget draws no text into its picture
 
     # unit: server/test/ios-widget.test.ts:a stored standard layout still draws the timeline
-    @backlog
+    @unit
     Scenario: A layout stored for the removed "Standard" view still draws the Timeline
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the iPhone widget layout is chosen as "standard"
@@ -353,7 +353,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget does not show "TODAY"
 
     # unit: server/test/ios-widget.test.ts:the timeline band
-    @backlog
+    @unit
     Scenario: The Timeline shows all-day entries in a band above the hours
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an all-day event "Holiday" on 2026-10-14
@@ -362,7 +362,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget shows "Holiday" in the all-day band
 
     # unit: server/test/ios-widget.test.ts:the widget fits the screen
-    @backlog
+    @unit
     Scenario: The widget picture fits the iPhone's widget size
       When I look at the iPhone widget in the "large" size on an iPhone with a 430 by 932 point screen
       Then the iPhone widget picture is 364 by 382 points
@@ -370,7 +370,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget picture is 329 by 155 points
 
     # unit: server/test/ios-widget.test.ts:the timeline defaults to three days
-    @backlog
+    @unit
     Scenario: The Timeline shows three days unless the person picks another number
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the widget key "My iPhone" belongs to "jo@example.com"
@@ -378,7 +378,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget shows the timeline of 3 days from 2026-10-14
 
     # unit: server/test/ios-widget.test.ts:the timeline hours follow the days shown
-    @backlog
+    @unit
     Scenario: The Timeline fits its hours to the entries of the days shown
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Gym" on 2026-10-14 from 18:00 to 19:00
@@ -389,7 +389,7 @@ Feature: iPhone widgets through Scriptable
       Then the iPhone widget shows the hours from 09:00 to 19:00
 
     # unit: server/test/ios-widget.test.ts:the timeline runs up to seven days
-    @backlog
+    @unit
     Scenario: The Timeline can show a whole week from today
       Given the calendar contains an event "Review" on 2026-10-20 from 14:00 to 15:00
       And the timeline days are chosen as 7
@@ -399,7 +399,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget places the event "Review" in the timeline from 14:00 to 15:00
 
     # unit: server/test/ios-widget.test.ts:the timeline text size
-    @backlog
+    @unit
     Scenario: The Timeline's texts follow the chosen text size and its hours still fit
       Given the time is 2026-10-14 08:00
       And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
@@ -410,7 +410,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget places the event "Dentist" in the timeline from 09:00 to 10:00
 
     # unit: server/test/ios-widget.test.ts:the timeline draws the red now-line
-    @backlog
+    @unit
     Scenario: The Timeline has a red line for now in today's column
       Given the time is 2026-10-14 09:20
       And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
@@ -482,7 +482,7 @@ Feature: iPhone widgets through Scriptable
       Then the widget data carries the lock screen circle "countdown"
 
     # unit: server/test/widget-keys.test.ts:carries the timeline days and no layout
-    @backlog
+    @unit
     Scenario: The widget data carries the number of timeline days and no layout
       Given the widget key "My iPhone" belongs to "jo@example.com"
       When the iPhone widget refreshes with the key "My iPhone"
@@ -492,7 +492,7 @@ Feature: iPhone widgets through Scriptable
       Then the widget data carries 5 timeline days and no layout
 
     # unit: server/test/widget-keys.test.ts:falls back to the earlier Android day count
-    @backlog
+    @unit
     Scenario: A day count chosen earlier for the Android widget carries over
       Given the earlier Android day count was 5
       And the widget key "My iPhone" belongs to "jo@example.com"
@@ -605,7 +605,7 @@ Feature: iPhone widgets through Scriptable
       And the iPhone widget shows no clock
 
     # unit: server/test/ios-widget.test.ts:a tap runs the widget in Scriptable
-    @backlog
+    @unit
     Scenario: Tapping the widget runs it in Scriptable, which loads fresh data
       Given the widget key "My iPhone" belongs to "jo@example.com"
       When I tap the iPhone widget

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { widgetInstaller } from '@calendar/shared/widget-installer';
 import { hourRange } from '@calendar/shared/week-hours';
-import { fakeScriptable, runScript, WIDGET_SOURCE, type Net, type Options } from './scriptable-fake.js';
+import { fakeScriptable, layoutOf, runScript, WIDGET_SOURCE, type Net, type Options } from './scriptable-fake.js';
 
 const BASE = 'https://cal.example.test';
 const KEY = 'cwk_AAAAAAAA_' + 'B'.repeat(43);
@@ -14,7 +14,7 @@ const gym = ev('Gym', T14('18:00'), T14('19:00'), '#188038');
 const allDay = (title: string, date: string) => ({ ...ev(title, T14('00:00'), T14('00:00')), allDay: true, start: date, end: date.replace(/\d\d$/, (d) => String(Number(d) + 1)) });
 const at = (h: string, day = '14') => Date.parse(`2026-10-${day}T${h}:00+02:00`);
 
-const SCRIPT_3 = '// calendar-widget version=5\nconst x = 1;\n// calendar-widget end\n';
+const SCRIPT_3 = '// calendar-widget version=6\nconst x = 1;\n// calendar-widget end\n';
 const answer = (items: unknown[], over: object = {}) => ({
   generatedAt: '2026-10-14T08:00:00+02:00', today: '2026-10-14', scriptVersion: 1, items, minEventMinutes: 0, weekSideBySide: false, taskCategories: false, ...over });
 const ok = (body: unknown): { status: number; body: string } => ({ status: 200, body: JSON.stringify(body) });
@@ -29,199 +29,162 @@ async function draw(items: unknown[], family: string, now: number, o: Options = 
   return { f, api, said: f.texts.map((t) => t.text), widget: f.widget.set };
 }
 
-describe('the widget script: Day view', () => {
-  it('the small widget shows today in one compact header and rows in calendar colours', async () => {
-    const d = await draw([dentist], 'small', at('08:00'));
-    expect(d.said).toEqual(['WED 14', '09:00', 'Dentist']);
+const PAD = { x: 6, top: 6, bottom: 4 };
+const GUTTER = 20;
+const canvasOf = (d: { f: { texts: { text: string; where: string }[] } }) => d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
+const heads = (d: { said: string[] }) => d.said.filter((t) => /^\p{L}{1,3} \d+$/u.test(t));
+const hexOf = (c: any) => c.hex as string;
+const mix = (hex: string, surface: string, a: number) => {
+  const n = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [c, s2] = [n(hex), n(surface)];
+  return '#' + c.map((v, i) => Math.round(v * a + s2[i]! * (1 - a)).toString(16).padStart(2, '0')).join('');
+};
+
+/** The box of the stack that holds the text, the way Scriptable would lay the tree out. */
+function blockOf(d: { widget: unknown }, text: string) {
+  const boxes = layoutOf(d.widget);
+  const node = [...boxes.keys()].find((n: any) => n.kind === 'text' && n.text === text) as any;
+  return node ? { ...boxes.get(node.parent)!, stack: node.parent } : undefined;
+}
+
+/** The geometry the script lays out for a widget of this size (the picture size minus the padding). */
+async function gridFor(items: unknown[], size: [number, number], days: number, now = '08:00', hours: unknown = null, k = 1.1) {
+  const { exports: api } = await runScript(WIDGET_SOURCE, fakeScriptable(), { CALENDAR_WIDGET_TEST: true });
+  const nowMin = Number(now.slice(0, 2)) * 60 + Number(now.slice(3));
+  return api.timelineGrid((items as any[]).map(api.entryOf), '2026-10-14', nowMin, 0, size[0] - 2 * PAD.x, size[1] - PAD.top - PAD.bottom, days, k, hours);
+}
+const MEDIUM: [number, number] = [338, 158];
+const LARGE: [number, number] = [338, 354];
+const SMALL: [number, number] = [158, 158];
+
+describe('the widget script: Timeline in every size', () => {
+  it('the small widget shows today as one column, whatever the day count is', async () => {
+    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
+    const d = await draw([dentist, tomorrow], 'small', at('08:00'), {}, { widgetTimelineDays: 5 });
+    expect(heads(d)).toEqual(['WED 14']);
+    expect(d.said).toContain('09:00 Dentist');
+    expect(d.said).not.toContain('18:00 Gym');
+    const g = await gridFor([dentist, tomorrow], SMALL, 1);
+    const b = blockOf(d, '09:00 Dentist')!;
+    expect(b.y).toBeCloseTo(PAD.top + g.yOf(9 * 60));
+    expect(b.h).toBeCloseTo(g.hourH - 1);
+    expect(b.w).toBeCloseTo(g.colW - 3);
     expect(d.f.widget.completed).toBe(true);
   });
 
-  it('the medium widget shows today and tomorrow as two identical columns, with no time strip', async () => {
-    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
-    const d = await draw([dentist, tomorrow], 'medium', at('08:00'));
-    expect(d.said).toEqual(['TODAY · WED 14', '09:00', 'Dentist', 'TOMORROW · THU 15', '18:00', 'Gym']);
-    expect(d.f.texts.filter((t) => t.text === '09:00' || t.text === '18:00').every((t) => t.bold)).toBe(true);
-    expect(d.f.texts.some((t) => t.where === 'canvas')).toBe(false);
-  });
-
-  it('puts all-day entries of a medium column in a band and says how many more rows do not fit', async () => {
-    const many = [10, 11, 12, 13, 14].map((h) => ev(`More ${h}`, T14(`${h}:00`), T14(`${h}:30`)));
-    const d = await draw([allDay('Holiday', '2026-10-14'), dentist, ...many], 'medium', at('08:00'));
-    expect(d.said).toEqual(expect.arrayContaining(['Holiday', 'Dentist', 'More 10', 'More 11', '+3 more']));
-    expect(d.said).not.toContain('More 12');
-  });
-
-  it('says how many more entries do not fit', async () => {
-    const more = [10, 11, 12, 13, 14, 15, 16, 17].map((h) => ev(`More ${h}`, T14(`${h}:00`), T14(`${h}:30`)));
-    const d = await draw([dentist, ...more], 'small', at('08:00'));
-    expect(d.said).toEqual(expect.arrayContaining(['Dentist', 'More 10', 'More 14', '+3 more']));
-    expect(d.said).not.toContain('More 15');
-  });
-
-  it('leaves entries that are over out and keeps their calendar colour on the rest', async () => {
-    const d = await draw([dentist, gym], 'small', at('11:00'));
-    expect(d.said).toEqual(['WED 14', '18:00', 'Gym']);
-  });
-
-  it('says nothing is planned on an empty day', async () => {
-    expect((await draw([], 'small', at('08:00'))).said).toEqual(['WED 14', 'Nothing planned']);
-  });
-
-  it('follows the iPhone language', async () => {
-    const d = await draw([dentist, ev('Gym', '15 18:00', '15 19:00')], 'medium', at('08:00'), { language: 'de' });
-    expect(d.said).toEqual(expect.arrayContaining(['HEUTE · MI 14', 'MORGEN · DO 15']));
-  });
-});
-
-describe('the widget script: German', () => {
-  const de = (o: Options = {}, over: object = {}) => ({ o: { language: 'en', ...o }, over: { language: 'de', ...over } });
-
-  it('draws its texts in German when the app language is German, whatever the iPhone speaks', async () => {
-    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
-    const { o, over } = de();
-    const medium = await draw([dentist, tomorrow, allDay('Feiertag', '2026-10-14')], 'medium', at('08:00'), o, over);
-    expect(medium.said).toEqual(expect.arrayContaining(['HEUTE · MI 14', 'MORGEN · DO 15', '09:00', '18:00']));
-    const small = await draw([dentist, ...[10, 11, 12, 13, 14, 15, 16].map((h) => ev(`M${h}`, T14(`${h}:00`), T14(`${h}:30`)))], 'small', at('08:00'), o, over);
-    expect(small.said).toContain('+2 weitere');
-    expect((await draw([dentist, gym], 'accessoryRectangular', at('09:20'), o, over)).said).toEqual(['Dentist · bis 10:00', 'Danach: Gym 18:00']);
-    expect((await draw([], 'small', at('08:00'), o, over)).said).toEqual(['MI 14', 'Nichts geplant']);
-  });
-
-  it('follows the iPhone when the app language is auto, and reads the fun German variants as German', async () => {
-    expect((await draw([dentist], 'small', at('08:00'), { language: 'de-DE' }, { language: 'auto' })).said[0]).toBe('MI 14');
-    expect((await draw([dentist], 'small', at('08:00'), { language: 'en-GB' }, { language: 'auto' })).said[0]).toBe('WED 14');
-    expect((await draw([dentist], 'small', at('08:00'), { language: 'en' }, { language: 'de-x-mainfr' })).said[0]).toBe('MI 14');
-    expect((await draw([dentist], 'small', at('08:00'), { language: 'fr' }, { language: 'auto' })).said[0]).toBe('WED 14');
-  });
-
-  it('says the stale note, the countdown and every refusal in German', async () => {
-    const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00', language: 'de' }), savedAt: at('06:00') }) };
-    expect((await draw([], 'medium', at('08:00'), { net: undefined, files: cache })).said).toContain('Stand 06:00');
-    const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
-    expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toEqual(['Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.']);
-    expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.']);
-    expect((await draw([], 'medium', at('08:00'), { keychain: {}, language: 'de' })).said).toEqual(['Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.']);
-    const circle = await draw([dentist], 'accessoryCircular', at('08:20'), { language: 'en' }, { language: 'de', widgetCircle: 'countdown' });
-    expect(circle.said).toContain('in');
-  });
-});
-
-describe('the widget script: Week view', () => {
-  const grid = (items: unknown[], now = '08:00') => {
-    const f = fakeScriptable();
-    return runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true }).then(({ exports: api }) => {
-      const entries = (items as any[]).map(api.entryOf);
-      const nowMin = Number(now.slice(0, 2)) * 60 + Number(now.slice(3));
-      return api.weekGrid(entries, '2026-10-14', nowMin, 0, 338, 354);
-    });
-  };
-
-  it('the week grid places an entry by its start and as tall as it lasts, in the week of the Monday', async () => {
-    const d = await draw([dentist, gym, allDay('Holiday', '2026-10-14')], 'large', at('08:00'));
-    const g = await grid([dentist, gym, allDay('Holiday', '2026-10-14')]);
-    expect([g.first, g.last]).toEqual([9, 19]);
-    const col = g.cols[2];
-    expect(col.date).toBe('2026-10-14');
-    const dent = col.blocks.find((b: any) => b.e.title === 'Dentist');
-    expect(dent.y).toBeCloseTo(g.yOf(9 * 60));
-    expect(dent.h).toBeCloseTo(g.hourH - 1);
-    expect(col.blocks.find((b: any) => b.e.title === 'Gym').y).toBeCloseTo(g.yOf(18 * 60));
-    expect(g.cols.map((c: any) => c.date)).toEqual(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
-    const canvas = d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
-    expect(canvas).toEqual(expect.arrayContaining(['M 12', 'W 14', 'S 18', '09:00 Dentist', '18:00 Gym', 'Holiday', '09', '18']));
-    const holiday = d.f.texts.find((t) => t.text === 'Holiday')!;
-    expect(holiday.rect!.y).toBeLessThan(g.top);
-    expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
-  });
-
-  it('the week grid draws the red now-line in today\'s column only', async () => {
-    const d = await draw([ev('Dentist', T14('09:00'), T14('10:00'))], 'large', at('09:20'));
-    const g = await grid([ev('Dentist', T14('09:00'), T14('10:00'))], '09:20');
-    const lines = d.f.rects.filter((r) => r.color === '#d93025');
-    expect(lines).toHaveLength(1);
-    expect(lines[0]!.x).toBeCloseTo(g.cols[2].x);
-    expect(lines[0]!.y + 0.75).toBeCloseTo(g.yOf(9 * 60 + 20));
-    expect(lines[0]!.w).toBeCloseTo(g.colW);
-  });
-
-  it('the week hours follow the Android rule and show every timed entry', async () => {
-    const early = ev('Early', T14('06:00'), T14('07:00'));
-    const late = ev('Late', T14('19:00'), T14('20:00'));
-    const g = await grid([early, late]);
-    expect([g.first, g.last]).toEqual([6, 20]);
-    expect(g.cols[2].blocks.map((b: any) => b.e.title)).toEqual(['Early', 'Late']);
-    const d = await draw([early, late], 'large', at('08:00'));
-    expect(d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text)).toEqual(expect.arrayContaining(['06:00 Early', '19:00 Late']));
-  });
-
-  it('lays overlapping entries side by side and a short one as tall as the minimum length', async () => {
-    const a = ev('A', T14('09:00'), T14('10:00'));
-    const b = ev('B', T14('09:30'), T14('10:30'));
-    const g = await grid([a, b]);
-    const [x, y] = g.cols[2].blocks;
-    expect(x.w).toBeCloseTo(y.w);
-    expect(x.x).not.toBeCloseTo(y.x);
-    const f = fakeScriptable();
-    const { exports: api } = await runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true });
-    const short = api.weekGrid([api.entryOf(ev('Short', T14('09:00'), T14('09:05')))], '2026-10-14', 0, 30, 338, 354);
-    expect(short.cols[2].blocks[0].h).toBeCloseTo(short.hourH * 0.5 - 1);
-  });
-});
-
-describe('the widget script: Timeline', () => {
-  const line = { layout: 'timeline' };
-  const timeline = async (items: unknown[], days: number, size: [number, number] = [338, 158], now = '08:00', k = 1.1) => {
-    const { exports: api } = await runScript(WIDGET_SOURCE, fakeScriptable(), { CALENDAR_WIDGET_TEST: true });
-    const nowMin = Number(now.slice(0, 2)) * 60 + Number(now.slice(3));
-    return api.timelineGrid((items as any[]).map(api.entryOf), '2026-10-14', nowMin, 0, size[0], size[1], days, k);
-  };
-  const over = (days?: number) => ({ widgetLayout: line.layout, ...(days !== undefined ? { widgetTimelineDays: days } : {}) });
-  const canvas = (d: { f: { texts: { text: string; where: string }[] } }) => d.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
-
   it('the timeline shows the chosen days as columns from today, hours from top to bottom', async () => {
-    const gym = ev('Gym', '15 18:00', '15 19:00');
+    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
     const dinner = ev('Dinner', '17 19:00', '17 21:00');
-    const g = await timeline([dentist, gym, dinner], 3);
-    expect(g.cols.map((c: any) => c.date)).toEqual(['2026-10-14', '2026-10-15', '2026-10-16']);
-    expect(g.colW).toBeCloseTo((338 - 20) / 3);
+    const d = await draw([dentist, tomorrow, dinner], 'medium', at('08:00'), {}, { widgetTimelineDays: 3 });
+    expect(heads(d)).toEqual(['WED 14', 'THU 15', 'FRI 16']);
+    expect(d.said).not.toContain('19:00 Dinner');
+    const g = await gridFor([dentist, tomorrow, dinner], MEDIUM, 3);
+    expect(g.colW).toBeCloseTo((MEDIUM[0] - 12 - GUTTER) / 3);
     expect([g.first, g.last]).toEqual([9, 19]);
-    expect(g.cols[0].today).toBe(true);
-    expect(g.cols[0].blocks[0].y).toBeCloseTo(g.yOf(9 * 60));
-    expect(g.cols[1].blocks[0].y).toBeCloseTo(g.yOf(18 * 60));
-    expect(g.cols[1].blocks[0].x).toBeGreaterThan(g.cols[0].blocks[0].x);
-    const d = await draw([dentist, gym, dinner], 'medium', at('08:00'), {}, over(3));
-    expect(canvas(d)).toEqual(expect.arrayContaining(['WED 14', 'THU 15', 'FRI 16', '09:00 Dentist', '18:00 Gym']));
-    expect(canvas(d)).not.toContain('19:00 Dinner');
-    expect(d.f.texts.some((t) => t.where === 'canvas' && t.text === 'SAT 17')).toBe(false);
+    const a = blockOf(d, '09:00 Dentist')!;
+    const b = blockOf(d, '18:00 Gym')!;
+    expect(a.y).toBeCloseTo(PAD.top + g.yOf(9 * 60));
+    expect(b.y).toBeCloseTo(PAD.top + g.yOf(18 * 60));
+    expect(b.x - a.x).toBeCloseTo(g.colW);
+    expect(a.x).toBeCloseTo(PAD.x + GUTTER + 1);
   });
 
   it('the timeline defaults to three days and fills the medium and the large widget', async () => {
     for (const fam of ['medium', 'large']) {
-      const d = await draw([dentist], fam, at('08:00'), {}, { widgetLayout: 'timeline' });
-      expect(canvas(d)).toEqual(expect.arrayContaining(['WED 14', 'THU 15', 'FRI 16', '09:00 Dentist']));
-      expect(canvas(d)).not.toContain('SAT 17');
+      const d = await draw([dentist], fam, at('08:00'));
+      expect(heads(d)).toEqual(['WED 14', 'THU 15', 'FRI 16']);
+      expect(d.said).toContain('09:00 Dentist');
     }
-    expect(WIDGET_SOURCE).toContain('widgetTimelineDays');
+    for (const bad of [9, 0]) expect(heads(await draw([dentist], 'large', at('08:00'), {}, { widgetTimelineDays: bad }))).toHaveLength(3);
+    expect(heads(await draw([dentist], 'large', at('08:00'), {}, { widgetTimelineDays: 1 }))).toHaveLength(1);
   });
 
-  it('the timeline text size scales its fonts and the hours still fit the height', async () => {
-    const sizeOf = (d: any, text: string) => d.f.texts.find((t: any) => t.where === 'canvas' && t.text === text).size;
+  it('every day label is text, not only today, and no text is drawn into the picture', async () => {
+    const d = await draw([dentist], 'large', at('08:00'));
+    expect(heads(d)).toEqual(['WED 14', 'THU 15', 'FRI 16']);
+    expect(canvasOf(d)).toEqual([]);
+    const today = d.f.texts.find((t) => t.text === 'WED 14')!;
+    const other = d.f.texts.find((t) => t.text === 'THU 15')!;
+    expect(hexOf((today.color as any))).toBe('#ffffff');
+    expect(hexOf((other.color as any).light)).toBe('#2f323a');
+    expect(hexOf((other.color as any).dark)).toBe('#e3e5f0');
+    const pill = blockOf(d, 'WED 14')!;
+    expect(hexOf(pill.stack.backgroundColor)).toBe('#b3261e');
+  });
+
+  it('a stored standard layout still draws the timeline', async () => {
+    const d = await draw([dentist], 'large', at('08:00'), {}, { widgetLayout: 'standard', widgetTimelineDays: 3 });
+    expect(heads(d)).toEqual(['WED 14', 'THU 15', 'FRI 16']);
+    expect(d.said).not.toContain('TODAY');
+    expect(d.said).toContain('09:00 Dentist');
+  });
+
+  it('the timeline band shows all-day entries above the hours, and counts the ones that do not fit', async () => {
+    const d = await draw([dentist, allDay('Holiday', '2026-10-14')], 'large', at('08:00'));
+    const chip = blockOf(d, 'Holiday')!;
+    expect(chip.y).toBeLessThan(blockOf(d, '09:00 Dentist')!.y);
+    expect(hexOf(chip.stack.backgroundColor.light)).toBe(mix('#3367d6', '#faf9fe', 0.24));
+    const many = await draw([allDay('A', '2026-10-14'), allDay('B', '2026-10-14'), allDay('C', '2026-10-14')], 'large', at('08:00'));
+    expect(many.said).toContain('+2 more');
+    expect((await draw([allDay('A', '2026-10-14'), allDay('B', '2026-10-14'), allDay('C', '2026-10-14')], 'large', at('08:00'), {}, { language: 'de' })).said).toContain('+2 weitere');
+  });
+
+  it('the widget fits the screen: the picture has the size Apple lists for the iPhone', async () => {
+    const pic = async (fam: string, screen: [number, number]) => {
+      const d = await draw([dentist], fam, at('08:00'), { screen });
+      const picture = [...layoutOf(d.widget).keys()].map((n: any) => n.backgroundImage).find(Boolean);
+      return [picture.size.width, picture.size.height, d.f.widget.presented];
+    };
+    expect(await pic('large', [430, 932])).toEqual([364, 382, null]);
+    expect(await pic('medium', [375, 812])).toEqual([329, 155, null]);
+    expect(await pic('small', [390, 844])).toEqual([158, 158, null]);
+    expect(await pic('large', [414, 896])).toEqual([360, 379, null]);
+    expect(await pic('large', [375, 667])).toEqual([321, 324, null]);
+    // a screen the table lacks uses the row of the nearest smaller one; one below all uses the smallest
+    expect(await pic('medium', [402, 874])).toEqual([338, 158, null]);
+    expect(await pic('medium', [440, 956])).toEqual([364, 170, null]);
+    expect(await pic('small', [320, 568])).toEqual([148, 148, null]);
+    // landscape reports the same screen turned around
+    expect(await pic('medium', [844, 390])).toEqual([338, 158, null]);
+  });
+
+  it('the timeline hours follow the days shown only', async () => {
+    const night = ev('Night', '17 22:00', '17 23:00');
+    const gym2 = ev('Gym', T14('18:00'), T14('19:00'));
+    const two = await draw([dentist, gym2, night], 'large', at('08:00'), {}, { widgetTimelineDays: 2 });
+    expect(two.said).toEqual(expect.arrayContaining(['09', '18']));
+    expect(two.said).not.toContain('08');
+    expect(two.said).not.toContain('19');
+    const g2 = await gridFor([dentist, gym2, night], LARGE, 2);
+    expect([g2.first, g2.last]).toEqual([9, 19]);
+    const g4 = await gridFor([dentist, gym2, night], LARGE, 4);
+    expect([g4.first, g4.last]).toEqual([9, 23]);
+  });
+
+  it('the timeline runs up to seven days from today and writes narrow day letters when the columns are thin', async () => {
+    const review = ev('Review', '20 14:00', '20 15:00');
+    const d = await draw([review], 'large', at('08:00'), {}, { widgetTimelineDays: 7 });
+    expect(heads(d)).toEqual(['W 14', 'T 15', 'F 16', 'S 17', 'S 18', 'M 19', 'T 20']);
+    expect(d.said).toContain('14:00 Review');
+    expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
+  });
+
+  it('the timeline text size scales its texts and its hours still fit the height', async () => {
+    const sizeOf = (d: any, text: string) => d.f.texts.find((t: any) => t.text === text).size;
     for (const [pct, k] of [[undefined, 1.1], [90, 0.9], [150, 1.5]] as const) {
-      const d = await draw([dentist], 'medium', at('08:00'), {}, { ...over(3), ...(pct ? { widgetTimelineTextSize: pct } : {}) });
+      const d = await draw([dentist], 'medium', at('08:00'), {}, pct ? { widgetTimelineTextSize: pct } : {});
       expect(sizeOf(d, '09:00 Dentist'), `block at ${pct}`).toBeCloseTo(8 * k);
       expect(sizeOf(d, 'WED 14'), `day name at ${pct}`).toBeCloseTo(10 * k);
     }
-    const { exports: api } = await runScript(WIDGET_SOURCE, fakeScriptable(), { CALENDAR_WIDGET_TEST: true });
-    const g = api.timelineGrid([api.entryOf(dentist)], '2026-10-14', 480, 0, 338, 158, 3, 1.5);
-    expect(g.top + (g.last - g.first) * g.hourH).toBeLessThanOrEqual(158 - 2 + 0.01);
+    const g = await gridFor([dentist], MEDIUM, 3, '08:00', null, 1.5);
+    expect(g.top + (g.last - g.first) * g.hourH).toBeLessThanOrEqual(MEDIUM[1] - PAD.top - PAD.bottom - 2 + 0.01);
     expect(g.hourH).toBeGreaterThan(8);
+    const d = await draw([dentist], 'medium', at('08:00'), {}, { widgetTimelineTextSize: 150 });
+    expect(blockOf(d, '09:00 Dentist')!.y).toBeCloseTo(PAD.top + g.yOf(9 * 60));
   });
 
   const fixed = (from: string, to: string) => ({ mode: 'fixed', from, to });
-  const timelineAt = async (items: unknown[], hours: unknown) => {
-    const { exports: api } = await runScript(WIDGET_SOURCE, fakeScriptable(), { CALENDAR_WIDGET_TEST: true });
-    return api.timelineGrid((items as any[]).map(api.entryOf), '2026-10-14', 480, 0, 338, 354, 3, 1.1, hours);
-  };
+  const timelineAt = (items: unknown[], hours: unknown) => gridFor(items, LARGE, 3, '08:00', hours);
 
   it('a fixed range sets the hours and puts entries outside it as a marker at the edge of their day', async () => {
     const cinema = ev('Cinema', T14('19:00'), T14('21:00'));
@@ -229,11 +192,13 @@ describe('the widget script: Timeline', () => {
     const g = await timelineAt([dentist, early, cinema], fixed('08:00', '12:00'));
     expect([g.first, g.last]).toEqual([8, 12]);
     expect(g.cols[0].blocks.map((b: any) => b.e.title)).toEqual(['Dentist']);
-    expect(g.cols[0].below.label).toBe('\u25BE Cinema 19:00');
-    expect(g.cols[0].above.label).toBe('\u25B4 Run 06:00');
+    expect(g.cols[0].below.label).toBe('▾ Cinema 19:00');
+    expect(g.cols[0].above.label).toBe('▴ Run 06:00');
     expect(g.cols[1].below).toBeNull();
-    const d = await draw([dentist, early, cinema], 'large', at('08:00'), {}, { ...over(3), widgetTimelineHours: fixed('08:00', '12:00') });
-    expect(canvas(d)).toEqual(expect.arrayContaining(['\u25BE Cinema 19:00', '\u25B4 Run 06:00', '09:00 Dentist']));
+    const d = await draw([dentist, early, cinema], 'large', at('08:00'), {}, { widgetTimelineHours: fixed('08:00', '12:00') });
+    expect(d.said).toEqual(expect.arrayContaining(['▾ Cinema 19:00', '▴ Run 06:00', '09:00 Dentist']));
+    const below = blockOf(d, '▾ Cinema 19:00')!;
+    expect(below.y + below.h).toBeCloseTo(PAD.top + g.yOf(12 * 60), 0);
   });
 
   it('an entry that reaches into the fixed range is clipped to it and gets no marker; several outside count as +n', async () => {
@@ -243,7 +208,7 @@ describe('the widget script: Timeline', () => {
     const g = await timelineAt([long, a, b], fixed('08:00', '18:00'));
     expect(g.cols[0].blocks[0].y).toBeCloseTo(g.yOf(8 * 60));
     expect(g.cols[0].above).toBeNull();
-    expect(g.cols[0].below.label).toBe('\u25BE A 20:00 +1');
+    expect(g.cols[0].below.label).toBe('▾ A 20:00 +1');
   });
 
   it('automatic, a missing or an unusable range keeps the hours that fit the entries', async () => {
@@ -255,56 +220,108 @@ describe('the widget script: Timeline', () => {
     expect((await timelineAt([dentist], fixed('08:00', '12:30'))).last).toBe(13);
   });
 
-  it('the timeline hours follow the days shown only', async () => {
-    const night = ev('Night', '17 22:00', '17 23:00');
-    const two = await timeline([dentist, gym, night], 2, [338, 354]);
-    expect([two.first, two.last]).toEqual([9, 19]);
-    const four = await timeline([dentist, gym, night], 4, [338, 354]);
-    expect([four.first, four.last]).toEqual([9, 23]);
-  });
-
-  it('the timeline runs up to seven days from today and writes narrow day letters when the columns are thin', async () => {
-    const review = ev('Review', '20 14:00', '20 15:00');
-    const g = await timeline([review], 7, [338, 354]);
-    expect(g.cols.map((c: any) => c.date)).toEqual(['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']);
-    expect(g.cols[6].blocks[0].e.title).toBe('Review');
-    const d = await draw([review], 'large', at('08:00'), {}, over(7));
-    expect(canvas(d)).toEqual(expect.arrayContaining(['W 14', 'T 20', '14:00 Review']));
-    expect(d.f.requests[0]!.url).toContain('from=2026-10-12&to=2026-10-21');
-  });
-
-  it('one day uses the whole width and a day count outside 1 to 7 falls back to three', async () => {
-    const g = await timeline([dentist], 1);
-    expect(g.cols).toHaveLength(1);
-    expect(g.colW).toBeCloseTo(338 - 20);
-    for (const bad of [9, 0]) {
-      const heads = (await draw([dentist], 'large', at('08:00'), {}, over(bad))).f.texts.filter((t) => t.where === 'canvas' && /^[A-Z]{3} \d+$/.test(t.text));
-      expect(heads).toHaveLength(3);
+  it('lays overlapping entries side by side and a short one as tall as the minimum length', async () => {
+    const a = ev('A', T14('09:00'), T14('10:00'));
+    const b = ev('B', T14('09:30'), T14('10:30'));
+    const c = ev('C', T14('12:00'), T14('13:00'));
+    const d = await draw([a, b, c], 'large', at('08:00'));
+    const g = await gridFor([a, b, c], LARGE, 3);
+    const [x, y, z] = ['09:00 A', '09:30 B', '12:00 C'].map((t) => blockOf(d, t)!);
+    const [ga, gb, gc] = g.cols[0].blocks;
+    expect(x.w).toBeCloseTo(y!.w);
+    expect(y!.x - x.x).toBeCloseTo(ga.w + 1);
+    for (const [box, geo] of [[x, ga], [y!, gb], [z!, gc]] as const) {
+      expect(box.x).toBeCloseTo(PAD.x + geo.x);
+      expect(box.y).toBeCloseTo(PAD.top + geo.y);
+      expect(box.h).toBeCloseTo(geo.h);
     }
+    const f = fakeScriptable();
+    const { exports: api } = await runScript(WIDGET_SOURCE, f, { CALENDAR_WIDGET_TEST: true });
+    const short = api.timelineGrid([api.entryOf(ev('Short', T14('09:00'), T14('09:05')))], '2026-10-14', 0, 30, 338, 354, 1);
+    expect(short.cols[0].blocks[0].h).toBeCloseTo(short.hourH * 0.5 - 1);
   });
 
-  it('the timeline draws the red now-line in today\'s column', async () => {
-    const blue = ev('Dentist', T14('09:00'), T14('10:00'));
-    const d = await draw([blue], 'medium', at('09:20'), {}, over(3));
-    const g = await timeline([blue], 3, [338, 158], '09:20');
-    const lines = d.f.rects.filter((r) => r.color === '#d93025');
+  it('a block is an opaque tint of its calendar colour that follows light and dark, with a bar in the full colour', async () => {
+    const d = await draw([dentist], 'medium', at('08:00'));
+    const b = blockOf(d, '09:00 Dentist')!;
+    expect(hexOf(b.stack.backgroundColor.light)).toBe(mix('#d93025', '#faf9fe', 0.24));
+    expect(hexOf(b.stack.backgroundColor.dark)).toBe(mix('#d93025', '#0d0e12', 0.24));
+    expect(b.stack.backgroundColor.light.alpha).toBe(1);
+    const bar = b.stack.kids[0];
+    expect(hexOf(bar.backgroundColor)).toBe('#d93025');
+    expect(layoutOf(d.widget).get(bar)!.w).toBe(3);
+    const ink = d.f.texts.find((t) => t.text === '09:00 Dentist')!.color as any;
+    expect([hexOf(ink.light), hexOf(ink.dark)]).toEqual(['#2f323a', '#e3e5f0']);
+    const root = d.widget;
+    expect(hexOf(root.backgroundColor.light)).toBe('#faf9fe');
+    expect(hexOf(root.backgroundColor.dark)).toBe('#0d0e12');
+  });
+
+  it('the timeline draws the red now-line into its picture, which holds only lines, and cuts a running entry with it', async () => {
+    const d = await draw([dentist], 'medium', at('09:20'));
+    const g = await gridFor([dentist], MEDIUM, 3, '09:20');
+    const picture = [...layoutOf(d.widget).keys()].map((n: any) => n.backgroundImage).find(Boolean);
+    expect(canvasOf(d)).toEqual([]);
+    expect(picture.rects.length).toBe(g.last - g.first + 1);
+    const lines = picture.rects.filter((r: any) => r.color === '#d93025');
     expect(lines).toHaveLength(1);
-    expect(lines[0]!.x).toBeCloseTo(g.cols[0].x);
-    expect(lines[0]!.y + 0.75).toBeCloseTo(g.yOf(9 * 60 + 20));
-  });
-
-  it('the small widget stays as it is, and the standard layout keeps the week', async () => {
-    expect((await draw([dentist], 'small', at('08:00'), {}, over(3))).said).toEqual(['WED 14', '09:00', 'Dentist']);
-    const week = await draw([dentist], 'large', at('08:00'), {}, { widgetLayout: 'standard', widgetTimelineDays: 2 });
-    expect(canvas(week)).toEqual(expect.arrayContaining(['M 12', 'S 18']));
-    expect((await draw([dentist], 'medium', at('08:00'), {}, {})).said).toContain('TODAY · WED 14');
+    expect(lines[0].x).toBeCloseTo(PAD.x + g.cols[0].x);
+    expect(lines[0].y + 0.75).toBeCloseTo(PAD.top + g.yOf(9 * 60 + 20));
+    expect(lines[0].w).toBeCloseTo(g.colW);
+    for (const r of picture.rects.filter((x: any) => x.color !== '#d93025')) expect(r.alpha).toBeLessThan(1);
+    const boxes = [...layoutOf(d.widget).values()];
+    const stripe = boxes.find((b) => (b.node as any).backgroundColor?.hex === '#d93025' && b.h === 1.5)!;
+    expect(stripe.y + 0.75).toBeCloseTo(PAD.top + g.yOf(9 * 60 + 20));
+    expect(stripe.x).toBeCloseTo(PAD.x + g.cols[0].x);
+    expect(stripe.w).toBeCloseTo(g.colW);
+    const cut = boxes.filter((b) => (b.node as any).backgroundColor?.light?.hex === mix('#d93025', '#faf9fe', 0.24));
+    expect(cut).toHaveLength(2);
+    expect(cut[0]!.y + cut[0]!.h).toBeLessThanOrEqual(stripe.y + 0.01);
+    expect(cut[1]!.y).toBeGreaterThanOrEqual(stripe.y + 1.5 - 0.01);
+    expect(cut[0]!.y).toBeCloseTo(PAD.top + g.yOf(9 * 60));
+    expect(cut[1]!.y + cut[1]!.h).toBeCloseTo(PAD.top + g.yOf(10 * 60) - 1, 0);
   });
 
   it('the stale note is added to the timeline as well', async () => {
-    const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00', widgetLayout: 'timeline' }), savedAt: at('06:00') }) };
+    const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00' }), savedAt: at('06:00') }) };
     const d = await draw([], 'medium', at('08:00'), { net: undefined, files: cache });
-    expect(canvas(d)).toContain('09:00 Dentist');
+    expect(d.said).toContain('09:00 Dentist');
     expect(d.said).toContain('Data from 06:00');
+    const note = blockOf(d, 'Data from 06:00')!;
+    expect(note.y).toBeGreaterThanOrEqual(PAD.top + 100);
+  });
+});
+
+describe('the widget script: German', () => {
+  const de = (o: Options = {}, over: object = {}) => ({ o: { language: 'en', ...o }, over: { language: 'de', ...over } });
+
+  it('draws its texts in German when the app language is German, whatever the iPhone speaks', async () => {
+    const tomorrow = ev('Gym', '15 18:00', '15 19:00');
+    const { o, over } = de();
+    const medium = await draw([dentist, tomorrow, allDay('Feiertag', '2026-10-14')], 'medium', at('08:00'), o, over);
+    expect(heads(medium)).toEqual(['MI 14', 'DO 15', 'FR 16']);
+    expect(medium.said).toEqual(expect.arrayContaining(['09:00 Dentist', '18:00 Gym', 'Feiertag']));
+    const three = [allDay('A', '2026-10-14'), allDay('B', '2026-10-14'), allDay('C', '2026-10-14')];
+    expect((await draw(three, 'small', at('08:00'), o, over)).said).toContain('+2 weitere');
+    expect((await draw([dentist, gym], 'accessoryRectangular', at('09:20'), o, over)).said).toEqual(['Dentist · bis 10:00', 'Danach: Gym 18:00']);
+  });
+
+  it('follows the iPhone when the app language is auto, and reads the fun German variants as German', async () => {
+    expect(heads(await draw([dentist], 'small', at('08:00'), { language: 'de-DE' }, { language: 'auto' }))[0]).toBe('MI 14');
+    expect(heads(await draw([dentist], 'small', at('08:00'), { language: 'en-GB' }, { language: 'auto' }))[0]).toBe('WED 14');
+    expect(heads(await draw([dentist], 'small', at('08:00'), { language: 'en' }, { language: 'de-x-mainfr' }))[0]).toBe('MI 14');
+    expect(heads(await draw([dentist], 'small', at('08:00'), { language: 'fr' }, { language: 'auto' }))[0]).toBe('WED 14');
+  });
+
+  it('says the stale note, the countdown and every refusal in German', async () => {
+    const cache = { '/lib/calendar-widget-data.json': JSON.stringify({ data: answer([dentist], { generatedAt: '2026-10-14T06:00:00+02:00', language: 'de' }), savedAt: at('06:00') }) };
+    expect((await draw([], 'medium', at('08:00'), { net: undefined, files: cache })).said).toContain('Stand 06:00');
+    const net: Net = () => ({ status: 401, body: JSON.stringify({ error: { code: 'WIDGET_KEY_REVOKED' } }) });
+    expect((await draw([], 'medium', at('08:00'), { net, files: cache })).said).toEqual(['Dieses Widget wurde in der App entfernt. Füge es in den Einstellungen neu hinzu.']);
+    expect((await draw([], 'medium', at('08:00'), { net: undefined, language: 'de' })).said).toEqual(['Noch keine Daten. Das Widget lädt sie, sobald dein iPhone eine Internetverbindung hat.']);
+    expect((await draw([], 'medium', at('08:00'), { keychain: {}, language: 'de' })).said).toEqual(['Noch nicht eingerichtet. Starte zuerst den Installer in Scriptable.']);
+    const circle = await draw([dentist], 'accessoryCircular', at('08:20'), { language: 'en' }, { language: 'de', widgetCircle: 'countdown' });
+    expect(circle.said).toContain('in');
   });
 });
 
@@ -393,13 +410,13 @@ describe('the widget script: offline, refusals, redraw, tap', () => {
 
   it('without a connection shows its last answer and says how old it is after two hours', async () => {
     const d = await draw([], 'medium', at('08:00'), { net: undefined, files: cacheOf([dentist], at('06:00')) });
-    expect(d.said).toEqual(expect.arrayContaining(['Dentist', 'Data from 06:00']));
+    expect(d.said).toEqual(expect.arrayContaining(['09:00 Dentist', 'Data from 06:00']));
   });
 
   it('says nothing about its age when the answer is fresh or younger than two hours', async () => {
     expect((await draw([dentist], 'medium', at('08:00'))).said.join(' ')).not.toContain('Data from');
     const d = await draw([], 'medium', at('07:00'), { net: undefined, files: cacheOf([dentist], at('06:00')) });
-    expect(d.said).toContain('Dentist');
+    expect(d.said).toContain('09:00 Dentist');
     expect(d.said.join(' ')).not.toContain('Data from');
   });
 
@@ -428,9 +445,18 @@ describe('the widget script: offline, refusals, redraw, tap', () => {
     expect(none.widget.refreshAfterDate.getTime()).toBe(at('09:20') + 3600e3);
   });
 
-  it('opens the app at the day view of today when tapped', async () => {
-    const d = await draw([dentist], 'medium', at('09:20'));
-    expect(d.widget.url).toBe(`${BASE}/day/2026-10-14`);
+  it('a tap runs the widget in Scriptable, which loads fresh data, and opens no web page', async () => {
+    for (const fam of ['small', 'medium', 'large']) {
+      const d = await draw([dentist], fam, at('09:20'));
+      expect(d.widget.url).toBe('scriptable:///run/Calendar');
+    }
+    expect((await draw([dentist], 'medium', at('09:20'), { scriptName: 'My Calendar' })).widget.url).toBe('scriptable:///run/My%20Calendar');
+  });
+
+  it('shows the large preview when it runs in the app', async () => {
+    const d = await draw([dentist], 'ignored', at('09:20'), { widgetFamily: null });
+    expect(d.f.widget.presented).toBe('large');
+    expect(heads(d)).toHaveLength(3);
   });
 
   it('explains how to set it up instead of failing when there is no key', async () => {
@@ -457,8 +483,7 @@ describe('the widget script: one cache for every size', () => {
     }
     const files = Object.fromEntries(small.f.files);
     const large = await draw([], 'large', at('08:00'), { net: undefined, files, widgetFamily: 'large' });
-    const canvas = large.f.texts.filter((t) => t.where === 'canvas').map((t) => t.text);
-    expect(canvas).toEqual(expect.arrayContaining(['09:30 Standup', '09:00 Dentist', '15:00 Retro']));
+    expect(large.said).toEqual(expect.arrayContaining(['09:00 Dentist', '15:00 Retro']));
   });
 
   it('keeps the range within what the server allows, on a Sunday as well', async () => {
@@ -471,26 +496,26 @@ describe('the widget script: one cache for every size', () => {
 
 describe('the widget script: updates itself', () => {
   it('saves a newer script and keeps drawing today as before', async () => {
-    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 5 });
-    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=5\n/);
-    expect(d.said).toContain('Dentist');
+    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 6 });
+    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=6\n/);
+    expect(d.said).toContain('09:00 Dentist');
   });
 
   it('keeps the old script when the download breaks off', async () => {
-    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 5 })); };
+    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 6 })); };
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
-    expect(d.said).toContain('Dentist');
+    expect(d.said).toContain('09:00 Dentist');
   });
 
   it('does not save a truncated download that lacks the end marker', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=5\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 5 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=6\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 6 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
 
   it('does not save a download whose first line is not a newer version', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 5 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 6 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
@@ -500,7 +525,7 @@ describe('the widget script: updates itself', () => {
   });
 
   it('has the version its first line names', () => {
-    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=4');
+    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=5');
     expect(WIDGET_SOURCE).not.toMatch(/cwk_|@example/);
   });
 });
