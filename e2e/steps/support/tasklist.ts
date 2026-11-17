@@ -73,7 +73,7 @@ export async function checkInMessageGone(world: World) {
  * just before it), or `home` (away and back). A mouse (or `byGrip`) grabs the drag handle; a finger long-presses the row,
  * as the calendar's drag steps do. Waits for the saved order (`PUT .../items/order`) unless the drop changes nothing.
  */
-export async function dragItem(world: World, list: Locator, title: string | number, drop: { above: string | number } | 'home', byGrip: boolean | 'pen' = false) {
+export async function dragItem(world: World, list: Locator, title: string | number, drop: { above: string | number } | { below: string } | { sideways: number } | 'home', byGrip: boolean | 'pen' = false) {
   const rows = list.getByTestId('tasklist-item');
   await checkInMessageGone(world);
   // a number is the 0-based place of the row (an ink item has no title to find it by)
@@ -87,7 +87,18 @@ export async function dragItem(world: World, list: Locator, title: string | numb
   const grab = touch && !byGrip ? { x: rb.x + rb.width * 0.5, y: rb.y + rb.height / 2 } : await box(row.getByTestId('tasklist-item-grip')).then((g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 }));
   let to = { ...grab };
   let moves = false;
-  if (drop !== 'home') {
+  if (typeof drop === 'object' && 'sideways' in drop) {
+    // one level is 28 px; the item stays on its row, the finger moves along
+    to = { x: grab.x + drop.sideways * 28, y: grab.y };
+    const level = Number(await row.getAttribute('data-level'));
+    const above = from > 0 ? Number(await rows.nth(from - 1).getAttribute('data-level')) : -1;
+    moves = Math.max(0, Math.min(level + drop.sideways, above + 1)) !== level;
+  } else if (typeof drop === 'object' && 'below' in drop) {
+    // the lower edge of the row of the item `below`: the dragged item (and its subtasks) land after it
+    const tb = await box(rows.nth(place(drop.below)));
+    to = { x: grab.x, y: tb.y + tb.height - 4 };
+    moves = true;
+  } else if (drop !== 'home') {
     const target = rows.nth(place(drop.above));
     const tb = await box(target);
     // moving down, "above X" is the place of the item before X
