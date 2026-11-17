@@ -269,7 +269,7 @@ Feature: Several reminders per event, read from and written to Google
 
   @web-push
   Scenario: The bedtime reminder and the morning overview also come as browser pushes
-    They follow the same rules as the appointments: the bedtime itself, never "in 30 minutes", and each its own icon.
+    They follow the same rules as the events: the bedtime itself, never "in 30 minutes", and each its own icon.
     Given bedtime mode is on with fixed times 23:00 and 07:00
     And the morning overview is on at 07:30
     And the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
@@ -277,7 +277,7 @@ Feature: Several reminders per event, read from and written to Google
     When I open the reminders settings
     And I switch on reminders in this browser
     Then the server plans the push "Bedtime at 23:00" saying "" for 2026-10-12 22:30
-    And the server plans the push "Your day" saying "1 appointment · no lists · first: Dentist 10:00" for 2026-10-13 07:30
+    And the server plans the push "Your day" saying "1 event · no lists · first: Dentist 10:00" for 2026-10-13 07:30
     When the time is 2026-10-12 22:30
     Then the push "Bedtime at 23:00" was sent once with the "moon" icon
     When the time is 2026-10-13 07:30

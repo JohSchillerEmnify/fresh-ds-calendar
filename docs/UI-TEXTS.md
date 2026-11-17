@@ -48,6 +48,7 @@ One word per concept. Check the locale files before adding a new term. The table
 | host name | Host-Name | server address, web address, Serveradresse, Webadresse |
 | went wrong | schiefgegangen | - |
 | left-handed mode | Linkshänder-Modus | - |
+| event | Ereignis | appointment, appointments, Termin, Termine |
 <!-- glossary:end -->
 
 ## Localisation

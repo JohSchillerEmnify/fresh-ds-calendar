@@ -26,7 +26,7 @@ const trip = ev('trip', t('2026-10-13', '12:00'), t('2026-10-13', '13:30'), { ti
 describe('the Web Push plan (feature reminders)', () => {
   afterEach(() => { stopTransitionWarnings(); sent.length = 0; });
 
-  it('is sent once the planned days are loaded, also when today has no appointments, and never from a partial load', async () => {
+  it('is sent once the planned days are loaded, also when today has no events, and never from a partial load', async () => {
     freshPinia();
     const { calls } = mockFetch({
       'GET /api/config': () => config({ now: new Date(`${D}T10:00:00+02:00`).toISOString(), clockFrozen: true }),
@@ -65,8 +65,8 @@ describe('the Web Push plan (feature reminders)', () => {
     ]);
     expect(show('bedtime')).toHaveLength(7);
     expect(show('summary').slice(0, 2)).toEqual([
-      ['2026-10-13T05:30:00.000Z', 'Your day', '1 appointment · no lists · first: Trip 12:00', 'morning:2026-10-13'],
-      ['2026-10-14T05:30:00.000Z', 'Your day', 'no appointments · no lists', 'morning:2026-10-14'],
+      ['2026-10-13T05:30:00.000Z', 'Your day', '1 event · no lists · first: Trip 12:00', 'morning:2026-10-13'],
+      ['2026-10-14T05:30:00.000Z', 'Your day', 'no events · no lists', 'morning:2026-10-14'],
     ]);
     expect(show('summary')).toHaveLength(7);
     expect(plan.map((p) => p.at)).toEqual([...plan.map((p) => p.at)].sort((a, b) => a - b));
@@ -104,7 +104,7 @@ describe('the Web Push plan (feature reminders)', () => {
     expect(kinds('bedtime')).toEqual([]);
   });
 
-  it('never plans a night that ends after the loaded days (its first appointment may not be known yet)', async () => {
+  it('never plans a night that ends after the loaded days (its first event may not be known yet)', async () => {
     // after tonight's reminder: the reminder of the night 19 -> 20 Oct (22:30 on the 19th) is within 7 days
     await bootAt(`${D}T22:45:00+02:00`, [], { mode: 'dynamic' });
     const nights = kinds('bedtime').map((p) => p.key);
@@ -123,11 +123,11 @@ describe('the Web Push plan (feature reminders)', () => {
   it('leaves the events of hidden calendars out of the morning overview', async () => {
     const work = ev('w', t('2026-10-13', '09:00'), t('2026-10-13', '10:00'), { title: 'Standup', calendarId: 'work' });
     await bootAt(`${D}T20:00:00+02:00`, [trip, work]);
-    expect(kinds('summary')[0]!.body).toBe('2 appointments · no lists · first: Standup 09:00');
+    expect(kinds('summary')[0]!.body).toBe('2 events · no lists · first: Standup 09:00');
     const cals = useCalendarsStore();
     cals.fromDevice([{ id: 'work', name: 'Work', color: '#1a73e8', primary: false, writable: true, hidden: true, defaultReminders: [] }]);
     await flushPromises();
-    expect(kinds('summary')[0]!.body).toBe('1 appointment · no lists · first: Trip 12:00');
+    expect(kinds('summary')[0]!.body).toBe('1 event · no lists · first: Trip 12:00');
   });
 
   it('pushes the bedtime reminder and the overview at their wall-clock times across the change to winter time', async () => {

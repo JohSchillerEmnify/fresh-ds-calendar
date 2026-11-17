@@ -26,7 +26,7 @@ export interface BedtimeWindow {
   from: string;
   /** Wake-up as `YYYY-MM-DD HH:MM`. */
   to: string;
-  /** `dynamic` when the first appointment moved the times, else `fixed`. */
+  /** `dynamic` when the first event moved the times, else `fixed`. */
   mode: 'fixed' | 'dynamic';
 }
 
@@ -119,7 +119,7 @@ function nightEndingOn(wakeDate: string, prefs: BedtimePrefs, items: SegmentSour
  *
  * @param range The shown days: `from` (inclusive) to `to` (exclusive), ISO dates.
  * @param prefs The bedtime preference; a switched-off one gives no windows.
- * @param items Source of the items (first appointment of the next day in dynamic mode).
+ * @param items Source of the items (first event of the next day in dynamic mode).
  * @returns The windows in time order, including the night that ends on `to` when it begins inside the range.
  */
 export function bedtimeWindows(range: { from: string; to: string }, prefs: BedtimePrefs, items: SegmentSource): BedtimeWindow[] {

@@ -165,7 +165,7 @@ model {
       description 'The one snackbar, drawn in the active theme'
     }
     bedtime = component 'Bedtime' {
-      description 'Each night\'s bedtime and wake-up time from the bedtime pref, fixed or from the next day\'s first appointment'
+      description 'Each night\'s bedtime and wake-up time from the bedtime pref, fixed or from the next day\'s first event'
     }
     updateCheck = component 'Update check' {
       description 'Compares the server\'s build version with the running one'

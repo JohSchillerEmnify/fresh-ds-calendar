@@ -11,7 +11,8 @@
     {"en": "bedtime mode", "de": "Schlafenszeit-Modus", "concept": "bedtime mode", "neverEn": [], "neverDe": ["Bedtime-Modus"]},
     {"en": "host name", "de": "Host-Name", "concept": "host name, URL, domain", "neverEn": ["server address", "web address"], "neverDe": ["Serveradresse", "Webadresse"]},
     {"en": "went wrong", "de": "schiefgegangen", "concept": "a problem happened", "neverEn": [], "neverDe": []},
-    {"en": "left-handed mode", "de": "Linkshänder-Modus", "concept": "left-handed mode", "neverEn": [], "neverDe": []}
+    {"en": "left-handed mode", "de": "Linkshänder-Modus", "concept": "left-handed mode", "neverEn": [], "neverDe": []},
+    {"en": "event", "de": "Ereignis", "concept": "an entry in the calendar", "neverEn": ["appointment", "appointments"], "neverDe": ["Termin", "Termine"]}
   ],
   "implementationWords": {
     "en": ["Labs", "prefs", "preferences file", "token", "API", "script", "ids?", "cache", "endpoint", "ring version", "key"],

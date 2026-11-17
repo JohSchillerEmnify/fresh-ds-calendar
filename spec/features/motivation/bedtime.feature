@@ -3,7 +3,7 @@ Feature: Bedtime mode
   A person can switch on bedtime mode in the settings (off by default). Then every timeline-type view (the day and week
   time grid, the Timeline, the Strip, the Clock and the Approaching track) shows a dark night band with a moon from
   bedtime to wake-up; events stay visible and tappable. Bedtime and wake-up are fixed times, or follow the first timed
-  appointment of the next day (never later than the fixed times). A snackbar reminds the person a few minutes before
+  event of the next day (never later than the fixed times). A snackbar reminds the person a few minutes before
   bedtime, once per night.
 
   Background:
@@ -24,24 +24,24 @@ Feature: Bedtime mode
     Then the night bands of 2026-10-14 are "00:00-07:00, 23:00-24:00"
     And the night bands of 2026-10-15 are "00:00-07:00, 23:00-24:00"
 
-  Scenario: The first appointment moves bedtime earlier
+  Scenario: The first event moves bedtime earlier
     Given the time is 2026-10-14 12:00
     And the calendar contains an event "Dentist" on 2026-10-15 from 07:30 to 08:30
-    And bedtime mode is on based on my first appointment with 8 hours of sleep and 60 minutes of lead time
+    And bedtime mode is on based on my first event with 8 hours of sleep and 60 minutes of lead time
     When I open the day view for 2026-10-14
     Then the night band runs from 2026-10-14 22:30 to 2026-10-15 06:30
 
-  Scenario: The first appointment never makes bedtime later than the fixed time
+  Scenario: The first event never makes bedtime later than the fixed time
     Given the time is 2026-10-14 12:00
     And the calendar contains an event "Brunch" on 2026-10-15 from 10:00 to 11:00
-    And bedtime mode is on based on my first appointment with 8 hours of sleep and 60 minutes of lead time
+    And bedtime mode is on based on my first event with 8 hours of sleep and 60 minutes of lead time
     When I open the day view for 2026-10-14
     Then the night band runs from 2026-10-14 23:00 to 2026-10-15 07:00
 
-  Scenario: Without a timed appointment the fixed times apply
+  Scenario: Without a timed event the fixed times apply
     Given the time is 2026-10-14 12:00
     And the calendar contains an all-day event "Holiday" on 2026-10-15
-    And bedtime mode is on based on my first appointment with 8 hours of sleep and 60 minutes of lead time
+    And bedtime mode is on based on my first event with 8 hours of sleep and 60 minutes of lead time
     When I open the day view for 2026-10-14
     Then the night band runs from 2026-10-14 23:00 to 2026-10-15 07:00
 
@@ -112,9 +112,9 @@ Feature: Bedtime mode
     When I open the day view for 2026-10-14
     Then I do not see a bedtime reminder
 
-  Scenario: A timed task list counts as the first appointment
+  Scenario: A timed task list counts as the first event
     Given the time is 2026-10-14 12:00
     And the calendar contains a task list "Packing" on 2026-10-15 at 07:30 for 60 minutes
-    And bedtime mode is on based on my first appointment with 8 hours of sleep and 60 minutes of lead time
+    And bedtime mode is on based on my first event with 8 hours of sleep and 60 minutes of lead time
     When I open the day view for 2026-10-14
     Then the night band runs from 2026-10-14 22:30 to 2026-10-15 06:30

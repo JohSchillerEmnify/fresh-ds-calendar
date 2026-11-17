@@ -44,7 +44,7 @@ const PLAN_DAYS = 8;
 export const NATIVE_MORNING_ID = 'morning';
 
 /**
- * The morning overview of a day: "Your day" and "3 appointments · 2 lists · first: Dentist 10:00".
+ * The morning overview of a day: "Your day" and "3 events · 2 lists · first: Dentist 10:00".
  *
  * @param segs The day's segments.
  */
@@ -121,7 +121,7 @@ export function startTransitionWarnings(): () => void {
   const days = (): Segment[][] => datedDays().map((d) => d.segs);
   /**
    * Whether loaded ranges cover all `PLAN_DAYS` days from today, so a plan built now is complete (`byDate` has no entry for
-   * a day without appointments, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
+   * a day without events, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
    */
   const windowLoaded = (): boolean => {
     const ranges = Object.values(items.ranges);
@@ -193,7 +193,7 @@ export function startTransitionWarnings(): () => void {
           if (prefs.notify.bedtime && prefs.bedtime.enabled) {
             const range = { from: clock.today, to: toIsoDate(addDays(clock.todayDate, PLAN_DAYS)) };
             const source = { get: (date: string) => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
-            // a night ending after the loaded days may depend on an appointment not loaded yet (dynamic mode): left out
+            // a night ending after the loaded days may depend on an event not loaded yet (dynamic mode): left out
             const nights = bedtimeWindows(range, prefs.bedtime, source).filter((w) => w.wakeDate < range.to);
             entries.push(...bedtimePushPlan(nights, prefs.bedtime.reminderMinutes, clock.nowTick, clock.timeZone));
           }

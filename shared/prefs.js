@@ -10,7 +10,7 @@ export const DEFAULT_BEDTIME = {
   enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00',
   sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30,
 };
-/** The iPhone Timeline's hours: fitted to the appointments (`auto`, the default) or the fixed range from `from` to `to`. */
+/** The iPhone Timeline's hours: fitted to the events (`auto`, the default) or the fixed range from `from` to `to`. */
 export const DEFAULT_TIMELINE_HOURS = { mode: 'auto', from: '08:00', to: '20:00' };
 /** The notification preference of a new person: everything but the morning overview. */
 export const DEFAULT_NOTIFY = { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' };

@@ -152,7 +152,7 @@ public class ReminderNotificationTest {
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         long now = System.currentTimeMillis();
         for (String title : new String[] { "Your day", "Your next day" }) {
-            Reminders.schedule(ctx, new Reminders.Entry("morning", now, title, "1 appointment", "summary", 0, 0));
+            Reminders.schedule(ctx, new Reminders.Entry("morning", now, title, "1 event", "summary", 0, 0));
             fire("morning");
             Notification n = shadowOf(nm).getNotification("morning".hashCode());
             assertEquals(title, n.extras.getString(Notification.EXTRA_TITLE));

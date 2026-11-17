@@ -4,7 +4,7 @@ Feature: Scrolling phone widgets (List and Multi-day)
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the
   hours running top to bottom, scrolled with a finger; 1 to 7 days (3 by default, the shared "Number of days"
   setting). The Multi-day widget opens with half an hour before now at the top. Its hours in view are "Automatic" (the hours
-  fit the appointments of the days shown, by the same rule as the week grid, and the person scrolls for the rest of the day)
+  fit the events of the days shown, by the same rule as the week grid, and the person scrolls for the rest of the day)
   or "Fixed" (a free choice of 4 to 24 hours that fit into its height, 16 by default), in Settings > Widgets > Android; a
   number of hours chosen earlier stays, and a person who never chose keeps Fixed with 16 hours. The size of its texts (90 % to 150 %,
   110 % by default) in the shared Timeline section. Widgets cannot be pinched, so the
@@ -214,7 +214,7 @@ Feature: Scrolling phone widgets (List and Multi-day)
 
     # unit: android/app/src/test/java/lan/mordor/calendar/widget/TimelineRowsTest.java:automaticFitsTheHoursOfTheDaysShownAndOpensAtTheirStart
     @unit
-    Scenario: With Automatic the hours fit the appointments of the days shown and the rest is a scroll away
+    Scenario: With Automatic the hours fit the events of the days shown and the rest is a scroll away
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
       And the calendar contains an event "Dinner" on 2026-10-15 from 18:00 to 21:30
       When I look at a 380 dp tall Multi-day widget with automatic hours in view for 2 days

@@ -14,7 +14,7 @@ export type MonthScroll = 'sideways' | 'vertical' | 'vertical-snap';
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export type WidgetCircle = 'time' | 'countdown';
 export type AndroidWidgetHoursMode = 'auto' | 'fixed';
-/** The iPhone Timeline's hours: `auto` fits the appointments, `fixed` shows `from` to `to`. */
+/** The iPhone Timeline's hours: `auto` fits the events, `fixed` shows `from` to `to`. */
 export interface TimelineHours { mode: 'auto' | 'fixed'; from: string; to: string }
 export type AndroidWidgetStyle = 'agenda' | 'timeline';
 export type WidgetLayout = 'standard' | 'timeline';
@@ -49,7 +49,7 @@ export declare const LANGUAGE_VALUES: readonly ['en', 'de', 'de-x-mainfr', 'de-x
 /** The `language` preference: `auto` follows the device, otherwise one of {@link LANGUAGE_VALUES}. */
 export type LanguagePref = 'auto' | (typeof LANGUAGE_VALUES)[number];
 
-/** Bedtime mode (feature bedtime): fixed times, or follow the first appointment of the next day. */
+/** Bedtime mode (feature bedtime): fixed times, or follow the first event of the next day. */
 export type BedtimeMode = 'fixed' | 'dynamic';
 /** The per-person bedtime preference; times are `HH:MM`, durations whole minutes. */
 export interface BedtimePrefs {
@@ -146,7 +146,7 @@ export interface Prefs {
   androidWidgetStyle: AndroidWidgetStyle;
   /** How many hours of the day the Android Multi-day widget fits into its height, 4 to 24 (default 16), when `androidWidgetHoursMode` is `fixed` (feature scrolling-widget). */
   androidWidgetHours: number;
-  /** The Android Multi-day widget's hours: `fixed` (the default, `androidWidgetHours` of them) or `auto` (the hours of the appointments shown, scrolling for the rest). */
+  /** The Android Multi-day widget's hours: `fixed` (the default, `androidWidgetHours` of them) or `auto` (the hours of the events shown, scrolling for the rest). */
   androidWidgetHoursMode: AndroidWidgetHoursMode;
   /** The days the Android Timeline widget shows as columns, 1 to 7 (default 3). */
   androidWidgetDays: 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -154,7 +154,7 @@ export interface Prefs {
   widgetLayout: WidgetLayout;
   /** How many days the Timeline of the iPhone and the Android widget shows, 1 to 7; null until chosen (then `androidWidgetDays`, else 3; see `timelineDays`). */
   widgetTimelineDays: WidgetTimelineDays | null;
-  /** The iPhone Timeline's hours: `auto` (the default) or a fixed range with appointments outside it marked at the edge (feature iphone-widget). */
+  /** The iPhone Timeline's hours: `auto` (the default) or a fixed range with events outside it marked at the edge (feature iphone-widget). */
   widgetTimelineHours: TimelineHours;
   /** The text size of the iPhone Timeline and the Android Multi-day widget in percent, 90 to 150 in steps of 5 (default 110). */
   widgetTimelineTextSize: number;

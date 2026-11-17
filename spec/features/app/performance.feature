@@ -57,7 +57,7 @@ Feature: Resource efficiency and no memory leaks
 
   @month
   Scenario: A busy month renders and swipes smoothly
-    The owner has a lot of appointments (2026-10-24): 6 to 15 events a day, a task list every other day, all-day and
+    The owner has a lot of events (2026-10-24): 6 to 15 events a day, a task list every other day, all-day and
     multi-day events and birthdays, about 500 entries in the six weeks of the grid. A phone processor is about 4 times
     slower than this machine. Measured here before -> after the fix (quiet machine, 4 runs each): longest task 436-511 ->
     380-416 ms, long tasks together 2064-2393 -> 1784-2069 ms; on a busy machine the fixed app reached 665 ms and 3106 ms.

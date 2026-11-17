@@ -2493,7 +2493,7 @@ Google still has the calendar {string} switched off in its list
 bedtime mode is on with fixed times {time} and {time}
 bedtime mode is on with fixed times {time} and {time}, and {time} and {time} on weekends
 this device has already shown tonight's bedtime reminder
-bedtime mode is on based on my first appointment with {int} hours of sleep and {int} minutes of lead time
+bedtime mode is on based on my first event with {int} hours of sleep and {int} minutes of lead time
 the night bands of {date} are {string}
 the night band runs from {date} {time} to {date} {time}
 no night band is shown

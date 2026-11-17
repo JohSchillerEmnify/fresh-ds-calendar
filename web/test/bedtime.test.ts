@@ -50,10 +50,10 @@ describe('bedtimeWindows', () => {
     expect(bedtimeWindows(DAY, on({ bedtime: '07:00', wake: '07:00' }), none)).toEqual([]);
   });
 
-  it('dynamic: first appointment 07:30, 1 h lead, 8 h sleep gives 22:30 to 06:30', () => {
+  it('dynamic: first event 07:30, 1 h lead, 8 h sleep gives 22:30 to 06:30', () => {
     const w = bedtimeWindows(DAY, dynamic(), source(timed('2026-10-15', '07:30')));
     expect(w[1]).toMatchObject({ from: '2026-10-14 22:30', to: '2026-10-15 06:30', mode: 'dynamic' });
-    // the other night has no appointment: fixed
+    // the other night has no event: fixed
     expect(w[0]).toMatchObject({ from: '2026-10-13 23:00', to: '2026-10-14 07:00', mode: 'fixed' });
   });
 
@@ -65,13 +65,13 @@ describe('bedtimeWindows', () => {
     expect(eq[1]).toMatchObject({ from: '2026-10-14 23:00', mode: 'fixed' });
   });
 
-  it('dynamic falls back to fixed without a timed appointment', () => {
+  it('dynamic falls back to fixed without a timed event', () => {
     const allDay = timed('2026-10-15', '00:00', { allDay: true, startTime: null, endTime: null });
     const w = bedtimeWindows(DAY, dynamic(), source(allDay));
     expect(w[1]).toMatchObject({ from: '2026-10-14 23:00', to: '2026-10-15 07:00', mode: 'fixed' });
   });
 
-  it('dynamic follows the earliest of several appointments and honours the lead and sleep settings', () => {
+  it('dynamic follows the earliest of several events and honours the lead and sleep settings', () => {
     const w = bedtimeWindows(DAY, dynamic({ sleepMinutes: 420, leadMinutes: 30 }), source(timed('2026-10-15', '09:00'), timed('2026-10-15', '06:45')));
     // wake 06:15, bed 23:15 on the 14th: later than... 23:15 is after 23:00, so the fixed pair stays
     expect(w[1]).toMatchObject({ from: '2026-10-14 23:00', mode: 'fixed' });

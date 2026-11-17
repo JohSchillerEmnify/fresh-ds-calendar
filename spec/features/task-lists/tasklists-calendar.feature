@@ -2,7 +2,7 @@
 Feature: Task lists live in their own calendar
   Task lists are kept out of the person's main Google calendar (owner, 2026-10-13: "I don't want to pollute
   things"). Each person gets one calendar "Calendar app: tasks" in their Google account, created by the app when it is
-  first needed and switched off in Google's own calendar list, so Google shows only real appointments. The app has no
+  first needed and switched off in Google's own calendar list, so Google shows only real events. The app has no
   switch to show it in Google (owner, 2026-11-12: it never worked, so it is removed); a calendar a person had already
   shown in Google stays as it is. Everything else works like for any other calendar (owner, 2026-11-12: "fundamentally
   it should be the same as the other cals"): in Settings › Calendars its row has the colour dot and the plan line, and

@@ -48,7 +48,7 @@ Settings  [search bar: "Search settings"]
 │  │                                            (merged: Notifications card + Reminders page into one group)
 │  ├─ Where reminders arrive
 │  │  └─ Reminders in this browser      switch  (moved from the Reminders page)
-│  ├─ Before appointments               switch  (notify.events) — default reminders: per calendar, see Calendars
+│  ├─ Before events               switch  (notify.events) — default reminders: per calendar, see Calendars
 │  ├─ Task lists
 │  │  └─ Before task lists with a time  switch  (merged: was twice — Notifications + Reminders page; the task lists' default reminders are on the task lists calendar's page)
 │  ├─ Morning overview                  switch

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-17
+- Fixed: the app now says "events" instead of "appointments", and "Ereignisse" instead of "Termine" in German.
 - Fixed: long-pressing an item while adding items no longer closes the add field and the keyboard, also while the finger is still on the item, and the list stays where it is while the item is held.
 - Fixed: on the phone the previous and next arrows in the top bar are hidden again (screen readers and keyboards still find them).
 - Fixed: in left-handed mode the open tasks toggle on the phone sits at the left again.

@@ -62,4 +62,4 @@ Feature: The Android app
     And the morning overview is on at 07:30
     And the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
     When I open the week view for 2026-10-12
-    Then a notification "Your day" saying "1 appointment · no lists · first: Dentist 10:00" is planned for 2026-10-13 07:30
+    Then a notification "Your day" saying "1 event · no lists · first: Dentist 10:00" is planned for 2026-10-13 07:30

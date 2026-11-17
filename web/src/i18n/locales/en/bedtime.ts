@@ -6,15 +6,15 @@ export default {
   sun: 'Wake-up {time}',
   settings: {
     on: { label: 'Bedtime mode', hint: 'Shows the night in the calendar views and reminds you before bedtime' },
-    mode: { label: 'Bedtime is', fixed: 'Fixed times', dynamic: 'Based on my first appointment' },
+    mode: { label: 'Bedtime is', fixed: 'Fixed times', dynamic: 'Based on my first event' },
     bedtime: 'Bedtime',
     wake: 'Wake-up',
     weekend: { label: 'Different on weekends', hint: 'For the nights before Saturday and Sunday' },
     weekendBedtime: 'Weekend bedtime',
     weekendWake: 'Weekend wake-up',
-    dynamicHint: 'If your first appointment the next day is early, bedtime moves earlier to match. Otherwise the fixed times apply.',
+    dynamicHint: 'If your first event the next day is early, bedtime moves earlier to match. Otherwise the fixed times apply.',
     sleep: { label: 'Sleep duration', hours: '{count} hour | {count} hours' },
-    lead: { label: 'Time before the first appointment', minutes: '{count} min', none: 'None' },
+    lead: { label: 'Time before the first event', minutes: '{count} min', none: 'None' },
     reminder: { label: 'Remind me before bedtime', minutes: '{count} min', off: 'Off' },
   },
   runway: {
