@@ -6,6 +6,7 @@
  * comes. All timers go through `appTimeout` and are cleared when the scope ends.
  */
 import { onScopeDispose, ref, watch, type Ref } from 'vue';
+import { previewData } from '@/composables/usePreview';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { useAnimationLevel, type MotionLevel } from '@/motion/level';
 import { visitWait, type VisitRhythm } from './butterflyVisits';
@@ -24,6 +25,8 @@ export function useSceneVisits<T>(
 ): Ref<T | null> {
   const visit = ref(null) as Ref<T | null>;
   const level = useAnimationLevel();
+  // a still sample (gallery card) has no visitors: no timers, no animations
+  const sample = previewData();
   let timer: Disposer | null = null;
 
   function cancel() {
@@ -51,9 +54,10 @@ export function useSceneVisits<T>(
     }, rhythm.lengthMs);
   }
 
-  watch([level, () => rests?.()], () => {
+  watch([level, () => rests?.(), () => sample?.still], () => {
     visit.value = null;
     cancel();
+    if (sample?.still) return;
     if (!rests) schedule(true);
     else if (level.value !== 'off' && !rests()) begin();
   }, { immediate: true });

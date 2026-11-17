@@ -4,7 +4,7 @@ export default {
   export: 'Export theme',
   delete: 'Delete theme',
   preview: { title: 'Preview', done: 'Done', todo: 'To do' },
-  sample: { dentist: 'Dentist', groceries: 'Groceries', milk: 'Milk', bread: 'Bread', meet: 'Meet', todo: 'To-do' },
+  sample: { dentist: 'Dentist' },
   seasonal: {
     title: 'Seasons & holidays',
     off: 'Off',

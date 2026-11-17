@@ -6,6 +6,7 @@
  * size or content, never on a timer.
  */
 import { onMounted, onScopeDispose, type Ref } from 'vue';
+import { previewData } from '@/composables/usePreview';
 
 /** The controls' drawn parts: the title text and chevron, the arrows, the Today pill, the widgets and the buttons. */
 const CONTROLS = [
@@ -142,6 +143,7 @@ export function useVisitorsClear(root: Ref<HTMLElement | null>): void {
   let frame = 0;
   let disposed = false;
   let watch: MutationObserver | null = null;
+  const sample = previewData();
 
   const step = () => {
     frame = 0;
@@ -157,7 +159,7 @@ export function useVisitorsClear(root: Ref<HTMLElement | null>): void {
     }
     frame = requestAnimationFrame(step);
   };
-  const start = () => { if (!frame && !disposed) frame = requestAnimationFrame(step); };
+  const start = () => { if (!frame && !disposed && !sample?.still) frame = requestAnimationFrame(step); };
 
   onMounted(() => {
     if (!root.value || typeof MutationObserver === 'undefined') return;

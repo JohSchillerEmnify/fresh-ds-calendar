@@ -123,8 +123,6 @@ export default {
     label: 'Live-Vorschau',
     collapse: 'Live-Vorschau einklappn',
     expand: 'Live-Vorschau ausklappn',
-    month: 'Januar 2030',
-    today: 'Heid',
     sample: {
       sync: 'Team-Abstimmung', lunch: 'Middagessn', run: 'Laufn', review: 'Review', call: 'Anruf',
       groceries: 'Einkauf', milk: 'Milch', bread: 'Brod', eggs: 'Eier',

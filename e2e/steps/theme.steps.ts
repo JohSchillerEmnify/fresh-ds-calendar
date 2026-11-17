@@ -222,7 +222,7 @@ async function expectOutline(world: World, el: Locator) {
 }
 
 Then('the preview event is drawn as an outline', async function (this: World) {
-  await expectOutline(this, this.page.getByTestId('theme-preview-event'));
+  await expectOutline(this, this.page.getByTestId('theme-live-preview').getByTestId('event-chip').first());
 });
 
 Then('the event {string} is drawn as an outline', async function (this: World, name: string) {
@@ -684,7 +684,7 @@ Then('the event {string} has a corner radius of {int} px', async function (this:
 });
 
 Then('the preview event has a corner radius of {int} px', async function (this: World, px: number) {
-  const ev = this.page.getByTestId('theme-preview-event');
+  const ev = this.page.getByTestId('theme-live-preview').getByTestId('event-chip').first();
   await expect(ev).toBeVisible();
   await expect.poll(() => ev.evaluate((n) => parseFloat(getComputedStyle(n).borderTopLeftRadius))).toBe(px);
 });
@@ -701,6 +701,32 @@ Then('the live preview is pinned under the theme menu header', async function (t
   await expect(preview).toBeInViewport({ ratio: 1 });
   const header = await this.page.getByTestId('theme-view').locator('header').first().boundingBox();
   await expect.poll(async () => Math.abs(((await preview.boundingBox())?.y ?? -999) - (header!.y + header!.height))).toBeLessThanOrEqual(2);
+});
+
+/** The sample calendar inside a scope: the real week's hour labels and day heads, and the real task list card with its count. */
+async function expectSampleWeek(scope: Locator, heads: number): Promise<void> {
+  await expect(scope.getByTestId('time-axis')).toBeVisible();
+  await expect(scope.getByTestId('week-header')).toHaveCount(heads);
+}
+async function expectSampleList(scope: Locator, title: string, done: number, total: number): Promise<void> {
+  const card = scope.getByTestId('tasklist-card').filter({ hasText: title });
+  await expect(card).toBeVisible();
+  await expect(card.getByTestId('tasklist-card-count')).toHaveText(`${done}/${total}`);
+}
+
+Then('the live preview shows the hour labels and {int} day heads of the week view', async function (this: World, heads: number) {
+  await expectSampleWeek(this.page.getByTestId('theme-live-preview'), heads);
+});
+Then('the live preview shows the task list {string} with {int} of {int} done', async function (this: World, title: string, done: number, total: number) {
+  await expectSampleList(this.page.getByTestId('theme-live-preview'), title, done, total);
+});
+Then('every theme card shows the hour labels and {int} day heads of the week view', async function (this: World, heads: number) {
+  const cards = this.page.getByTestId('theme-card');
+  expect(await cards.count()).toBeGreaterThan(1);
+  for (const card of await cards.all()) await expectSampleWeek(card, heads);
+});
+Then('every theme card shows the task list {string} with {int} of {int} done', async function (this: World, title: string, done: number, total: number) {
+  for (const card of await this.page.getByTestId('theme-card').all()) await expectSampleList(card, title, done, total);
 });
 
 const livePreviewToggle = (world: World) => world.page.getByTestId('theme-live-preview-toggle');

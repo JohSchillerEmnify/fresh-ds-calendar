@@ -191,8 +191,6 @@ export default {
     label: 'Live-Vorschau, fresh',
     collapse: 'Vorschau einklappen, yo',
     expand: 'Vorschau ausklappen, yo',
-    month: 'Januar 2030',
-    today: 'Heute, Digga',
     sample: {
       sync: 'Lehrerkonferenz', lunch: 'Mittag mit Hagrid', run: 'Vor Voldemort weglaufen', review: 'Rap-Battle', call: 'Eule an McGonagall',
       groceries: 'Einkauf', milk: 'Kürbissaft', bread: 'Brot', eggs: 'Drachen-Eier',

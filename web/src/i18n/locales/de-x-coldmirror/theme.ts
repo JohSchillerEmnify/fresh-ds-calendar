@@ -6,7 +6,7 @@ export default {
   export: 'Bling-Bling exportieren, Digga',
   delete: 'Bling-Bling löschen, bye',
   preview: { title: 'Vorschau, fresh', done: 'Erledigt, yo', todo: 'Noch zu tun, Digga' },
-  sample: { dentist: 'Zahnarzt, aua', groceries: 'Einkauf, yo', milk: 'Milch', bread: 'Brot, Digga', meet: 'Treffen, yo', todo: 'To-do' },
+  sample: { dentist: 'Zahnarzt, aua' },
   seasonal: {
     title: 'Jahreszeiten & Feiertage, yo',
     off: 'Aus, bye',
