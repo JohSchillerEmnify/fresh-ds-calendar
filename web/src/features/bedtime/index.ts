@@ -15,7 +15,7 @@ let done = false;
 
 /**
  * Registers the night band layer once and (re)starts the reminder on the active Pinia. In dynamic mode the items of the
- * day after the shown range and of tomorrow are loaded in the background, so the first appointment is known.
+ * day after the shown range and of tomorrow are loaded in the background, so the first event is known.
  */
 export function registerBedtimeFeature(): void {
   startBedtimeReminder();

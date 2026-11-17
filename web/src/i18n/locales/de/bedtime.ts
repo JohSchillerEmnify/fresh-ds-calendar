@@ -8,15 +8,15 @@ export default {
   sun: 'Aufstehen {time}',
   settings: {
     on: { label: 'Schlafenszeit-Modus', hint: 'Zeigt die Nacht in den Kalenderansichten und erinnert dich vor dem Schlafengehen' },
-    mode: { label: 'Schlafenszeit ist', fixed: 'Feste Zeiten', dynamic: 'Nach meinem ersten Termin' },
+    mode: { label: 'Schlafenszeit ist', fixed: 'Feste Zeiten', dynamic: 'Nach meinem ersten Ereignis' },
     bedtime: 'Schlafenszeit',
     wake: 'Aufstehen',
     weekend: { label: 'Am Wochenende anders', hint: 'Für die Nächte vor Samstag und Sonntag' },
     weekendBedtime: 'Schlafenszeit am Wochenende',
     weekendWake: 'Aufstehen am Wochenende',
-    dynamicHint: 'Ist dein erster Termin am nächsten Tag früh, gehst du entsprechend früher schlafen. Sonst gelten die festen Zeiten.',
+    dynamicHint: 'Ist dein erstes Ereignis am nächsten Tag früh, gehst du entsprechend früher schlafen. Sonst gelten die festen Zeiten.',
     sleep: { label: 'Schlafdauer', hours: '{count} Stunde | {count} Stunden' },
-    lead: { label: 'Zeit vor dem ersten Termin', minutes: '{count} Min.', none: 'Keine' },
+    lead: { label: 'Zeit vor dem ersten Ereignis', minutes: '{count} Min.', none: 'Keine' },
     reminder: { label: 'Vor der Schlafenszeit erinnern', minutes: '{count} Min.', off: 'Aus' },
   },
   runway: {

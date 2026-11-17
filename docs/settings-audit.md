@@ -96,7 +96,7 @@ Store: **P** = `/api/prefs` (per person), **S** = `/api/settings` (server file, 
 |---|---|---|---|---|
 | Reminders › | link row | `/settings/reminders` | – | – |
 | Bedtime reminder | switch | push for bedtime | on | P `notify.bedtime` |
-| Before appointments | switch | push at each event reminder | on | P `notify.events` |
+| Before events | switch | push at each event reminder | on | P `notify.events` |
 | Before task lists with a time | switch | push for timed lists | off | P `notify.tasklists` |
 | Morning overview + time | switch + time field | daily summary | off, 08:00 | P `notify.morning`, `morningTime` |
 

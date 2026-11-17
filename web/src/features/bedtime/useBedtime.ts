@@ -29,7 +29,7 @@ export function useBedtimeWindows(range: () => { from: string; to: string }): Co
   const prefs = usePrefsStore();
   const items = useItemsStore();
   const cals = useCalendarsStore();
-  // hidden calendars do not count as "the first appointment"
+  // hidden calendars do not count as "the first event"
   const source: SegmentSource = { get: (date) => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
   return computed(() => (prefs.bedtime.enabled ? bedtimeWindows(range(), prefs.bedtime, source) : []));
 }

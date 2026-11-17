@@ -376,8 +376,8 @@ describe('transition warnings as Android notifications', () => {
   it('builds the morning overview', async () => {
     const { items } = await boot('09:00', false);
     items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), laundry], 's4');
-    expect(morningOverview(items.byDate.get(D) ?? [])).toEqual({ title: 'Your day', body: '1 appointment · 1 list · first: Dentist 10:40' });
-    expect(morningOverview([]).body).toBe('no appointments · no lists');
+    expect(morningOverview(items.byDate.get(D) ?? [])).toEqual({ title: 'Your day', body: '1 event · 1 list · first: Dentist 10:40' });
+    expect(morningOverview([]).body).toBe('no events · no lists');
   });
 
   it('schedules a timed task list only with the switch on, and cleans up ids the plan does not hold', async () => {
@@ -430,6 +430,6 @@ describe('transition warnings as Android notifications', () => {
     usePrefsStore().notify = { bedtime: false, events: false, tasklists: false, morning: true, morningTime: '07:30' };
     startTransitionWarnings();
     expect(plugin.schedule.mock.calls.filter(([o]) => o.id === NATIVE_MORNING_ID).map(([o]) => [o.at, o.title, o.body]))
-      .toEqual([[new Date(`${next}T07:30:00+02:00`).getTime(), 'Your day', '1 appointment · no lists · first: Dentist 10:00']]);
+      .toEqual([[new Date(`${next}T07:30:00+02:00`).getTime(), 'Your day', '1 event · no lists · first: Dentist 10:00']]);
   });
 });

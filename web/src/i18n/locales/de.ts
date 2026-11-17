@@ -67,10 +67,10 @@ export default {
   errors: {
     saveUnavailable: 'Speichern nicht möglich: Google Kalender ist nicht erreichbar',
     saveServerUnreachable: 'Speichern nicht möglich: Der Kalender-Server ist nicht erreichbar',
-    conflict: 'Dieser Termin wurde woanders geändert. Lade ihn neu und versuche es noch einmal.',
+    conflict: 'Dieses Ereignis wurde woanders geändert. Lade es neu und versuche es noch einmal.',
     validation: {
       endAfterStart: 'Das Ende muss nach dem Beginn liegen',
-      eventTooLong: 'Ein Termin darf höchstens 366 Tage lang sein',
+      eventTooLong: 'Ein Ereignis darf höchstens 366 Tage lang sein',
     },
   },
   category: {
@@ -91,17 +91,17 @@ export default {
       bedtime: 'Schlafenszeit',
     },
     reminders: {
-      intro: 'Das sind die Erinnerungen von Google Kalender. Die Standard-Erinnerungen eines Kalenders gelten für jeden Termin, der keine eigenen hat.',
+      intro: 'Das sind die Erinnerungen von Google Kalender. Die Standard-Erinnerungen eines Kalenders gelten für jedes Ereignis, das keine eigenen hat.',
       push: {
         denied: 'Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Browser-Einstellungen und schalte das danach wieder ein.',
         failed: 'Die Browser-Erinnerungen ließen sich nicht einschalten. Versuche es noch einmal.',
       },
     },
     notifications: {
-      events: { label: 'Vor Terminen' },
+      events: { label: 'Vor Ereignissen' },
       tasklists: 'Vor Aufgabenlisten mit Uhrzeit',
       morning: { label: 'Tagesüberblick am Morgen', hint: 'Dein Tag auf einen Blick, zu einer Uhrzeit deiner Wahl', time: 'Uhrzeit des Überblicks' },
-      overview: { title: 'Dein Tag', appointments: 'keine Termine | 1 Termin | {count} Termine', lists: 'keine Listen | 1 Liste | {count} Listen', first: 'zuerst: {title} {time}' },
+      overview: { title: 'Dein Tag', appointments: 'keine Ereignisse | 1 Ereignis | {count} Ereignisse', lists: 'keine Listen | 1 Liste | {count} Listen', first: 'zuerst: {title} {time}' },
     },
     theme: {
       label: 'Design',
@@ -115,9 +115,9 @@ export default {
       defaultView: 'Standardansicht',
       viewsKeepOne: 'Mindestens eine Ansicht bleibt eingeschaltet.',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
-      approachTimeLeft: { label: 'Restzeit', hint: 'Zeigt in der Karte „Gleich“, wie lange der laufende Termin noch dauert. Wenn aus, steht das am Termin selbst.' },
-      minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden mindestens so lang angezeigt, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
-      sideBySide: { hint: 'Wie viele überlappende Termine nebeneinander stehen. Weitere liegen versetzt auf dem letzten.', upTo: 'Bis zu {n}', only: 'Nur {n}' },
+      approachTimeLeft: { label: 'Restzeit', hint: 'Zeigt in der Karte „Gleich“, wie lange das laufende Ereignis noch dauert. Wenn aus, steht das am Ereignis selbst.' },
+      minEventLength: { label: 'Mindestlänge für Ereignisse', hint: 'Kürzere Ereignisse und Aufgabenlisten werden mindestens so lang angezeigt, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
+      sideBySide: { hint: 'Wie viele überlappende Ereignisse nebeneinander stehen. Weitere liegen versetzt auf dem letzten.', upTo: 'Bis zu {n}', only: 'Nur {n}' },
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Größe der Kopfzeile', hint: 'Auf dem Handy; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
       bottomBarSize: { label: 'Größe der unteren Leiste', hint: 'Auf dem Handy' },
@@ -156,7 +156,7 @@ export default {
     },
     widgets: {
       android: { label: 'Widgets für den Home-Bildschirm', hint: 'Ist die Android-App installiert, halte den Home-Bildschirm gedrückt, tippe auf „Widgets“ und wähle den Kalender für die Woche, den Tag, die Uhr, die Liste oder mehrere Tage.' },
-      scroll: { label: 'Stunden im Blick', hint: 'Bei „Automatisch“ richtet sich der Bereich nach deinen Terminen. Mit „Fest“ wählst du, wie viele Stunden das Widget „Mehrere Tage“ auf einmal zeigt.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Anzahl der Tage' },
+      scroll: { label: 'Stunden im Blick', hint: 'Bei „Automatisch“ richtet sich der Bereich nach deinen Ereignissen. Mit „Fest“ wählst du, wie viele Stunden das Widget „Mehrere Tage“ auf einmal zeigt.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Anzahl der Tage' },
       timeline: { hint: 'Wie viele Tage „Mehrere Tage“ ab heute zeigt.' },
       textSize: { label: 'Schriftgröße', hint: 'Größer ist leichter zu lesen; dafür passt weniger Text in schmale Spalten.' },
     },
@@ -168,7 +168,7 @@ export default {
       signOut: 'Abmelden',
       signOutAll: { label: 'Überall abmelden', hint: 'Beendet die Anmeldung auf allen Geräten, auch auf diesem', button: 'Überall abmelden' },
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Wenn Google nach Berechtigungen fragt, wähle „Kalender“ aus. Ohne diese Berechtigung kann dein Kalender nicht geladen werden.', grant: 'Kalenderzugriff erlauben' },
-      resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Demokalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
+      resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Demokalender durch frische Demoereignisse', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
       update: { check: 'Nach Updates suchen', checking: 'Suche läuft…', current: 'Das ist die neueste Version.', ready: 'Eine neue Version ist bereit.', load: 'Jetzt aktualisieren', apk: 'Eine neue App-Version ist bereit.', failed: 'Die Suche hat nicht geklappt. Versuche es später noch einmal.' },
       version: 'Version {version}',
       appCert: { label: 'Signaturzertifikat der App (SHA-256)', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleiche es, bevor du ein Update installierst.' },

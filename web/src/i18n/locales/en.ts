@@ -97,17 +97,17 @@ export default {
       bedtime: 'Bedtime',
     },
     reminders: {
-      intro: 'These are Google Calendar\'s own reminders. A calendar\'s default reminders apply to every appointment that has none of its own.',
+      intro: 'These are Google Calendar\'s own reminders. A calendar\'s default reminders apply to every event that has none of its own.',
       push: {
         denied: 'Notifications are blocked for this site. Allow them in the browser settings, then switch this on again.',
         failed: 'Could not switch browser reminders on. Try again.',
       },
     },
     notifications: {
-      events: { label: 'Before appointments' },
+      events: { label: 'Before events' },
       tasklists: 'Before task lists with a time',
       morning: { label: 'Morning overview', hint: 'Your day at a glance at a time you choose', time: 'Time of the overview' },
-      overview: { title: 'Your day', appointments: 'no appointments | 1 appointment | {count} appointments', lists: 'no lists | 1 list | {count} lists', first: 'first: {title} {time}' },
+      overview: { title: 'Your day', appointments: 'no events | 1 event | {count} events', lists: 'no lists | 1 list | {count} lists', first: 'first: {title} {time}' },
     },
     theme: {
       label: 'Theme',
@@ -162,7 +162,7 @@ export default {
     },
     widgets: {
       android: { label: 'Home screen widgets', hint: 'With the Android app installed, press and hold the home screen, tap Widgets and pick the calendar for the week, the day, the clock, the list or several days.' },
-      scroll: { label: 'Hours in view', hint: 'With “Automatic” the range follows your appointments. With “Fixed” you choose how many hours the Multi-day widget shows at once.', auto: 'Automatic', fixed: 'Fixed', hoursValue: '{n} hours', days: 'Number of days' },
+      scroll: { label: 'Hours in view', hint: 'With “Automatic” the range follows your events. With “Fixed” you choose how many hours the Multi-day widget shows at once.', auto: 'Automatic', fixed: 'Fixed', hoursValue: '{n} hours', days: 'Number of days' },
       timeline: { hint: 'How many days Multi-day shows, starting today.' },
       textSize: { label: 'Text size', hint: 'Larger is easier to read; less text fits into narrow columns.' },
     },

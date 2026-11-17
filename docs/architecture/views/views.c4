@@ -239,7 +239,7 @@ views {
   dynamic view bedtimeNight {
     title 'A night under bedtime mode'
 
-    owner -> calendar.web.settings 'turns bedtime on, based on the first appointment'
+    owner -> calendar.web.settings 'turns bedtime on, based on the first event'
     calendar.web.settings -> calendar.web.prefs 'saves the bedtime pref'
     calendar.web.bedtime -> calendar.web.items 'reads tomorrow\'s first timed entry'
     calendar.web.bedtime -> calendar.web.timegrid 'draws the night band, never later than the fixed bedtime'

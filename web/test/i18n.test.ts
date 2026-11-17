@@ -26,6 +26,10 @@ describe('catalogues', () => {
       for (const k of flattenKeys(c)) expect(placeholders(at(c, k)), k).toEqual(placeholders(at(en, k)));
     }
   });
+  it('the English and German catalogues say events (Ereignisse), never appointments (Termine)', () => {
+    expect(flattenKeys(en).filter((k) => /appointment/i.test(at(en, k)))).toEqual([]);
+    expect(flattenKeys(de).filter((k) => /termin/i.test(at(de, k)))).toEqual([]);
+  });
   it('the Fränggisch dialect is allowed to be partial', () => {
     expect(missingKeys(en, deXMainfr).length).toBeGreaterThan(0);
   });
