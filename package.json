@@ -17,6 +17,7 @@
     "ui-texts": "node web/scripts/ui-texts.ts",
     "e2e:affected": "node scripts/e2e-affected.mjs",
     "goldens": "bash scripts/goldens.sh run",
+    "widget:pictures": "WIDGET_PICTURES=1 pnpm --filter server exec vitest run test/widget-pictures.test.ts",
     "goldens:update": "bash scripts/goldens.sh update",
     "dedup": "jscpd web/src server/src shared",
     "lint": "eslint .",
