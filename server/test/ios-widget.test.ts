@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { widgetInstaller } from '@calendar/shared/widget-installer';
 import { hourRange } from '@calendar/shared/week-hours';
 import { fakeScriptable, layoutOf, runScript, WIDGET_SOURCE, type Net, type Options } from './scriptable-fake.js';
+import { widgetSvg } from './widget-picture.js';
 
 const BASE = 'https://cal.example.test';
 const KEY = 'cwk_AAAAAAAA_' + 'B'.repeat(43);
@@ -679,5 +680,21 @@ describe('the installer', () => {
   it('speaks German on a German iPhone', async () => {
     const f = await install({ net: () => ({ status: 200, body: script }), language: 'de' });
     expect(f.alerts[0]!.message).toBe('Installiert');
+  });
+});
+
+describe('the widget picture (look at the layout without a phone)', () => {
+  it('draws each entry where the layout puts it, with its bar colour and title', async () => {
+    const d = await draw([dentist, gym], 'medium', at('08:00'));
+    const svg = widgetSvg(d.widget);
+    const b = blockOf(d, '09:00 Dentist')!;
+    expect(svg).toContain(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"`);
+    expect(svg).toMatch(/fill="#d93025"/);
+    expect(svg).toMatch(/>09:00 Dentist<\/text>/);
+  });
+
+  it('draws dark mode with the dark side of the colours', async () => {
+    const d = await draw([dentist], 'medium', at('08:00'));
+    expect(widgetSvg(d.widget, true)).not.toBe(widgetSvg(d.widget));
   });
 });
