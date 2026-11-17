@@ -379,6 +379,14 @@ Removes a holiday calendar from the person's Google list (`calendarList.delete`;
 clears the person's stored switch for it. `:id` is URL-encoded (it contains `#` and `@`). `404` when the id is not a holiday
 calendar (`#holiday@group.v.calendar.google.com`) of the person's list; no other calendar can be removed this way.
 
+### `GET` / `PUT /api/tasks-calendar` → 200 `{ state }`
+
+`state` is `on` (the person has the tasks calendar, or confirmed), `off` ("not now") or `ask` (not answered yet). `PUT { enabled: true }`
+is the only call that creates the tasks calendar (once); `{ enabled: false }` keeps task lists off and creates nothing (no effect when the calendar exists). Reads
+(`/api/calendars`, `/api/items`, `/api/changes`, task list lists) never create it; while not `on` they return no task lists and no tasks entry.
+Writing a task list while not `on` answers 409 `CONFLICT` (key `tasks.off`). `GET /api/changes` carries it as the file `tasksCalendar`.
+Test-only: `POST /api/__test/tasks-choice { choice: 'ask' | 'off' | 'on' }`.
+
 ### `GET` / `PATCH /api/reminders/tasks-calendar` → 200
 
 The person's tasks calendar is not in `GET /api/calendars`; its popup default list is read and replaced here:

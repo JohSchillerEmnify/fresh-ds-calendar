@@ -1,8 +1,9 @@
 @tasklists @tasks-calendar @id:tasklists-own-calendar
 Feature: Task lists live in their own calendar
   Task lists are kept out of the person's main Google calendar (owner, 2026-10-13: "I don't want to pollute
-  things"). Each person gets one calendar "Calendar app: tasks" in their Google account, created by the app when it is
-  first needed and switched off in Google's own calendar list, so Google shows only real events. The app has no
+  things"). Each person gets one calendar "Calendar app: tasks" in their Google account, created by the app after the person
+  turned task lists on (tasklists-calendar-consent) and, through the API, asked to stay out of Google's own calendar
+  list; whether Google's apps show it is Google's choice, the app promises nothing about it. The app has no
   switch to show it in Google (owner, 2026-11-12: it never worked, so it is removed); a calendar a person had already
   shown in Google stays as it is. Everything else works like for any other calendar (owner, 2026-11-12: "fundamentally
   it should be the same as the other cals"): in Settings › Calendars its row has the colour dot and the plan line, and
@@ -17,7 +18,7 @@ Feature: Task lists live in their own calendar
     Given the calendar is empty
     And today is 2026-10-12
 
-  Scenario: A new task list goes into the hidden tasks calendar, not the main calendar
+  Scenario: A new task list goes into the tasks calendar, not the main calendar
     When I create the task list "Groceries" on 2026-10-14 with the item "Milk"
     Then Google has a hidden calendar "Calendar app: tasks" with the event "Groceries"
     And the main calendar has no event "Groceries"

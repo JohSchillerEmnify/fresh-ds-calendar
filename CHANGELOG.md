@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-18
+- New: after you sign in for the first time, the app asks whether to turn on task lists. They live in an extra calendar the app adds to your Google account, and it is added only if you say "Turn on". "Not now" keeps task lists off until you switch them on in Settings › Task lists.
+
 ## 2026-11-17
 - Fixed: the theme preview and the theme cards now show the real calendar again, with hour labels, day names, a task list and the top bar scene, so they match what you will see.
 - Fixed: the Halloween bat no longer rests out of sight above the top bar on some visits.
