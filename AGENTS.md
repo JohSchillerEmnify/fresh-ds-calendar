@@ -19,7 +19,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
    - A cross-cutting decision gets a short ADR in `docs/adrs/`: the decision, the alternatives, and why it won.
    - REST changes go into `spec/API.md`.
 4. **Spec gate.** When a human is available, stop after the spec. Report the scenarios plus a numbered list of
-   assumptions and open questions, and build only after they are agreed. UI changes come with a mockup first.
+   assumptions; open questions go in the ask box, and build only after they are agreed. UI changes come with a mockup first.
 5. **Never route around the spec.** If the specified behaviour is hard, say so. Don't ship an easier variant
    silently, and don't bend a scenario to fit the code.
 
@@ -45,7 +45,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
 - **e2e: targeted only.**
   - `pnpm e2e:affected` gives the `--grep`.
   - Run it with the mobile project and `--workers=1`.
-  - Never run the full suite and never `@perf` unless a human asks.
+  - Never run the full suite unless a human asks; for `@perf` see "Expensive tests may wait".
 - **What's new:** a `feat`/`fix` branch adds one or two plain, user-facing English bullets under today's `## YYYY-MM-DD` in `CHANGELOG.md` (test, tooling, spec-only: none); `pnpm verify` enforces it. — Users read the in-app release notes, and a skipped day of merges left them empty.
 - **Commits:** small, with conventional messages (`feat:`, `fix:`, `docs:`, `test:`, `chore:`), which drive the version
   number. `git add` named files, never `-A`.
@@ -71,7 +71,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
 - **Git:**
   - No `git stash`: worktrees share one stash.
   - No force-push.
-  - No deploy unless a human asks.
+  - No deploy unless a human asks; an owner request for the work counts, and pushing it to `main` lets CD deploy it.
 - **Parallel agents:** each one works in its own worktree (`../calendar-wt/<name>`), one feature per branch.
 
 ## Working rules
@@ -85,20 +85,30 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   routine with `.requirements/<UTC datetime>_<feature>/REQUIREMENTS.md`. — A four-line fix must not cost an hour.
 - **One review pass.** A second only for a blocking finding. Never re-run a green set "to be sure". — Reviews and
   e2e runs cost shared time and tokens.
+- **Every reported symptom has a test before merge.** List each symptom from the report, name the test that covers it,
+  and get the one review pass before merging, also when the owner is waiting. — A widget fix shipped unreviewed with
+  one of four symptoms still broken and needed a second deploy.
 - **Parallel only on separate files.** Run tracks side by side only when the files they will change do not overlap
   (list them in each brief); tracks that share a file, a kit component or a picture set run one after the other. —
   Parallel slices on the same files cost a day of merge conflicts and re-recorded pictures.
 - **Keep output short.** Read files by section, show test results as counts and failing names. — Long logs burn context.
 - **Throttle tests.** Run them with `nice -n 10` and at most 4 Vitest workers, one full `pnpm verify` at the end, no
   repeat or stress loops. — Parallel agents share one machine.
-- **Never hide a gate's exit code.** No `gate | tail && next`; run the gate bare or use `set -o pipefail`. — A pipe
-  made a failed leak check look green.
+- **Never hide a gate's exit code.** No `gate | tail && next`, and no `| tail` or `| head` after `git push`,
+  `pnpm install` or `pnpm verify`; run them bare or use `set -o pipefail`. — A pipe made a failed leak check look green.
 - **Budgets are ceilings, not targets.** Don't lazy-load or delay things only to shrink first-load size; a justified
   increase goes in with `--allow-increase "<reason>"`. — Chasing the number added complexity and one-time growth.
 - **Expensive tests may wait for the nightly CI.** `@perf`, memory and other long runs may be left to
   `nightly-e2e.yml`; running one locally is fine when it is the faster way to an answer. — It is permission, not a ban.
 - **Ask only real decisions.** Settle obvious ones yourself and say so in one line; check the spec, the issue and
-  `spec/ASSUMPTIONS.md` first and never re-ask an answered question. — Obvious questions waste the owner's time.
+  `spec/ASSUMPTIONS.md` first and never re-ask an answered question. While the owner is awake, real decisions go in
+  the ask box (AskUserQuestion), never a plain-text list; when the owner asks how or why, answer that first. — Obvious
+  questions waste the owner's time, and plain-text lists got lost.
+- **Urgent means exclusive.** When the owner says "only this" or "stop all other work", stop every other agent and
+  background run at once, say what was stopped, and resume it only after the fix is confirmed. — Unrelated agents kept
+  running through an urgent bug hunt.
+- **A stuck agent reports.** An agent that waits more than 15 minutes on one command reports or stops; the coordinator
+  checks it and never lets it idle. — Agents sat 20–40 minutes on one verify run.
 - **Never remove a feature silently.** If something is wrong or misleading, fix it; removing anything users or the
   owner rely on needs an explicit OK. — Removal changes what people depend on.
 - **Precise terms.** *Host name*, *URL* and *domain* are not "addresses" (that is an IP address); a *virtual calendar*
@@ -118,6 +128,9 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   report; what could not be checked is marked "unverified". — Guessed answers cost the owner hours of correcting.
 - **A mock must behave like the real service.** For each new Google call, make the mock follow the documented
   semantics, including what the call does *not* change. — Green tests against a too-friendly mock proved nothing.
+- **Device fixes are proven before a human tests.** A platform bug (iOS, Safari, pen) gets a test that is red on that
+  platform first (the WebKit project, `safari-webkit.yml`); if that is impossible, say "unverified on <platform>" before asking anyone
+  to test. — The owner re-tested iPhone fixes that had never run on iOS.
 - **Gates stay in step with the spec.** Spec text, `e2e/STEPS.md`, step code and `@unit` comments change together;
   `check-steps.py` must report 0 problems.
 
@@ -126,6 +139,12 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
   phone size (375×812), in every affected state (collapsed, grown, tight, all-day band, week, dark). Re-record
   baselines only for intended changes, after looking; never a bare `--update-snapshots`. — Green DOM checks moved the
   breakage to states nobody looked at.
+- **The iPhone widget ships "unverified on device".** Tests cannot show it, so the report says what to check on the
+  phone, and the report and `CHANGELOG.md` say "fixed" only after a phone screenshot confirms it. — Two widget fixes
+  were reported done from tests alone.
+- **The owner's picture is the target.** Before building from a screenshot or mockup, say in words what it shows and
+  how it differs from today. "Like before, only X fixed" changes only X; any other visible difference is a regression.
+  — Misread pictures and unasked redesigns cost a whole day on one card.
 - **Build to the stated look.** Read the spec section and the owner's rules first; no self-invented designs. If a rule
   would make one state look wrong, ask before building it. — Changes are welcome, invented ones are not.
 - **Every visible change names its source.** The report quotes, per visible change, the spec line, ADR or owner
@@ -164,9 +183,12 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
 - **Issue first.** Every piece of work has a GitHub issue before the first commit; the branch is `<type>/<N>-<slug>`
   (`feat`, `fix`, `docs`, `chore`, `test`, `refactor`) and a commit or the merge says `Fixes #N`. — Board and issue
   closing are derived from this.
+- **A remark is a request.** Every instruction or bug the owner states in chat gets a GitHub issue in the same turn,
+  and the reply links it. — Requests said only in chat were lost and had to be repeated.
 - **Anonymised wording in everything that reaches GitHub** (commit messages, issue and PR titles and bodies,
   comments): "a user", "another user". No names, no relationships, no gendered pronouns, no private host names. The
-  commit-msg hook and the `gh` guard refuse personal words. — The repo is public.
+  commit-msg hook and the `gh` guard refuse personal words. In chat replies, too, say "the other user", never a
+  gendered pronoun. — The repo is public, and chat wording drifts into issues.
 - **Work in your own worktree and branch** (`../calendar-wt/<name>`), never in the main checkout or another
   worktree. Commits on your own branch are allowed and expected, small and conventional; stage named files only.
   Build agents never push, merge or deploy; the coordinating session does. — Strays in a shared checkout got swept into commits.
@@ -185,6 +207,9 @@ targeted e2e, `pnpm verify`, named files, no stash or force-push, device-first, 
 ### Production & secrets
 - **Agents never deploy and never hold secrets.** No `.env`, signing key, tokens or secret-store writes; report what
   is needed instead. Production changes are run by a human or by GitHub CD. — A deploy race rolled production back.
+- **Own setup goes in the denylist.** Each personal machine name, network or helper name goes into
+  `~/.config/calendar/leak-denylist` the moment it comes up; repo docs never describe the owner's own setup. — The leak
+  check knows only listed words, and a machine name reached public docs.
 - **One deploy path: GitHub CD deploys `main` after a green CI run.** Use `scripts/vps.sh deploy` by hand only when
   CD is off or a human asks. A deploy that contains native changes (`android/`, widget, Capacitor plugins) ships the
   APK with it; CD builds, signs and ships it (ADR 0040), so check that its APK jobs went green. — Two deployers
@@ -205,7 +230,7 @@ rules fill gaps only. Where they differ:
 | Tracker | Jira or Confluence | GitHub issues; branch `<type>/<N>-<slug>`, `Fixes #N` |
 | Confirm requirements first | Ask before implementing | Same: the spec gate stops after the scenarios while a human is available; with none (unattended run, night shift) build through, merge and deploy, and record assumptions for review |
 | Reviews | Repeat until no findings | One pass, a second only for a blocking finding |
-| Docstrings | A docstring on every function, comment blocks per logical block | TypeScript here: a one-line *why* comment where needed; the comment gate fails blocks over 3 lines, dates and quotes |
+| Docstrings | Google-style docs for public API, unless the repo settles it | TypeScript here: a one-line *why* comment where needed; the comment gate fails blocks over 3 lines, dates and quotes |
 | Debugging | Falsify hypotheses | Same, and the reproducing test comes first |
 
 ## Report back with
