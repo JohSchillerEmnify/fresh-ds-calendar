@@ -1,7 +1,7 @@
-// calendar-widget version=5
+// calendar-widget version=6
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
 // The home screen shows the Timeline in every size (small = today, medium and large = 1 to 7 days from today as columns); a tap runs this script. The lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
-const VERSION = 5;
+const VERSION = 6;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
 const CACHE_FILE = 'calendar-widget-data.json';
@@ -212,7 +212,7 @@ const textScale = (p) => (Number.isInteger(p) && p >= 90 && p <= 150 && p % 5 ==
 
 const timelineDays = (n) => (Number.isInteger(n) && n >= 1 && n <= 7 ? n : 3);
 
-/** An element of a fixed size in a stack; every element of the grid has one, so stacks line up with the geometry. */
+/** An element of a fixed size in a stack; every element of the grid has one, so stacks line up with the geometry. A stack centres content that does not fill it, so each one ends with a flexible spacer. */
 function fixedStack(parent, w, h, horizontal) {
   const s = parent.addStack();
   s.size = new Size(w, h);
@@ -262,6 +262,7 @@ function hourLabels(parent, g, H) {
     addLine(slot, pad2(h), 8 * g.k, { color: new Color(GREY) });
     f.done(2 * half);
   }
+  gutter.addSpacer();
 }
 
 /** The pieces of one column's blocks, cut at the now-line (a stripe is drawn between them) so the line also shows across a running entry. */
@@ -294,7 +295,9 @@ function blockGroup(col, g, group, size) {
       entryBlock(stack, p, p.e.color, p.label, size);
       f.done(p.h);
     }
+    stack.addSpacer();
   }
+  row.addSpacer();
   return { y0, y1 };
 }
 
@@ -345,6 +348,7 @@ function dayColumn(parent, g, c, o) {
   }
   if (!striped) stripe();
   if (c.below) marker(c.below, bottom + 1);
+  col.addSpacer();
   return col;
 }
 
@@ -386,11 +390,14 @@ function gridWidget(size, { entries, today, nowMin, lang, T, data, note }) {
   row.addSpacer(PAD.x);
   hourLabels(row, g, gh);
   g.cols.forEach((c, i) => dayColumn(row, g, c, { H: gh, nowY: g.nowLine && g.nowLine.col === i ? g.nowLine.y : null, lang, T }));
+  row.addSpacer();
   if (note) {
     const line = fixedStack(page, W, NOTE_H, true);
     line.addSpacer(PAD.x);
     addLine(line, note, 9, { color: new Color(GREY), lines: 1 });
+    line.addSpacer();
   }
+  page.addSpacer();
   return w;
 }
 

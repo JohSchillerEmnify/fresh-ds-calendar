@@ -177,13 +177,17 @@ export function layoutOf(root: unknown): Map<unknown, Box> {
     const auto = n.horizontal ? { w: sum, h: mx } : { w: mx, h: sum };
     return { w: o.w || auto.w, h: o.h || auto.h };
   };
+  // like a SwiftUI stack: leftover length goes to the flexible spacers, and without one the content sits centred
   const place = (n: LNode, x: number, y: number) => {
     const m = measure(n);
     out.set(n, { node: n, x, y, w: m.w, h: m.h });
-    let at = 0;
+    const len = (v: { w: number; h: number }) => (n.horizontal ? v.w : v.h);
+    const flex = n.kids.filter((k) => k.kind === 'spacer' && k.length == null).length;
+    const left = Math.max(0, len(m) - n.kids.reduce((a, k) => a + len(measure(k)), 0));
+    let at = flex ? 0 : left / 2;
     for (const k of n.kids) {
       const km = measure(k);
-      if (k.kind === 'spacer') { at += n.horizontal ? km.w : km.h; continue; }
+      if (k.kind === 'spacer') { at += k.length == null ? left / flex : len(km); continue; }
       place(k, n.horizontal ? x + at : x, n.horizontal ? y : y + at);
       at += n.horizontal ? km.w : km.h;
     }
