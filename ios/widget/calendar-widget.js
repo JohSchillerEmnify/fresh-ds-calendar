@@ -1,7 +1,7 @@
-// calendar-widget version=6
+// calendar-widget version=7
 // Calendar widget for the Scriptable app (iPhone). It holds no key and no person: the installer put both in the Keychain.
 // The home screen shows the Timeline in every size (small = today, medium and large = 1 to 7 days from today as columns); a tap runs this script. The lock screen shows the next entry (the circle: start time or countdown, as chosen in Settings). No clock of its own.
-const VERSION = 6;
+const VERSION = 7;
 const KEY_ID = 'calendar-widget-key';
 const URL_ID = 'calendar-widget-url';
 const CACHE_FILE = 'calendar-widget-data.json';
@@ -186,6 +186,8 @@ function dayGrid(entries, today, from, count, nowMin, minLen, W, H, k = 1, fixed
     for (const b of blocks) {
       const next = blocks.filter((o) => o !== b && o.y >= b.y && (o.cluster !== b.cluster || o.lane === b.lane) && !(o.y === b.y && o.cluster === b.cluster));
       if (next.length) b.h = Math.max(0.5, Math.min(b.h, Math.min(...next.map((o) => o.y)) - b.y));
+      // nor past the last hour, or the column would outgrow its stack
+      b.h = Math.max(0.5, Math.min(b.h, yOf(last * 60) - b.y));
     }
     // the last chip row says how many more there are, so the band keeps its height
     const shown = chips[i].length > WEEK.maxChips ? chips[i].slice(0, WEEK.maxChips - 1) : chips[i];
@@ -212,7 +214,7 @@ const textScale = (p) => (Number.isInteger(p) && p >= 90 && p <= 150 && p % 5 ==
 
 const timelineDays = (n) => (Number.isInteger(n) && n >= 1 && n <= 7 ? n : 3);
 
-/** An element of a fixed size in a stack; every element of the grid has one, so stacks line up with the geometry. A stack centres content that does not fill it, so each one ends with a flexible spacer. */
+/** An element of a fixed size in a stack; every element of the grid has one, so stacks line up with the geometry. A stack centres content that does not fill it, so its content must fill it exactly (a fixed spacer at the end) or end with a flexible spacer. */
 function fixedStack(parent, w, h, horizontal) {
   const s = parent.addStack();
   s.size = new Size(w, h);
@@ -247,6 +249,7 @@ function entryBlock(parent, box, color, label, size) {
     const t = addLine(s, label, size, { color: ink(), lines: Math.max(1, Math.floor((box.h - 1) / (size * 1.2))) });
     t.minimumScaleFactor = 0.8;
   }
+  s.addSpacer();
   return s;
 }
 
@@ -254,15 +257,18 @@ function entryBlock(parent, box, color, label, size) {
 function hourLabels(parent, g, H) {
   const gutter = fixedStack(parent, WEEK.gutter, H, false);
   const f = flow();
-  const step = g.hourH < 18 * g.k ? 2 : 1;
   const half = 5 * g.k;
+  // every second hour when tight, and wider still where the boxes would touch
+  const step = Math.max(g.hourH < 18 * g.k ? 2 : 1, Math.ceil((2 * half) / g.hourH));
   for (let h = g.first; h < g.last; h += step) {
     f.to(gutter, g.yOf(h * 60) - half);
     const slot = fixedStack(gutter, WEEK.gutter, 2 * half, true);
+    slot.addSpacer();
     addLine(slot, pad2(h), 8 * g.k, { color: new Color(GREY) });
+    slot.addSpacer();
     f.done(2 * half);
   }
-  gutter.addSpacer();
+  f.to(gutter, H);
 }
 
 /** The pieces of one column's blocks, cut at the now-line (a stripe is drawn between them) so the line also shows across a running entry. */
@@ -295,9 +301,9 @@ function blockGroup(col, g, group, size) {
       entryBlock(stack, p, p.e.color, p.label, size);
       f.done(p.h);
     }
-    stack.addSpacer();
+    f.to(stack, y1);
   }
-  row.addSpacer();
+  row.addSpacer(1);
   return { y0, y1 };
 }
 
@@ -309,9 +315,10 @@ function dayColumn(parent, g, c, o) {
   const head = fixedStack(col, g.colW - 2, g.head, true);
   head.cornerRadius = 3;
   if (c.today) head.backgroundColor = new Color('#b3261e');
-  head.addSpacer(2);
+  head.addSpacer();
   const label = g.colW >= 56 ? dayName(c.date, lang) : `${weekdayName(c.date, lang, 'narrow')} ${Number(c.date.slice(8))}`;
   addLine(head, label, 10 * g.k, { bold: true, color: c.today ? new Color('#ffffff') : ink() });
+  head.addSpacer();
   f.done(g.head);
   c.chips.forEach((e, i) => {
     f.to(col, g.head + 2 + i * g.chip);
@@ -323,6 +330,7 @@ function dayColumn(parent, g, c, o) {
     const more = fixedStack(col, g.colW - 2, g.chip - 1, true);
     more.addSpacer(2);
     addLine(more, T.more(c.moreChips), 8 * g.k, { color: new Color(GREY) });
+    more.addSpacer();
     f.done(g.chip - 1);
   }
   const bottom = g.yOf(g.last * 60);
@@ -348,7 +356,7 @@ function dayColumn(parent, g, c, o) {
   }
   if (!striped) stripe();
   if (c.below) marker(c.below, bottom + 1);
-  col.addSpacer();
+  f.to(col, H);
   return col;
 }
 
@@ -390,14 +398,14 @@ function gridWidget(size, { entries, today, nowMin, lang, T, data, note }) {
   row.addSpacer(PAD.x);
   hourLabels(row, g, gh);
   g.cols.forEach((c, i) => dayColumn(row, g, c, { H: gh, nowY: g.nowLine && g.nowLine.col === i ? g.nowLine.y : null, lang, T }));
-  row.addSpacer();
+  row.addSpacer(PAD.x);
   if (note) {
     const line = fixedStack(page, W, NOTE_H, true);
     line.addSpacer(PAD.x);
     addLine(line, note, 9, { color: new Color(GREY), lines: 1 });
     line.addSpacer();
   }
-  page.addSpacer();
+  page.addSpacer(PAD.bottom);
   return w;
 }
 
