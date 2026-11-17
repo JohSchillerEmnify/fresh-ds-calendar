@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { LIST_ITEMS_MAX } from '@calendar/shared/limits';
+import { blockEnd, blockIds, clampLevels, levelProp } from '@calendar/shared/subtasks';
 import type {
   Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
@@ -437,7 +438,7 @@ export class CalendarService {
     const calendarId = await this.tasks.id();
     const d: TaskListData = {
       title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
-      items: (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...(i.strokes ? { ink: true as const } : {}) })),
+      items: clampLevels((input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...levelProp(i.level), ...(i.strokes ? { ink: true as const } : {}) }))),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       canvas: null,
       createdOn: input.createdOn ?? localDateOf(this.clock.nowMs(), this.tz), // an offline create keeps the day it was made
@@ -545,8 +546,9 @@ export class CalendarService {
       if (input.items !== undefined) {
         // an ink item (empty title) sent back with its id stays what it is
         const inked = new Set(d.items.filter((i) => i.ink).map((i) => i.id));
-        next.items = input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
-          .map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done, ...(i.id && inked.has(i.id) ? { ink: true as const } : {}) }));
+        const levels = new Map(d.items.map((i) => [i.id, i.level]));
+        next.items = clampLevels(input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
+          .map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done, ...levelProp(levels.get(i.id ?? '')), ...(i.id && inked.has(i.id) ? { ink: true as const } : {}) })));
       }
       return next;
     }, ifMatch, input.reminders);
@@ -606,6 +608,8 @@ export class CalendarService {
       if (input.done === true && !cur.done) ticked = true;
       const items = [...d.items];
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
+      // a task's tick goes to its subtasks; the last subtask's tick never ticks the task
+      if (input.done !== undefined) for (let k = idx + 1; k < blockEnd(items, idx); k++) items[k] = { ...items[k]!, done: input.done };
       return { ...d, items };
     }, undefined, undefined, true);
     if (ticked) this.motivation.award(this.sub, 'tick', itemId);
@@ -613,21 +617,31 @@ export class CalendarService {
   }
 
   async deleteItem(id: string, itemId: string, scope?: Scope): Promise<TaskList> {
-    if (scope === 'following') return this.series.forFollowing(id, (d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }), requireItem(itemId));
+    // the subtasks of a task go with it
+    const without = (d: TaskListData): TaskListData => { const gone = new Set(blockIds(d.items, itemId)); return { ...d, items: d.items.filter((i) => !gone.has(i.id)) }; };
+    if (scope === 'following') return this.series.forFollowing(id, without, requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
-      return { ...d, items: d.items.filter((i) => i.id !== itemId) };
+      return without(d);
     }, undefined, undefined, true);
   }
 
-  async reorder(id: string, itemIds: string[]): Promise<TaskList> {
+  /** `levels` (one per id) sets the levels too: a drag changes the place and the level together. */
+  async reorder(id: string, itemIds: string[], levels?: number[]): Promise<TaskList> {
     return this.modify(id, (d) => {
       const ids = new Set(d.items.map((i) => i.id));
       if (itemIds.length !== ids.size || new Set(itemIds).size !== itemIds.length || itemIds.some((x) => !ids.has(x))) {
         throw validation('itemIds must contain every item id exactly once', 'itemIds');
       }
+      if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
       const byId = new Map(d.items.map((i) => [i.id, i]));
-      return { ...d, items: itemIds.map((x) => byId.get(x)!) };
+      const ordered = itemIds.map((x, n) => {
+        const item = byId.get(x)!;
+        const level = levels?.[n] ?? item.level ?? 0;
+        const { level: _old, ...rest } = item;
+        return { ...rest, ...levelProp(level) };
+      });
+      return { ...d, items: clampLevels(ordered) };
     }, undefined, undefined, true);
   }
 

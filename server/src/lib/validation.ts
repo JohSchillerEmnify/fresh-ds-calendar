@@ -139,7 +139,7 @@ export const createTaskListSchema = so({
   title: listTitle,
   date: v.nullable(localDate),
   time: v.optional(v.nullable(localTime)),
-  items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), done: v.optional(v.boolean()), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG))),
+  items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), done: v.optional(v.boolean()), level: v.optional(v.picklist([0, 1, 2], 'A level is 0, 1 or 2')), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG))),
   categoryId: v.optional(v.nullable(v.string())),
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
@@ -166,7 +166,7 @@ export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.option
 export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });
 /** `PUT /api/categories/:id/share`: the person to share the category with, or null to stop. */
 export const categoryShareSchema = so({ person: v.nullable(v.pipe(v.string('person must be text'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long'))) });
-export const orderSchema = so({ itemIds: v.array(v.string()) });
+export const orderSchema = so({ itemIds: v.array(v.string()), levels: v.optional(v.array(v.picklist([0, 1, 2], 'A level is 0, 1 or 2'))) });
 
 export const settingsPatchSchema = so({
   themeMode: v.optional(v.picklist(['system', 'light', 'dark'], 'Invalid theme mode')),

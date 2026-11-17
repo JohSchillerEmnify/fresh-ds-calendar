@@ -10,6 +10,7 @@
     "./colors": { "types": "./colors.d.ts", "default": "./colors.js" },
     "./ink": { "types": "./ink.d.ts", "default": "./ink.js" },
     "./limits": { "types": "./limits.d.ts", "default": "./limits.js" },
+    "./subtasks": { "types": "./subtasks.d.ts", "default": "./subtasks.js" },
     "./prefs": { "types": "./prefs.d.ts", "default": "./prefs.js" },
     "./widget-installer": { "types": "./widgetInstaller.d.ts", "default": "./widgetInstaller.js" },
     "./week-hours": { "types": "./weekHours.d.ts", "default": "./weekHours.js" },

@@ -836,3 +836,65 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect((await remote()).filter((e: any) => e.recurrence)).toHaveLength(1);
   });
 });
+
+describe('subtasks', () => {
+  const four = [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food' }];
+  const levels = (l: any) => l.items.map((i: any) => i.level ?? 0);
+
+  it('stores the levels, indents the Google description by two spaces per level and reads them back', async () => {
+    const a = await mk({ items: four });
+    expect(levels(a)).toEqual([0, 1, 2, 0]);
+    const g = await raw(a.id);
+    expect(g.description).toBe('☐ Tent\n  ☐ Pegs\n    ☐ Poles\n☐ Food');
+    expect(JSON.parse(g.extendedProperties.private.items).map((i: any) => i.l)).toEqual([undefined, 1, 2, undefined]);
+    expect(levels((await t.json('GET', `/api/tasklists/${a.id}`)).body)).toEqual([0, 1, 2, 0]);
+  });
+
+  it('a level cannot skip one and is at most 2', async () => {
+    const a = await mk({ items: [{ title: 'A', level: 1 }, { title: 'B', level: 2 }, { title: 'C', level: 0 }, { title: 'D', level: 2 }] });
+    expect(levels(a)).toEqual([0, 1, 0, 1]);
+    expect((await t.json('POST', '/api/tasklists', { title: 'x', date: null, items: [{ title: 'A', level: 3 }] })).status).toBe(400);
+  });
+
+  it('a reorder with levels changes place and level together; without levels the levels stay', async () => {
+    const a = await mk({ items: four });
+    const [tent, pegs, poles, food] = a.items.map((i: any) => i.id);
+    const moved = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [tent, pegs, poles, food], levels: [0, 1, 2, 1] });
+    expect(levels(moved.body)).toEqual([0, 1, 2, 1]);
+    const swapped = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [food, tent, pegs, poles] });
+    expect(levels(swapped.body)).toEqual([0, 0, 1, 2]);
+    expect((await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [food, tent, pegs, poles], levels: [0] })).status).toBe(400);
+    expect((await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [food, tent, pegs, poles], levels: [0, 0, 5, 0] })).status).toBe(400);
+  });
+
+  it('ticking a task ticks its subtasks, unticking unticks them, ticking a subtask leaves its task', async () => {
+    const a = await mk({ items: four });
+    const [tent, pegs] = a.items.map((i: any) => i.id);
+    const sub = await t.json('PATCH', `/api/tasklists/${a.id}/items/${pegs}`, { done: true });
+    expect(sub.body.items.map((i: any) => i.done)).toEqual([false, true, true, false]);
+    const unsub = await t.json('PATCH', `/api/tasklists/${a.id}/items/${pegs}`, { done: false });
+    expect(unsub.body.items.map((i: any) => i.done)).toEqual([false, false, false, false]);
+    const all = await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: true });
+    expect(all.body.items.map((i: any) => i.done)).toEqual([true, true, true, false]);
+    expect(all.body.doneCount).toBe(3);
+    const none = await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: false });
+    expect(none.body.doneCount).toBe(0);
+  });
+
+  it('removing a task removes its subtasks', async () => {
+    const a = await mk({ items: four });
+    const del = await t.json('DELETE', `/api/tasklists/${a.id}/items/${a.items[0].id}`);
+    expect(del.body.items.map((i: any) => i.title)).toEqual(['Food']);
+    const b = await mk({ items: four });
+    const sub = await t.json('DELETE', `/api/tasklists/${b.id}/items/${b.items[1].id}`);
+    expect(sub.body.items.map((i: any) => i.title)).toEqual(['Tent', 'Food']);
+  });
+
+  it('a rename and an update of the list keep the levels', async () => {
+    const a = await mk({ items: four });
+    const ren = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[1].id}`, { title: 'Pegs 10' });
+    expect(levels(ren.body)).toEqual([0, 1, 2, 0]);
+    const upd = await t.json('PATCH', `/api/tasklists/${a.id}`, { items: ren.body.items.map((i: any) => ({ id: i.id, title: i.title, done: i.done })) });
+    expect(levels(upd.body)).toEqual([0, 1, 2, 0]);
+  });
+});
