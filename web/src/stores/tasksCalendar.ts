@@ -6,10 +6,7 @@ import { useCalendarsStore } from './calendars';
 import { useDeviceStore } from './device';
 import { useSyncStore } from './sync';
 
-/**
- * Whether the person has task lists (feature tasklists-calendar-consent). The answer is a device file kept from the
- * sync, so it also holds offline; a device that has not synced yet shows everything (nothing is hidden by a guess).
- */
+/** Whether the person has task lists (tasklists-calendar-consent); a device file, so it holds offline. */
 export const useTasksCalendarStore = defineStore('tasksCalendar', () => {
   const device = useDeviceStore();
   const calendars = useCalendarsStore();
