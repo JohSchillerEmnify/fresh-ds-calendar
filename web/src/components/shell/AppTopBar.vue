@@ -105,7 +105,7 @@ function toggleFilters() {
         <IconButton v-if="!drawer" :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
-    <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks && !dateless" />
+    <MonthPicker v-if="!sample && ui.pickerOpen && !route.meta.tasks && !dateless" />
   </TopAppBar>
 </template>
 
