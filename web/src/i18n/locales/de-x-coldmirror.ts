@@ -132,6 +132,7 @@ export default {
       },
     },
     tasklists: {
+      enable: { label: 'Aufgabenlisten' },
       carriedFrom: { label: 'Zeigen, woher verschobene Listen kommen, yo', hint: 'Offene Listen von früher kriegen ein „Vom Sa., 10. Okt.“-Etikett. Wenn aus, stehen die einfach bei heute, Digga.' },
       undatedDone: { label: 'Erledigte Liste ohne Datum, yo', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv, Digga' },
       taskOpen: { label: 'Tippen auf ne Aufgabenliste, yo', inline: 'Klappt auf', drawer: 'Macht die Liste auf, Digga' },

@@ -3,6 +3,7 @@
 import { computed } from 'vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import { rememberNewKind, type NewKind } from '@/extensions/create';
+import { useTasksCalendarStore } from '@/stores/tasksCalendar';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 
@@ -12,9 +13,10 @@ type Kind = NewKind | 'birthday';
 /** `time`: undefined = none chosen (each form uses its own default), null = all-day / untimed. `minutes`: a drawn block's length. */
 const props = defineProps<{ kind: Kind; date: string; time?: string | null; minutes?: number; title?: string }>();
 const ui = useUiStore();
+const tasks = useTasksCalendarStore();
 const options = computed(() => [
   { value: 'event' as const, label: t('calendar.create.event'), testid: 'new-kind-event' },
-  { value: 'tasklist' as const, label: t('calendar.create.tasklist'), testid: 'new-kind-tasklist' },
+  ...(tasks.on ? [{ value: 'tasklist' as const, label: t('calendar.create.tasklist'), testid: 'new-kind-tasklist' }] : []),
   { value: 'birthday' as const, label: t('calendar.create.birthday'), testid: 'create-birthday' },
 ]);
 

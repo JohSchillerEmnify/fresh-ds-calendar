@@ -5,6 +5,14 @@
  */
 export default {
   noCategory: 'No category',
+  consent: {
+    title: 'Turn on task lists?',
+    body: 'Task lists are kept in an extra calendar that the app adds to your Google account. It holds only your task lists. You can hide or delete it in Google Calendar (deleting it deletes your task lists).',
+    calendarName: 'Calendar app: tasks',
+    hint: 'You can turn task lists on later in Settings.',
+    notNow: 'Not now',
+    turnOn: 'Turn on',
+  },
   tabs: { label: 'Tasks', open: 'Open', archive: 'Archive' },
   archive: {
     search: 'Search finished lists',

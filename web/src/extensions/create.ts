@@ -2,6 +2,7 @@ import { minutesToTime, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { dialogs, type CreateContext } from './registry';
+import { useTasksCalendarStore } from '@/stores/tasksCalendar';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 
@@ -43,7 +44,7 @@ export function openNewUndated(): void {
  */
 export function openNew(date?: string, time?: string | null, minutes?: number): void {
   const ui = useUiStore();
-  const kind = lastNewKind();
+  const kind = useTasksCalendarStore().on ? lastNewKind() : 'event';
   if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', date: createContext(date).date, ...(time !== undefined ? { time } : {}), ...(minutes ? { minutes } : {}) });
   else ui.notify(t('calendar.create.editorUnavailable'));
 }

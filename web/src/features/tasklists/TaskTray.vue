@@ -20,6 +20,7 @@ import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle, neutralName } from '@/lib/items';
 import { showProgress } from './format';
+import { useTasksCalendarStore } from '@/stores/tasksCalendar';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
 import { compareOpen, useTaskListsStore } from './store';
@@ -34,7 +35,7 @@ const lists = useTaskListsStore();
 const ui = useUiStore();
 const prefs = usePrefsStore();
 const cats = useTaskCategories();
-const shown = computed(() => !!route.meta.view);
+const shown = computed(() => !!route.meta.view && useTasksCalendarStore().on);
 const expanded = toRef(ui, 'trayExpanded');
 /** The list is showing: phone = expanded bar, desktop = not collapsed to the edge strip. */
 const listShown = computed(() => (isPhone.value ? expanded.value : !ui.trayCollapsedDesktop));

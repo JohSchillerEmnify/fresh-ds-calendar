@@ -17,12 +17,16 @@ import { useSavePrefs } from '@/composables/useSaveSettings';
 import { t } from '@/i18n';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
+import TasksCalendarSheet from '@/components/shell/TasksCalendarSheet.vue';
 import { useSyncStore } from '@/stores/sync';
+import { useTasksCalendarStore } from '@/stores/tasksCalendar';
 
 const settings = useSettingsStore();
 const prefs = usePrefsStore();
 const sync = useSyncStore();
 const savePrefs = useSavePrefs();
+const tasksCalendar = useTasksCalendarStore();
+const askingAgain = ref(false);
 
 const taskOpenOptions = computed(() => (['inline', 'drawer'] as const).map((v) => ({ value: v, label: t(`settings.tasklists.taskOpen.${v}`), testid: `settings-task-open-${v}` })));
 const subtaskLinesOptions = computed(() => (['straight', 'tree'] as const).map((v) => ({ value: v, label: t(`settings.tasklists.subtaskLines.${v}`), testid: `settings-subtask-lines-${v}` })));
@@ -38,6 +42,13 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
 </script>
 
 <template>
+  <SettingSection>
+    <SettingRow id="tasksOn" :label="t('settings.tasklists.enable.label')">
+      <Switch :model-value="tasksCalendar.on" :disabled="tasksCalendar.on" :label="t('settings.tasklists.enable.label')" data-testid="settings-tasks-on" @update:model-value="askingAgain = true" />
+    </SettingRow>
+  </SettingSection>
+  <TasksCalendarSheet :open="askingAgain" @close="askingAgain = false" @done="askingAgain = false" />
+
   <SettingSection :title="t('settingsNav.sub.categories')">
     <SettingRow id="taskCategories" :label="t('settings.tasklists.taskCategories.label')" :hint="t('settings.tasklists.taskCategories.hint')">
       <Switch :model-value="prefs.taskCategories" :label="t('settings.tasklists.taskCategories.label')" data-testid="settings-task-categories" @update:model-value="savePrefs({ taskCategories: $event })" />

@@ -6,6 +6,14 @@ import type { PartialMessages } from '../../schema';
 
 export default {
   noCategory: 'Keine Kategorie, yo',
+  consent: {
+    title: 'Aufgabenlisten einschalten?',
+    body: 'Aufgabenlisten liegen in einem eigenen Kalender, den die App in deinem Google-Konto anlegt. Er enthält nur deine Aufgabenlisten. Du kannst ihn in Google Kalender ausblenden oder löschen (Löschen löscht auch deine Aufgabenlisten).',
+    calendarName: 'Calendar app: tasks',
+    hint: 'Du kannst sie später in den Einstellungen einschalten.',
+    notNow: 'Nicht jetzt',
+    turnOn: 'Einschalten',
+  },
   tabs: { label: 'Aufgaben, yo', open: 'Offen, yo', archive: 'Archiv, fresh' },
   archive: {
     search: 'Erledigte Listen suchen, Digga',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { visibleLabsViews } from '@/features/labs/labs';
 import { visibleStableViews } from '@/features/views';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
@@ -13,6 +13,7 @@ import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
 import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
 import DragCat from '@/features/motivation/DragCat.vue';
 import VersionLabel from '@/components/shell/VersionLabel.vue';
+import TasksCalendarSheet from '@/components/shell/TasksCalendarSheet.vue';
 import SideMenu from '@/components/shell/SideMenu.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
@@ -41,10 +42,22 @@ import { useClockStore } from '@/stores/clock';
 import { useFilters } from '@/composables/useFilters';
 import { useSyncStore } from '@/stores/sync';
 import { useSettingsStore } from '@/stores/settings';
+import { useTasksCalendarStore } from '@/stores/tasksCalendar';
 import { useUiStore } from '@/stores/ui';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 
 const route = useRoute();
+const router = useRouter();
+const tasksCalendar = useTasksCalendarStore();
+/** The first-sign-in question is open until the person answers; closing it is "Not now" (asked again on the next start when the answer could not be saved). */
+const consentClosed = ref(false);
+const consentOpen = computed(() => !route.meta.public && tasksCalendar.asking && !consentClosed.value);
+function notNow() {
+  consentClosed.value = true;
+  void tasksCalendar.answer(false);
+}
+// task lists off: the Tasks view is not reachable, also from an old link or while the answer arrives
+watch(() => route.meta.tasks && !tasksCalendar.on, (away) => { if (away) void router.replace('/'); });
 const cal = useCalendarStore();
 const ui = useUiStore();
 const nav = useNav();
@@ -75,7 +88,7 @@ const hasShell = computed(() => isCalendar.value || !!route.meta.tasks);
 const activeView = computed(() => (route.meta.tasks ? 'tasks' : (route.meta.lab as string | undefined) ?? cal.view));
 // The main views the person has on, then the Labs views (only with the Labs switch on and the view's own switch on), marked as experimental.
 const items = computed<NavItem[]>(() => [
-  ...visibleStableViews(labs.stableViews).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}` })),
+  ...visibleStableViews(labs.stableViews).filter((v) => v.id !== 'tasks' || tasksCalendar.on).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}` })),
   ...visibleLabsViews(labs.labs, labs.labsViews).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}`, experimental: true })),
 ]);
 /** A phone without a bottom bar and without the tray (Tasks, Labs views) still keeps clear of the bottom safe area. */
@@ -147,6 +160,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
     <SideMenu v-if="hasShell && navPosition === 'drawer'" :items="items" :model-value="activeView" :side="leftHand ? 'right' : 'left'" @update:model-value="switchTo" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
     <VersionLabel v-if="hasShell && labs.versionInCorner" :raised="isPhone" />
+    <TasksCalendarSheet :open="consentOpen" @close="notNow" @done="consentClosed = true" />
     <Snackbar />
     <DragCat />
   </div>

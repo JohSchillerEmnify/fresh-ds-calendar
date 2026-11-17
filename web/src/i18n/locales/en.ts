@@ -135,6 +135,7 @@ export default {
       },
     },
     tasklists: {
+      enable: { label: 'Task lists' },
       carriedFrom: { label: 'Show where carried-over lists come from', hint: 'Open lists moved on to today get a label like “From Sat 10 Oct”. When off, they just show up today.' },
       taskCategories: { label: 'Task list categories', hint: 'Group, sort, filter and color task lists by category. Switching off only hides them, nothing is deleted.' },
       addCategory: 'Add category',
