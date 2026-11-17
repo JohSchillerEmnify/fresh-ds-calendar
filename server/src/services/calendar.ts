@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { LIST_ITEMS_MAX } from '@calendar/shared/limits';
-import { blockEnd, blockIds, clampLevels, levelProp } from '@calendar/shared/subtasks';
+import { blockEnd, blockIds, clampLevels, levelProp, withLevel } from '@calendar/shared/subtasks';
 import type {
   Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
@@ -637,9 +637,7 @@ export class CalendarService {
       const byId = new Map(d.items.map((i) => [i.id, i]));
       const ordered = itemIds.map((x, n) => {
         const item = byId.get(x)!;
-        const level = levels?.[n] ?? item.level ?? 0;
-        const { level: _old, ...rest } = item;
-        return { ...rest, ...levelProp(level) };
+        return withLevel(item, levels?.[n] ?? item.level ?? 0);
       });
       return { ...d, items: clampLevels(ordered) };
     }, undefined, undefined, true);

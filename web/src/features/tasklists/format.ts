@@ -33,6 +33,8 @@ export function singleTask(tl: Pick<TaskList, 'title' | 'items'>): SingleTask | 
 export const isComplete = (tl: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => tl.totalCount > 0 && tl.doneCount >= tl.totalCount;
 /** The count and ring are only worth showing for more than one item (a single tick item is its own progress). */
 export const showProgress = (tl: Pick<TaskList, 'totalCount'>): boolean => tl.totalCount !== 1;
+/** `data-level` and the indent (10 px a level) of an item name in the card. */
+export const levelAttrs = (i: { level?: number }) => ({ 'data-level': i.level ?? 0, style: i.level ? { '--ind': `${i.level * 10}px` } : undefined });
 /** Class for one item name in the card: struck through when ticked. */
 export const itemClass = (done: boolean): string => (done ? 'it done' : 'it');
 

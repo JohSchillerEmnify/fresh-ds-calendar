@@ -55,20 +55,16 @@ export function rowShifts(spans: readonly RowSpan[], from: number, to: number): 
   return out;
 }
 
-/** What a drop of a task (with its subtasks) does: where the block goes among the other items and the level its first item gets. */
+/** Where a dropped block goes among the other items, and the level its first item gets. */
 export interface Placement {
   /** Index among the items without the block. */
   index: number;
   level: number;
-  /** The row after which the block lands in the full list (-1: at the top); where the gap opens. */
+  /** The row after which the block lands (-1: the top); where the gap opens. */
   after: number;
 }
 
-/**
- * Where dropping item `id` on row `to` (the place the plain drag picks) with the level `wanted` (from the pointer's sideways
- * move) puts it: the item takes its subtasks along; it is at most one level deeper than the item above it and the block
- * stays within three levels; dropped below a task at that task's level or higher it lands after that task's subtasks.
- */
+/** Where the task `id` (with its subtasks) lands when dropped on row `to` at level `wanted`; below a task at its level or higher it goes after that task's subtasks. */
 export function placeBlock(items: readonly { id: string; level?: number }[], id: string, to: number, wanted: number): Placement | null {
   const from = items.findIndex((i) => i.id === id);
   if (from < 0) return null;

@@ -31,7 +31,7 @@ import { usePeople } from '@/composables/usePeople';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
-import { indentOf, parseIndented } from '@calendar/shared/subtasks';
+import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
@@ -196,7 +196,7 @@ async function save() {
       if (!typed.length || Object.keys(changed).length) outbox.updateList(props.id!, changed, undefined, etag);
     } else {
       outbox.createList({
-        ...body, items: [...parseIndented(form.items), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
+        ...body, items: [...parseIndented(form.items).map(({ title, level }) => ({ title, ...levelProp(level) })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
       });
       // the list is saved; a template that fails now is only reported, the list stays
       if (alsoTemplate.value) {

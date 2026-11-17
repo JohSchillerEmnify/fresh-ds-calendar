@@ -4,6 +4,8 @@
 export declare const MAX_LEVEL: 2;
 /** `{ level }` for a subtask level, nothing for a task: spread into an item. */
 export declare const levelProp: (n: number | undefined) => { level?: 1 | 2 };
+/** The item with level `n` (0 = a task: no `level`). */
+export declare function withLevel<T extends object>(item: T, n: number): T;
 /** The level of an item (a list that never had subtasks has no `level`). */
 export declare const levelOf: (item: object) => number;
 /** The same items with their levels made valid: the first is a task, every other is at most one level deeper than the one above and at most {@link MAX_LEVEL}. */

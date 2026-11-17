@@ -37,7 +37,7 @@ function freezeSheet(row: HTMLElement): () => void {
 }
 
 /** Sideways distance (px) of one level: a row is moved one level by dragging it this far (the indent in `TaskListView`). */
-export const LEVEL_PX = 28;
+const LEVEL_PX = 28;
 /** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
 const HELD_SUB = 'data-sub-held';
 

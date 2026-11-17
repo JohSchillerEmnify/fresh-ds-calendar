@@ -34,9 +34,10 @@ import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete, singleTask } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
-import { addItem, moveItemTo, patchItem, setItemLevel, toggleSingleTask } from './ops';
+import { addItem, moveItemTo, patchItem, toggleSingleTask } from './ops';
 import { blockEnd, blockIds, levelOf } from '@calendar/shared/subtasks';
-import { gapLines, linesFor } from './subtaskLines';
+import { linesFor } from './subtaskLines';
+import SubtaskGap from './SubtaskGap.vue';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
@@ -118,8 +119,7 @@ function tick(item: TaskItem, done: boolean) {
     flashStop = appTimeout(() => { flashId.value = null; flashStop = null; }, 700);
   }
   // a task's tick goes to its subtasks too
-  const ticking = new Set(blockIds(list.items, item.id));
-  const willComplete = done && !complete.value && list.items.every((i) => ticking.has(i.id) || i.done);
+  const willComplete = done && !complete.value && list.items.every((i) => blockIds(list.items, item.id).includes(i.id) || i.done);
   // a new completion strikes the title through at once unless the cat comes to do it
   strikeDraw.value = null;
   patchItem(props.id, item.id, { done });
@@ -282,19 +282,13 @@ function onMenu(id: string) {
   else if (id === 'leave') void leave();
   else if (id === 'delete') remove();
 }
-/** An item was dropped on place `to`: a pending item delete is sent first (the server needs every item id), then the move. */
+/** An item was dropped on place `to` at `level` (Tab: its own place): a pending item delete is sent first (the server needs every item id), then the move. */
 function move(itemId: string, to: number, level: number) {
   pendingDeletes.flushList(props.id);
   moveItemTo(props.id, itemId, to, level);
 }
-/** Tab / Shift+Tab in the item field: one level deeper or up, the field stays open. */
-function nest(item: TaskItem, up: boolean) {
-  pendingDeletes.flushList(props.id);
-  setItemLevel(props.id, item.id, levelOf(item) + (up ? -1 : 1));
-}
 const aim = useItemDrag({
-  root,
-  items: () => tl.value?.items ?? [],
+  root, items: () => tl.value?.items ?? [],
   signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
   penWrites: () => writing.value,
@@ -364,17 +358,14 @@ defineExpose({ root, busy });
             <component :is="writing ? 'div' : Pressable" v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
               <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
             </component>
-            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @keydown.tab.prevent="nest(item, $event.shiftKey)" />
+            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @keydown.tab.prevent="move(item.id, i, levelOf(item) + ($event.shiftKey ? -1 : 1))" />
             <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
             <template #trailing>
               <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
               <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
             </template>
           </ListItem>
-          <li v-if="aim && aim.level > 0" class="gap" data-testid="tasklist-drop-gap" :data-level="aim.level" :style="{ top: `${aim.top}px`, height: `${aim.height}px`, '--lvl': aim.level }" aria-hidden="true">
-            <i v-for="ln in gapLines(aim.level, prefs.subtaskLines)" :key="`${ln.kind}${ln.col}`" class="ln" :class="`ln-${ln.kind}`" :data-end="ln.end" :style="{ '--col': ln.col }" />
-            <span class="gap-box" />
-          </li>
+          <SubtaskGap v-if="aim && aim.level > 0" :aim="aim" :lines="prefs.subtaskLines" />
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
           <InkLine class="draft" :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
@@ -424,18 +415,6 @@ html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 2px 0 0; padding: 0; position: relative; }
-/* a subtask is indented one level (28 px) per level; its lines run in the room that makes */
-.list > .row[data-level] { position: relative; padding-left: calc(16px + var(--lvl) * 28px); }
-.ln { --lc: color-mix(in srgb, var(--md-sys-color-on-surface) 22%, transparent); position: absolute; left: calc(28px + var(--col) * 28px); pointer-events: none; }
-.ln-guide { top: 0; bottom: 0; border-left: 1px solid var(--lc); }
-.ln-stem { top: calc(50% + 14px); bottom: 0; border-left: 1px solid var(--lc); }
-.ln-branch { top: 0; height: 50%; width: 16px; border-left: 1px solid var(--lc); border-bottom: 1px solid var(--lc); }
-.ln-branch[data-end='true'] { border-bottom-left-radius: 8px; }
-/* the gap of a dragged item that will be a subtask: indented to its level, with its line (a plain gap stays empty) */
-.gap { position: absolute; left: 0; right: 0; pointer-events: none; list-style: none; }
-.gap-box { position: absolute; inset: 3px 4px 3px calc(4px + var(--lvl) * 28px); border-radius: 12px; border: 2px dashed color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent); transition: left 100ms ease-out; }
-/* the subtasks of a held task travel with it: folded away while it is lifted */
-.list > .row[data-sub-held] { height: 0; min-height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
 .row { transition: background 400ms; }
 /* 48 px targets centred on the list item's 24 px icon slots */
 .row .cbx, .row :deep(.li-trail) { margin-inline: -12px; }

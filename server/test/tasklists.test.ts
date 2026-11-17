@@ -838,15 +838,16 @@ describe('recurring task lists: a change for this and all following ones (scope=
 });
 
 describe('subtasks', () => {
+  type Item = { id: string; title: string; done: boolean; level?: number; l?: number };
   const four = [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food' }];
-  const levels = (l: any) => l.items.map((i: any) => i.level ?? 0);
+  const levels = (l: { items: Item[] }) => l.items.map((i: Item) => i.level ?? 0);
 
   it('stores the levels, indents the Google description by two spaces per level and reads them back', async () => {
     const a = await mk({ items: four });
     expect(levels(a)).toEqual([0, 1, 2, 0]);
     const g = await raw(a.id);
     expect(g.description).toBe('☐ Tent\n  ☐ Pegs\n    ☐ Poles\n☐ Food');
-    expect(JSON.parse(g.extendedProperties.private.items).map((i: any) => i.l)).toEqual([undefined, 1, 2, undefined]);
+    expect(JSON.parse(g.extendedProperties.private.items).map((i: Item) => i.l)).toEqual([undefined, 1, 2, undefined]);
     expect(levels((await t.json('GET', `/api/tasklists/${a.id}`)).body)).toEqual([0, 1, 2, 0]);
   });
 
@@ -858,7 +859,7 @@ describe('subtasks', () => {
 
   it('a reorder with levels changes place and level together; without levels the levels stay', async () => {
     const a = await mk({ items: four });
-    const [tent, pegs, poles, food] = a.items.map((i: any) => i.id);
+    const [tent, pegs, poles, food] = a.items.map((i: Item) => i.id);
     const moved = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [tent, pegs, poles, food], levels: [0, 1, 2, 1] });
     expect(levels(moved.body)).toEqual([0, 1, 2, 1]);
     const swapped = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [food, tent, pegs, poles] });
@@ -869,13 +870,13 @@ describe('subtasks', () => {
 
   it('ticking a task ticks its subtasks, unticking unticks them, ticking a subtask leaves its task', async () => {
     const a = await mk({ items: four });
-    const [tent, pegs] = a.items.map((i: any) => i.id);
+    const [tent, pegs] = a.items.map((i: Item) => i.id);
     const sub = await t.json('PATCH', `/api/tasklists/${a.id}/items/${pegs}`, { done: true });
-    expect(sub.body.items.map((i: any) => i.done)).toEqual([false, true, true, false]);
+    expect(sub.body.items.map((i: Item) => i.done)).toEqual([false, true, true, false]);
     const unsub = await t.json('PATCH', `/api/tasklists/${a.id}/items/${pegs}`, { done: false });
-    expect(unsub.body.items.map((i: any) => i.done)).toEqual([false, false, false, false]);
+    expect(unsub.body.items.map((i: Item) => i.done)).toEqual([false, false, false, false]);
     const all = await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: true });
-    expect(all.body.items.map((i: any) => i.done)).toEqual([true, true, true, false]);
+    expect(all.body.items.map((i: Item) => i.done)).toEqual([true, true, true, false]);
     expect(all.body.doneCount).toBe(3);
     const none = await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: false });
     expect(none.body.doneCount).toBe(0);
@@ -884,17 +885,17 @@ describe('subtasks', () => {
   it('removing a task removes its subtasks', async () => {
     const a = await mk({ items: four });
     const del = await t.json('DELETE', `/api/tasklists/${a.id}/items/${a.items[0].id}`);
-    expect(del.body.items.map((i: any) => i.title)).toEqual(['Food']);
+    expect(del.body.items.map((i: Item) => i.title)).toEqual(['Food']);
     const b = await mk({ items: four });
     const sub = await t.json('DELETE', `/api/tasklists/${b.id}/items/${b.items[1].id}`);
-    expect(sub.body.items.map((i: any) => i.title)).toEqual(['Tent', 'Food']);
+    expect(sub.body.items.map((i: Item) => i.title)).toEqual(['Tent', 'Food']);
   });
 
   it('a rename and an update of the list keep the levels', async () => {
     const a = await mk({ items: four });
     const ren = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[1].id}`, { title: 'Pegs 10' });
     expect(levels(ren.body)).toEqual([0, 1, 2, 0]);
-    const upd = await t.json('PATCH', `/api/tasklists/${a.id}`, { items: ren.body.items.map((i: any) => ({ id: i.id, title: i.title, done: i.done })) });
+    const upd = await t.json('PATCH', `/api/tasklists/${a.id}`, { items: ren.body.items.map((i: Item) => ({ id: i.id, title: i.title, done: i.done })) });
     expect(levels(upd.body)).toEqual([0, 1, 2, 0]);
   });
 });

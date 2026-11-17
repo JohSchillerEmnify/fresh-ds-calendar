@@ -1,11 +1,8 @@
-/**
- * The lines that show the levels of subtasks (feature tasklist-subtasks): which vertical guides and branches a row draws.
- * Pure, so `TaskListView` and the collapsed card draw the same.
- */
+/** The lines that show the levels of subtasks (feature tasklist-subtasks): pure, so the list and its drop gap draw the same. */
 import { levelOf } from '@calendar/shared/subtasks';
 import type { SubtaskLines } from '@/api/types';
 
-/** One line of a row, in the column `col` (0 = under the checkboxes of the tasks): a guide through the whole row, a branch hanging off the task above (`end` rounds it off: the last subtask), or the stem under the checkbox of a task that has subtasks. */
+/** One line of a row in column `col`: a guide through the row, a branch off the task above (`end` = the last one), or a stem under a task's checkbox. */
 export interface RowLine { col: number; kind: 'guide' | 'branch' | 'stem'; end?: boolean }
 
 /** Whether a later row is at `level` before one that is less deep: the task at `level` has a next sibling. */

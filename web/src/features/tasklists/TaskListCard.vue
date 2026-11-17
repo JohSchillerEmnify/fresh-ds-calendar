@@ -44,8 +44,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useClockStore } from '@/stores/clock';
 import { nextCardOwner, useUiStore } from '@/stores/ui';
-import { levelOf } from '@calendar/shared/subtasks';
-import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress, singleTask } from './format';
+import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, levelAttrs, showProgress, singleTask } from './format';
 import { toggleSingleTask } from './ops';
 import { useTaskListsStore } from './store';
 import { cardLayout } from './layout';
@@ -224,7 +223,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm && !one">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fadeout: fadesOut(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-level="levelOf(i)" :style="levelOf(i) ? { '--ind': `${levelOf(i) * 10}px` } : undefined" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fadeout: fadesOut(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" v-bind="levelAttrs(i)" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>

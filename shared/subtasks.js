@@ -6,18 +6,23 @@ export const MAX_LEVEL = 2;
 /** `{ level }` for a subtask level, nothing for a task: spread into an item. */
 export const levelProp = (n) => (n === 1 || n === 2 ? { level: n } : {});
 
+/** The item with level `n` (0 = a task: no `level`). */
+export function withLevel(item, n) {
+  const copy = { ...item };
+  delete copy.level;
+  return { ...copy, ...levelProp(n) };
+}
+
 /** The level of an item (a list that never had subtasks has no `level`). */
 export const levelOf = (item) => item.level ?? 0;
 
-/** The same items with their levels made valid: the first is a task, every other is at most one level deeper than the one above and at most {@link MAX_LEVEL}. */
+/** The items with valid levels: the first is a task, each is at most one deeper than the one above, and at most {@link MAX_LEVEL}. */
 export function clampLevels(items) {
   let prev = -1;
   return items.map((item) => {
     const level = Math.max(0, Math.min(levelOf(item), prev + 1, MAX_LEVEL));
     prev = level;
-    if (level === levelOf(item)) return item;
-    const { level: _drop, ...rest } = item;
-    return level ? { ...rest, level } : rest;
+    return level === levelOf(item) ? item : withLevel(item, level);
   });
 }
 
@@ -35,10 +40,7 @@ export function blockIds(items, id) {
   return from < 0 ? [] : items.slice(from, blockEnd(items, from)).map((i) => i.id);
 }
 
-/**
- * Lines of typed text with their level: a line is a subtask of the nearest line above it that is indented less (one space
- * is enough), a line without spaces is a task; at most {@link MAX_LEVEL}. Empty lines are dropped.
- */
+/** Typed lines with their level: the nearest line above that is indented less is the parent (one space is enough); empty lines go. */
 export function parseIndented(text) {
   const out = [];
   const indents = [];

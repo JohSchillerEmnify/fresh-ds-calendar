@@ -43,10 +43,3 @@ export function moveItemTo(listId: string, itemId: string, to: number, wanted = 
   if (ids.every((id, n) => id === tl.items[n]!.id && levels[n] === levelOf(tl.items[n]!))) return;
   useOutboxStore().orderItems(listId, ids, levels);
 }
-
-/** Set the level of an item (Tab / Shift+Tab while editing); it takes its subtasks along. */
-export function setItemLevel(listId: string, itemId: string, level: number): void {
-  const tl = useItemsStore().get(listId) as TaskList | undefined;
-  if (tl?.kind !== 'tasklist') return;
-  moveItemTo(listId, itemId, tl.items.findIndex((i) => i.id === itemId), level);
-}

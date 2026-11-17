@@ -2,7 +2,7 @@
 import type {
   CalendarEvent, CalendarItem, ChangeScope, InkStroke, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
-import { blockIds, clampLevels, levelOf, levelProp } from '@calendar/shared/subtasks';
+import { blockIds, clampLevels, levelOf, levelProp, withLevel } from '@calendar/shared/subtasks';
 
 /** One change of an event, a task list or one of its items; `id` is the event or the list (a device id until its create was sent). */
 export type Change =
@@ -59,12 +59,6 @@ export const editable = (c: Change): boolean => c.op === 'event.create' || c.op 
 export function keptItems<T extends { title: string; strokes?: unknown }>(items: T[] | undefined): T[] {
   return (items ?? []).filter((i) => i.title.trim() || i.strokes);
 }
-
-/** The item with level `l` (0 = a task: no `level`). */
-const withLevel = (i: TaskItem, l: number): TaskItem => {
-  const { level: _old, ...rest } = i;
-  return { ...rest, ...levelProp(l) };
-};
 
 const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, doneCount: items.filter((i) => i.done).length, totalCount: items.length });
 
