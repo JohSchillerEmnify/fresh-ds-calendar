@@ -396,6 +396,15 @@ When('I release the item without moving it', async function (this: World) {
   await this.held();
 });
 
+When('I start adding an item', async function (this: World) {
+  await this.expanded.getByTestId('tasklist-add').click();
+  await expect(this.expanded.getByTestId('tasklist-new-item')).toBeFocused();
+});
+
+Then('the add field is open and focused', async function (this: World) {
+  await expect(this.expanded.getByTestId('tasklist-new-item')).toBeFocused();
+});
+
 Then('the item {string} is lifted', async function (this: World, title: string) {
   await expect(this.expandedItem(title)).toHaveAttribute('data-dragging', 'true');
 });

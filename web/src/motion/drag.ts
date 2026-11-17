@@ -204,6 +204,11 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     e.preventDefault();
   };
 
+  /** The mouse press a finger's lift sends after a drop would move the focus to the card and close the keyboard. */
+  const onMouseDownCapture = (e: Event) => {
+    if (e.target instanceof Node && el.contains(e.target)) e.preventDefault();
+  };
+
   function listen() {
     if (listening) return;
     listening = true;
@@ -567,11 +572,13 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   function suppressNextClick() {
     window.addEventListener('click', onClickCapture, true);
+    window.addEventListener('mousedown', onMouseDownCapture, true);
     // a new drop re-arms the full 400 ms: an earlier drop's timer must not disarm it
     if (clickTimer) clearTimeout(clickTimer);
     clickTimer = setTimeout(() => {
       clickTimer = null;
       window.removeEventListener('click', onClickCapture, true);
+      window.removeEventListener('mousedown', onMouseDownCapture, true);
     }, 400);
   }
 
@@ -692,6 +699,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     clickTimer = null;
     el.removeEventListener('dragstart', preventNative);
     window.removeEventListener('click', onClickCapture, true);
+    window.removeEventListener('mousedown', onMouseDownCapture, true);
     cancelAnims();
     dropGhost();
     if (state !== 'idle') restoreStyle();

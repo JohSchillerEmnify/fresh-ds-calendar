@@ -129,6 +129,16 @@ Feature: Working with task list items
       When I release the item without moving it
       Then the expanded task list items are "Milk, Eggs, Bread"
 
+    @mobile
+    Scenario: Long-pressing an item while adding keeps the add field and the keyboard open
+      When I start adding an item
+      And I pick up the item "Eggs"
+      Then the item "Eggs" is lifted
+      And the add field is open and focused
+      When I release the item without moving it
+      Then the add field is open and focused
+      And the expanded task list items are "Milk, Eggs, Bread"
+
     Scenario: While an item is dragged, the other items make room
       When I drag the item "Bread" over the gap between "Milk" and "Eggs" and hold
       Then the items "Milk" and "Eggs" do not overlap the dragged item "Bread" and it lies between them
