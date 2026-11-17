@@ -14,7 +14,7 @@ const gym = ev('Gym', T14('18:00'), T14('19:00'), '#188038');
 const allDay = (title: string, date: string) => ({ ...ev(title, T14('00:00'), T14('00:00')), allDay: true, start: date, end: date.replace(/\d\d$/, (d) => String(Number(d) + 1)) });
 const at = (h: string, day = '14') => Date.parse(`2026-10-${day}T${h}:00+02:00`);
 
-const SCRIPT_3 = '// calendar-widget version=7\nconst x = 1;\n// calendar-widget end\n';
+const SCRIPT_3 = '// calendar-widget version=8\nconst x = 1;\n// calendar-widget end\n';
 const answer = (items: unknown[], over: object = {}) => ({
   generatedAt: '2026-10-14T08:00:00+02:00', today: '2026-10-14', scriptVersion: 1, items, minEventMinutes: 0, weekSideBySide: false, taskCategories: false, ...over });
 const ok = (body: unknown): { status: number; body: string } => ({ status: 200, body: JSON.stringify(body) });
@@ -248,6 +248,35 @@ describe('the widget script: Timeline in every size', () => {
     expect((await timelineAt([dentist], fixed('08:00', '12:30'))).last).toBe(13);
   });
 
+  // iOS centres what does not fill a stack, so every stack is filled exactly or closed by a flexible spacer
+  const drifting = (widget: unknown) => {
+    const boxes = layoutOf(widget);
+    return [...boxes.values()].filter(({ node: n }: any) => {
+      if (n.kind !== 'stack' || !n.size || !n.kids.length || n.kids.some((k: any) => k.kind === 'spacer' && k.length == null)) return false;
+      const main = (k: any) => (k.kind === 'spacer' ? k.length : n.horizontal ? boxes.get(k)!.w : boxes.get(k)!.h);
+      return Math.abs(n.kids.reduce((a: number, k: any) => a + main(k), 0) - (n.horizontal ? n.size.width : n.size.height)) > 0.01;
+    });
+  };
+
+  it('no stack can drift: each is filled exactly or ends with a flexible spacer', async () => {
+    const busy = [dentist, ev('Gym', '14 18:55', '14 19:00'), ev('Early', '14 05:00', '14 06:00'), ev('Late', '14 22:00', '14 23:00'),
+      allDay('Holiday', '2026-10-14'), allDay('Fair', '2026-10-14'), allDay('Trip', '2026-10-14'), ev('Talk', '15 10:00', '15 11:00'), ev('Call', '15 10:30', '15 12:00')];
+    for (const family of ['small', 'medium', 'large']) {
+      for (const [hours, size] of [[null, 110], [{ mode: 'fixed', from: '08:00', to: '19:00' }, 110], [{ mode: 'fixed', from: '00:00', to: '23:59' }, 150]]) {
+        const d = await draw(busy, family, at('09:30'), {}, { widgetTimelineHours: hours, widgetTimelineDays: 3, widgetTimelineTextSize: size });
+        expect(drifting(d.widget).map((b: any) => b.node.kids.map((k: any) => k.kind).join(','))).toEqual([]);
+      }
+    }
+  });
+
+  it('a short entry at the end of the range stays inside the hours', async () => {
+    const d = await draw([dentist, ev('Gym', '14 18:55', '14 19:00')], 'medium', at('08:00'), {}, { widgetTimelineHours: { mode: 'fixed', from: '08:00', to: '19:00' } });
+    const g = await gridFor([dentist], MEDIUM, 3, '08:00', { mode: 'fixed', from: '08:00', to: '19:00' });
+    const b = blockOf(d, '18:55 Gym')!;
+    expect(b.y + b.h).toBeLessThanOrEqual(PAD.top + g.yOf(19 * 60) + 0.01);
+    expect(b.y).toBeCloseTo(PAD.top + g.yOf(18 * 60 + 55));
+  });
+
   it('lays overlapping entries side by side and a short one as tall as the minimum length', async () => {
     const a = ev('A', T14('09:00'), T14('10:00'));
     const b = ev('B', T14('09:30'), T14('10:30'));
@@ -278,6 +307,8 @@ describe('the widget script: Timeline in every size', () => {
     const bar = b.stack.kids[0];
     expect(hexOf(bar.backgroundColor)).toBe('#d93025');
     expect(layoutOf(d.widget).get(bar)!.w).toBe(3);
+    // the bar is the block's left edge, also when the text is short
+    expect(layoutOf(d.widget).get(bar)!.x).toBe(b.x);
     const ink = d.f.texts.find((t) => t.text === '09:00 Dentist')!.color as any;
     expect([hexOf(ink.light), hexOf(ink.dark)]).toEqual(['#2f323a', '#e3e5f0']);
     const root = d.widget;
@@ -524,26 +555,26 @@ describe('the widget script: one cache for every size', () => {
 
 describe('the widget script: updates itself', () => {
   it('saves a newer script and keeps drawing today as before', async () => {
-    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 7 });
-    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=7\n/);
+    const d = await draw([dentist], 'small', at('08:00'), {}, { scriptVersion: 8 });
+    expect(d.f.files.get('/docs/Calendar.js')).toMatch(/^\/\/ calendar-widget version=8\n/);
     expect(d.said).toContain('09:00 Dentist');
   });
 
   it('keeps the old script when the download breaks off', async () => {
-    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 7 })); };
+    const net: Net = (url) => { if (url.includes('/script')) throw new Error('broke off'); return ok(answer([dentist], { scriptVersion: 8 })); };
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
     expect(d.said).toContain('09:00 Dentist');
   });
 
   it('does not save a truncated download that lacks the end marker', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=7\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 7 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '// calendar-widget version=8\nconst x = 1;\n' } : ok(answer([dentist], { scriptVersion: 8 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
 
   it('does not save a download whose first line is not a newer version', async () => {
-    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 7 })));
+    const net: Net = (url) => (url.includes('/script') ? { status: 200, body: '<html>captive portal</html>' } : ok(answer([dentist], { scriptVersion: 8 })));
     const d = await draw([dentist], 'small', at('08:00'), { net });
     expect(d.f.files.has('/docs/Calendar.js')).toBe(false);
   });
@@ -553,7 +584,7 @@ describe('the widget script: updates itself', () => {
   });
 
   it('has the version its first line names', () => {
-    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=6');
+    expect(WIDGET_SOURCE.split('\n')[0]).toBe('// calendar-widget version=7');
     expect(WIDGET_SOURCE).not.toMatch(/cwk_|@example/);
   });
 });

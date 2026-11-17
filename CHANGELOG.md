@@ -3,6 +3,7 @@
 ## 2026-11-17
 - Fixed: on the phone the previous and next arrows in the top bar are hidden again (screen readers and keyboards still find them).
 - Fixed: in left-handed mode the open tasks toggle on the phone sits at the left again.
+- Fixed: on the iPhone widget the colour bar of a short entry sits at its left edge again, and the hour numbers no longer overlap with a large text size.
 - Fixed: on the iPhone widget the days, entries and the red time line sit on their hours again, and the day labels are level with each other.
 
 ## 2026-11-16
