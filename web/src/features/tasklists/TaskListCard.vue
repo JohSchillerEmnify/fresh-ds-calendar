@@ -44,7 +44,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useClockStore } from '@/stores/clock';
 import { nextCardOwner, useUiStore } from '@/stores/ui';
-import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress, singleTask } from './format';
+import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, levelAttrs, showProgress, singleTask } from './format';
 import { toggleSingleTask } from './ops';
 import { useTaskListsStore } from './store';
 import { cardLayout } from './layout';
@@ -223,7 +223,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm && !one">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fadeout: fadesOut(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fadeout: fadesOut(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" v-bind="levelAttrs(i)" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :on-card="color" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -297,8 +297,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .items, .est, .from, .time { font-size: var(--entry-meta); line-height: 14px; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
 .items .sep { display: none; }
-.it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; padding-left: 12px; }
-.it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--on); border-radius: 2px; }
+.it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: var(--tl-cut, ellipsis); white-space: nowrap; padding-left: calc(12px + var(--ind, 0px)); }
+.it::before { content: ''; position: absolute; left: calc(1px + var(--ind, 0px)); top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--on); border-radius: 2px; }
 .it.done::before { background: var(--on); }
 .it.over { display: none; }
 .tl { --fs: var(--entry-meta); }
@@ -448,8 +448,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
 .mini .items, .mini .it { line-height: 11px; }
-.mini .it { padding-left: 8px; }
-.mini .it::before { left: 0.5px; top: 2px; width: 5px; height: 5px; border-radius: 1.5px; }
+.mini .it { padding-left: calc(8px + var(--ind, 0px)); }
+.mini .it::before { left: calc(0.5px + var(--ind, 0px)); top: 2px; width: 5px; height: 5px; border-radius: 1.5px; }
 .mini.allday, .mini.block { padding: 1px 2px 2px 3px; }
 .mini .foot { display: none; }
 .mini.block .foot { display: none; }

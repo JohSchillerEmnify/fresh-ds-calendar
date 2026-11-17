@@ -3,6 +3,8 @@
 ## 2026-11-17
 - Fixed: the theme preview and the theme cards now show the real calendar again, with hour labels, day names, a task list and the top bar scene, so they match what you will see.
 - Fixed: the Halloween bat no longer rests out of sight above the top bar on some visits.
+- New: subtasks in task lists, up to three levels. Drag an item to the right to make it a subtask of the item above, to the left to move it up (on a computer, Tab and Shift+Tab do the same while you edit it). A task takes its subtasks along when you move, tick or remove it, and in a new list, lines that start with spaces become subtasks.
+- New: Settings › Task lists › Subtask lines shows the levels as straight guides or as a tree.
 - Fixed: the app now says "events" instead of "appointments", and "Ereignisse" instead of "Termine" in German.
 - Fixed: long-pressing an item while adding items no longer closes the add field and the keyboard, also while the finger is still on the item, and the list stays where it is while the item is held.
 - Fixed: on the phone the previous and next arrows in the top bar are hidden again (screen readers and keyboards still find them).

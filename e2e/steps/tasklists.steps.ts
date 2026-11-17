@@ -30,6 +30,12 @@ const typed = (name: string, cell: string) => {
 // --- dialog ----------------------------------------------------------------------------------------------------
 
 When('I start creating a task list', async function (this: World) {
+  // on a phone a grown card keeps the create button away: a person folds it first (a tap on its title row)
+  const grown = this.page.locator(`${tid('tasklist-expanded')}${attr('data-presentation', 'overlay')}`);
+  for (let n = await grown.count(); n > 0 && (await this.page.getByTestId('create-fab-area').getAttribute('inert')) !== null; n--) {
+    await grown.first().getByTestId('tasklist-card-title').first().click();
+    await expect(grown).toHaveCount(n - 1);
+  }
   await this.page.getByTestId('create-button').click();
   await this.page.getByTestId('new-kind-tasklist').click();
   await expect(dialog(this)).toBeVisible();

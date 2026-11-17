@@ -22,7 +22,8 @@ export async function expandTaskList(world: World, title: string) {
   // would never pass: tap the card's position instead.
   const phoneMonth = monthView && world.isPhoneProject;
   // a card already grown (remembered, or grown earlier) lies over its own collapsed card: go straight to it
-  if (!(await grown.isVisible())) await world.taskCard(title).click({ force: phoneMonth });
+  // a remembered grown card may appear over the card while the click waits (a page just loaded): look again, then
+  await expect(async () => { if (!(await grown.isVisible())) await world.taskCard(title).click({ force: phoneMonth, timeout: 2000 }); }).toPass();
   if (phoneMonth) {
     await expect(grown.or(world.page.getByTestId('day-view')).first()).toBeVisible();
     if (!(await grown.isVisible())) await world.taskCard(title).click();
@@ -68,12 +69,36 @@ export async function checkInMessageGone(world: World) {
   await expect(world.page.getByTestId('streak-message')).toBeHidden({ timeout: 8000 });
 }
 
+/** Where a sideways drag ends (one level = 28 px, the item stays on its row) and whether the level can change (not for the first item, nor deeper than the item above allows). */
+async function sidewaysTarget(rows: Locator, from: number, grab: { x: number; y: number }, steps: number) {
+  const level = Number(await rows.nth(from).getAttribute('data-level'));
+  const above = from > 0 ? Number(await rows.nth(from - 1).getAttribute('data-level')) : -1;
+  return { to: { x: grab.x + steps * 28, y: grab.y }, moves: Math.max(0, Math.min(level + steps, above + 1)) !== level };
+}
+
+type Drop = { above: string | number } | { below: string } | { sideways: number } | 'home';
+
+/** Where the pointer lets go for `drop`, and whether the order or a level changes (then the order is saved). */
+async function dropPoint(rows: Locator, from: number, place: (k: string | number) => number, grab: { x: number; y: number }, drop: Drop) {
+  if (drop === 'home') return { to: { ...grab }, moves: false };
+  if ('sideways' in drop) return sidewaysTarget(rows, from, grab, drop.sideways);
+  // the lower edge of the item `below` (the dragged item and its subtasks land after it), or just above an item
+  if ('below' in drop) {
+    const lower = await box(rows.nth(place(drop.below)));
+    return { to: { x: grab.x, y: lower.y + lower.height - 4 }, moves: true };
+  }
+  const at = place(drop.above);
+  const tb = await box(rows.nth(at));
+  // moving down, "above X" is the place of the item before X
+  return { to: { x: grab.x, y: from < at ? tb.y - 4 : tb.y + 4 }, moves: at - (from < at ? 1 : 0) !== from };
+}
+
 /**
  * Drag the item `title` inside `list` (a `tasklist-view` or the sheet) and drop it where `drop` says: `above` an item (the place
  * just before it), or `home` (away and back). A mouse (or `byGrip`) grabs the drag handle; a finger long-presses the row,
  * as the calendar's drag steps do. Waits for the saved order (`PUT .../items/order`) unless the drop changes nothing.
  */
-export async function dragItem(world: World, list: Locator, title: string | number, drop: { above: string | number } | 'home', byGrip: boolean | 'pen' = false) {
+export async function dragItem(world: World, list: Locator, title: string | number, drop: Drop, byGrip: boolean | 'pen' = false) {
   const rows = list.getByTestId('tasklist-item');
   await checkInMessageGone(world);
   // a number is the 0-based place of the row (an ink item has no title to find it by)
@@ -85,15 +110,7 @@ export async function dragItem(world: World, list: Locator, title: string | numb
   const touch = !!world.testInfo.project.use.hasTouch;
   const rb = await box(row);
   const grab = touch && !byGrip ? { x: rb.x + rb.width * 0.5, y: rb.y + rb.height / 2 } : await box(row.getByTestId('tasklist-item-grip')).then((g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 }));
-  let to = { ...grab };
-  let moves = false;
-  if (drop !== 'home') {
-    const target = rows.nth(place(drop.above));
-    const tb = await box(target);
-    // moving down, "above X" is the place of the item before X
-    to = { x: grab.x, y: from < place(drop.above) ? tb.y - 4 : tb.y + 4 };
-    moves = place(drop.above) - (from < place(drop.above) ? 1 : 0) !== from;
-  }
+  const { to, moves } = await dropPoint(rows, from, place, grab, drop);
   const saved = moves ? world.page.waitForResponse(isOrderPut) : null;
   if (byGrip === 'pen') {
     await penDrag(world, grab, to);

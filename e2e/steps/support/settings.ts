@@ -56,7 +56,7 @@ const PAGE_OF: Array<[RegExp, string]> = [
   [/^settings-bedtime-/, 'focus/bedtime'],
   [/^settings-(view-switch-|default-view|min-event-length|month-scroll|day-side-by-side|week-side-by-side|approach)/, 'views'],
   [/^settings-(theme$|theme-name$|language|nav-|top-bar-size|bottom-bar-size|bar-size|left-handed|sync-indicator|version-corner)/, 'appearance'],
-  [/^settings-(task-|category|carried-from|undated-done|templates)/, 'tasklists'],
+  [/^settings-(task-|category|carried-from|undated-done|subtask-|templates)/, 'tasklists'],
   [/^(reminders-|settings-notify-)/, 'reminders'],
   [/^settings-(calm-mode|animation-level|system-reduced-motion|ignore-system-motion|sounds|streak|best-streak|support-cat|bedtime$)/, 'focus'],
   [/^settings-(labs|week-two-row)/, 'labs'],

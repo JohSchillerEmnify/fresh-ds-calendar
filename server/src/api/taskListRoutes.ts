@@ -1,4 +1,5 @@
 import type { InkStroke } from './types.js';
+import { blockIds } from '@calendar/shared/subtasks';
 import { ApiException, notFound, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { isLocalDate } from '../lib/time.js';
@@ -109,14 +110,21 @@ function registerInkItems({ r, ctx, person, cal }: RouteDeps): void {
     // the answer carries what the item holds now: a merge may have added strokes the device has not seen
     return c.json({ ...(await cal(c).getTaskList(listId)), ink: { [itemId]: strokes } });
   });
-  r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
+  r.put('/tasklists/:id/items/order', async (c) => {
+    const { itemIds, levels } = parse(orderSchema, await body(c));
+    return c.json(await cal(c).reorder(c.req.param('id'), itemIds, levels));
+  });
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));
   r.delete('/tasklists/:id/items/:itemId', async (c) => {
     const [listId, itemId, scope] = [c.req.param('id'), c.req.param('itemId'), scopeOf(c)];
     const before = await cal(c).getTaskList(listId);
     const list = await cal(c).deleteItem(listId, itemId, scope);
     // one occurrence of a repeating list losing the item leaves it to the others (the ink is shared by item id)
-    if (before.items.find((i) => i.id === itemId)?.ink && (scope === 'following' || !before.seriesId)) ctx.inks.remove(person(c), listId, [itemId]);
+    if (scope === 'following' || !before.seriesId) {
+      const gone = new Set(blockIds(before.items, itemId));
+      const inked = before.items.filter((i) => i.ink && gone.has(i.id)).map((i) => i.id);
+      if (inked.length) ctx.inks.remove(person(c), listId, inked);
+    }
     return c.json(list);
   });
 }

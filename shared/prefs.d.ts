@@ -35,6 +35,8 @@ export interface TasksFilter { categories: string[]; when: TasksWhen }
 export type UndatedDone = 'calendar' | 'archive';
 /** What tapping a task list card does: grow it inline or open the drawer. */
 export type TaskOpen = 'inline' | 'drawer';
+/** How subtasks show their levels (feature tasklist-subtasks): straight guides, or tree branches. */
+export type SubtaskLines = 'straight' | 'tree';
 /** How far ahead the approach bar reaches, in whole hours from 1 to 24 (3, 6 and 12 offered; feature labs-approach-bar). */
 export type ApproachWindowHours = number;
 /** The minimum event length choices, in minutes (0 = off). */
@@ -116,6 +118,7 @@ export interface Prefs {
   undatedDone: UndatedDone;
   /** Tapping a task list card: grow inline (default) or open the drawer. */
   taskOpen: TaskOpen;
+  subtaskLines: SubtaskLines;
   /** Several task list cards may be grown at once (default) or only one: growing another collapses the previous. */
   growSeveral: boolean;
   /** Send the device's error and crash log to the server by itself (feature device-log); off until the person turns it on. */

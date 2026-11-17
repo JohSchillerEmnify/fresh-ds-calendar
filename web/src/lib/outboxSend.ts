@@ -31,7 +31,7 @@ export function perform(e: OutboxEntry): Promise<unknown> {
     case 'item.ink': return api.putItemInk(c.id, c.itemId, { strokes: c.strokes, base: c.base, at: c.at }, plain);
     case 'item.patch': return api.updateTaskItem(c.id, c.itemId, c.patch, plain, c.scope);
     case 'item.delete': return api.deleteTaskItem(c.id, c.itemId, plain, c.scope);
-    case 'item.order': return api.reorderTaskItems(c.id, c.itemIds, plain);
+    case 'item.order': return api.reorderTaskItems(c.id, c.itemIds, plain, c.levels);
   }
 }
 

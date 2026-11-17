@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Settings group Task lists (docs/settings-tree.md): categories, what a tap does, carried-over and finished lists, templates. */
 import { computed, ref } from 'vue';
-import type { Category, TaskOpen, UndatedDone } from '@/api/types';
+import type { Category, SubtaskLines, TaskOpen, UndatedDone } from '@/api/types';
 import { IconAdd, IconDragIndicator as IconGrip } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -25,6 +25,7 @@ const sync = useSyncStore();
 const savePrefs = useSavePrefs();
 
 const taskOpenOptions = computed(() => (['inline', 'drawer'] as const).map((v) => ({ value: v, label: t(`settings.tasklists.taskOpen.${v}`), testid: `settings-task-open-${v}` })));
+const subtaskLinesOptions = computed(() => (['straight', 'tree'] as const).map((v) => ({ value: v, label: t(`settings.tasklists.subtaskLines.${v}`), testid: `settings-subtask-lines-${v}` })));
 const undatedDoneOptions = computed(() => (['calendar', 'archive'] as const).map((v) => ({ value: v, label: t(`settings.tasklists.undatedDone.${v}`), testid: `settings-undated-done-${v}` })));
 
 const editing = ref<Category | null>(null);
@@ -66,6 +67,9 @@ const drag = useRowReorder(() => [...(list.value?.children ?? [])] as HTMLElemen
     </SettingRow>
     <SettingRow v-if="prefs.taskOpen === 'inline'" id="growSeveral" :label="t('settings.tasklists.growSeveral.label')" :hint="t('settings.tasklists.growSeveral.hint')">
       <Switch :model-value="prefs.growSeveral" :label="t('settings.tasklists.growSeveral.label')" data-testid="settings-grow-several" @update:model-value="savePrefs({ growSeveral: $event })" />
+    </SettingRow>
+    <SettingRow id="subtaskLines" wide :label="t('settings.tasklists.subtaskLines.label')">
+      <SegmentedButton :model-value="prefs.subtaskLines" :options="subtaskLinesOptions" :label="t('settings.tasklists.subtaskLines.label')" data-testid="settings-subtask-lines" @update:model-value="savePrefs({ subtaskLines: $event as SubtaskLines })" />
     </SettingRow>
     <SettingRow id="carriedFrom" :label="t('settings.tasklists.carriedFrom.label')" :hint="t('settings.tasklists.carriedFrom.hint')">
       <Switch :model-value="prefs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" />

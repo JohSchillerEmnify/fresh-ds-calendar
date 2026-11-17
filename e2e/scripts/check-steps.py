@@ -10,6 +10,7 @@ PARAMS = {
     'time': r'\d{2}:\d{2}', 'view': r'(?:year|month|week|day)',
     'datelist': r'\d{4}-\d{2}-\d{2}(?:(?:, | and )\d{4}-\d{2}-\d{2})*',
     'scheme': r'(?:light|dark)', 'float': r'-?\d+(?:\.\d+)?',
+    'word': r'[^\s]+',
     'weekday': r'"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"',
 }
 STEP = re.compile(r'\s*(Given|When|Then|And|But)\s+(.*?)\s*$')

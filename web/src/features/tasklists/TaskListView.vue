@@ -35,6 +35,9 @@ import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete, singleTask } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
 import { addItem, moveItemTo, patchItem, toggleSingleTask } from './ops';
+import { blockEnd, blockIds, levelOf } from '@calendar/shared/subtasks';
+import { linesFor } from './subtaskLines';
+import SubtaskGap from './SubtaskGap.vue';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
@@ -115,7 +118,8 @@ function tick(item: TaskItem, done: boolean) {
     flashStop?.();
     flashStop = appTimeout(() => { flashId.value = null; flashStop = null; }, 700);
   }
-  const willComplete = done && !complete.value && list.items.every((i) => i.id === item.id || i.done);
+  // a task's tick goes to its subtasks too
+  const willComplete = done && !complete.value && list.items.every((i) => blockIds(list.items, item.id).includes(i.id) || i.done);
   // a new completion strikes the title through at once unless the cat comes to do it
   strikeDraw.value = null;
   patchItem(props.id, item.id, { done });
@@ -278,13 +282,13 @@ function onMenu(id: string) {
   else if (id === 'leave') void leave();
   else if (id === 'delete') remove();
 }
-/** An item was dropped on place `to`: a pending item delete is sent first (the server needs every item id), then the move. */
-function move(itemId: string, to: number) {
+/** An item was dropped on place `to` at `level` (Tab: its own place): a pending item delete is sent first (the server needs every item id), then the move. */
+function move(itemId: string, to: number, level: number) {
   pendingDeletes.flushList(props.id);
-  moveItemTo(props.id, itemId, to);
+  moveItemTo(props.id, itemId, to, level);
 }
-useItemDrag({
-  root,
+const aim = useItemDrag({
+  root, items: () => tl.value?.items ?? [],
   signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
   penWrites: () => writing.value,
@@ -294,7 +298,8 @@ useItemDrag({
 async function removeEntry(item: TaskItem, index: number) {
   const s = await scope.ask(tl.value);
   if (!s) return;
-  pendingDeletes.deleteTaskItem(props.id, item, index, s);
+  // the subtasks go with their task, and come back with it on undo
+  pendingDeletes.deleteTaskItem(props.id, tl.value ? tl.value.items.slice(index, blockEnd(tl.value.items, index)) : [item], index, s);
 }
 
 /** True while a field or the scope question owns Escape (the host must not close then). */
@@ -342,20 +347,25 @@ defineExpose({ root, busy });
           <template #leading><Checkbox class="cbx" :model-value="false" data-testid="tasklist-title-item-checkbox" :label="t('tasks.list.itemDone', { title: displayTitle(tl) })" @update:model-value="tickTitle" /></template>
           <span class="ititle plain"><span class="tt">{{ displayTitle(tl) }}</span></span>
         </ListItem>
-        <ul class="list">
-          <ListItem v-for="(item, i) in tl.items" :key="item.id" tag="li" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item" :data-item-id="item.id" :data-title="item.title" :data-done="item.done">
+        <ul class="list" :data-lines="prefs.subtaskLines">
+          <ListItem
+            v-for="(item, i) in tl.items" :key="item.id" tag="li" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item" :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
+            :data-level="levelOf(item)" :style="{ '--lvl': levelOf(item) }"
+          >
+            <i v-for="ln in linesFor(tl.items, i, prefs.subtaskLines)" :key="`${ln.kind}${ln.col}`" class="ln" :class="`ln-${ln.kind}`" :data-end="ln.end" :style="{ '--col': ln.col }" aria-hidden="true" />
             <template #leading><Checkbox class="cbx" :model-value="item.done" data-testid="tasklist-item-checkbox" :label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" /></template>
             <!-- while writing the cell is a plain drawing surface: a button around it would swallow the pen's strokes -->
             <component :is="writing ? 'div' : Pressable" v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
               <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
             </component>
-            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" />
+            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @keydown.tab="($event.shiftKey && !levelOf(item)) || ($event.preventDefault(), move(item.id, i, levelOf(item) + ($event.shiftKey ? -1 : 1)))" />
             <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
             <template #trailing>
               <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
               <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
             </template>
           </ListItem>
+          <SubtaskGap v-if="aim && aim.level > 0" :aim="aim" :lines="prefs.subtaskLines" />
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
           <InkLine class="draft" :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
@@ -404,7 +414,7 @@ html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to
 .shared { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font: var(--md-sys-typescale-label-medium); background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
-.list { list-style: none; margin: 2px 0 0; padding: 0; }
+.list { list-style: none; margin: 2px 0 0; padding: 0; position: relative; }
 .row { transition: background 400ms; }
 /* 48 px targets centred on the list item's 24 px icon slots */
 .row .cbx, .row :deep(.li-trail) { margin-inline: -12px; }
