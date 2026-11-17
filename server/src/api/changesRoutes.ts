@@ -85,6 +85,10 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     versions.tasksCalendarColor = versionOf(tasksColor);
     if (versions.tasksCalendarColor !== prev?.files.tasksCalendarColor) files.tasksCalendarColor = tasksColor;
 
+    const tasksCalendar = { state: await cal.tasks.state() };
+    versions.tasksCalendar = versionOf(tasksCalendar);
+    if (versions.tasksCalendar !== prev?.files.tasksCalendar) files.tasksCalendar = tasksCalendar;
+
     const palette = { colors: await cal.colorPalette() };
     versions.calendarColors = versionOf(palette);
     if (versions.calendarColors !== prev?.files.calendarColors) files.calendarColors = palette;

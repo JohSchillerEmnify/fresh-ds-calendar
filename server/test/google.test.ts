@@ -198,6 +198,8 @@ describe('GoogleProvider (mocked HTTP)', () => {
     const app = buildApp({ ...loadConfig({ DATA_DIR: dir, PROVIDER: 'google' }), webDist: null }, { provider });
     app.ctx.auth.on = false; // this test drives the REST API through the provider, not sign-in
     try {
+      // the person confirmed task lists: that is what lets the first write create the calendar
+      expect((await app.request('/api/tasks-calendar', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled: true }) })).status).toBe(200);
       const create = await app.request('/api/tasklists', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'L', date: '2026-10-12', items: [{ title: 'a' }] }) });
       expect(create.status).toBe(201);
       const list = await create.json();

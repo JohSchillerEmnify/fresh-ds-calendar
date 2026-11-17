@@ -7,6 +7,7 @@ import type { SettingsStore } from './settingsStore.js';
 import { BIRTHDAYS_ID } from './eventRules.js';
 import { isCalendarFailure } from './changeFeed.js';
 import { isTaskListEvent, isUndatedEvent } from './taskCodec.js';
+import { tasksAreOn } from '@calendar/shared/tasks-state';
 import type { TasksCalendar } from './tasksCalendar.js';
 
 /** What the read queries need from {@link CalendarService}: the calendar list and the mapping of Google events. */
@@ -42,7 +43,8 @@ export class ItemQueries {
         return [];
       }
     };
-    const tasksId = await this.tasks.id();
+    const tasksId = await this.tasks.find();
+    const tasksOn = tasksId !== null || tasksAreOn(await this.tasks.state());
     // birthdays live in any calendar, so asking for them reads them all; the result is narrowed by the id each event shows
     const readAll = !calendarIds || calendarIds.includes(BIRTHDAYS_ID);
     const cals = tasklistsOnly ? [] : (await this.host.eventCalendars()).filter((c) => readAll || calendarIds.includes(c.id));
@@ -56,8 +58,8 @@ export class ItemQueries {
         .filter((i) => !calendarIds || calendarIds.includes(i.calendarId));
     }));
     let reads = cals.length;
-    const taskLists = leaveOut(tasksId, async (): Promise<CalendarItem[]> => {
-      if (calendarIds && !calendarIds.includes(tasksId)) return [];
+    const taskLists = leaveOut(tasksId ?? '', async (): Promise<CalendarItem[]> => {
+      if (!tasksId || calendarIds && !calendarIds.includes(tasksId)) return [];
       reads++;
       const r = await this.provider.listEvents({ calendarId: tasksId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
       const color = await this.host.calendarColor(tasksId);
@@ -65,8 +67,8 @@ export class ItemQueries {
       return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e) && !isUndatedEvent(e)).map((e): CalendarItem => this.host.toTaskList(e, color, cats));
     });
     const sharedLists = (): CalendarItem[] => {
-      if (calendarIds && !calendarIds.includes(tasksId)) return [];
-      const color = this.host.calendarColorSync(tasksId);
+      if (!tasksOn || calendarIds && !(tasksId && calendarIds.includes(tasksId))) return [];
+      const color = this.host.calendarColorSync(tasksId ?? '');
       return this.host.sharedTaskLists(color).filter((l) => l.date !== null && l.date >= from && l.date < to);
     };
     const [events, ...rest] = await Promise.all([Promise.all(eventLists), taskLists]);
@@ -111,13 +113,14 @@ export class ItemQueries {
 
   /** Every open task list for the Tasks view: undated ones plus those dated within a year of `today` (API.md). */
   async allOpenTaskLists(today: string): Promise<{ items: TaskList[] }> {
-    const tasksId = await this.tasks.id();
+    const tasksId = await this.tasks.find();
+    if (!tasksId && !tasksAreOn(await this.tasks.state())) return { items: [] };
     const [dated, undated] = await Promise.all([
       this.fetchRange(addDays(today, -365), addDays(today, 366), undefined, true),
       // by their property alone: they sit on the anchor date, far outside any range
-      this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'undated=1'] }),
+      tasksId ? this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'undated=1'] }) : { items: [] },
     ]);
-    const color = await this.host.calendarColor(tasksId);
+    const color = await this.host.calendarColor(tasksId ?? '');
     const cats = this.settings.categories(this.sub);
     // keyed by id: a dated shared list is in the range read and in the full list of shared lists
     const lists = [...new Map([
@@ -134,12 +137,13 @@ export class ItemQueries {
    * the finished lists dated within a year of `today`, which covers lists written before the marker existed (API.md).
    */
   async archivedTaskLists(today: string): Promise<{ items: TaskList[] }> {
-    const tasksId = await this.tasks.id();
+    const tasksId = await this.tasks.find();
+    if (!tasksId && !tasksAreOn(await this.tasks.state())) return { items: [] };
     const [dated, marked] = await Promise.all([
       this.fetchRange(addDays(today, -365), addDays(today, 366), undefined, true),
-      this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'done=1'] }),
+      tasksId ? this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'done=1'] }) : { items: [] },
     ]);
-    const color = await this.host.calendarColor(tasksId);
+    const color = await this.host.calendarColor(tasksId ?? '');
     const cats = this.settings.categories(this.sub);
     // keyed by id so a list found twice (marker and range) is returned once
     const byId = new Map<string, TaskList>();

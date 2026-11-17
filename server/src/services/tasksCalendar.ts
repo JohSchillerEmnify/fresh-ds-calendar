@@ -1,15 +1,21 @@
 import type { CalendarProvider, ProviderCalendar } from '../providers/CalendarProvider.js';
+import type { TasksState } from '@calendar/shared/tasks-state';
+import { ApiException } from '../lib/errors.js';
 import type { PrefsStore } from './prefsStore.js';
 
 /** Summary of the secondary calendar that holds one person's task lists (feature tasklists-own-calendar). */
 export const TASKS_CALENDAR_SUMMARY = 'Calendar app: tasks';
 
+const tasksOff = () => new ApiException('CONFLICT', 409, 'Task lists are off: turn them on first', undefined, 'tasks.off');
+
+
 /**
- * Finds or creates one person's tasks calendar: the id stored in their prefs, else an owned calendar with
- * {@link TASKS_CALENDAR_SUMMARY} in the calendar list, else a new one (hidden in Google's list). Parallel callers share one in-flight lookup, so two calendars are never created.
+ * One person's tasks calendar: the id stored in their prefs, else an owned calendar with {@link TASKS_CALENDAR_SUMMARY}
+ * in the calendar list. Reads only {@link find} it; it is created only by {@link enable} (the person's confirmation) or
+ * by a write after that. Parallel callers share one in-flight lookup, so two calendars are never created.
  */
 export class TasksCalendar {
-  private pending: Promise<string> | null = null;
+  private pending: Promise<string | null> | null = null;
   private known: string | null = null;
 
   constructor(
@@ -27,11 +33,36 @@ export class TasksCalendar {
     return this.known ?? this.prefs.tasksCalendarId(this.sub);
   }
 
-  /** The tasks calendar id; finds or creates the calendar on first use. */
-  id(): Promise<string> {
+  /** The tasks calendar id when the calendar exists; never creates it. */
+  find(): Promise<string | null> {
     if (this.known) return Promise.resolve(this.known);
-    this.pending ??= this.resolve().finally(() => { this.pending = null; });
+    this.pending ??= this.lookup().finally(() => { this.pending = null; });
     return this.pending;
+  }
+
+  /** The tasks calendar id for a write; creates the calendar when the person confirmed task lists, else task lists are off. */
+  async id(): Promise<string> {
+    const found = await this.find();
+    if (found) return found;
+    if (this.prefs.tasksChoice(this.sub) !== 'on') throw tasksOff();
+    return this.create();
+  }
+
+  /** An existing calendar means the person had task lists before this was asked: they stay on without a question. */
+  async state(): Promise<TasksState> {
+    if (await this.find()) return 'on';
+    return this.prefs.tasksChoice(this.sub) ?? 'ask';
+  }
+
+  /** The person's confirmation: remembers it and creates the calendar once. */
+  async enable(): Promise<string> {
+    this.prefs.setTasksChoice(this.sub, 'on');
+    return this.id();
+  }
+
+  /** "Not now": nothing is created; task lists stay off until {@link enable}. */
+  async decline(): Promise<void> {
+    if (!(await this.find())) this.prefs.setTasksChoice(this.sub, 'off');
   }
 
   /** Forgets the resolved id (the stored one is checked against Google again on next use). */
@@ -39,22 +70,28 @@ export class TasksCalendar {
     this.known = null;
   }
 
-  private async resolve(): Promise<string> {
+  private async lookup(): Promise<string | null> {
     const cals = await this.calendars();
     // a stored id whose calendar was deleted in Google falls through to the lookup by name
     const stored = this.prefs.tasksCalendarId(this.sub);
     let id = stored && cals.some((c) => c.id === stored) ? stored : null;
     id ??= cals.find((c) => c.summary === TASKS_CALENDAR_SUMMARY && c.accessRole === 'owner')?.id ?? null;
-    id ??= await this.create();
-    if (id !== stored) this.prefs.setTasksCalendarId(this.sub, id);
+    if (id && id !== stored) this.prefs.setTasksCalendarId(this.sub, id);
     this.known = id;
     return id;
   }
 
   private async create(): Promise<string> {
-    const cal = await this.provider.insertCalendar(TASKS_CALENDAR_SUMMARY);
-    await this.provider.setCalendarHidden(cal.id, true);
-    this.changed();
-    return cal.id;
+    // two writers right after the confirmation share one creation
+    this.pending ??= (async () => {
+      const cal = await this.provider.insertCalendar(TASKS_CALENDAR_SUMMARY);
+      // the API call only asks Google's list to leave the calendar out; whether Google's apps show it is Google's choice
+      await this.provider.setCalendarHidden(cal.id, true);
+      this.changed();
+      this.prefs.setTasksCalendarId(this.sub, cal.id);
+      this.known = cal.id;
+      return cal.id;
+    })().finally(() => { this.pending = null; });
+    return (await this.pending)!;
   }
 }

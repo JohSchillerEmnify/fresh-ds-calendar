@@ -81,7 +81,8 @@ class FreshTokenRefusedError extends Error {}
 
 export interface FeedDeps {
   eventCalendars(): Promise<ProviderCalendar[]>;
-  tasksId: string;
+  /** The tasks calendar, or null while task lists are off: then no task list changes are read. */
+  tasksId: string | null;
   toEvent(e: GoogleEvent, cal: ProviderCalendar): CalendarEvent;
   toTaskList(e: GoogleEvent): TaskList;
   /** Per calendar, the time before which no sync token is asked for again (kept by the person's calendar service). */
@@ -131,8 +132,8 @@ export class CalendarChanges {
       events.upserts.push(...part.upserts);
     }
     await this.addContacts(prev, events, tokens);
-    const tasks = await this.read(this.deps.tasksId, prev, false, this.taskSpec());
-    if (tasks.token) tokens[this.deps.tasksId] = tasks.token;
+    const tasks = this.deps.tasksId ? await this.read(this.deps.tasksId, prev, false, this.taskSpec(this.deps.tasksId)) : { replace: false, series: [], removed: [], upserts: [], failed: false, token: undefined };
+    if (tasks.token && this.deps.tasksId) tokens[this.deps.tasksId] = tasks.token;
     return {
       events,
       taskLists: { replace: tasks.replace, series: tasks.series, removed: tasks.removed, upserts: tasks.upserts, failed: !!tasks.failed },
@@ -193,9 +194,8 @@ export class CalendarChanges {
     }
   }
 
-  private taskSpec(): Spec<TaskList> {
+  private taskSpec(calendarId: string): Spec<TaskList> {
     const p = this.provider;
-    const calendarId = this.deps.tasksId;
     const { timeMin, timeMax } = this.range;
     const mine = isTaskListEvent;
     const repeated = (e: GoogleEvent) => e.status !== 'cancelled' && mine(e) && !!e.recurringEventId;

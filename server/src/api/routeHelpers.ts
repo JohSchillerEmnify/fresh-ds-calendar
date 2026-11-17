@@ -58,7 +58,7 @@ export async function readItems(ctx: Ctx, sub: string, cal: ReturnType<Ctx['cale
 /** The person's calendar list with their hidden choice and the task lists calendar's entry (`tasks: true`), as `GET /api/calendars` and the change feed answer it. */
 export async function calendarList(ctx: Ctx, sub: string, cal: ReturnType<Ctx['calendarFor']>) {
   const hidden = ctx.prefs.hiddenCalendars(sub);
-  return [...(await cal.calendars()), await cal.tasksEntry()].map((k) => ({ ...k, hidden: hidden.includes(k.id) }));
+  return [...(await cal.calendars()), await cal.tasksEntry()].filter((k): k is NonNullable<typeof k> => k !== null).map((k) => ({ ...k, hidden: hidden.includes(k.id) }));
 }
 
 /** The optional `also=YYYY-MM-DD..YYYY-MM-DD` range (same rules as `from`/`to`). */

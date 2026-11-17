@@ -122,7 +122,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.hidden !== undefined && typeof b.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
     const minutes = b.defaultReminders === undefined ? undefined : parse(defaultRemindersSchema, b.defaultReminders);
     // the task lists calendar is a list entry for its settings page: its colour and reminders have their own endpoints
-    const isTasks = id === (await cal(c).tasks.id());
+    const isTasks = id === (await cal(c).tasks.find());
     if (isTasks && (minutes || b.color !== undefined || b.colorId !== undefined)) throw validation('Only hidden can be set here', 'hidden');
     if (!isTasks && !(await cal(c).calendars()).some((x) => x.id === id)) throw notFound('Calendar not found');
     if (minutes) await cal(c).setDefaultReminders(id, minutes);
@@ -144,6 +144,15 @@ export function apiRoutes(ctx: Ctx): Hono {
     await cal(c).holidays.remove(id);
     ctx.prefs.setHidden(person(c), id, false);
     return c.body(null, 204);
+  });
+  // Whether the person has task lists, and their confirmation: the only way the tasks calendar is created (feature tasklists-calendar-consent).
+  r.get('/tasks-calendar', async (c) => c.json({ state: await cal(c).tasks.state() }));
+  r.put('/tasks-calendar', async (c) => {
+    const b = (await body(c)) as { enabled?: unknown } | undefined;
+    if (typeof b?.enabled !== 'boolean') throw validation('enabled must be a boolean', 'enabled');
+    if (b.enabled) await cal(c).tasks.enable();
+    else await cal(c).tasks.decline();
+    return c.json({ state: await cal(c).tasks.state() });
   });
   // The tasks calendar is not in the calendar list; its reminder default is edited here (feature reminders).
   r.get('/reminders/tasks-calendar', async (c) => c.json({ defaultReminders: await cal(c).tasksDefaultReminders() }));
