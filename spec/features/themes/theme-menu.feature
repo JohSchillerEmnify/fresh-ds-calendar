@@ -71,6 +71,18 @@ Feature: Choosing and fine-tuning a theme
     When I set the "Corner radius" slider to 28
     Then the preview event has a corner radius of 16 px
 
+  Scenario: The live preview is the calendar's own week
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the live preview shows the hour labels and 3 day heads of the week view
+    And the live preview shows the task list "Groceries" with 2 of 3 done
+
+  Scenario: Every theme card shows the same calendar, scaled down
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then every theme card shows the hour labels and 3 day heads of the week view
+    And every theme card shows the task list "Groceries" with 2 of 3 done
+
   Scenario: I can collapse the live preview
     When I open the week view for 2026-10-12
     And I open the theme menu

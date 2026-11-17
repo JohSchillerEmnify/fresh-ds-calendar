@@ -1,34 +1,36 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import EventItem from '@/features/calendar/EventItem.vue';
+import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import { registerItemRenderer } from '@/extensions/registry';
 import ThemeLivePreview from '@/components/settings/ThemeLivePreview.vue';
 import {
-  COLLAPSED_KEY, GRID_HEIGHT_PX, SAMPLE_EVENTS, SAMPLE_TASKS, previewScale, readCollapsed, sampleBox, sampleSegment, writeCollapsed,
+  COLLAPSED_KEY, SAMPLE_DAYS, previewScale, readCollapsed, sampleSegmentsOf, writeCollapsed,
 } from '@/components/settings/themeLivePreviewSample';
 import { setAnimationSetting } from '@/motion/level';
 import { freshPinia } from './helpers';
 
-beforeEach(() => { localStorage.clear(); setAnimationSetting('full'); registerItemRenderer('event', EventItem); });
+beforeEach(() => { localStorage.clear(); setAnimationSetting('full'); registerItemRenderer('event', EventItem); registerItemRenderer('tasklist', TaskListCard); });
 afterEach(() => { vi.unstubAllGlobals(); });
 
+const mountPreview = () => mount(ThemeLivePreview, { global: { plugins: [createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { render: () => null } }] })] } });
+
 describe('live preview sample data', () => {
-  it('has events in different colours, all inside the sample grid and never today', () => {
-    expect(new Set(SAMPLE_EVENTS.map((e) => e.color)).size).toBe(SAMPLE_EVENTS.length);
-    for (const e of SAMPLE_EVENTS) {
-      const b = sampleBox(e);
-      expect(b.top).toBeGreaterThanOrEqual(0);
-      expect(b.top + b.height).toBeLessThanOrEqual(GRID_HEIGHT_PX);
-      expect(sampleSegment(e, 'x').date > '2029-12-31').toBe(true);
-    }
+  it('has timed events in different colours and one task list with ticked and open items, all in the future', () => {
+    const segs = SAMPLE_DAYS.flatMap((d) => sampleSegmentsOf(d, (k) => k));
+    const events = segs.filter((s) => s.item.kind === 'event');
+    expect(new Set(events.map((s) => (s.item as { color: string }).color)).size).toBe(events.length);
+    const lists = segs.filter((s) => s.item.kind === 'tasklist');
+    expect(lists).toHaveLength(1);
+    const l = lists[0].item as { items: { done: boolean }[]; doneCount: number; totalCount: number };
+    expect(l.items.some((i) => i.done) && l.items.some((i) => !i.done)).toBe(true);
+    expect(`${l.doneCount}/${l.totalCount}`).toBe('2/3');
+    for (const s of segs) expect(s.date > '2029-12-31').toBe(true);
   });
-  it('has a task list with ticked and open items', () => {
-    expect(SAMPLE_TASKS.some((x) => x.done)).toBe(true);
-    expect(SAMPLE_TASKS.some((x) => !x.done)).toBe(true);
-  });
-  it('builds a timed block segment', () => {
-    const s = sampleSegment(SAMPLE_EVENTS[0], 'Team sync');
-    expect(s).toMatchObject({ allDay: false, startMin: 540, endMin: 630, first: true, last: true });
+  it('builds a timed block segment through the real item rules', () => {
+    const s = sampleSegmentsOf(SAMPLE_DAYS[0], (k) => k).find((x) => x.item.id === 'p1')!;
+    expect(s).toMatchObject({ allDay: false, startMin: 450, endMin: 540, first: true, last: true });
   });
 });
 
@@ -54,35 +56,32 @@ describe('collapsed state storage and scale', () => {
 });
 
 describe('ThemeLivePreview', () => {
-  it('draws real components with sample data and no network call', () => {
+  it('draws the real top bar, week grid and task list card with sample data and no network call', () => {
     freshPinia();
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    const w = mount(ThemeLivePreview);
+    const w = mountPreview();
     expect(w.get('[data-testid=theme-live-preview]').attributes('data-collapsed')).toBe('false');
     expect(w.find('[data-testid=top-bar]').exists()).toBe(true);
-    expect(w.findAll('.ev .skin')).toHaveLength(SAMPLE_EVENTS.length);
-    expect(w.findAll('[data-testid=reward-checkbox]')).toHaveLength(SAMPLE_TASKS.length);
-    expect(w.findAll('input[type=checkbox]').filter((i) => (i.element as HTMLInputElement).checked)).toHaveLength(SAMPLE_TASKS.filter((x) => x.done).length);
-    // only the first sample event carries the scenarios' testid, and none the calendar's `event-chip`
-    expect(w.findAll('[data-testid=theme-preview-event]')).toHaveLength(1);
-    expect(w.find('[data-testid=event-chip]').exists()).toBe(false);
+    expect(w.find('[data-testid=time-axis]').exists()).toBe(true);
+    expect(w.findAll('[data-testid=week-header]')).toHaveLength(SAMPLE_DAYS.length);
+    expect(w.findAll('[data-testid=event-chip]')).toHaveLength(5);
+    expect(w.get('[data-testid=tasklist-card-count]').text()).toBe('2/3');
     expect(w.get('.scaled').attributes('inert')).toBeDefined();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
   it('collapses to the top bar strip, remembers it and expands again', async () => {
     freshPinia();
-    const w = mount(ThemeLivePreview);
+    const w = mountPreview();
     const toggle = w.get('[data-testid=theme-live-preview-toggle]');
     expect(toggle.attributes('aria-expanded')).toBe('true');
     await toggle.trigger('click');
     expect(w.get('[data-testid=theme-live-preview]').attributes('data-collapsed')).toBe('true');
-    // the preview's body (the passing bat in the top bar scene also has a `.body` path)
-    expect(w.find('.scaled > .body').exists()).toBe(false);
+    expect(w.find('[data-testid=time-grid]').exists()).toBe(false);
     expect(w.find('[data-testid=top-bar]').exists()).toBe(true);
     expect(localStorage.getItem(COLLAPSED_KEY)).toBe('1');
     // a new mount (another visit, same device) starts collapsed
-    const again = mount(ThemeLivePreview);
+    const again = mountPreview();
     expect(again.get('[data-testid=theme-live-preview]').attributes('data-collapsed')).toBe('true');
     await toggle.trigger('click');
     expect(localStorage.getItem(COLLAPSED_KEY)).toBeNull();
@@ -90,10 +89,10 @@ describe('ThemeLivePreview', () => {
   });
   it('stills the preview below the Full animation level only', async () => {
     freshPinia();
-    const w = mount(ThemeLivePreview);
-    expect(w.get('section').classes()).not.toContain('still');
+    const w = mountPreview();
+    expect(w.get('.frame').classes()).not.toContain('still');
     setAnimationSetting('reduced');
     await w.vm.$nextTick();
-    expect(w.get('section').classes()).toContain('still');
+    expect(w.get('.frame').classes()).toContain('still');
   });
 });

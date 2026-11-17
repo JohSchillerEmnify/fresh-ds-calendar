@@ -17,7 +17,7 @@ import { openNew } from '@/extensions/create';
 import { alldayDropGrid, carriedGrid } from '@/features/calendar/dnd';
 import { bindGridDraw } from '@/features/calendar/draw';
 import { resizePreview } from '@/features/calendar/resize';
-import { inPreview } from '@/composables/usePreview';
+import { inPreview, previewData } from '@/composables/usePreview';
 import { gridLayers } from '@/extensions/registry';
 import { HOURS, formatDate, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, TITLE_ROW_PX } from '@/lib/items';
@@ -36,6 +36,7 @@ const barsOf = useBars();
 /** The grid's root: a drag carried over a turn of the view keeps its all-day row open. */
 const rootEl = ref<HTMLElement | null>(null);
 const preview = inPreview();
+const sample = previewData();
 
 // Fit-to-height mode (two-row week overview): the active window [start, end] fills the measured area, so the whole
 // window shows without scrolling. The effective hour height replaces the shared zoom height for this grid and its
@@ -96,6 +97,8 @@ function scrollToMinutes(min: number) {
 function initialScroll() {
   const el = scroller.value;
   if (!el) return;
+  // a sample calendar always starts at its own hour, whatever the real grid was scrolled to
+  if (sample) { el.scrollTop = Math.max(0, px(sample.gridStart)); return; }
   // fit mode: pin the window's start to the top (the whole window fits, so there is nothing else to scroll to)
   if (props.fit) { el.scrollTop = Math.max(0, px(props.fit.start)); return; }
   // a side swipe keeps the hours in view; the first opening and other navigation use the start below

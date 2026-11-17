@@ -46,7 +46,6 @@ const MIGRATED = [
   'src/views/ThemeView.vue',
   'src/components/settings/ThemeCard.vue',
   'src/components/settings/ThemeImport.vue',
-  'src/components/settings/ThemeSample.vue',
   'src/components/settings/SaveThemeDialog.vue',
   'src/components/settings/CategoryDialog.vue',
 ];

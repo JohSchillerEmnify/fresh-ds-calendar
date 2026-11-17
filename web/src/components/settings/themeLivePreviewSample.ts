@@ -1,55 +1,66 @@
 /**
- * Static sample data and the collapsed-state storage of the theme menu's live preview (feature theme-menu).
+ * Static sample data and the collapsed-state storage of the theme menu's preview (feature theme-menu).
  * The sample is plain data in fixed far-future dates: it never calls the API, never touches a store and is
- * never "today", so the real event renderer neither dims nor rings it.
+ * never "today", so the real renderers neither dim nor ring it. The calendar items are shaped like the server's and
+ * turned into segments by the real `itemSegments`.
  */
-import type { CalendarEvent } from '@/api/types';
+import type { CalendarEvent, TaskList } from '@/api/types';
 import type { MessageKey } from '@/i18n';
-import type { Segment } from '@/lib/items';
+import { itemSegments, type Segment } from '@/lib/items';
 
 /** The three sample days (a Monday to a Wednesday). */
 export const SAMPLE_DAYS = ['2030-01-07', '2030-01-08', '2030-01-09'] as const;
-/** Minutes after midnight where the sample time grid starts, and the pixels one hour takes in it. */
-const GRID_START_MIN = 8 * 60;
-const GRID_HOUR_PX = 30;
-/** Height of the sample time grid in pixels (four hours). */
-export const GRID_HEIGHT_PX = 4 * GRID_HOUR_PX;
+/** Minutes after midnight at the top of the sample's hour grid. */
+export const SAMPLE_GRID_START = 7 * 60;
+/** Hours of the grid the sample shows. */
+export const SAMPLE_GRID_HOURS = 4;
 
 /** One sample event: a day index into {@link SAMPLE_DAYS}, a time range and a colour; the title is a catalogue key. */
-export interface SampleEvent { id: string; day: number; start: string; end: string; color: string; title: MessageKey }
+interface SampleEvent { id: string; day: number; start: string; end: string; color: string; title: MessageKey }
 
-/** Sample events in different colours; the first one is the "preview event" the scenarios read. */
-export const SAMPLE_EVENTS: readonly SampleEvent[] = [
-  { id: 'p1', day: 0, start: '09:00', end: '10:30', color: '#1a73e8', title: 'themePreview.sample.sync' },
-  { id: 'p2', day: 0, start: '11:00', end: '12:00', color: '#0b8043', title: 'themePreview.sample.lunch' },
-  { id: 'p3', day: 1, start: '08:30', end: '10:00', color: '#f4511e', title: 'themePreview.sample.run' },
-  { id: 'p4', day: 1, start: '10:30', end: '12:00', color: '#8e24aa', title: 'themePreview.sample.review' },
-  { id: 'p5', day: 2, start: '09:30', end: '11:00', color: '#f6bf26', title: 'themePreview.sample.call' },
+const SAMPLE_EVENTS: readonly SampleEvent[] = [
+  { id: 'p1', day: 0, start: '07:30', end: '09:00', color: '#1a73e8', title: 'themePreview.sample.sync' },
+  { id: 'p2', day: 0, start: '09:30', end: '10:30', color: '#0b8043', title: 'themePreview.sample.lunch' },
+  { id: 'p3', day: 1, start: '07:00', end: '08:30', color: '#f4511e', title: 'themePreview.sample.run' },
+  { id: 'p4', day: 1, start: '09:00', end: '10:30', color: '#8e24aa', title: 'themePreview.sample.review' },
+  { id: 'p5', day: 2, start: '08:00', end: '09:30', color: '#f6bf26', title: 'themePreview.sample.call' },
 ];
 
 /** The sample task list: item titles (catalogue keys) and whether each is ticked. */
-export const SAMPLE_TASKS: readonly { title: MessageKey; done: boolean }[] = [
+const SAMPLE_TASKS: readonly { title: MessageKey; done: boolean }[] = [
   { title: 'themePreview.sample.milk', done: true },
   { title: 'themePreview.sample.bread', done: true },
   { title: 'themePreview.sample.eggs', done: false },
 ];
 
-const minutes = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+const STAMP = '2030-01-01T00:00:00+00:00';
 
-/** The segment the real event renderer takes for a sample event (a timed block on its day). */
-export function sampleSegment(e: SampleEvent, title: string): Segment {
+function sampleEvent(e: SampleEvent, title: string): CalendarEvent {
   const date = SAMPLE_DAYS[e.day];
-  const item: CalendarEvent = {
+  return {
     kind: 'event', id: e.id, calendarId: 'sample', title, description: '', location: '', allDay: false,
-    start: `${date}T${e.start}:00+00:00`, end: `${date}T${e.end}:00+00:00`, colorId: null, color: e.color, etag: '', updated: `${date}T00:00:00+00:00`, reminders: { useDefault: true, minutes: [] },
+    start: `${date}T${e.start}:00+00:00`, end: `${date}T${e.end}:00+00:00`, colorId: null, color: e.color, etag: '', updated: STAMP, reminders: { useDefault: true, minutes: [] },
   };
-  return { item, date, allDay: false, startTime: e.start, endTime: e.end, startMin: minutes(e.start), endMin: minutes(e.end), first: true, last: true };
 }
 
-/** Top offset and height in pixels of a sample event in the sample time grid. */
-export function sampleBox(e: SampleEvent): { top: number; height: number } {
-  const top = ((minutes(e.start) - GRID_START_MIN) * GRID_HOUR_PX) / 60;
-  return { top, height: ((minutes(e.end) - minutes(e.start)) * GRID_HOUR_PX) / 60 };
+function sampleList(title: string, itemTitle: (k: MessageKey) => string): TaskList {
+  const items = SAMPLE_TASKS.map((x, n) => ({ id: `l-${n}`, title: itemTitle(x.title), done: x.done }));
+  return {
+    kind: 'tasklist', id: 'sample-list', calendarId: 'sample', title, date: SAMPLE_DAYS[1], time: null, items, doneCount: items.filter((i) => i.done).length,
+    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#0b8043', calendarColor: '#0b8043', completedOn: null, canvas: null, etag: '', updated: STAMP,
+  };
+}
+
+/** The sample calendar's segments of a day, titles in the language `tr` speaks. */
+export function sampleSegmentsOf(date: string, tr: (k: MessageKey) => string): Segment[] {
+  const list = sampleList(tr('themePreview.sample.groceries'), tr);
+  const items = [...SAMPLE_EVENTS.map((e) => sampleEvent(e, tr(e.title))), list];
+  return items.flatMap((i) => itemSegments(i)).filter((s) => s.date === date);
+}
+
+/** A sample event as the option tiles show it: a chip under the tile's own look. */
+export function sampleChipSegment(title: string): Segment {
+  return itemSegments(sampleEvent({ id: 'chip', day: 0, start: '09:00', end: '10:00', color: '#1a73e8', title: 'themePreview.sample.sync' }, title))[0];
 }
 
 /** The `localStorage` key of the per-device collapsed state. */

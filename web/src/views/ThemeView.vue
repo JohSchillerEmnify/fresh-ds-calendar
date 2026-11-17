@@ -26,7 +26,9 @@ import ThemeCard from '@/components/settings/ThemeCard.vue';
 import ThemeLivePreview from '@/components/settings/ThemeLivePreview.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
 import ThemeImport from '@/components/settings/ThemeImport.vue';
-import ThemeSample from '@/components/settings/ThemeSample.vue';
+import ItemView from '@/components/calendar/ItemView.vue';
+import { sampleChipSegment } from '@/components/settings/themeLivePreviewSample';
+import { providePreview } from '@/composables/usePreview';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useClockStore } from '@/stores/clock';
@@ -44,6 +46,9 @@ import { automaticPreset, docToResolved, PRESET_NAMES, PRESETS, presetDoc, resol
 
 const router = useRouter();
 const theme = useThemeStore();
+// the option tiles draw the real event renderer, inert like the sample calendar
+providePreview(true);
+const chip = computed(() => sampleChipSegment(t('theme.sample.dentist')));
 const settings = useSettingsStore();
 const clock = useClockStore();
 const pending = usePendingDeletesStore();
@@ -193,10 +198,10 @@ function back() {
               v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
               :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
             >
-              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" /></span>
+              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ItemView :segment="chip" variant="chip" data-testid="theme-sample-event" /></span>
               <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
                 <span class="back" :class="[`b-${o.value}`]"><SeasonScene v-if="isSeason(o.value)" :season="o.value as 'spring'" /></span>
-                <ThemeSample kind="event" />
+                <span class="over"><ItemView :segment="chip" variant="chip" data-testid="theme-sample-event" /></span>
               </span>
               <span class="ol">{{ o.label }}</span>
             </Pressable>
@@ -303,12 +308,11 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .opt { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; border-radius: var(--md-sys-shape-corner-medium); border: 2px solid transparent; background: var(--md-sys-color-surface-container); text-align: center; transition: border-color 150ms, box-shadow 150ms; }
 .opt[aria-pressed='true'] { border-color: var(--md-sys-color-primary); background: color-mix(in srgb, var(--md-sys-color-primary) 10%, var(--md-sys-color-surface-container)); }
 .sample { display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: var(--md-sys-shape-corner-small); background: var(--md-sys-color-surface); padding: 6px; min-width: 0; overflow: hidden; }
-.sample :deep(.s-ev) { font-size: 11px; padding: 2px 8px; gap: 5px; }
 .scenebox { position: relative; }
 .back { position: absolute; inset: 0; overflow: hidden; }
 .b-mordor { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); }
 .b-sunflowers { background: linear-gradient(180deg, color-mix(in srgb, #8ec9f2 40%, transparent) 55%, color-mix(in srgb, #7fbf6a 45%, transparent) 55%); }
-.scenebox :deep(.s-ev) { position: relative; }
+.over { position: relative; display: flex; min-width: 0; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
 .isamp { display: inline-flex; gap: 2px; }

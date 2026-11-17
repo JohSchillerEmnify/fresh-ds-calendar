@@ -10,6 +10,7 @@ import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
 import { goToNow, nowShown } from '@/composables/useViewToday';
+import { previewData } from '@/composables/usePreview';
 import { useNavPosition } from '@/composables/useNavPosition';
 import { useNav } from '@/composables/useNav';
 import { useBarSize } from '@/composables/useBarSize';
@@ -32,6 +33,9 @@ import { t } from '@/i18n';
 const cal = useCalendarStore();
 const ui = useUiStore();
 const settings = useSettingsStore();
+// the theme menu's sample calendar draws the candidate theme's scene as a full field
+const sample = previewData();
+const scene = computed(() => sample?.theme.attrs.scene ?? settings.effectiveScene);
 const prefs = usePrefsStore();
 const nav = useNav();
 const { position: navPosition } = useNavPosition();
@@ -65,7 +69,7 @@ function toggleFilters() {
 
 <template>
   <TopAppBar :data-layout="layout" :data-size="barSize.top.value">
-    <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
+    <template #background><TopBarScene :scene="scene" :field-mode="sample ? 'full' : settings.settings.sunflowers" /></template>
     <div class="grid">
       <div class="lead">
       <IconButton v-if="drawer" class="menu" :label="t('nav.menu')" data-testid="menu-button" aria-haspopup="dialog" @click="ui.sideMenuOpen = true"><IconMenu /></IconButton>
@@ -82,7 +86,8 @@ function toggleFilters() {
         <Button v-else :variant="todayShown ? 'filled' : 'outlined'" data-testid="nav-today" :data-today-shown="todayShown" @click="onToday">{{ t('calendar.topBar.today') }}</Button>
         <IconButton v-if="!dateless" :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
-      <div class="widgets">
+      <!-- status widgets (plant, streak, sync) belong to the person, not to a sample calendar -->
+      <div v-if="!sample" class="widgets">
         <slot name="leading-widgets">
           <LeadingWidgets :streak="prefs.streak" :today="() => clock.today" />
           <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />

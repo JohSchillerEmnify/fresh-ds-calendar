@@ -6,7 +6,7 @@ export default {
   export: 'Design exportiern',
   delete: 'Design löschn',
   preview: { title: 'Vorschau', done: 'Erledichd', todo: 'Noch offen' },
-  sample: { dentist: 'Zahnarzd', groceries: 'Einkauf', milk: 'Milch', bread: 'Brod', meet: 'Treffn', todo: 'Aufgabn' },
+  sample: { dentist: 'Zahnarzd' },
   seasonal: {
     title: 'Jahreszeidn un Feierdäch',
     off: 'Aus',

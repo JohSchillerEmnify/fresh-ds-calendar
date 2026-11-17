@@ -2259,6 +2259,10 @@ the live preview is pinned under the theme menu header
 the preview event has a corner radius of {int} px
 the live preview is expanded
 the live preview is collapsed
+the live preview shows the hour labels and {int} day heads of the week view
+the live preview shows the task list {string} with {int} of {int} done
+every theme card shows the hour labels and {int} day heads of the week view
+every theme card shows the task list {string} with {int} of {int} done
 I collapse the live preview
 I expand the live preview
 the event {string} glows with a blur between {int} and {int} px
@@ -2320,11 +2324,15 @@ every option of the {string} setting shows a sample icon
   "I scroll the theme menu to the X section" scrolls the `theme-section` whose heading is X into view inside the menu's
   own scroll container (`theme-view`); "is pinned under the theme menu header" = after that scroll the preview is fully
   inside the viewport and its top edge is within 2 px of the bottom edge of the menu header (`theme-view` > `header`).
-  "the preview event has a corner radius of N px" = the computed `border-top-left-radius` of `theme-preview-event` (the
-  first sample event of the preview, a timed block like the week view's, so the same numbers apply as in "the event X has
-  a corner radius of N px"); it does NOT leave the menu. "I collapse / expand the live preview" clicks the toggle when
-  the state differs; "is collapsed / expanded" reads `data-collapsed`. The sample events carry no `event-chip` testid, so
-  steps about the calendar's real events never meet them.
+  "the preview event has a corner radius of N px" = the computed `border-top-left-radius` of the first `event-chip` inside
+  `theme-live-preview` (a sample event drawn by the real week grid, so the same numbers apply as in "the event X has
+  a corner radius of N px"); it does NOT leave the menu. The preview is the app's real top bar and week grid with sample data
+  (events titled Sync, Lunch, ..; the task list "Groceries", 2 of 3 done), so on the theme page its testids (`event-chip`,
+  `time-axis`, `week-header`, `tasklist-card`) also appear inside every `theme-card`; calendar steps run back on the calendar.
+  "the live preview shows the hour labels and N day heads of the week view" = `time-axis` visible and N `week-header` inside
+  `theme-live-preview`; "the live preview shows the task list T with D of N done" = a visible `tasklist-card` with text T whose
+  `tasklist-card-count` reads "D/N". "every theme card shows ..": the same two checks inside each `theme-card`. "I collapse / expand the live preview" clicks the toggle when
+  the state differs; "is collapsed / expanded" reads `data-collapsed`.
 - "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
 - "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the

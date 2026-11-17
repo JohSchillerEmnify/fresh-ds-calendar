@@ -1,4 +1,5 @@
 import { useFilters } from './useFilters';
+import { previewData } from './usePreview';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useItemsStore } from '@/stores/items';
 import type { Segment } from '@/lib/items';
@@ -13,6 +14,8 @@ export function useDaySegments(opts: { withSpans?: boolean } = {}) {
   const items = useItemsStore();
   const f = useFilters();
   const cals = useCalendarsStore();
+  const sample = previewData();
+  if (sample) return (date: string): Segment[] => sample.segments(date).filter((s) => !isBarEvent(s.item));
   return (date: string): Segment[] => {
     const l = (items.byDate.get(date) ?? []).filter((s) => (opts.withSpans || !isBarEvent(s.item)) && !cals.isHidden(s.item.calendarId));
     return f.active.value ? l.filter((s) => f.matches(s.item)) : l;
@@ -21,6 +24,7 @@ export function useDaySegments(opts: { withSpans?: boolean } = {}) {
 
 /** Multi-day bar segments for a row of consecutive dates (events are never filtered). Reactive. */
 export function useBars() {
+  if (previewData()) return (): Bar[] => [];
   const items = useItemsStore();
   const cals = useCalendarsStore();
   return (dates: string[]): Bar[] => computeBars(items.all.filter((i) => !cals.isHidden(i.calendarId)), dates);

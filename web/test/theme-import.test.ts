@@ -216,7 +216,8 @@ describe('saving the look as my own theme', () => {
 describe('ThemeImport', () => {
   beforeEach(() => { localStorage.clear(); freshPinia(); document.body.innerHTML = ''; });
 
-  const open = (ai = false) => mount(ThemeImport, { props: { ai }, attachTo: document.body });
+  // its preview card draws the real top bar, which reads the route
+  const open = (ai = false) => mount(ThemeImport, { props: { ai }, global: { plugins: [createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] })] }, attachTo: document.body });
   const settle = async (w: ReturnType<typeof open>) => {
     await flushPromises();
     await vi.waitFor(() => expect(w.find(tid('theme-import-error')).exists() || w.find(tid('theme-import-preview')).exists()).toBe(true));
