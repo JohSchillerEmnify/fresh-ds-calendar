@@ -358,7 +358,7 @@ defineExpose({ root, busy });
             <component :is="writing ? 'div' : Pressable" v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
               <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
             </component>
-            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @keydown.tab.prevent="move(item.id, i, levelOf(item) + ($event.shiftKey ? -1 : 1))" />
+            <TextField v-else-if="editingItem === item.id" v-model="draft" inline class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :label="t('tasks.list.itemTitle')" @commit="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @keydown.tab="($event.shiftKey && !levelOf(item)) || ($event.preventDefault(), move(item.id, i, levelOf(item) + ($event.shiftKey ? -1 : 1)))" />
             <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
             <template #trailing>
               <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>

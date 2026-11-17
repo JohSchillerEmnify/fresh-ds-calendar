@@ -40,5 +40,25 @@ describe('placeBlock', () => {
     expect(move(mk('Food A A1:1 B'), 'Food', 1, 0)).toBe('A:0 A1:1 Food:0 B:0');
     expect(move(mk('Food A A1:1 B'), 'Food', 1, 1)).toBe('A:0 Food:1 A1:1 B:0');
   });
+  it('an upward drop never re-parents items it does not move: it snaps to the end of the block', () => {
+    expect(move(mk('A B:1 C:2 E:2 D'), 'D', 3, 0)).toBe('A:0 B:1 C:2 E:2 D:0');
+    expect(move(mk('A B:1 C:2 E:2 D'), 'D', 3, 2)).toBe('A:0 B:1 C:2 D:2 E:2');
+  });
+  it('the gap shows the place the drop lands in (after row, level)', () => {
+    const cases: [string, string, number, number][] = [
+      ['X x:1 A B:1 C:2 D', 'X', 3, 2], ['X x:1 A B:1 C:2 D', 'X', 4, 2], ['X x:1 A B:1 C:2 D', 'X', 5, 0],
+      ['A B:1 C:2 E:2 D', 'D', 3, 0], ['A B:1 C:2 E:2 D', 'D', 2, 1], ['A B:1 C:2 E:2 D', 'D', 1, 0], ['A B:1 C:2 E:2 D F:1', 'A', 4, 1],
+    ];
+    for (const [spec, id, to, wanted] of cases) {
+      const items = mk(spec);
+      const p = placeBlock(items, id, to, wanted)!;
+      const r = applyPlacement(items, id, p);
+      const at = r.ids.indexOf(id);
+      expect(at > 0 ? r.ids[at - 1] : null, spec).toBe(p.after < 0 ? null : items[p.after]!.id);
+      expect(r.levels[at], spec).toBe(p.level);
+      // the drop replays the raw wanted level, so it lands where the gap was shown
+      expect(move(items, id, to, wanted), spec).toBe(r.ids.map((x, n) => `${x}:${r.levels[n]}`).join(' '));
+    }
+  });
   it('unknown id', () => { expect(placeBlock(flat, 'nope', 0, 0)).toBeNull(); });
 });

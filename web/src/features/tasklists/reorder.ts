@@ -79,8 +79,10 @@ export function placeBlock(items: readonly { id: string; level?: number }[], id:
     const t = Math.min(to - k, rest.length - 1);
     index = wanted <= levelOf(rest[t]!) ? blockEnd(rest, t) : t + 1;
   }
-  const above = index > 0 ? levelOf(rest[index - 1]!) : -1;
-  const level = Math.max(0, Math.min(wanted, above + 1, MAX_LEVEL - depth));
+  const levelAt = (i: number) => Math.max(0, Math.min(wanted, (i > 0 ? levelOf(rest[i - 1]!) : -1) + 1, MAX_LEVEL - depth));
+  // the block must not split another: an item that is too deep to follow it would be re-parented, so the block goes after it
+  while (index < rest.length && levelOf(rest[index]!) > levelAt(index) + depth + 1) index++;
+  const level = levelAt(index);
   const after = index === 0 ? -1 : index - 1 < from ? index - 1 : index - 1 + k;
   return { index, level, after };
 }

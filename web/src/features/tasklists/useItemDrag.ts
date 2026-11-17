@@ -60,15 +60,15 @@ export interface ItemDragOptions {
   disabled: () => boolean;
   /** The items of the list in row order (the levels decide which rows a held task takes along). */
   items: () => readonly { id: string; level?: number }[];
-  /** A row was dropped on place `to` with the level `level` (also when only the level changed). */
-  onMove: (itemId: string, to: number, level: number) => void;
+  /** A row was dropped on place `to` with the level `wanted` (also when only the level changed). */
+  onMove: (itemId: string, to: number, wanted: number) => void;
 }
 
 /** Binds a drag controller to every item row of the list and keeps them in step with the rows; returns where the dragged item will land. */
 export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
   const aim = ref<DropAim | null>(null);
-  /** The place and level the last hit test chose (what a drop does). */
-  let chosen = { to: 0, level: 0 };
+  /** What the last hit test chose: the hovered row and the level the finger wanted (a drop replays both, so it lands in the shown gap) and the level the block gets. */
+  let chosen = { to: 0, wanted: 0, level: 0 };
   const bound = new Map<HTMLElement, { ctl: DragController; unlisten: () => void }>();
 
   const rowsOf = (): HTMLElement[] => Array.from(o.root.value?.querySelectorAll<HTMLElement>(ROW) ?? []);
@@ -144,9 +144,10 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         // the sideways move decides the level; the item above and the three levels limit it
         const step = LEVEL_PX * scaleOf(row);
         const own = levelOf(o.items().find((i) => i.id === id) ?? {});
-        const p = placeBlock(o.items(), id, hovered, own + Math.round((x - ctx.originRect.left - ctx.grab.x) / step));
+        const wanted = own + Math.round((x - ctx.originRect.left - ctx.grab.x) / step);
+        const p = placeBlock(o.items(), id, hovered, wanted);
         if (!p) return null;
-        chosen = { to: hovered, level: p.level };
+        chosen = { to: hovered, wanted, level: p.level };
         // the gap opens where the block lands: after row `p.after`
         const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
@@ -156,7 +157,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       onDrop: () => {
         const id = row.dataset.itemId;
         const unchanged = chosen.to === rowsOf().indexOf(row) && chosen.level === levelOf(o.items().find((i) => i.id === id) ?? {});
-        if (id && !unchanged) o.onMove(id, chosen.to, chosen.level);
+        if (id && !unchanged) o.onMove(id, chosen.to, chosen.wanted);
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
       scrollEl: () => scrollParent(row),

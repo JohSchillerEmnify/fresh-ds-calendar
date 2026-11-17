@@ -135,7 +135,7 @@ export default {
       editCategory: '{name} bearbeiten',
       undatedDone: { label: 'Erledigte Liste ohne Datum', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv' },
       taskOpen: { label: 'Tippen auf eine Aufgabenliste', inline: 'Klappt auf', drawer: 'Öffnet die Liste' },
-      subtaskLines: { label: 'Linien bei Unteraufgaben', straight: 'Gerade', tree: 'Baum' },
+      subtaskLines: { label: 'Linien bei Unteraufgaben', straight: 'Gerade Linien', tree: 'Baumlinien' },
       growSeveral: { label: 'Mehrere Listen offen lassen', hint: 'Angetippte Listen bleiben offen, bis du auf ihren Titel tippst. Aus: Eine neue Liste schließt die vorherige.' },
     },
     motivation: {
