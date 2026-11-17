@@ -140,8 +140,8 @@ useVisitorsClear(root);
 .bob { display: block; animation: life-bob 1.300s ease-in-out infinite alternate; }
 .rest .bob { animation: none; }
 .bob :deep(:is(.bw, .batfig)) { width: 100%; height: auto; }
-/* bats are a little bigger, fly a bumpier line and hover high (they never land on a flower) */
-.flutter.bat { width: 24px; --rest-y: 14cqh; }
+/* bats are a little bigger, fly a bumpier line and hover high (they never land on a flower), in the part the bar shows */
+.flutter.bat { width: 24px; --rest-y: calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.14); }
 .bat .bob { animation: life-bat-bob 0.45s ease-in-out infinite alternate; }
 .bat.rest .bob { animation: life-bat-bob 1.6s ease-in-out infinite alternate; }
 @keyframes life-bat-bob { from { transform: translateY(-3px) rotate(-10deg); } to { transform: translateY(2px) rotate(6deg); } }
