@@ -405,6 +405,17 @@ Then('the add field is open and focused', async function (this: World) {
   await expect(this.expanded.getByTestId('tasklist-new-item')).toBeFocused();
 });
 
+Then('the list stays where it is while the item is held, even when the keyboard closes', async function (this: World) {
+  if (!this.held) throw new Error('nothing is picked up');
+  const before = await box(this.expanded);
+  // a phone keyboard that closes makes the app taller (the WebView resizes); a bottom sheet would slide down with it
+  const vp = this.page.viewportSize()!;
+  await this.page.setViewportSize({ width: vp.width, height: vp.height + 300 });
+  await this.page.waitForTimeout(300);
+  const after = await box(this.expanded);
+  expect(Math.abs(after.y - before.y), 'the list moved while the item was held').toBeLessThanOrEqual(1);
+});
+
 Then('the item {string} is lifted', async function (this: World, title: string) {
   await expect(this.expandedItem(title)).toHaveAttribute('data-dragging', 'true');
 });

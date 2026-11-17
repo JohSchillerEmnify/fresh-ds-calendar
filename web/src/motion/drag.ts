@@ -70,6 +70,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let sc: HTMLElement | null = null;
   let scroll0: Point = { x: 0, y: 0 };
   let lastShift: Point = { x: 0, y: 0 };
+  /** The scroll container (or the card's parent) and its rect at pick-up: when it moves, the card's layout box moves too. */
+  let anchor: HTMLElement | null = null;
+  let anchor0: Point = { x: 0, y: 0 };
   let anims: Animation[] = [];
   /** Ancestor scale at pick-up: viewport offsets are divided by it to get the element's own translate. */
   let k = 1;
@@ -309,6 +312,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     release();
     pointerId = -1;
     ctx = null;
+    anchor = null;
     setTarget(null);
   }
 
@@ -317,11 +321,14 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     if (state !== 'idle' || opts.disabled?.() || (e.pointerType === 'mouse' && e.button !== 0) || !e.isPrimary) return;
     const rect = el.getBoundingClientRect();
     isTouch = e.pointerType !== 'mouse';
+    // Android's own long press moves the focus to the card while the finger is down; a cancelled pointerdown stops it
+    const field = document.activeElement?.closest('input, textarea, [contenteditable]');
+    if (isTouch && field && !el.contains(field)) e.preventDefault();
     pointerId = e.pointerId;
     touchId = null;
     start = { x: e.clientX, y: e.clientY };
     cur = { ...start };
-    ctx = { originRect: rect, grab: { x: e.clientX - rect.left, y: e.clientY - rect.top } };
+    ctx = { originRect: rect, grab: { x: e.clientX - rect.left, y: e.clientY - rect.top }, moved: layoutMove };
     vt.reset();
     vt.add(e.clientX, e.clientY, e.timeStamp || performance.now());
     listen();
@@ -351,6 +358,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     sc = opts.scrollEl?.() ?? null;
     scroll0 = sc ? { x: sc.scrollLeft, y: sc.scrollTop } : { x: 0, y: 0 };
     lastShift = { x: 0, y: 0 };
+    anchor = sc && sc.contains(el) ? sc : el.parentElement;
+    const a0 = anchor?.getBoundingClientRect();
+    anchor0 = { x: a0?.left ?? 0, y: a0?.top ?? 0 };
     sc?.addEventListener('scroll', onScroll, { passive: true });
     // a native pan the browser may still start under a lifted touch drag (iOS) must not scroll the grid away under it
     if (isTouch && sc) {
@@ -439,11 +449,18 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     }
   }
 
-  /** How far the card's layout box moved since pick-up because its scroll container scrolled (0 when outside it). */
-  function scrollShift(): Point {
+  /** How far the card's layout box moved since pick-up: its scroll container scrolled, or its list moved (the keyboard closed). */
+  function layoutMove(): Point {
     // a ghost sits at the pick-up rect, fixed: the scroll of the grid no longer moves what is drawn
-    if (ghost || !sc || !sc.contains(el)) return { x: 0, y: 0 };
-    return { x: sc.scrollLeft - scroll0.x, y: sc.scrollTop - scroll0.y };
+    if (ghost || !anchor) return { x: 0, y: 0 };
+    const a = anchor.getBoundingClientRect();
+    const scrolled = sc && sc.contains(el) ? { x: sc.scrollLeft - scroll0.x, y: sc.scrollTop - scroll0.y } : { x: 0, y: 0 };
+    return { x: a.left - anchor0.x - scrolled.x, y: a.top - anchor0.y - scrolled.y };
+  }
+  /** The same move as a scroll offset (a scroll down moves the layout box up). */
+  function scrollShift(): Point {
+    const m = layoutMove();
+    return { x: -m.x, y: -m.y };
   }
 
   /** Translation of the card from its layout box: hit-test dx/dy and pointer deltas are relative to the pick-up rect. */
@@ -486,11 +503,13 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     lastT = t;
     // scroll first so this frame's transform already matches the new scroll position
     autoScroll(dt);
+    // the list moved under a still pointer: the place under it is another one now
+    const s = scrollShift();
+    if (s.x !== lastShift.x || s.y !== lastShift.y) update(cur.x, cur.y, true);
     const o0 = offsets();
     const o = { x: o0.x / k, y: o0.y / k };
     const lvl = getMotionLevel();
     // a scroll moves the card's layout box: shift the spring with it, so only pointer motion lags, never the scroll
-    const s = scrollShift();
     sx.x += s.x - lastShift.x; sx.target += s.x - lastShift.x;
     sy.x += s.y - lastShift.y; sy.target += s.y - lastShift.y;
     lastShift = s;

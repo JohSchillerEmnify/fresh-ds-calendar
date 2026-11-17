@@ -363,6 +363,26 @@ describe('drag state machine', () => {
     c.destroy();
     expect(sel()).toBe(false);
   });
+  it('touch: a press while a field has the focus cancels its pointerdown, so the native long press leaves the focus and keyboard there', () => {
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    const { c } = make();
+    const pressPrevented = (type: string) => { const prevented = !down(type); up(50, 50, type); return prevented; };
+    expect(pressPrevented('touch')).toBe(false);
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+    expect(pressPrevented('touch')).toBe(false);
+    button.remove();
+    field.focus();
+    expect(pressPrevented('touch')).toBe(true);
+    expect(pressPrevented('pen')).toBe(true);
+    expect(pressPrevented('mouse')).toBe(false);
+    c.destroy();
+    make({ disabled: () => true });
+    expect(pressPrevented('touch')).toBe(false);
+    field.remove();
+  });
   it('touch: a pointercancel before the long press gives way to the scroll', () => {
     const { c } = make();
     down();
@@ -466,6 +486,23 @@ describe('drag state machine', () => {
     vi.advanceTimersByTime(40);
     expect(el.style.transform).toContain('translate3d(100.00px, 60.00px');
     c.cancel(); finishAll();
+  });
+  it('the card\'s container moving under a still finger (the keyboard closed): the card stays under the finger and the hit test runs again', () => {
+    setAnimationSetting('reduced');
+    const box = document.createElement('div');
+    document.body.appendChild(box);
+    box.appendChild(el);
+    let top = 0;
+    box.getBoundingClientRect = () => rect(0, top, 300, 300);
+    const moved: number[] = [];
+    const { c } = make({ magnet: false, hitTest: (_x, _y, ctx) => { moved.push(ctx.moved().y); return target; } });
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    top = 300;
+    vi.advanceTimersByTime(40);
+    expect(moved.at(-1)).toBe(300);
+    expect(el.style.transform).toContain('translate3d(0.00px, -300.00px');
+    c.cancel(); finishAll(); box.remove();
   });
   it('non-optimistic drop keeps the card at the slot until the server answers', async () => {
     let resolve!: () => void;
@@ -764,7 +801,7 @@ describe('drag watch (read-only state for the drag helper cat)', () => {
 });
 
 describe('hit-test grids', () => {
-  const ctx = { originRect: rect(40, 100, 80, 60), grab: { x: 10, y: 10 } };
+  const ctx = { originRect: rect(40, 100, 80, 60), grab: { x: 10, y: 10 }, moved: () => ({ x: 0, y: 0 }) };
   it('slot grid snaps to 15 minutes and columns', () => {
     const hit = createSlotGrid({ rect: () => rect(0, 0, 370, 1440), columns: 7, pxPerMinute: 1, gutter: 20 });
     const t = hit(100, 37 + 10 + 100, ctx)!; // top edge 137 -> 137 min -> 135
@@ -776,14 +813,14 @@ describe('hit-test grids', () => {
   it('slot grid keeps the card at its place inside the column (a right-hand side-by-side card stays under the finger)', () => {
     // 7 columns of 50 px after a 20 px gutter; column 1 spans 70..120
     const hit = createSlotGrid({ rect: () => rect(0, 0, 370, 1440), columns: 7, pxPerMinute: 1, gutter: 20 });
-    const right = { originRect: rect(96, 100, 23, 60), grab: { x: 10, y: 10 } }; // right half of column 1
+    const right = { originRect: rect(96, 100, 23, 60), grab: { x: 10, y: 10 }, moved: () => ({ x: 0, y: 0 }) }; // right half of column 1
     expect(hit(106, 110, right)!.dx).toBe(0);
     expect(hit(206, 110, right)!.dx).toBe(100); // column 3: two whole columns further
-    const left = { originRect: rect(71, 100, 23, 60), grab: { x: 10, y: 10 } }; // left edge of column 1
+    const left = { originRect: rect(71, 100, 23, 60), grab: { x: 10, y: 10 }, moved: () => ({ x: 0, y: 0 }) }; // left edge of column 1
     expect(hit(81, 110, left)!.dx).toBe(0);
     expect(hit(131, 110, left)!.dx).toBe(50);
     // the card's left edge is in column 0 but it was pressed in column 1: the press point decides (no 50 px jump)
-    const straddling = { originRect: rect(60, 100, 40, 60), grab: { x: 20, y: 10 } };
+    const straddling = { originRect: rect(60, 100, 40, 60), grab: { x: 20, y: 10 }, moved: () => ({ x: 0, y: 0 }) };
     expect(hit(80, 110, straddling)!.dx).toBe(0);
   });
   it('cell grid finds the cell under the pointer', () => {

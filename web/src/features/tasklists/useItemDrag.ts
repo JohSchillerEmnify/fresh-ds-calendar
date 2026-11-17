@@ -5,7 +5,7 @@
  * On the Canvas (`compact`) a press anywhere on a note moves the note, so an item is picked up by its grip only.
  */
 import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
-import { createDragController, type DragController } from '@/motion/drag';
+import { createDragController, type DragContext, type DragController } from '@/motion/drag';
 import { getMotionLevel } from '@/motion/level';
 import { dropIndex, rowShifts, slotOffset } from './reorder';
 
@@ -21,6 +21,18 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
     if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n;
   }
   return null;
+}
+
+/** Pins the list's sheet (nearest fixed ancestor) in place while a row is held: a closing keyboard never slides it. */
+function freezeSheet(row: HTMLElement): () => void {
+  for (let n = row.parentElement; n && n !== document.body; n = n.parentElement) {
+    if (getComputedStyle(n).position !== 'fixed') continue;
+    const r = n.getBoundingClientRect();
+    const { top, bottom, height } = n.style;
+    Object.assign(n.style, { top: `${r.top}px`, bottom: 'auto', height: `${r.height}px` });
+    return () => Object.assign(n.style, { top, bottom, height });
+  }
+  return () => {};
 }
 
 /** Duration of the other rows' move out of the way (ms); none under reduced motion. */
@@ -81,15 +93,14 @@ export function useItemDrag(o: ItemDragOptions): void {
 
   function bind(row: HTMLElement): void {
     let fromGrip = false;
-    let seenScroll: number | null = null;
-    let pickup: DOMRect | null = null;
-    /** The row's own place: where it was picked up, moved up by the scroll since. */
+    let pickup: DragContext | null = null;
+    /** The row's own place: where it was picked up, moved with the list since (a scroll, the keyboard closing). */
     const ownSpan = () => {
-      const sp = scrollParent(row);
-      const shift = (sp?.scrollTop ?? 0) - (seenScroll ?? 0);
-      return { top: pickup!.top - shift, bottom: pickup!.bottom - shift };
+      const m = pickup!.moved().y;
+      return { top: pickup!.originRect.top + m, bottom: pickup!.originRect.bottom + m };
     };
     let pen = false;
+    let thaw: (() => void) | null = null;
     const onDown = (e: Event) => {
       fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP);
       pen = (e as PointerEvent).pointerType === 'pen';
@@ -99,16 +110,12 @@ export function useItemDrag(o: ItemDragOptions): void {
       hitTest: (_x, y, ctx) => {
         const rows = rowsOf();
         const from = rows.indexOf(row);
-        const sp = scrollParent(row);
-        if (seenScroll === null) seenScroll = sp?.scrollTop ?? 0;
-        const shift = (sp?.scrollTop ?? 0) - seenScroll;
         // rows that made room are measured at their layout place, so the drop index never depends on the shift
         const live = layoutSpans(rows);
-        // the dragged row's own slot is where it was picked up, moved up by the scroll since; the others are live
-        pickup = ctx.originRect;
-        const own = { top: ctx.originRect.top - shift, bottom: ctx.originRect.bottom - shift };
-        const to = dropIndex(live.map((r, i) => (i === from ? own : r)), y);
-        // the controller adds the scroll shift itself: offsets are from the pick-up rect
+        // the dragged row's own slot is where it was picked up, moved with the list since; the others are live
+        pickup = ctx;
+        const to = dropIndex(live.map((r, i) => (i === from ? ownSpan() : r)), y);
+        // the controller adds the list's move itself: offsets are from the pick-up rect
         const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
         return { key: to, dx: 0, dy: slotOffset(fromPickup, from, to) };
       },
@@ -122,7 +129,8 @@ export function useItemDrag(o: ItemDragOptions): void {
         if (t) makeRoom(row, t.key, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
       },
       onStateChange: (st) => {
-        if (st === 'idle') seenScroll = null;
+        if (st === 'dragging') thaw ??= freezeSheet(row);
+        else if (st === 'idle') { thaw?.(); thaw = null; }
         if (st !== 'dragging') held = null;
         // a drop reorders the rows at once; a cancel lets the rows glide back until the card has settled
         if (st === 'dropping' || st === 'idle') clearRoom();

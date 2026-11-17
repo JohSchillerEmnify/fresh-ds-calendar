@@ -69,7 +69,8 @@ Settings page: best streak = `store.motivation.streak.best`.
   non-passive `touchmove` listener from mount (iOS decides at touchstart whether a touch's moves can stop scrolling,
   from the listeners present then) and blocks scroll with it once lifted. While a touch drag is lifted its scroll
   container (`scrollEl`) has `overflow-y: hidden` (edge auto-scroll still scrolls it), and `selectstart` and
-  `contextmenu` are prevented from press to release. While dragging, window-capture listeners stop `pointermove/up`
+  `contextmenu` are prevented from press to release. A touch press while a field elsewhere has the focus cancels its
+  `pointerdown`: Chromium then moves no focus for that touch, not even on Android's own long press (the keyboard stays). While dragging, window-capture listeners stop `pointermove/up`
   propagation, so swipe navigation (bubble phase) never sees them; the swipe handler should also bail when
   `isGestureClaimed()`. Data attr `data-dragging="true|false"` on the card. Escape springs back. `pointercancel`
   springs back, except for a press that sent touch events: a lifted touch drag is always steered by the same finger's
