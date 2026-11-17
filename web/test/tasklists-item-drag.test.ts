@@ -110,4 +110,13 @@ describe('useItemDrag', () => {
     expect(onMove).toHaveBeenCalledWith('c', 0);
     w.unmount();
   });
+  it('the mouse press a finger lift sends after a long press does not take the focus (the add field and keyboard stay)', async () => {
+    const { w, rows } = setup(false);
+    const mousedown = () => { const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true }); rows[1].querySelector('b')!.dispatchEvent(e); return e.defaultPrevented; };
+    await longPressDrag(rows[1], 60, 60);
+    expect(mousedown()).toBe(true);
+    vi.advanceTimersByTime(500);
+    expect(mousedown()).toBe(false);
+    w.unmount();
+  });
 });
