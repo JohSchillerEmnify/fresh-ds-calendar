@@ -647,7 +647,7 @@ describe('dialog', () => {
     await w.get(tid('tasklist-estimate')).setValue('45');
     await w.get(tid('tasklist-category')).setValue('shopping');
     expect(w.find(tid('tasklist-tags')).exists()).toBe(false);
-    await w.get(tid('tasklist-items')).setValue('Milk\n\n  Eggs \n');
+    await w.get(tid('tasklist-items')).setValue('Milk\n\nEggs \n');
     await w.get(tid('tasklist-repeat')).setValue('weekly');
     await w.get('form').trigger('submit');
     await flushPromises();
@@ -656,6 +656,16 @@ describe('dialog', () => {
       items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly', createdOn: '2026-10-12',
     });
     expect(w.emitted('close')).toHaveLength(1);
+  });
+  it('creates subtasks from the spaces before a line', async () => {
+    const created: { items: unknown[] }[] = [];
+    const { pinia } = await setup({ 'POST /api/tasklists': ({ body }) => { created.push(body); return { status: 201, body: tl('new', { title: body.title }) }; } });
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    await w.get(tid('tasklist-title')).setValue('Camping');
+    await w.get(tid('tasklist-items')).setValue('Tent\n  Pegs\n    Poles\nFood');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(created[0]!.items).toEqual([{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food' }]);
   });
   it('creates an untitled list from items only', async () => {
     const created: { title: string }[] = [];

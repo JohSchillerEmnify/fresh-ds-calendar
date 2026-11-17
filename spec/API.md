@@ -198,6 +198,8 @@ not keep one view on: the client disables the last switch, and when every view i
 `approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
 `taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
 open the list sheet.
+`subtaskLines` (`'straight' | 'tree'`, default `'straight'`) is how subtasks show their levels: one thin vertical guide per level, or
+tree branches (feature tasklist-subtasks); any other value is `400`.
 `growSeveral` (boolean, default `true`) lets several task list cards stay grown at once; off, growing a card collapses the one
 grown before.
 `sendReportsAuto` (boolean, default `false`, never switched on by the app) lets the device send its error and crash log to `POST /api/diag/device-log` by itself (feature device-log).
@@ -673,7 +675,7 @@ are made on the server, like a calendar birthday:
 | `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; index?: number }` | `201` `TaskList` |
 | `PATCH` | `/api/tasklists/:id/items/:itemId` | `{ title?: string; done?: boolean }` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id/items/:itemId` | – | `200` `TaskList` |
-| `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[] }` | `200` `TaskList` |
+| `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[], levels?: (0 \| 1 \| 2)[] }` | `200` `TaskList` |
 
 ```ts
 interface CreateTaskListInput {
@@ -740,7 +742,7 @@ a series also deletes its later parts (same `series`, later start). `scope=follo
 400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400 (field
 `scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
 given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
-permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
+permutation of the current ids, else 400. **Subtasks** (feature tasklist-subtasks): an item has `level` 1 or 2 (absent = a task); `levels` (one per id, 0 for a task) sets the levels with the new order, else they stay; a level is made valid (the first item is a task, an item is at most one level deeper than the one above, at most 2). A create takes `level` (0..2) on its items. Ticking an item sets `done` on its subtasks too (unticking, the same; ticking a subtask never changes its task), and deleting an item deletes its subtasks (the items right after it that have a higher level). Google's description indents a subtask by two spaces per level; the items JSON stores `l`. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
 

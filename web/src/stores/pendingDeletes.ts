@@ -146,15 +146,18 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => templates.hide(id));
   }
 
-  /** `index`: the item's position in the list, where an undo puts it back; `scope` `following`: this and all later occurrences of a repeating list. */
-  function deleteTaskItem(listId: string, item: TaskItem, index: number, scope?: ChangeScope): void {
+  /** `item` (a task with its subtasks, the task first): `index` is the task's position in the list, where an undo puts it back; `scope` `following`: this and all later occurrences of a repeating list. */
+  function deleteTaskItem(listId: string, item: TaskItem | TaskItem[], index: number, scope?: ChangeScope): void {
     const items = useItemsStore();
+    const block = [item].flat();
+    const task = block[0]!;
     start({
-      title: item.title,
+      title: task.title,
       listId,
-      restore: () => items.unhideTaskItem(listId, item, index),
-      send: () => new Promise<void>((resolve) => { removeItem(listId, item.id, item.title, resolve, scope); }),
-    }, () => items.hideTaskItem(listId, item.id));
+      restore: () => items.unhideTaskItems(listId, block, index),
+      // the server takes the subtasks with their task
+      send: () => new Promise<void>((resolve) => { removeItem(listId, task.id, task.title, resolve, scope); }),
+    }, () => items.hideTaskItems(listId, block.map((i) => i.id)));
   }
 
   return { deleteEvent, deleteTaskList, deleteTaskItem, deleteTheme, deleteTemplate, undo, flush, flushList };

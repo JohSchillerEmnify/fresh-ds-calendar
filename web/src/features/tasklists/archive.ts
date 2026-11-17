@@ -2,6 +2,7 @@
  * Pure rules of the Tasks view's Archive tab (feature tasks-archive): which lists are finished, their order, the
  * search match and the template copy. No store or DOM access, so they are unit-tested with fixed data.
  */
+import { levelProp } from '@calendar/shared/subtasks';
 import type { CreateTaskListInput, TaskList } from '@/api/types';
 import { displayTitle } from '@/lib/items';
 
@@ -31,5 +32,5 @@ export function matchesSearch(l: Pick<TaskList, 'title' | 'items'>, query: strin
 
 /** The copy "Copy" creates: same title, category and tags, no date, every item open, no repeat or estimate. */
 export function copyOf(l: Pick<TaskList, 'title' | 'categoryId' | 'tags' | 'items'>, categoriesOn = true): CreateTaskListInput {
-  return { title: l.title, date: null, categoryId: categoriesOn ? l.categoryId : null, tags: [...l.tags], items: l.items.map((i) => ({ title: i.title, done: false })) };
+  return { title: l.title, date: null, categoryId: categoriesOn ? l.categoryId : null, tags: [...l.tags], items: l.items.map((i) => ({ title: i.title, done: false, ...levelProp(i.level) })) };
 }

@@ -1,4 +1,5 @@
 import { TITLE_MAX } from '@calendar/shared/limits';
+import { clampLevels, indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
 import { stableId } from '../lib/ids.js';
 import { addDays, formatInZone, localDateOf, localTimeOf, zonedToUtc } from '../lib/time.js';
 import type { CanvasPlace, Category, Recurrence, TaskItem } from '../api/types.js';
@@ -64,12 +65,12 @@ export function isTaskListEvent(ev: GoogleEvent): boolean {
 const INK_PLACEHOLDER = 'Handwritten item';
 
 export function mirror(items: TaskItem[]): string {
-  return items.map((i) => `${i.done ? '☑' : '☐'} ${i.ink ? INK_PLACEHOLDER : i.title}`).join('\n');
+  return items.map((i) => `${indentOf(i)}${i.done ? '☑' : '☐'} ${i.ink ? INK_PLACEHOLDER : i.title}`).join('\n');
 }
 
 /** Serialises items into `items`, `items_1..` + `itemsChunks`. Absent keys are `null` (to delete when patching). */
 export function encodeItems(items: TaskItem[]): Record<string, string | null> {
-  const json = JSON.stringify(items.map((i) => ({ id: i.id, t: i.title, d: i.done ? 1 : 0, ...(i.ink ? { k: 1 } : {}) })));
+  const json = JSON.stringify(items.map((i) => ({ id: i.id, t: i.title, d: i.done ? 1 : 0, ...(i.level ? { l: i.level } : {}), ...(i.ink ? { k: 1 } : {}) })));
   const out: Record<string, string | null> = {};
   if (json.length <= SINGLE_MAX) {
     out.items = json;
@@ -185,16 +186,20 @@ export function readCanvas(p: Record<string, string>): CanvasPlace | null {
 export function parseDescription(desc: string | undefined): TaskItem[] {
   const items: TaskItem[] = [];
   const lines = (desc ?? '').split(/\r?\n/);
+  // the indentation of Google's lines gives the levels (the lines that are not empty, in order)
+  const levels = parseIndented(desc ?? '').map((l) => l.level);
+  let n = 0;
   lines.forEach((raw, idx) => {
     const line = raw.trim();
     if (!line) return;
+    const level = levels[n++] ?? 0;
     const m = /^(☐|☑|\[ \]|\[x\])\s*(.*)$/i.exec(line);
     const title = (m ? m[2]! : line).trim().slice(0, TITLE_MAX);
     if (!title) return;
     const done = !!m && (m[1] === '☑' || m[1]!.toLowerCase() === '[x]');
-    items.push({ id: stableId(`${idx}:${title}`), title, done });
+    items.push({ id: stableId(`${idx}:${title}`), title, done, ...levelProp(level) });
   });
-  return items.slice(0, 200);
+  return clampLevels(items).slice(0, 200);
 }
 
 export function readItems(ev: GoogleEvent): TaskItem[] {
@@ -204,9 +209,9 @@ export function readItems(ev: GoogleEvent): TaskItem[] {
   const n = Number(p.itemsChunks ?? 1);
   if (n > 1) for (let i = 1; i < n; i++) json += p[`items_${i}`] ?? '';
   try {
-    const arr = JSON.parse(json) as { id: string; t: string; d: number; k?: number }[];
+    const arr = JSON.parse(json) as { id: string; t: string; d: number; l?: number; k?: number }[];
     if (!Array.isArray(arr)) throw new Error('bad');
-    return arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1, ...(x.k === 1 ? { ink: true as const } : {}) }));
+    return clampLevels(arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1, ...levelProp(x.l), ...(x.k === 1 ? { ink: true as const } : {}) })));
   } catch {
     return parseDescription(ev.description);
   }

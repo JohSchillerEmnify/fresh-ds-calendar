@@ -275,19 +275,19 @@ export const useItemsStore = defineStore('items', () => {
     deleted.delete(it.id);
     place(it);
   }
-  /** Hide one task list item until `unhideTaskItem`. */
-  function hideTaskItem(listId: string, itemId: string): void {
-    deleted.add(itemId);
+  /** Hide task list items (a task and its subtasks) until `unhideTaskItems`. */
+  function hideTaskItems(listId: string, itemIds: string[]): void {
+    itemIds.forEach((id) => deleted.add(id));
     const tl = byId.value[listId];
     if (tl) byId.value = { ...byId.value, [listId]: strip(tl) };
   }
-  /** Undo `hideTaskItem`: put `item` back at `index` (unless a fresher list already has it). */
-  function unhideTaskItem(listId: string, item: TaskItem, index: number): void {
-    deleted.delete(item.id);
+  /** Undo `hideTaskItems`: put the items back at `index` (unless a fresher list already has them). */
+  function unhideTaskItems(listId: string, back: TaskItem[], index: number): void {
+    back.forEach((i) => deleted.delete(i.id));
     const tl = byId.value[listId];
-    if (!tl || tl.kind !== 'tasklist' || tl.items.some((i) => i.id === item.id)) return;
+    if (!tl || tl.kind !== 'tasklist' || back.some((b) => tl.items.some((i) => i.id === b.id))) return;
     const list = [...tl.items];
-    list.splice(Math.min(index, list.length), 0, item);
+    list.splice(Math.min(index, list.length), 0, ...back);
     byId.value = { ...byId.value, [listId]: { ...tl, items: list, doneCount: list.filter((i) => i.done).length, totalCount: list.length } };
   }
 
@@ -413,7 +413,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
-    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, refreshFromDevice, dropDevice, upsert, remove, beginPending, endPending, setCarried, setKept,
+    isDeleted, hide, unhide, hideTaskItems, unhideTaskItems, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, refreshFromDevice, dropDevice, upsert, remove, beginPending, endPending, setCarried, setKept,
     noteSeries, seriesOf, forgetSeries, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };

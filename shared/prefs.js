@@ -110,6 +110,7 @@ export const PREFS = {
   tasksSortDir: oneOf(['default', 'reversed'], 'default'),
   undatedDone: oneOf(['calendar', 'archive'], 'calendar'),
   taskOpen: oneOf(['inline', 'drawer'], 'inline'),
+  subtaskLines: oneOf(['straight', 'tree'], 'straight'),
   growSeveral: bool(true),
   sendReportsAuto: bool(false),
   tasksFilter: { default: { categories: [], when: 'all' }, parse: (v) => { const r = toTasksFilter(v); return r ? ok(r) : { error: 'Invalid tasksFilter' }; } },

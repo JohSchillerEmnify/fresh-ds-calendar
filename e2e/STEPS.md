@@ -3304,6 +3304,33 @@ the seven days are side by side in a single row
   the top of row 0's visible `.scroll` area and the latest ends at the bottom of row 1's (within 6 px). "the empty area of D": the last
   `time-slot` of D's `week-day-column`. "single row": the seven `week-header` cells share one top.
 
+## Subtasks (`tasklists-subtasks.feature`)
+
+```
+I drag the item {string} {word} step(s) to the {word}
+I long-press the item {string} and drag it {word} step(s) to the {word}
+I drag the item {string} below the item {string}
+the item {string} was made a subtask of {string}
+the item {string} is a subtask of {string}
+the item {string} is not a subtask
+I start renaming the item {string} and press Tab
+I press Shift+Tab
+I type the items:
+the items {string} are ticked
+the items {string} are not ticked
+I set {string} to {string} in the task list settings
+the expanded task list {string} looks like the picture {string}
+the collapsed task list {string} shows the item {string} indented under {string}
+```
+
+- Every `tasklist-item` row has `data-level` (0 task, 1 subtask, 2 sub-subtask); "X is a subtask of Y" = the nearest row above X with a lower level is Y, "is not a subtask" = no such row (level 0); both only read the rows. "X was made a subtask of Y" (set-up) sets X one level deeper than Y through `PUT /api/tasklists/:id/items/order` (with `levels`), reloads the page and opens the list again.
+- "I drag the item X N step(s) to the right / left": the pointer takes the item's drag handle (a finger long-presses the row, as in "I drag the item X above the item Y") and moves N x 28 px sideways on the same row, then lets go; it waits for the saved order (`PUT .../items/order`, 200) unless the level cannot change (the first item, or already as deep as the item above allows). N is one, two or three. "below the item Y" = the same drag to the lower edge of Y's row.
+- "I start renaming the item X and press Tab": taps the title, waits for the focused field and presses Tab (the field stays open); "I press Shift+Tab" presses it in that field.
+- "I type the items:" fills `tasklist-items` of the task list dialog with the text block as it is (leading spaces kept).
+- "I set S to C in the task list settings": settings → Task lists, option `settings-subtask-lines-<c>` of `settings-subtask-lines`, waits for `PATCH /api/prefs` (200), then leaves the settings.
+- "the expanded task list T looks like the picture P": a `toHaveScreenshot` of the open list T (`tasklist-expanded`), baseline `P.png`.
+- "the collapsed task list T shows the item Y indented under X": inside the card's `tasklist-card-items` the text of Y starts at least 2 px right of the text of X.
+
 ## Visual states (`@visual`)
 
 Rules that need no reference picture, plus `toHaveScreenshot` regression pictures (baselines in `e2e/snapshots/<project>/`,

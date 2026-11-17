@@ -189,7 +189,7 @@ export function writes(s: OutboxState) {
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),
     deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope) }, { title: text }),
-    orderItems: (listId: string, itemIds: string[]): void => add(s, { op: 'item.order', id: listId, itemIds }, { title: items().get(listId)?.title ?? '' }),
+    orderItems: (listId: string, itemIds: string[], levels?: number[]): void => add(s, { op: 'item.order', id: listId, itemIds, ...(levels ? { levels } : {}) }, { title: items().get(listId)?.title ?? '' }),
   };
 }
 

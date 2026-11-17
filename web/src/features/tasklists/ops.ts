@@ -4,8 +4,9 @@
  */
 import type { ChangeScope, TaskList } from '@/api/types';
 import { TITLE_MAX } from '@calendar/shared/limits';
+import { levelOf } from '@calendar/shared/subtasks';
 import type { SingleTask } from './format';
-import { moveTo } from './reorder';
+import { applyPlacement, placeBlock } from './reorder';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
 
@@ -32,11 +33,13 @@ export function removeItem(listId: string, itemId: string, title: string, done?:
   done?.();
 }
 
-/** Move an item to index `to` (a drag and drop). */
-export function moveItemTo(listId: string, itemId: string, to: number): void {
+/** Move an item (with its subtasks) to row `to` at level `wanted` (a drag and drop; a no-op drop sends nothing). */
+export function moveItemTo(listId: string, itemId: string, to: number, wanted = 0): void {
   const tl = useItemsStore().get(listId) as TaskList | undefined;
   if (tl?.kind !== 'tasklist') return;
-  const ids = tl.items.map((i) => i.id);
-  if (!ids.includes(itemId)) return;
-  useOutboxStore().orderItems(listId, moveTo(ids, ids.indexOf(itemId), to));
+  const p = placeBlock(tl.items, itemId, to, wanted);
+  if (!p) return;
+  const { ids, levels } = applyPlacement(tl.items, itemId, p);
+  if (ids.every((id, n) => id === tl.items[n]!.id && levels[n] === levelOf(tl.items[n]!))) return;
+  useOutboxStore().orderItems(listId, ids, levels);
 }

@@ -82,6 +82,8 @@ export interface TaskItem {
   id: string;
   title: string;
   done: boolean;
+  /** 1 or 2 for a subtask or sub-subtask (feature tasklist-subtasks); absent = a task. */
+  level?: 1 | 2;
   /** An item written by hand (feature handwritten-lists): `title` is empty, the strokes are in the {@link InkDoc}. */
   ink?: true;
 }
@@ -232,7 +234,7 @@ export interface CreateTaskListInput {
   date: LocalDate | null;
   time?: LocalTime | null;
   /** An item with `strokes` is a handwritten one (its `title` is ''; feature handwritten-lists). */
-  items?: { title: string; done?: boolean; strokes?: InkStroke[] }[];
+  items?: { title: string; done?: boolean; level?: number; strokes?: InkStroke[] }[];
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
