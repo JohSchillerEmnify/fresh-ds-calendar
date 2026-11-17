@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils';
 import { useItemDrag } from '@/features/tasklists/useItemDrag';
 import { setAnimationSetting, __setSystemReducedForTest } from '@/motion/level';
 import { clearEffects } from '@/motion/effects';
-import { flush, installWaapi, pe, removeWaapi } from './motion/helpers';
+import { finishAll, flush, installWaapi, pe, removeWaapi } from './motion/helpers';
 
 const rect = (top: number) => ({ left: 0, top, width: 200, height: 40, right: 200, bottom: top + 40, x: 0, y: top, toJSON() {} }) as DOMRect;
 
@@ -93,6 +93,43 @@ describe('useItemDrag', () => {
     const { w, rows, onMove } = setup(false);
     await longPressDrag(rows[2], 100, 10);
     expect(onMove).toHaveBeenCalledWith('c', 0);
+    w.unmount();
+  });
+  it('the list moving under a held row (the keyboard closed and the sheet slid down): the drop place follows the finger', async () => {
+    const { w, rows, onMove } = setup(false);
+    let listTop = 0;
+    (w.element as HTMLElement).getBoundingClientRect = () => rect(listTop);
+    rows.forEach((r, i) => { r.getBoundingClientRect = () => rect(listTop + i * 40 + parseFloat(/translateY\((-?[\d.]+)px\)/.exec(r.style.transform)?.[1] ?? '0')); });
+    touch(rows[0], 'pointerdown', 20);
+    vi.advanceTimersByTime(400);
+    listTop = 80;
+    vi.advanceTimersByTime(32);
+    // the finger is over the held row's own place again, now 80 px lower
+    win('pointermove', 100);
+    vi.advanceTimersByTime(32);
+    win('pointerup', 100);
+    await flush();
+    expect(onMove).not.toHaveBeenCalled();
+    w.unmount();
+  });
+  it('the sheet holding the list keeps its place and height while a row is held, and lets go after the drop', async () => {
+    const { w, rows } = setup(false);
+    const sheet = document.createElement('div');
+    sheet.style.position = 'fixed';
+    sheet.style.top = '0px';
+    sheet.style.bottom = '0px';
+    sheet.getBoundingClientRect = () => ({ ...rect(120), height: 500, bottom: 620 }) as DOMRect;
+    document.body.appendChild(sheet);
+    sheet.appendChild(w.element as HTMLElement);
+    touch(rows[1], 'pointerdown', 60);
+    vi.advanceTimersByTime(400);
+    expect([sheet.style.top, sheet.style.bottom, sheet.style.height]).toEqual(['120px', 'auto', '500px']);
+    win('pointerup', 60);
+    await flush();
+    finishAll();
+    await flush();
+    expect(rows[1].dataset.dragging).toBeUndefined();
+    expect([sheet.style.top, sheet.style.bottom, sheet.style.height]).toEqual(['0px', '0px', '']);
     w.unmount();
   });
   it('a row dropped where it was reports nothing', async () => {

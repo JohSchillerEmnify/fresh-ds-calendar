@@ -7,6 +7,8 @@ export interface DragContext {
   originRect: DOMRect;
   /** Pointer offset inside the element at pick-up. */
   grab: Point;
+  /** How far the element's layout box moved since pick-up (scroll, or its list moved); 0 before pick-up. */
+  moved: () => Point;
 }
 export interface Point { x: number; y: number }
 

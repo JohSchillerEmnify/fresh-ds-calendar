@@ -135,9 +135,18 @@ Feature: Working with task list items
       And I pick up the item "Eggs"
       Then the item "Eggs" is lifted
       And the add field is open and focused
+      And the list stays where it is while the item is held, even when the keyboard closes
       When I release the item without moving it
       Then the add field is open and focused
       And the expanded task list items are "Milk, Eggs, Bread"
+
+    # The phone's own long press (Android) cannot be made in the test browsers: the unit test proves the press keeps the focus.
+    # unit: web/test/motion/drag.test.ts:touch: a press while a field has the focus cancels its pointerdown, so the native long press leaves the focus and keyboard there
+    @unit
+    Scenario: Holding an item on the phone while adding keeps the keyboard open while the finger is still down
+      When I start adding an item
+      And I pick up the item "Eggs"
+      Then the add field is open and focused
 
     Scenario: While an item is dragged, the other items make room
       When I drag the item "Bread" over the gap between "Milk" and "Eggs" and hold
