@@ -3,6 +3,7 @@
 ## 2026-11-17
 - Fixed: on the phone the previous and next arrows in the top bar are hidden again (screen readers and keyboards still find them).
 - Fixed: in left-handed mode the open tasks toggle on the phone sits at the left again.
+- Fixed: on the iPhone widget the days, entries and the red time line sit on their hours again, and the day labels are level with each other.
 
 ## 2026-11-16
 - iPhone widget: all sizes now show the Multi-day view, with every day labelled, the hours as text and the entries in your calendar colours. It follows light and dark mode, and a tap on the widget updates it. The small widget shows today.
