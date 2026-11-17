@@ -353,8 +353,8 @@ export class ApiClient {
   deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);
   }
-  reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions) {
-    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, { itemIds }, o);
+  reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions, levels?: number[]) {
+    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, levels ? { itemIds, levels } : { itemIds }, o);
   }
   // --- sharing (API.md "Shared task lists") -----------------------------------------------
   /** The allowed people who signed in at least once, without the requester. */

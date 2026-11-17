@@ -4,10 +4,11 @@
  * reduced-motion handling are exactly the calendar's. Only the hit test differs: the places are the rows of this list.
  * On the Canvas (`compact`) a press anywhere on a note moves the note, so an item is picked up by its grip only.
  */
-import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
+import { blockEnd, levelOf } from '@calendar/shared/subtasks';
 import { createDragController, type DragContext, type DragController } from '@/motion/drag';
 import { getMotionLevel } from '@/motion/level';
-import { dropIndex, rowShifts, slotOffset } from './reorder';
+import { dropIndex, placeBlock, rowShifts, slotOffset } from './reorder';
 
 /** Selector of the drag handle (`data-item-grip` in `TaskListView`); the Canvas leaves a press on it to the item. */
 const ITEM_GRIP = '[data-item-grip]';
@@ -35,6 +36,14 @@ function freezeSheet(row: HTMLElement): () => void {
   return () => {};
 }
 
+/** Sideways distance (px) of one level: a row is moved one level by dragging it this far (the indent in `TaskListView`). */
+export const LEVEL_PX = 28;
+/** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
+const HELD_SUB = 'data-sub-held';
+
+/** Where the dragged item will land: the gap (top and height in px from the top of the list) and the level it will get. */
+export interface DropAim { top: number; height: number; level: number }
+
 /** Duration of the other rows' move out of the way (ms); none under reduced motion. */
 const MAKE_ROOM_MS = 150;
 
@@ -49,12 +58,17 @@ export interface ItemDragOptions {
   penWrites?: () => boolean;
   /** No drag now (an item title is being edited). */
   disabled: () => boolean;
-  /** A row was dropped on place `to` (never called for the place it came from). */
-  onMove: (itemId: string, to: number) => void;
+  /** The items of the list in row order (the levels decide which rows a held task takes along). */
+  items: () => readonly { id: string; level?: number }[];
+  /** A row was dropped on place `to` with the level `level` (also when only the level changed). */
+  onMove: (itemId: string, to: number, level: number) => void;
 }
 
-/** Binds a drag controller to every item row of the list and keeps them in step with the rows. */
-export function useItemDrag(o: ItemDragOptions): void {
+/** Binds a drag controller to every item row of the list and keeps them in step with the rows; returns where the dragged item will land. */
+export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
+  const aim = ref<DropAim | null>(null);
+  /** The place and level the last hit test chose (what a drop does). */
+  let chosen = { to: 0, level: 0 };
   const bound = new Map<HTMLElement, { ctl: DragController; unlisten: () => void }>();
 
   const rowsOf = (): HTMLElement[] => Array.from(o.root.value?.querySelectorAll<HTMLElement>(ROW) ?? []);
@@ -86,6 +100,17 @@ export function useItemDrag(o: ItemDragOptions): void {
       r.style.transform = shifts[i] ? `translateY(${shifts[i] / scaleOf(r)}px)` : '';
     });
   }
+  /** The subtasks of the held task travel with it: their rows fold away for the drag. */
+  function foldSubtasks(held: HTMLElement): void {
+    const items = o.items();
+    const at = items.findIndex((i) => i.id === held.dataset.itemId);
+    if (at < 0) return;
+    const rows = rowsOf();
+    for (let i = at + 1; i < blockEnd(items, at); i++) rows[i]?.setAttribute(HELD_SUB, '');
+  }
+  function unfoldSubtasks(): void {
+    o.root.value?.querySelectorAll(`[${HELD_SUB}]`).forEach((r) => r.removeAttribute(HELD_SUB));
+  }
   /** Drops every shift at once (the rows are laid out in their final order, or the drag is over). */
   function clearRoom(): void {
     for (const r of rowsOf()) { r.style.transition = ''; r.style.transform = ''; }
@@ -107,31 +132,44 @@ export function useItemDrag(o: ItemDragOptions): void {
     };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
-      hitTest: (_x, y, ctx) => {
+      hitTest: (x, y, ctx) => {
         const rows = rowsOf();
         const from = rows.indexOf(row);
+        const id = row.dataset.itemId ?? '';
         // rows that made room are measured at their layout place, so the drop index never depends on the shift
         const live = layoutSpans(rows);
         // the dragged row's own slot is where it was picked up, moved with the list since; the others are live
         pickup = ctx;
-        const to = dropIndex(live.map((r, i) => (i === from ? ownSpan() : r)), y);
+        const hovered = dropIndex(live.map((r, i) => (i === from ? ownSpan() : r)), y);
+        // the sideways move decides the level; the item above and the three levels limit it
+        const step = LEVEL_PX * scaleOf(row);
+        const own = levelOf(o.items().find((i) => i.id === id) ?? {});
+        const p = placeBlock(o.items(), id, hovered, own + Math.round((x - ctx.originRect.left - ctx.grab.x) / step));
+        if (!p) return null;
+        chosen = { to: hovered, level: p.level };
+        // the gap opens where the block lands: after row `p.after`
+        const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
         const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
-        return { key: to, dx: 0, dy: slotOffset(fromPickup, from, to) };
+        return { key: to, dx: (p.level - own) * step, dy: slotOffset(fromPickup, from, to) };
       },
-      onDrop: (t) => {
-        if (t.key !== rowsOf().indexOf(row) && row.dataset.itemId) o.onMove(row.dataset.itemId, t.key);
+      onDrop: () => {
+        const id = row.dataset.itemId;
+        const unchanged = chosen.to === rowsOf().indexOf(row) && chosen.level === levelOf(o.items().find((i) => i.id === id) ?? {});
+        if (id && !unchanged) o.onMove(id, chosen.to, chosen.level);
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
         held = t ? { row, to: t.key, own: ownSpan } : null;
         if (t) makeRoom(row, t.key, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
+        const ul = o.root.value?.querySelector<HTMLElement>('ul');
+        aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level } : null;
       },
       onStateChange: (st) => {
-        if (st === 'dragging') thaw ??= freezeSheet(row);
+        if (st === 'dragging') { thaw ??= freezeSheet(row); foldSubtasks(row); }
         else if (st === 'idle') { thaw?.(); thaw = null; }
-        if (st !== 'dragging') held = null;
+        if (st !== 'dragging') { held = null; aim.value = null; unfoldSubtasks(); }
         // a drop reorders the rows at once; a cancel lets the rows glide back until the card has settled
         if (st === 'dropping' || st === 'idle') clearRoom();
         else if (st === 'returning') makeRoom(row, null);
@@ -158,4 +196,5 @@ export function useItemDrag(o: ItemDragOptions): void {
     bound.clear();
     clearRoom();
   });
+  return aim;
 }

@@ -3,6 +3,8 @@
  * which place the pointer is over. No DOM, no state; `useItemDrag` and `ops.ts` use it.
  */
 
+import { blockEnd, levelOf, MAX_LEVEL } from '@calendar/shared/subtasks';
+
 /** Returns a copy of `list` with the element at `from` moved to index `to` (both clamped; out of range `from` changes nothing). */
 export function moveTo<T>(list: readonly T[], from: number, to: number): T[] {
   if (from < 0 || from >= list.length) return [...list];
@@ -51,4 +53,49 @@ export function rowShifts(spans: readonly RowSpan[], from: number, to: number): 
   if (to > from) for (let i = from + 1; i <= to && i < spans.length; i++) out[i] = -step;
   else for (let i = Math.max(to, 0); i < from; i++) out[i] = step;
   return out;
+}
+
+/** What a drop of a task (with its subtasks) does: where the block goes among the other items and the level its first item gets. */
+export interface Placement {
+  /** Index among the items without the block. */
+  index: number;
+  level: number;
+  /** The row after which the block lands in the full list (-1: at the top); where the gap opens. */
+  after: number;
+}
+
+/**
+ * Where dropping item `id` on row `to` (the place the plain drag picks) with the level `wanted` (from the pointer's sideways
+ * move) puts it: the item takes its subtasks along; it is at most one level deeper than the item above it and the block
+ * stays within three levels; dropped below a task at that task's level or higher it lands after that task's subtasks.
+ */
+export function placeBlock(items: readonly { id: string; level?: number }[], id: string, to: number, wanted: number): Placement | null {
+  const from = items.findIndex((i) => i.id === id);
+  if (from < 0) return null;
+  const end = blockEnd(items, from);
+  const k = end - from;
+  const rest = [...items.slice(0, from), ...items.slice(end)];
+  const base = levelOf(items[from]!);
+  const depth = Math.max(...items.slice(from, end).map(levelOf)) - base;
+  let index = from;
+  if (to < from) index = Math.max(to, 0);
+  else if (to >= end) {
+    const t = Math.min(to - k, rest.length - 1);
+    index = wanted <= levelOf(rest[t]!) ? blockEnd(rest, t) : t + 1;
+  }
+  const above = index > 0 ? levelOf(rest[index - 1]!) : -1;
+  const level = Math.max(0, Math.min(wanted, above + 1, MAX_LEVEL - depth));
+  const after = index === 0 ? -1 : index - 1 < from ? index - 1 : index - 1 + k;
+  return { index, level, after };
+}
+
+/** The ids and levels in the new order after the block of `id` was dropped as `placement` says. */
+export function applyPlacement(items: readonly { id: string; level?: number }[], id: string, p: Placement): { ids: string[]; levels: number[] } {
+  const from = items.findIndex((i) => i.id === id);
+  const end = blockEnd(items, from);
+  const shift = p.level - levelOf(items[from]!);
+  const rest = [...items.slice(0, from), ...items.slice(end)];
+  const moved = items.slice(from, end).map((i) => ({ id: i.id, level: levelOf(i) + shift }));
+  const out = [...rest.slice(0, p.index).map((i) => ({ id: i.id, level: levelOf(i) })), ...moved, ...rest.slice(p.index).map((i) => ({ id: i.id, level: levelOf(i) }))];
+  return { ids: out.map((i) => i.id), levels: out.map((i) => i.level) };
 }

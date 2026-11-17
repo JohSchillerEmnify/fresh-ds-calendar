@@ -14,7 +14,7 @@ function setup(gripOnly: boolean) {
   const Host = defineComponent({
     setup() {
       const root = ref<HTMLElement | null>(null);
-      useItemDrag({ root, signature: () => 'a,b,c', gripOnly: () => gripOnly, disabled: () => false, onMove });
+      useItemDrag({ root, signature: () => 'a,b,c', items: () => ['a', 'b', 'c'].map((id) => ({ id })), gripOnly: () => gripOnly, disabled: () => false, onMove });
       return () => h('ul', { ref: root }, ['a', 'b', 'c'].map((id) => h('li', { 'data-testid': 'tasklist-item', 'data-item-id': id }, [h('span', { 'data-item-grip': '' }), h('b', id), h('svg', { 'data-testid': 'ink-line' })])));
     },
   });
@@ -66,7 +66,7 @@ describe('useItemDrag', () => {
     const Host = defineComponent({
       setup() {
         const root = ref<HTMLElement | null>(null);
-        useItemDrag({ root, signature: () => ids.value.join(','), gripOnly: () => false, disabled: () => false, onMove: vi.fn() });
+        useItemDrag({ root, signature: () => ids.value.join(','), items: () => ids.value.map((id) => ({ id })), gripOnly: () => false, disabled: () => false, onMove: vi.fn() });
         return () => h('ul', { ref: root }, ids.value.map((id) => h('li', { key: id, 'data-testid': 'tasklist-item', 'data-item-id': id }, id)));
       },
     });
@@ -92,7 +92,7 @@ describe('useItemDrag', () => {
   it('a row dropped on another row reports that place', async () => {
     const { w, rows, onMove } = setup(false);
     await longPressDrag(rows[2], 100, 10);
-    expect(onMove).toHaveBeenCalledWith('c', 0);
+    expect(onMove).toHaveBeenCalledWith('c', 0, 0);
     w.unmount();
   });
   it('the list moving under a held row (the keyboard closed and the sheet slid down): the drop place follows the finger', async () => {
@@ -144,7 +144,7 @@ describe('useItemDrag', () => {
     expect(onMove).not.toHaveBeenCalled();
     expect(rows[2].dataset.dragging).toBeUndefined();
     await longPressDrag(rows[2], 100, 10, rows[2].querySelector('[data-item-grip]')!);
-    expect(onMove).toHaveBeenCalledWith('c', 0);
+    expect(onMove).toHaveBeenCalledWith('c', 0, 0);
     w.unmount();
   });
   it('the mouse press a finger lift sends after a long press does not take the focus (the add field and keyboard stay)', async () => {

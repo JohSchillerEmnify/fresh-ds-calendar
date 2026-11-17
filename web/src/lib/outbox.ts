@@ -2,6 +2,7 @@
 import type {
   CalendarEvent, CalendarItem, ChangeScope, InkStroke, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
+import { blockIds, clampLevels, levelOf, levelProp } from '@calendar/shared/subtasks';
 
 /** One change of an event, a task list or one of its items; `id` is the event or the list (a device id until its create was sent). */
 export type Change =
@@ -16,7 +17,8 @@ export type Change =
   | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[]; base: string[]; at: number }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
   | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope }
-  | { op: 'item.order'; id: string; itemIds: string[] };
+  /** `levels`: one per id, set together with the place (a drag to the right or left; feature tasklist-subtasks). */
+  | { op: 'item.order'; id: string; itemIds: string[]; levels?: number[] };
 
 /** An unsent change as the outbox keeps it (IndexedDB). */
 export interface OutboxEntry {
@@ -58,11 +60,17 @@ export function keptItems<T extends { title: string; strokes?: unknown }>(items:
   return (items ?? []).filter((i) => i.title.trim() || i.strokes);
 }
 
+/** The item with level `l` (0 = a task: no `level`). */
+const withLevel = (i: TaskItem, l: number): TaskItem => {
+  const { level: _old, ...rest } = i;
+  return { ...rest, ...levelProp(l) };
+};
+
 const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, doneCount: items.filter((i) => i.done).length, totalCount: items.length });
 
 /** A new task list as the device shows it before the server has answered. */
 export function localTaskList(id: string, input: CreateTaskListInput): TaskList {
-  const items = keptItems(input.items).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...(i.strokes ? { ink: true as const } : {}) }));
+  const items = clampLevels(keptItems(input.items).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...levelProp(i.level), ...(i.strokes ? { ink: true as const } : {}) })));
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],
@@ -92,11 +100,17 @@ export function applyEntry(cur: CalendarItem | null | undefined, e: OutboxEntry)
 function applyItemOp(cur: TaskList, c: Change): TaskList {
   switch (c.op) {
     case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: !!c.done, ...(c.strokes ? { ink: true as const } : {}) }]);
-    case 'item.patch': return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : i)));
-    case 'item.delete': return recount(cur, cur.items.filter((i) => i.id !== c.itemId));
+    case 'item.patch': {
+      // a tick goes to the subtasks of the task as well, as on the server
+      const ticked = new Set(c.patch.done === undefined ? [] : blockIds(cur.items, c.itemId));
+      return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : ticked.has(i.id) ? { ...i, done: c.patch.done! } : i)));
+    }
+    case 'item.delete': { const gone = new Set(blockIds(cur.items, c.itemId)); return recount(cur, cur.items.filter((i) => !gone.has(i.id))); }
     case 'item.order': {
       const at = (i: TaskItem) => { const n = c.itemIds.indexOf(i.id); return n < 0 ? Infinity : n; };
-      return { ...cur, items: [...cur.items].sort((a, b) => at(a) - at(b)) };
+      const sorted = [...cur.items].sort((a, b) => at(a) - at(b));
+      if (!c.levels) return { ...cur, items: sorted };
+      return { ...cur, items: clampLevels(sorted.map((i) => withLevel(i, c.levels![c.itemIds.indexOf(i.id)] ?? levelOf(i)))) };
     }
     default: return cur;
   }

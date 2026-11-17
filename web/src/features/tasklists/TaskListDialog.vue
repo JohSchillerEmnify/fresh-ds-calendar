@@ -31,6 +31,7 @@ import { usePeople } from '@/composables/usePeople';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
+import { indentOf, parseIndented } from '@calendar/shared/subtasks';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
@@ -100,7 +101,7 @@ function fill(src: TaskList) {
 onMounted(async () => {
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
-    if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => i.title).join('\n'); }
+    if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => indentOf(i) + i.title).join('\n'); }
     // a carried title is unsaved input: the original stays untitled so closing asks first
     original = JSON.stringify(props.draftList ? form : { ...form, title: '' });
     // the names already taken, for "Also save as template"
@@ -195,7 +196,7 @@ async function save() {
       if (!typed.length || Object.keys(changed).length) outbox.updateList(props.id!, changed, undefined, etag);
     } else {
       outbox.createList({
-        ...body, items: [...parseItems(form.items).map((title) => ({ title })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
+        ...body, items: [...parseIndented(form.items), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
       });
       // the list is saved; a template that fails now is only reported, the list stays
       if (alsoTemplate.value) {
