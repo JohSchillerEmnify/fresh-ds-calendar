@@ -29,7 +29,7 @@ describe('first call (no cursor)', () => {
     expect(titles(r.events.upserts)).toEqual(['Dentist']);
     expect(r.taskLists.replace).toBe(true);
     expect(titles(r.taskLists.upserts)).toEqual(['Chores', 'Someday']);
-    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarColor', 'tasksCalendarReminders', 'templates', 'theme', 'themes', 'widgetKeys']);
+    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendar', 'tasksCalendarColor', 'tasksCalendarReminders', 'templates', 'theme', 'themes', 'widgetKeys']);
   });
 
   it('answers each file in the shape of its own GET', async () => {
@@ -238,6 +238,7 @@ describe('shared lists', () => {
 
 describe('robustness', () => {
   it('takes the sync token of an event calendar from a token-only walk, and of the tasks calendar from an unfiltered read', async () => {
+    await t.json('GET', '/api/__test/tasks-calendar');
     const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken');
     const list = vi.spyOn(t.app.ctx.mock!, 'listEvents');
     await changes();

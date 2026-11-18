@@ -40,12 +40,13 @@ describe('TasksCalendar (per-person tasks calendar)', () => {
 
   it('ignores a calendar with that summary that is only shared with the person', async () => {
     mock.setCalendars([...mock.remote.calendars(), { id: 'shared', summary: TASKS_CALENDAR_SUMMARY, backgroundColor: '#000000', primary: false, accessRole: 'reader' }]);
-    const id = await new TasksCalendar(mock, prefs, 'p1').id();
-    expect(id).not.toBe('shared');
+    const id = await new TasksCalendar(mock, prefs, 'p1').find();
+    expect(id).toBeNull();
   });
 
   it('creates the calendar once under parallel calls and hides it in Google', async () => {
     const insert = vi.spyOn(mock, 'insertCalendar');
+    prefs.setTasksChoice('p1', 'on');
     const tasks = new TasksCalendar(mock, prefs, 'p1');
     const ids = await Promise.all([tasks.id(), tasks.id(), tasks.id()]);
     expect(new Set(ids).size).toBe(1);
@@ -54,7 +55,22 @@ describe('TasksCalendar (per-person tasks calendar)', () => {
     expect(prefs.tasksCalendarId('p1')).toBe(ids[0]);
   });
 
+  it('a read that starts a lookup between a write\'s lookup and its creation does not make the write use the lookup\'s null', async () => {
+    prefs.setTasksChoice('p1', 'on');
+    const tasks = new TasksCalendar(mock, prefs, 'p1');
+    const choice = prefs.tasksChoice.bind(prefs);
+    let read: Promise<string | null> | null = null;
+    // runs after the write's own lookup found nothing and before it creates
+    vi.spyOn(prefs, 'tasksChoice').mockImplementation((sub) => { read ??= tasks.find(); return choice(sub); });
+    const id = await tasks.id();
+    expect(typeof id).toBe('string');
+    expect(id).toBeTruthy();
+    expect(tasksCalendars()).toHaveLength(1);
+    await read;
+  });
+
   it('creates a new calendar when the stored one was deleted in Google', async () => {
+    prefs.setTasksChoice('p1', 'on');
     prefs.setTasksCalendarId('p1', 'gone@group.calendar.google.com');
     const id = await new TasksCalendar(mock, prefs, 'p1').id();
     expect(id).not.toBe('gone@group.calendar.google.com');
@@ -62,11 +78,85 @@ describe('TasksCalendar (per-person tasks calendar)', () => {
   });
 
   it('keeps people apart', async () => {
-    const a = await new TasksCalendar(mock, prefs, 'p1').id();
+    const a = await new TasksCalendar(mock, prefs, 'p1').enable();
     const other = new MockGoogleProvider({ dataDir: null, tz: 'Europe/Berlin', clock: new Clock() });
-    const b = await new TasksCalendar(other, prefs, 'p2').id();
+    const b = await new TasksCalendar(other, prefs, 'p2').enable();
     expect(prefs.tasksCalendarId('p1')).toBe(a);
     expect(prefs.tasksCalendarId('p2')).toBe(b);
+  });
+});
+
+describe('task lists confirmation (feature tasklists-calendar-consent)', () => {
+  it('a person who was never asked is asked, and nothing but the confirmation creates the calendar', async () => {
+    const insert = vi.spyOn(mock, 'insertCalendar');
+    const tasks = new TasksCalendar(mock, prefs, 'p1');
+    expect(await tasks.state()).toBe('ask');
+    expect(await tasks.find()).toBeNull();
+    await expect(tasks.id()).rejects.toMatchObject({ status: 409 });
+    expect(insert).not.toHaveBeenCalled();
+    const id = await tasks.enable();
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(await tasks.state()).toBe('on');
+    expect(await tasks.enable()).toBe(id);
+    expect(insert).toHaveBeenCalledTimes(1);
+  });
+
+  it('an existing calendar means task lists are on without a question', async () => {
+    mock.remote.insertCalendar(TASKS_CALENDAR_SUMMARY, true);
+    expect(await new TasksCalendar(mock, prefs, 'p1').state()).toBe('on');
+  });
+
+  it('"not now" creates nothing, stays off and can be turned on later', async () => {
+    const insert = vi.spyOn(mock, 'insertCalendar');
+    const tasks = new TasksCalendar(mock, prefs, 'p1');
+    await tasks.decline();
+    expect(await tasks.state()).toBe('off');
+    await expect(tasks.id()).rejects.toMatchObject({ status: 409 });
+    expect(insert).not.toHaveBeenCalled();
+    await tasks.enable();
+    expect(await tasks.state()).toBe('on');
+  });
+});
+
+describe('task lists confirmation through the API', () => {
+  let t: TestApp;
+  beforeEach(async () => { t = makeApp(); await t.req('POST', '/api/__test/reset'); await t.json('POST', '/api/__test/tasks-choice', { choice: 'ask' }); });
+  afterEach(() => t.cleanup());
+  const created = async () => ((await t.json('GET', '/api/__test/remote/calendars')).body.calendars as Array<{ summary: string }>).filter((c) => c.summary === TASKS_CALENDAR_SUMMARY);
+
+  it('reads never create the calendar: the calendar list, items, change feed and every task list read leave Google alone', async () => {
+    const calendars = (await t.json('GET', '/api/calendars')).body.calendars as Array<{ tasks?: boolean }>;
+    expect(calendars.some((c) => c.tasks)).toBe(false);
+    expect((await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-19')).status).toBe(200);
+    expect((await t.json('GET', '/api/changes')).body.files.tasksCalendar).toEqual({ state: 'ask' });
+    for (const url of ['/api/tasklists/open', '/api/tasklists/all-open', '/api/tasklists/archive', '/api/reminders/tasks-calendar', '/api/calendar-colors/tasks-calendar', '/api/tasks-calendar']) {
+      expect((await t.json('GET', url)).status).toBe(200);
+    }
+    expect(await created()).toHaveLength(0);
+  });
+
+  it('a write while off is refused and creates nothing', async () => {
+    const r = await t.json('POST', '/api/tasklists', { title: 'Groceries', date: '2026-10-14', items: [] });
+    expect(r.status).toBe(409);
+    expect(await created()).toHaveLength(0);
+  });
+
+  it('"not now" is remembered and creates nothing; "turn on" creates it once and task lists work', async () => {
+    expect((await t.json('PUT', '/api/tasks-calendar', { enabled: false })).body).toEqual({ state: 'off' });
+    expect((await t.json('GET', '/api/tasks-calendar')).body).toEqual({ state: 'off' });
+    expect(await created()).toHaveLength(0);
+    expect((await t.json('PUT', '/api/tasks-calendar', { enabled: true })).body).toEqual({ state: 'on' });
+    expect((await t.json('PUT', '/api/tasks-calendar', { enabled: true })).body).toEqual({ state: 'on' });
+    expect(await created()).toHaveLength(1);
+    expect((await t.json('POST', '/api/tasklists', { title: 'Groceries', date: '2026-10-14', items: [] })).status).toBe(201);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.some((c: { tasks?: boolean }) => c.tasks)).toBe(true);
+    expect((await t.json('PUT', '/api/tasks-calendar', { enabled: 'yes' })).status).toBe(400);
+  });
+
+  it('a person with the calendar already is never asked, and declining does not take it away', async () => {
+    await t.json('POST', '/api/__test/remote/calendars', { summary: TASKS_CALENDAR_SUMMARY });
+    expect((await t.json('GET', '/api/tasks-calendar')).body).toEqual({ state: 'on' });
+    expect((await t.json('PUT', '/api/tasks-calendar', { enabled: false })).body).toEqual({ state: 'on' });
   });
 });
 

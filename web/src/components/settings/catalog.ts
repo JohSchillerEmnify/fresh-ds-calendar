@@ -47,6 +47,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('views', 'approaching', 'approachBar', 'settings.calendar.approachBar.label', { hint: 'settings.calendar.approachBar.hint', parent: 'approachingCard' }),
   e('views', 'approaching', 'approachWindow', 'settings.calendar.approachWindow.label', { parent: 'approachBar' }),
 
+  e('tasklists', undefined, 'tasksOn', 'settings.tasklists.enable.label'),
   e('tasklists', 'categories', 'taskCategories', 'settings.tasklists.taskCategories.label', { hint: 'settings.tasklists.taskCategories.hint', synonyms: 'settingsNav.synonyms.taskCategories' }),
   e('tasklists', 'behaviour', 'taskOpen', 'settings.tasklists.taskOpen.label'),
   e('tasklists', 'behaviour', 'growSeveral', 'settings.tasklists.growSeveral.label', { hint: 'settings.tasklists.growSeveral.hint', parent: 'taskOpen' }),

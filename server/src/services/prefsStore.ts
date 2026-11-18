@@ -25,6 +25,8 @@ interface StoredPrefs extends Prefs {
   birthdaysColor?: string;
   /** The person's "Calendar app: tasks" calendar, once found or created (feature tasklists-own-calendar). */
   tasksCalendarId: string | null;
+  /** The person's answer to "turn on task lists?" (feature tasklists-calendar-consent); null = not asked yet. */
+  tasksChoice: 'on' | 'off' | null;
   /** Per calendar, the plan and the switch of it the scheduler last applied to `hiddenCalendars` (feature calendar-off-plan). */
   planApplied?: Record<string, { plan: string; edge: number | null }>;
   theme?: StoredTheme;
@@ -36,6 +38,7 @@ function normalise(p: Partial<StoredPrefs> | null): StoredPrefs {
     ...p,
     hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
     tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
+    tasksChoice: p?.tasksChoice === 'on' || p?.tasksChoice === 'off' ? p.tasksChoice : null,
     ...readPrefs(p),
   };
 }
@@ -46,6 +49,8 @@ export class PrefsStore {
   readonly reminderOverrides: ReminderOverrideStore;
 
   private readonly files: PersonJsonStore<StoredPrefs>;
+  /** Test mode only: what a person who never answered counts as, so scenarios about other things need no confirmation. */
+  tasksChoiceDefault: 'on' | null = null;
 
   constructor(dataDir: string) {
     this.reminderOverrides = new ReminderOverrideStore(dataDir);
@@ -176,6 +181,15 @@ export class PrefsStore {
 
   setTasksCalendarId(sub: string, id: string): void {
     this.merge(sub, { tasksCalendarId: id });
+  }
+
+  /** The answer to "turn on task lists?"; `tasksChoiceDefault` stands in until one is stored (test mode: persons start confirmed). */
+  tasksChoice(sub: string): 'on' | 'off' | null {
+    return this.read(sub).tasksChoice ?? this.tasksChoiceDefault;
+  }
+
+  setTasksChoice(sub: string, choice: 'on' | 'off' | null): void {
+    this.merge(sub, { tasksChoice: choice });
   }
 
 

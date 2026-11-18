@@ -40,6 +40,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.auth.reset();
     ctx.resetPeople();
     ctx.prefs.reset();
+    ctx.prefs.tasksChoiceDefault = 'on';
     ctx.themes.reset();
     ctx.backup.reset();
     ctx.push.reset();
@@ -255,6 +256,16 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
+
+  // "A person who has not answered the task lists question yet" (ask), who declined (off) or confirmed (on); reset makes every person confirmed again.
+  t.post('/tasks-choice', async (c) => {
+    const b = (await body(c)) as { choice?: unknown } | undefined;
+    if (b?.choice !== 'ask' && b?.choice !== 'off' && b?.choice !== 'on') throw validation('choice must be ask, off or on', 'choice');
+    ctx.prefs.tasksChoiceDefault = b.choice === 'on' ? 'on' : null;
+    ctx.prefs.setTasksChoice(person(c), b.choice === 'ask' ? null : b.choice);
+    ctx.calendarFor(null).tasks.forget();
+    return c.json({ ok: true });
+  });
 
   // Creates a task list in one person's mock calendar — undated unless `date` is given; `category` is a category name; `tags` optional.
   t.post('/tasklists', async (c) => {

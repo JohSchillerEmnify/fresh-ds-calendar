@@ -5,6 +5,8 @@ import App from '@/App.vue';
 import { createAppRouter } from '@/router';
 import { registerBuiltinExtensions } from '@/extensions/builtin';
 import { useClockStore } from '@/stores/clock';
+import { useDeviceStore } from '@/stores/device';
+import { emptyData } from '@/lib/deviceData';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useMotivationStore } from '@/features/motivation/store';
@@ -634,5 +636,29 @@ describe('settings', () => {
     await w.get(tid('category-save')).trigger('click');
     await wait(() => expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home', 'Garden']));
     expect(w.find(tid('category-dialog')).exists()).toBe(false);
+  });
+});
+
+describe('task lists consent (first sign-in)', () => {
+  const stateOf = async (state: 'ask' | 'on' | 'off', path = '/week/2026-10-12') => {
+    const r = await mountAt(path);
+    useDeviceStore().data = { ...emptyData('-'), files: { tasksCalendar: { state } } };
+    await flushPromises();
+    return r;
+  };
+  it('opens the question when the person has not answered, not when task lists are on or off', async () => {
+    await stateOf('ask');
+    await wait(() => expect(document.querySelector(tid('tasks-consent'))).not.toBeNull());
+    wrapper?.unmount();
+    document.body.innerHTML = '';
+    await stateOf('on');
+    expect(document.querySelector(tid('tasks-consent'))).toBeNull();
+    wrapper?.unmount();
+    await stateOf('off');
+    expect(document.querySelector(tid('tasks-consent'))).toBeNull();
+  });
+  it('sends the Tasks view away while task lists are off', async () => {
+    const { router } = await stateOf('off', '/tasks');
+    await wait(() => expect(router.currentRoute.value.path).not.toBe('/tasks'));
   });
 });

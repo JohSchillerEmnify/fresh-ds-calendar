@@ -23,6 +23,7 @@ import {
   nextCompletedOn, privateSize,
   type TaskListData,
 } from './taskCodec.js';
+import { tasksAreOn } from '@calendar/shared/tasks-state';
 import { TASKS_CALENDAR_SUMMARY, TasksCalendar } from './tasksCalendar.js';
 import { EventWrites } from './eventWrites.js';
 import { ItemQueries } from './itemQueries.js';
@@ -153,7 +154,7 @@ export class CalendarService {
 
   /** Calendars that hold events: not switched off in Google's list (the old contacts calendar is read even then) and not the tasks calendar. */
   private async eventCalendars(): Promise<ProviderCalendar[]> {
-    const tasksId = this.tasks.knownId();
+    const tasksId = await this.tasks.find();
     return (await this.providerCalendars()).filter((c) => (!c.hidden || isContactsCalendarId(c.id)) && c.id !== tasksId);
   }
 
@@ -220,15 +221,16 @@ export class CalendarService {
     await this.writeColor(id, pick);
   }
 
-  /** The tasks calendar as an entry of the person's calendar list (`tasks: true`); {@link calendars} leaves it out because it holds no events. Created on first use. */
-  async tasksEntry(): Promise<Calendar> {
-    const id = await this.tasks.id();
+  /** The tasks calendar as an entry of the person's calendar list (`tasks: true`); {@link calendars} leaves it out because it holds no events. Null while task lists are off. */
+  async tasksEntry(): Promise<Calendar | null> {
+    const id = await this.tasks.find();
+    if (!id) return null;
     return { id, name: TASKS_CALENDAR_SUMMARY, color: await this.calendarColor(id), primary: false, writable: false, defaultReminders: await this.tasksDefaultReminders(), tasks: true };
   }
 
-  /** The person's colour of their tasks calendar, which is not in {@link calendars} (created on first use like any task list access). */
+  /** The person's colour of their tasks calendar, which is not in {@link calendars} (Google's default blue while task lists are off). */
   async tasksColor(): Promise<string> {
-    return this.calendarColor(await this.tasks.id());
+    return this.calendarColor((await this.tasks.find()) ?? '');
   }
 
   /** Sets the list colour of the tasks calendar like {@link setColor} does for the others; returns the colour as Google holds it. */
@@ -260,9 +262,9 @@ export class CalendarService {
     this.prefs.setBirthdaysColor(this.sub, entry.background.toLowerCase());
   }
 
-  /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
+  /** The popup default list of the person's tasks calendar (none while task lists are off). */
   async tasksDefaultReminders(): Promise<number[]> {
-    const id = await this.tasks.id();
+    const id = await this.tasks.find();
     return popups((await this.providerCalendars()).find((c) => c.id === id)?.defaultReminders);
   }
 
@@ -391,7 +393,7 @@ export class CalendarService {
   // ---------- lookup ----------
   private async locate(id: string, tasklist: boolean): Promise<GoogleEvent> {
     // task lists live only in the tasks calendar, events only in the event calendars
-    const ids = tasklist ? [await this.tasks.id()] : (await this.eventCalendars()).map((c) => c.id);
+    const ids = tasklist ? [await this.tasks.find()].filter((i): i is string => !!i) : (await this.eventCalendars()).map((c) => c.id);
     for (const calId of ids) {
       try {
         const ev = await this.provider.getEvent(calId, id);
@@ -663,8 +665,8 @@ export class CalendarService {
    * device last got. `forced` names event calendars to answer in full anyway.
    */
   async changesSince(prev: ChangeState | null, today: string, forced: ReadonlySet<string>): Promise<{ events: EventChanges; taskLists: TaskListChanges; state: ChangeState }> {
-    const tasksId = await this.tasks.id();
-    const color = await this.calendarColor(tasksId);
+    const tasksId = await this.tasks.find();
+    const color = await this.calendarColor(tasksId ?? '');
     const cats = this.settings.categories(this.sub);
     const feed = new CalendarChanges(this.provider, this.tz, {
       eventCalendars: () => this.eventCalendars(), tasksId,
@@ -674,7 +676,8 @@ export class CalendarService {
     const g = await feed.since(prev, forced);
     const stamps: Record<string, string> = {};
     const upserts: TaskList[] = [];
-    for (const l of this.sharedTaskLists(color)) {
+    // shared lists belong to the task list feature too: nothing of it is shown while it is off
+    for (const l of tasksId || tasksAreOn(await this.tasks.state()) ? this.sharedTaskLists(color) : []) {
       const stamp = changeStamp(l);
       stamps[l.id] = stamp;
       if (prev?.shared[l.id] !== stamp) upserts.push(l);

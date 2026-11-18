@@ -14,6 +14,7 @@ import type {
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { CalendarColor } from '@calendar/shared/colors';
+import type { TasksState } from '@calendar/shared/tasks-state';
 import type { ThemePref } from '@/theme/presets';
 import type { ChangeSet } from '@/lib/deviceData';
 import type { HolidayRegion, HolidayVariant, WidgetKey, WidgetKeyCreated } from '@calendar/shared/api';
@@ -277,6 +278,14 @@ export class ApiClient {
   /** Replaces the popup reminder defaults of a calendar in Google (email defaults stay). */
   setCalendarDefaultReminders(id: string, defaultReminders: number[], o?: RequestOptions) {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { defaultReminders }, o);
+  }
+  /** Task lists: `ask` until the person answers, `off` after "not now", `on` once the calendar exists. */
+  tasksCalendar(o?: RequestOptions) {
+    return this.request<{ state: TasksState }>('GET', '/api/tasks-calendar', undefined, o);
+  }
+  /** The person's answer: `true` creates the tasks calendar in Google, `false` is "not now". */
+  setTasksCalendar(enabled: boolean, o?: RequestOptions) {
+    return this.request<{ state: TasksState }>('PUT', '/api/tasks-calendar', { enabled }, o);
   }
   tasksCalendarReminders(o?: RequestOptions) {
     return this.request<{ defaultReminders: number[] }>('GET', '/api/reminders/tasks-calendar', undefined, o);

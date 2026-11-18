@@ -104,6 +104,7 @@
    "no-circular|web/src/stores/settings.ts|web/src/stores/theme.ts > web/src/stores/device.ts > web/src/stores/settings.ts": 1,
    "no-circular|web/src/stores/sync.ts|web/src/stores/device.ts > web/src/stores/items.ts > web/src/stores/sync.ts": 1,
    "no-circular|web/src/theme/index.ts|web/src/theme/presets.ts > web/src/theme/index.ts": 1,
+   "no-orphans|shared/tasksState.js|": 1,
    "no-orphans|web/src/i18n/keys.ts|": 1,
    "no-orphans|web/src/i18n/raw-text.ts|": 1,
    "service-not-to-route|server/src/auth/peopleStore.ts|server/src/api/types.ts": 1,
@@ -199,6 +200,7 @@
    "max-lines-per-function|server/src/api/authRoutes.ts": 1,
    "max-lines-per-function|server/src/api/routes.ts": 1,
    "max-lines-per-function|server/src/api/testRoutes.ts": 1,
+   "max-lines-per-function|server/src/context.ts": 1,
    "max-lines-per-function|web/src/features/calendar/dnd.ts": 1,
    "max-lines-per-function|web/src/features/calendar/draw.ts": 1,
    "max-lines-per-function|web/src/features/calendar/transitionWarning.ts": 2,
@@ -643,7 +645,8 @@
    "hand-made-dates|android/app/src/main/java/lan/mordor/calendar/widget/WidgetStrings.java": 1,
    "hand-made-dates|web/src/features/calendar/CalendarPlanSheet.vue": 1,
    "hand-made-dates|web/src/features/motivation/MotionLab.vue": 1,
-   "hand-made-dates|web/src/lib/dates.ts": 1
+   "hand-made-dates|web/src/lib/dates.ts": 1,
+   "locales/de|same-as-en|tasks.consent.calendarName": 1
   }
  },
  "allowedIncreases": [
@@ -718,6 +721,16 @@
     "texts"
    ],
    "keys": 101
+  },
+  {
+   "date": "2026-11-17",
+   "reason": "new consent feature: shared rule file read through its package export, the context wiring line and the Google calendar name that is the same in German",
+   "gates": [
+    "arch",
+    "lint",
+    "texts"
+   ],
+   "keys": 3
   }
  ]
 }

@@ -10,7 +10,7 @@ import { itemSegments } from '@/lib/items';
 
 /** The per-person files a change set can carry, by name (API.md `GET /api/changes`); each is the answer of its own GET. */
 export type DeviceFileName =
-  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'tasksCalendarReminders' | 'tasksCalendarColor' | 'calendarColors';
+  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'tasksCalendar' | 'tasksCalendarReminders' | 'tasksCalendarColor' | 'calendarColors';
 
 /** Events from today minus a year to today plus a year, end exclusive. */
 export interface DeviceWindow { from: LocalDate; to: LocalDate }

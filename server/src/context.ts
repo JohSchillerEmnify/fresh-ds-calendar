@@ -137,6 +137,8 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   registerSharedListsBackup(backup, shared, config.dataDir);
   registerServerFilesBackup(backup, { people, shared });
+  // test mode: persons count as having confirmed task lists, so scenarios about other things need no confirmation
+  if (mock) prefs.tasksChoiceDefault = 'on';
   const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared, contactsGranted(LOCAL_PERSON));
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>(), calendars = new Map<string, CalendarService>();
