@@ -10,9 +10,9 @@ Task lists are stored as Google events (ADR 0005), encoded so the official app s
 
 ## Decision
 
-Each person's task lists live in their own secondary calendar "Calendar app: tasks", created by the app the first
-time it is needed (one creation per person, even under parallel requests) and hidden in Google's calendar list. A
-setting can show it in Google; the app never offers it as an event calendar.
+Each person's task lists live in their own secondary calendar "Calendar app: tasks", created by the app once the person
+confirms task lists (feature tasklists-calendar-consent; one creation per person, even under parallel requests) and hidden in Google's calendar list via the
+API (Google Calendar may still show it; the app cannot control that). The app never offers it as an event calendar.
 
 ## Alternatives
 

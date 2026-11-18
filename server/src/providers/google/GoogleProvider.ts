@@ -148,7 +148,7 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {
-    // hidden entries too: the person's tasks calendar is hidden in Google's list (ADR 0006)
+    // hidden entries too: the app asks Google's calendar list to leave the tasks calendar out (ADR 0006); Google Calendar may still show it
     return this.guard.cached('calendarList', async () => {
       const res = await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
       return (res.data.items ?? []).map(fromListEntry);

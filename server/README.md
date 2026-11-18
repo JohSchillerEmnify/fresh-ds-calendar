@@ -64,8 +64,8 @@ Internal (provider layer):
   `PROVIDER_UNAVAILABLE` ("open /api/auth/google/start"); missing client id/secret fails fast at startup.
 - When PATCHing a Google event between all-day and timed, the other of `date`/`dateTime` is sent as `null`.
 - Task lists live in each person's own calendar "Calendar app: tasks" (`services/tasksCalendar.ts`): stored id in
-  `prefs.json` (`tasksCalendarId`), else found by name, else created (`insertCalendar`) and hidden in Google's list
-  (`setCalendarHidden`). `listCalendars` includes hidden entries (`showHidden`); hidden calendars and the tasks
+  `prefs.json` (`tasksCalendarId`), else found by name, else created (`insertCalendar`) and hidden in Google's calendar list
+  via the API (`setCalendarHidden`; Google Calendar may still show it). `listCalendars` includes hidden entries (`showHidden`); hidden calendars and the tasks
   calendar are not event calendars. The app has no switch for showing it in Google; its colour is
   `GET/PATCH /api/calendar-colors/tasks-calendar` (Google's list colour, like any calendar's).
   TEST_MODE: `GET/POST /api/__test/remote/calendars` (raw calendar list), `GET /api/__test/tasks-calendar` (its id).
