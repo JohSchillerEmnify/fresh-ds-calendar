@@ -130,6 +130,7 @@ Feature: Task lists live in their own calendar
     Then the settings page does not show the setting "Default reminders of task lists"
 
   Scenario: There is no switch to show the task lists calendar in Google
+    Given Google has a hidden calendar "Calendar app: tasks"
     When I open the settings
     And I open the settings group "Calendars"
     And I open the calendar "Task lists calendar" in the settings
