@@ -124,7 +124,10 @@ Then(
 );
 
 When('I choose {string} as the default view', async function (this: World, label: string) {
+  // the choice is saved in the background: leaving before the save lands would reopen with the old view
+  const saved = this.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/prefs'), { timeout: 5000 }).catch(() => undefined);
   await chooseSelect(this, (await settingControl(this, 'settings-default-view')), label);
+  await saved;
 });
 
 Then('the default view {string} is selected', async function (this: World, label: string) {
@@ -304,6 +307,7 @@ Then('the credits list shows {string} with the licence {string}', async function
 
 Then('every credit shows an author or a licence, and a link', async function (this: World) {
   const credits = this.page.getByTestId('credit');
+  await expect(credits.first()).toBeVisible(); // the sheet is still opening: count() does not wait
   expect(await credits.count()).toBeGreaterThan(10);
   for (const c of await credits.all()) {
     await expect(c.getByTestId('credit-meta')).not.toBeEmpty();
@@ -356,9 +360,18 @@ Then('the page cannot be scrolled sideways', async function (this: World) {
 Then('no settings row is wider than the screen', async function (this: World) {
   const wide = await this.page.locator('section.page').evaluate((el) => {
     const vw = document.documentElement.clientWidth;
+    // an element cut off by a clipping ancestor that is itself on screen (a sample picture's scene) is not visible outside
+    const clippedOnScreen = (e: Element) => {
+      for (let n = e.parentElement; n && n !== el; n = n.parentElement) {
+        if (!['hidden', 'clip'].includes(getComputedStyle(n).overflowX)) continue;
+        const b = n.getBoundingClientRect();
+        if (b.left >= -0.5 && b.right <= vw + 0.5) return true;
+      }
+      return false;
+    };
     return [...el.querySelectorAll('*')]
       .map((e) => ({ e, r: e.getBoundingClientRect() }))
-      .filter(({ r }) => r.width > 0 && (r.right > vw + 0.5 || r.left < -0.5))
+      .filter(({ e, r }) => r.width > 0 && (r.right > vw + 0.5 || r.left < -0.5) && !clippedOnScreen(e))
       .map(({ e, r }) => `${e.tagName.toLowerCase()}.${String((e as HTMLElement).className).slice(0, 40)} left=${r.left.toFixed(1)} right=${r.right.toFixed(1)} w=${r.width.toFixed(1)}`);
   });
   expect(wide, 'elements outside the screen').toEqual([]);
