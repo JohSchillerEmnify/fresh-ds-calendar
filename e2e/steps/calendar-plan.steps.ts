@@ -58,6 +58,8 @@ When('I open the plan of the calendar {string} in the settings', async function 
 When('I choose {string} in the calendar sheet', async function (this: World, label: string) {
   const s = sheet(this);
   const sw = s.getByRole('switch', { name: label, exact: true });
+  // the sheet is still opening: count() does not wait, so wait for the control first (a switch or a button)
+  await expect(sw.or(s.getByRole('button', { name: label, exact: true }))).toBeVisible();
   if (await sw.count()) {
     if ((await sw.getAttribute('aria-checked')) !== 'true') await sw.click();
     await expect(sw).toHaveAttribute('aria-checked', 'true');
