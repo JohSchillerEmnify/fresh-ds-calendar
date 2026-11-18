@@ -84,6 +84,8 @@ When('someone opens the week view for {date} without signing in', async function
 When('they sign out in the settings', async function (this: World) {
   // the settings pages are reached inside the app (no reload), so the page keeps its push subscription
   await (await settingControl(this, 'settings-signout')).click();
+  // the sign-out finishes (sign-in page) or asks about unsent changes: a later page load must not cut it short
+  await expect(this.page.getByTestId('signin-google').or(this.page.getByRole('dialog'))).toBeVisible();
 });
 
 When('they sign in with Google again', async function (this: World) {
