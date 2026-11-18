@@ -55,6 +55,20 @@ describe('TasksCalendar (per-person tasks calendar)', () => {
     expect(prefs.tasksCalendarId('p1')).toBe(ids[0]);
   });
 
+  it('a read that starts a lookup between a write\'s lookup and its creation does not make the write use the lookup\'s null', async () => {
+    prefs.setTasksChoice('p1', 'on');
+    const tasks = new TasksCalendar(mock, prefs, 'p1');
+    const choice = prefs.tasksChoice.bind(prefs);
+    let read: Promise<string | null> | null = null;
+    // runs after the write's own lookup found nothing and before it creates
+    vi.spyOn(prefs, 'tasksChoice').mockImplementation((sub) => { read ??= tasks.find(); return choice(sub); });
+    const id = await tasks.id();
+    expect(typeof id).toBe('string');
+    expect(id).toBeTruthy();
+    expect(tasksCalendars()).toHaveLength(1);
+    await read;
+  });
+
   it('creates a new calendar when the stored one was deleted in Google', async () => {
     prefs.setTasksChoice('p1', 'on');
     prefs.setTasksCalendarId('p1', 'gone@group.calendar.google.com');

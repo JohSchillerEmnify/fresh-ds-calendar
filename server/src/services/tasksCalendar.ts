@@ -16,6 +16,7 @@ const tasksOff = () => new ApiException('CONFLICT', 409, 'Task lists are off: tu
  */
 export class TasksCalendar {
   private pending: Promise<string | null> | null = null;
+  private creating: Promise<string> | null = null;
   private known: string | null = null;
 
   constructor(
@@ -83,7 +84,7 @@ export class TasksCalendar {
 
   private async create(): Promise<string> {
     // two writers right after the confirmation share one creation
-    this.pending ??= (async () => {
+    this.creating ??= (async () => {
       const cal = await this.provider.insertCalendar(TASKS_CALENDAR_SUMMARY);
       // the API call only asks Google's list to leave the calendar out; whether Google's apps show it is Google's choice
       await this.provider.setCalendarHidden(cal.id, true);
@@ -91,7 +92,7 @@ export class TasksCalendar {
       this.prefs.setTasksCalendarId(this.sub, cal.id);
       this.known = cal.id;
       return cal.id;
-    })().finally(() => { this.pending = null; });
-    return (await this.pending)!;
+    })().finally(() => { this.creating = null; });
+    return this.creating;
   }
 }

@@ -5,6 +5,7 @@
  */
 export default {
   noCategory: 'No category',
+  off: 'Task lists are off. Turn them on first.',
   consent: {
     title: 'Turn on task lists?',
     body: 'Task lists are kept in an extra calendar that the app adds to your Google account. It holds only your task lists. You can hide or delete it in Google Calendar (deleting it deletes your task lists).',
