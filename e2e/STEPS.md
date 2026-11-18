@@ -2442,7 +2442,6 @@ the support cat is gone within {int} ms
 
 ```
 task lists have not been turned on or off yet
-task lists have been turned off
 I see the task lists question
 I do not see the task lists question
 the task lists question says {string}
@@ -2454,13 +2453,17 @@ the create menu does not offer task lists
 the view switcher offers {string}
 the open tasks tray is not on the screen
 I tap the switch {string} in the settings
+I open the create menu
+I close the create menu
 the calendar list, the items of a week, the change feed and every task list list are read
 a task list is saved
+the person answers {string}
+task lists stay on and the calendar is untouched
 it is refused and Google has no calendar {string}
 ```
 
-- Scenarios are `@backlog` until these steps are implemented (follow-up of issue 167); the server rules are proven by the `@unit` scenarios.
-- "have not been turned on or off yet" = `POST /api/__test/tasks-choice { choice: 'ask' }`; "turned off" = `{ choice: 'off' }` (API.md). Both are Given steps; reset makes every person confirmed again.
+- "I open/close the create menu" = the create button / Escape. The region `task lists question` is `tasks-consent` (visual steps).
+- "have not been turned on or off yet" = `POST /api/__test/tasks-choice { choice: 'ask' }` (API.md). Both are Given steps; reset makes every person confirmed again.
 
 ## Tasks calendar (`@tasks-calendar`)
 

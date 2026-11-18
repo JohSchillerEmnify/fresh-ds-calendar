@@ -17,7 +17,6 @@ Feature: Task lists are turned on once, after the person agrees
     Given the calendar is empty
     And today is 2026-10-12
 
-  @backlog
   Scenario: A new person is asked right after signing in, and nothing is added to Google yet
     Given "anna@example.com" may use the calendar
     And task lists have not been turned on or off yet
@@ -25,7 +24,6 @@ Feature: Task lists are turned on once, after the person agrees
     Then I see the task lists question
     And Google has no calendar "Calendar app: tasks"
 
-  @backlog
   Scenario: The question explains the extra calendar
     Given task lists have not been turned on or off yet
     When I open the week view for 2026-10-12
@@ -35,7 +33,6 @@ Feature: Task lists are turned on once, after the person agrees
     And the task lists question says "You can turn task lists on later in Settings."
     And the task lists question offers "Not now" and "Turn on"
 
-  @backlog
   Scenario: The question is in German for a German browser
     Given the browser language is "de-DE"
     And task lists have not been turned on or off yet
@@ -45,7 +42,6 @@ Feature: Task lists are turned on once, after the person agrees
     And the task lists question says "Du kannst sie später in den Einstellungen einschalten."
     And the task lists question offers "Nicht jetzt" and "Einschalten"
 
-  @backlog
   Scenario: "Turn on" adds the calendar once and task lists work
     Given task lists have not been turned on or off yet
     When I open the week view for 2026-10-12
@@ -56,7 +52,6 @@ Feature: Task lists are turned on once, after the person agrees
     Then Google has a hidden calendar "Calendar app: tasks" with the event "Groceries"
     And Google has exactly one calendar "Calendar app: tasks"
 
-  @backlog
   Scenario: "Not now" adds nothing, turns task lists off and the question does not come back
     Given task lists have not been turned on or off yet
     When I open the week view for 2026-10-12
@@ -70,17 +65,13 @@ Feature: Task lists are turned on once, after the person agrees
     Then I do not see the task lists question
     And Google has no calendar "Calendar app: tasks"
 
-  @backlog
-  Scenario: Task lists that exist are not shown while task lists are off
-    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
-      | item | done |
-      | Milk | no   |
-    And task lists have been turned off
-    When I open the week view for 2026-10-12
-    Then I do not see the task list "Groceries"
-    And I do not see the task lists question
+  # unit: server/test/tasksCalendar.test.ts:a person with the calendar already is never asked, and declining does not take it away
+  @unit
+  Scenario: Someone who has the calendar cannot end up with task lists off
+    Given Google has a hidden calendar "Calendar app: tasks"
+    When the person answers "Not now"
+    Then task lists stay on and the calendar is untouched
 
-  @backlog
   Scenario: Settings > Task lists turns them on later with the same question
     Given task lists have not been turned on or off yet
     When I open the week view for 2026-10-12
@@ -97,7 +88,6 @@ Feature: Task lists are turned on once, after the person agrees
     Then the create menu offers task lists
     And the view switcher offers "Tasks"
 
-  @backlog
   Scenario: Someone who already has the calendar keeps task lists and is never asked
     Given Google has a hidden calendar "Calendar app: tasks"
     And task lists have not been turned on or off yet
@@ -107,7 +97,6 @@ Feature: Task lists are turned on once, after the person agrees
     And the view switcher offers "Tasks"
     And Google has exactly one calendar "Calendar app: tasks"
 
-  @backlog
   Scenario: The answer holds offline
     Given task lists have not been turned on or off yet
     When I have seen the week view for 2026-10-12
@@ -117,6 +106,26 @@ Feature: Task lists are turned on once, after the person agrees
     And I open the app again
     Then I do not see the task lists question
     And the create menu does not offer task lists
+
+  @visual @mobile
+  Scenario Outline: The question, the Settings switch and the create menu look right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And task lists have not been turned on or off yet
+    When I open the week view for 2026-10-12
+    Then no text in the "task lists question" is clipped
+    And the "task lists question" still looks like "tasks-consent-<scheme>"
+    When I choose "Not now" in the task lists question
+    And I open the create menu
+    Then the "event dialog" still looks like "tasks-off-create-<scheme>"
+    When I close the create menu
+    And I open the settings
+    And I open the settings group "Task lists"
+    Then the "settings page" still looks like "tasks-off-settings-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
 
   # unit: server/test/tasksCalendar.test.ts:reads never create the calendar: the calendar list, items, change feed and every task list read leave Google alone
   @unit

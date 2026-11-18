@@ -34,6 +34,7 @@ function region(w: World, name: string): Locator {
     case 'plant card': return w.byTestId('plant-card');
     case 'place suggestions': return w.byTestId('place-suggestions');
     case 'check-in message': return w.byTestId('streak-message');
+    case 'task lists question': return w.byTestId('tasks-consent');
     case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }
