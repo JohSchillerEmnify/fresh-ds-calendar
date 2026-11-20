@@ -250,6 +250,37 @@ Feature: The calendar's states look right
       | light  |
       | dark   |
 
+  # Issue 177: one form for a new and for an existing list
+  @visual
+  Scenario Outline: The task list form of a new and of an existing list look right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And tapping a task list opens the list sheet
+    And the calendar contains a task list "Packing" on 2026-10-12 at 18:00 for 45 minutes with items:
+      | item     | done |
+      | Passport | yes  |
+      | Charger  | no   |
+      | Plug     | no   |
+    When I open the day view for 2026-10-12
+    And I start creating a task list
+    Then no text in the "list form" is clipped
+    And the "list form" still looks like "tasklist-form-new-<scheme>"
+    When I cancel the task list dialog
+    And I tap the task list "Packing"
+    And I edit the task list details
+    And I type the items:
+      """
+      Passport
+      Charger
+        Plug
+      """
+    Then no text in the "list form" is clipped
+    And the "list form" still looks like "tasklist-form-edit-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   @visual
   Scenario: The template pill grows into the template menu, and a pick fills the form
     Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"

@@ -175,7 +175,12 @@ export function writes(s: OutboxState) {
       return localTaskList(id, input);
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
-    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean, level?: number): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text }),
+    /** Returns the new item's id. */
+    addItem(listId: string, text: string, scope?: ChangeScope, done?: boolean, level?: number): string {
+      const itemId = newItemId();
+      add(s, { op: 'item.add', id: listId, itemId, title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text });
+      return itemId;
+    },
     /** A handwritten item at the end of the list; returns its id. */
     addInkItem(listId: string, strokes: InkStroke[]): string {
       const itemId = newItemId();
@@ -235,7 +240,7 @@ function showAnswer(s: OutboxState, c: Change, id: string, result: CalendarItem)
   if (shown) items().upsert(shown);
   const series = result.kind === 'tasklist' ? result.seriesId : undefined;
   if (c.op === 'list.create' && series) items().noteSeries(result.id, series);
-  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && c.scope === 'following')) ports.resync?.();
+  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && (c.scope === 'following' || c.patch.recurrence))) ports.resync?.();
 }
 
 /** An entry reached the server: it leaves the outbox and the server's version replaces the device copy. */

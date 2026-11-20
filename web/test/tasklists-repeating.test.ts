@@ -307,9 +307,9 @@ describe('the task list form on a repeating list', () => {
     expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=following']);
   });
 
-  it('only items typed: they are added with scope=following, and no change of the list itself is sent', async () => {
+  it('only a line added to the items: it is added with scope=following, and no change of the list itself is sent', async () => {
     const m = await form(week(), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
-    await setField('tasklist-items', 'Mirror');
+    await setField('tasklist-items', 'Sink\nFloor\nMirror');
     q(tid('tasklist-save'))!.click();
     await flushPromises();
     await choose('following');

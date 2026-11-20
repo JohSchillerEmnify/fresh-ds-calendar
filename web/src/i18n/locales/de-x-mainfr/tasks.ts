@@ -102,7 +102,6 @@ export default {
     estimate: 'Wie lang des dauert, in Minuten (kann, muss ned)',
     category: 'Kategorie',
     items: 'Einträge (aner pro Zeile)',
-    addItems: 'Einträge dazu (aner pro Zeile)',
     repeat: 'Wiederholung',
     repeatNone: 'Wiederholt sich ned',
     daily: 'Täglich',

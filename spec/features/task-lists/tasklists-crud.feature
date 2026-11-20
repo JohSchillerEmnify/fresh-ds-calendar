@@ -442,12 +442,12 @@ Feature: Creating, editing and deleting task lists
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
     When I open the day view for 2026-10-14
     And I start creating a task list
-    Then the task list dialog shows the Event / Task list switch
+    Then the task list dialog shows the kind switch
     And the task list dialog does not offer "Delete"
     When I cancel the task list dialog
     And I expand the task list "Ideas"
     And I edit the task list details
-    Then the task list dialog shows no Event / Task list switch
+    Then the task list dialog shows no kind switch
     And the task list dialog offers "Delete"
 
   Scenario: Editing fills the form with what the task list has

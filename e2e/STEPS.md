@@ -290,8 +290,8 @@ the task list dialog shows the error {string}
 the task list form shows:
 the task list form starts with the fields {string}
 the task list dialog is titled {string}
-the task list dialog shows the Event / Task list switch
-the task list dialog shows no Event / Task list switch
+the task list dialog shows the kind switch
+the task list dialog shows no kind switch
 the task list dialog offers {string}
 the task list dialog does not offer {string}
 the item line {string} of the task list form is indented
