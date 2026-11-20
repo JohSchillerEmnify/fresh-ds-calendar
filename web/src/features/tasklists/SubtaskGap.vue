@@ -10,7 +10,7 @@ defineProps<{ aim: DropAim; lines: SubtaskLines }>();
 <template>
   <li class="gap" data-testid="tasklist-drop-gap" :data-level="aim.level" :style="{ top: `${aim.top}px`, height: `${aim.height}px`, '--lvl': aim.level }" aria-hidden="true">
     <i v-for="ln in gapLines(aim.level, lines)" :key="`${ln.kind}${ln.col}`" class="ln" :class="`ln-${ln.kind}`" :data-end="ln.end" :style="{ '--col': ln.col }" />
-    <span class="gap-box" />
+    <span class="gap-box" data-testid="tasklist-drop-gap-box" />
   </li>
 </template>
 

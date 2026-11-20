@@ -36,6 +36,9 @@ function freezeSheet(row: HTMLElement): () => void {
   return () => {};
 }
 
+/** A drop target's key holds the place and the level, so a new level alone re-draws the gap. */
+const KEY_LEVELS = 4;
+
 /** Sideways distance (px) of one level: a row is moved one level by dragging it this far (the indent in `TaskListView`). */
 const LEVEL_PX = 28;
 /** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
@@ -83,7 +86,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
   /** Layout places of the rows: their rects without the shift the other rows carry to make room. */
   const layoutSpans = (rows: HTMLElement[]) => rows.map((r) => { const b = r.getBoundingClientRect(), s = shiftOf(r); return { top: b.top - s, bottom: b.bottom - s }; });
 
-  /** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
+/** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
   let held: { row: HTMLElement; to: number; own: () => { top: number; bottom: number } } | null = null;
 
   /** Moves the rows other than `lifted` so that a gap opens at place `to` (null: everything back). */
@@ -148,11 +151,11 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         const p = placeBlock(o.items(), id, hovered, wanted);
         if (!p) return null;
         chosen = { to: hovered, wanted, level: p.level };
-        // the gap opens where the block lands: after row `p.after`
+        // the gap opens where the block lands: after row `p.after`; the card keeps its column (only the gap indents)
         const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
         const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
-        return { key: to, dx: (p.level - own) * step, dy: slotOffset(fromPickup, from, to) };
+        return { key: to * KEY_LEVELS + p.level, dx: 0, dy: slotOffset(fromPickup, from, to) };
       },
       onDrop: () => {
         const id = row.dataset.itemId;
@@ -162,8 +165,8 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
-        held = t ? { row, to: t.key, own: ownSpan } : null;
-        if (t) makeRoom(row, t.key, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
+        held = t ? { row, to: Math.floor(t.key / KEY_LEVELS), own: ownSpan } : null;
+        if (t) makeRoom(row, held!.to, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
         const ul = o.root.value?.querySelector<HTMLElement>('ul');
         aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level } : null;
       },
