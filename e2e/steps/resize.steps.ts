@@ -87,6 +87,10 @@ When('I drag the top handle of {string} up by {int} minutes', async function (th
 When('I hold the end handle of {string} at {time}', async function (this: World, title: string, time: string) {
   await dragHandle(this, title, 'bottom', await toEnd(this, title, time), true);
 });
+When('I hold the start handle of {string} at {time}', async function (this: World, title: string, time: string) {
+  const start = (await entry(this, title).getAttribute('data-start-time'))!;
+  await dragHandle(this, title, 'top', minutesOf(time) - minutesOf(start), true);
+});
 When('I drag the end handle of {string} to {time} in the day view', async function (this: World, title: string, time: string) {
   await dragHandle(this, title, 'bottom', await toEnd(this, title, time));
 });
