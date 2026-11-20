@@ -12,6 +12,8 @@ Given(
     // Install the fake browser clock before the page opens, then pause it: app timers advance only via "N minutes pass".
     await this.page.clock.install({ time: epoch });
     await this.page.clock.pauseAt(epoch + 1);
+    // The check-in message lies over the bottom of the screen for 4 s of the app's clock, which now stands still: dismiss it when it blocks a click.
+    await this.page.addLocatorHandler(this.page.getByTestId('streak-message-dismiss'), (dismiss) => dismiss.click());
   },
 );
 

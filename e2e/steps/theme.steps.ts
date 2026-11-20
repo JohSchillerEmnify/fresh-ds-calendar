@@ -89,6 +89,8 @@ Then('the task list {string} has a text contrast ratio of at least {float}', asy
 
 Then('pressing the create button shows a state layer', async function (this: World) {
   const button = this.page.getByTestId('create-button');
+  // the check-in message lies over the create button for 4 s; this step is about the state layer
+  await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   const b = await button.boundingBox();
   if (!b) throw new Error('create-button not visible');
   await this.page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
