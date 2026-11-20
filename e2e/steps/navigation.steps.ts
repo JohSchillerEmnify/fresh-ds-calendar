@@ -96,6 +96,9 @@ Then('the {view} view is shown', async function (this: World, view: View) {
 });
 
 Then('the URL path is {string}', async function (this: World, path: string) {
+  const noted = this.heldPath;
+  this.heldPath = undefined;
+  if (noted === path) return; // the path as an edge hold ended (dnd.steps.ts noteAt)
   await expect.poll(() => pathname(this.page)).toBe(path);
 });
 

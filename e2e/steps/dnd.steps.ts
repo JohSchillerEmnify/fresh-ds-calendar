@@ -388,10 +388,28 @@ When('I swipe up quickly starting on the event {string}', async function (this: 
   await chip.scrollIntoViewIfNeeded();
   this.gridScrollBefore = await gridScrollTop(this);
   const from = await grabPoint(this, chip);
-  const f = await fingerDown(this, from, 0);
-  await f.move({ x: from.x, y: from.y - 240 }, 8, 150);
-  await f.up();
+  await quickSwipe(this, from, { x: from.x, y: from.y - 240 }, 8, 150);
 });
+
+/**
+ * Down, moves and up in one go that the test side cannot stretch: a finger resting 500 ms before its first move is a
+ * long press, so a test process starved for that long between two commands would lift the card.
+ */
+async function quickSwipe(w: World, from: Point, to: Point, steps: number, ms: number) {
+  if (useIosModel(w)) {
+    await iosFinger(w.page).swipe(from, to, steps, ms);
+    return;
+  }
+  const cdp = await w.context.newCDPSession(w.page);
+  const t0 = Date.now() / 1000;
+  const send = (type: 'touchStart' | 'touchMove' | 'touchEnd', p: Point | null, i: number) => cdp.send('Input.dispatchTouchEvent', {
+    type, touchPoints: p ? [{ x: Math.round(p.x), y: Math.round(p.y), id: 1 }] : [], timestamp: t0 + (i * ms) / steps / 1000,
+  });
+  const at = (i: number) => ({ x: from.x + ((to.x - from.x) * i) / steps, y: from.y + ((to.y - from.y) * i) / steps });
+  // all commands are sent without waiting for an answer; the event time stamps keep the finger's speed
+  await Promise.all([send('touchStart', from, 0), ...Array.from({ length: steps }, (_, k) => send('touchMove', at(k + 1), k + 1)), send('touchEnd', null, steps)]);
+  await cdp.detach().catch(() => {});
+}
 
 Then('the time grid has scrolled down', async function (this: World) {
   await expect.poll(async () => (await gridScrollTop(this)) - (this.gridScrollBefore ?? 0), { message: 'scrolled by at least 40 px' }).toBeGreaterThanOrEqual(40);
@@ -435,24 +453,53 @@ async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Poin
   w.heldMiddle = { x: (e.left + e.right) / 2, y: sc.y + sc.height / 2 };
   // an edge hold stops `approach` px short of the zone first, then enters it in one move: the hold counts from there
   const near = { x: dest.x - approach, y: dest.y };
+  let sampling: Promise<void> | undefined;
   if (useTouch(w)) {
     const f = await fingerDown(w, from, 500);
     await f.move(near, 10, 300);
+    sampling = armSample(w, ms, approach);
+    sampling?.catch(() => {});
     if (approach) await f.move(dest, 1, 0);
     w.heldMove = (p, steps, t) => f.move(p, steps, t);
-    w.held = async () => { await f.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+    w.held = async () => { await f.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; w.heldPath = w.heldBand = w.heldMs = undefined; };
   } else {
     const { mouse } = w.page;
     await mouse.move(from.x, from.y);
     await mouse.down();
     await mouse.move(near.x, near.y, { steps: 10 });
+    sampling = armSample(w, ms, approach);
+    sampling?.catch(() => {});
     if (approach) await mouse.move(dest.x, dest.y);
     let at = dest;
     w.heldMove = async (p, steps) => { await mouse.move(p.x, p.y, { steps }); at = p; };
-    w.held = async () => { await mouse.move(at.x, at.y); await mouse.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+    w.held = async () => { await mouse.move(at.x, at.y); await mouse.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; w.heldPath = w.heldBand = w.heldMs = undefined; };
   }
   w.heldAt = dest;
-  await w.page.waitForTimeout(ms);
+  if (sampling) await sampling;
+  else await w.page.waitForTimeout(ms);
+}
+
+/**
+ * Page-side clock of an edge hold: the page itself waits until `after` ms past the moment the pointer enters the zone
+ * (`anchored` false: now, and remembers it) and notes the URL path and the edge band then. The steps that check "still
+ * on this day" judge that moment, not the moment a slow test process gets round to look (the view turns 600 ms after
+ * entering); and timers of the test process, which run late under load, do not add up over the hold's steps.
+ */
+function noteAt(w: World, after: number, anchored: boolean): Promise<void> {
+  return w.page.evaluate(([wait, anchor]) => new Promise<{ path: string; band: string | null }>((resolve) => {
+    const win = window as unknown as { __edgeHoldT0: number };
+    if (!anchor) win.__edgeHoldT0 = performance.now();
+    setTimeout(() => resolve({ path: location.pathname, band: document.querySelector('[data-testid="drag-edge-band"]')?.textContent ?? null }),
+      Math.max(0, win.__edgeHoldT0 + wait - performance.now()));
+  }), [after, anchored] as const).then((r) => { w.heldPath = r.path; w.heldBand = r.band; });
+}
+
+/** Starts the page-side clock just before the pointer moves into an edge zone (see noteAt). */
+function armSample(w: World, ms: number, approach: number): Promise<void> | undefined {
+  w.heldPath = w.heldBand = w.heldMs = undefined;
+  if (!approach || !ms) return undefined;
+  w.heldMs = ms;
+  return noteAt(w, ms, false);
 }
 
 /** Presses and holds a task list's card in the grid until it is lifted, then moves 10 px so the drag starts; the pointer stays down. */
@@ -554,10 +601,15 @@ Then('the drop indicator shows no time', async function (this: World) {
 
 When('I keep holding the dragged item for {int} ms', async function (this: World, ms: number) {
   if (!this.held) throw new Error('nothing is held');
-  await this.page.waitForTimeout(ms);
+  if (this.heldMs === undefined) return void (await this.page.waitForTimeout(ms));
+  this.heldMs += ms;
+  await noteAt(this, this.heldMs, true);
 });
 
 Then('the edge band says {string}', async function (this: World, text: string) {
+  const noted = this.heldBand;
+  this.heldBand = undefined;
+  if (noted === text) return; // the band as the hold ended (see noteAt)
   await expect(this.page.getByTestId('drag-edge-band')).toHaveText(text);
 });
 
