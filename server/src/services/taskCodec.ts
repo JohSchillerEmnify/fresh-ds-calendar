@@ -30,6 +30,8 @@ export interface TaskListData {
   createdOn?: string | null;
   /** The note's place on the Canvas (`cx`, `cy`); null = none yet. */
   canvas: CanvasPlace | null;
+  /** On a repeating list: the date of its first list; every part of a split list carries it. Absent on lists made before it was stored. */
+  seriesSince?: string | null;
 }
 
 const isFinished = (items: TaskItem[]): boolean => items.length > 0 && items.every((i) => i.done);
@@ -104,6 +106,7 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     recurrence: d.recurrence,
     completedOn: d.completedOn,
     createdOn: d.createdOn ?? null,
+    since: d.recurrence ? d.seriesSince ?? null : null,
     // the marker the Archive reads with `privateExtendedProperty=done=1`; derived from the items so it cannot disagree
     done: isFinished(d.items) ? '1' : null,
     cx: d.canvas ? String(d.canvas.x) : null,
@@ -255,6 +258,7 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
     recurrence,
     completedOn: isoDay(p.completedOn),
     createdOn: isoDay(p.createdOn),
+    seriesSince: isoDay(p.since),
     canvas: readCanvas(p),
   };
 }

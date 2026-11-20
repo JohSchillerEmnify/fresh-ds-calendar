@@ -48,7 +48,7 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
     return c.json(list, 201);
   });
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
-  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c))));
+  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c, true))));
   r.delete('/tasklists/:id', async (c) => {
     const before = await cal(c).getTaskList(c.req.param('id'));
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));

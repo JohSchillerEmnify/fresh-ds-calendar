@@ -26,12 +26,14 @@ function dateParam(c: Context, name: string): string {
   return v;
 }
 
-/** `?scope=` of a task list change: `following` = this and all later occurrences of a repeating list (feature tasklist-repeating); absent or `this` = the given id. */
-export function scopeOf(c: Context): Scope {
+/** `?scope=` of a task list change: `following` = this and all later occurrences of a repeating list, `all` = the whole list (only for its rhythm; feature tasklist-repeating); absent or `this` = the given id. */
+export function scopeOf(c: Context, allowAll = false): Scope {
   const v = c.req.query('scope');
   if (v === undefined || v === 'this') return undefined;
   if (v === 'following') return 'following';
-  throw validation('scope must be this or following', 'scope');
+  // `all` (the whole series) is only a way to change how a list repeats
+  if (v === 'all' && allowAll) return 'all';
+  throw validation(allowAll ? 'scope must be this, following or all' : 'scope must be this or following', 'scope');
 }
 
 function checkRange(from: string, to: string, maxDays: number, field: string): { from: string; to: string } {
