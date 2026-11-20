@@ -681,8 +681,7 @@ they sign out anyway
   signed out or on the sign-in page; "keeps no unsent changes": it holds none.
 - "N minutes pass" (existing, timeline) and "1 minute passes": with "the clock is running" the page's clock (Playwright `page.clock`) and the
   server-side test clock move on by N minutes; with the server's time frozen (the offline scenarios) only the page's own `Date.now` jumps
-  (the app counts device time for the 5 minute rule); timers run in real time. The clock-running step also dismisses the check-in message
-  when it blocks a click, so such scenarios must not assert that message.
+  (the app counts device time for the 5 minute rule); timers run in real time.
 - "I see/do not see the sync failed icon": `sync-failed-icon` is visible / not in the page. It shows when no send or sync
   has succeeded for 5 minutes and goes at the next successful send or sync. "I tap the sync failed icon" opens its sheet.
   "told the last successful sync was at T": `sync-failed-last` ends with T. "the unsent changes list shows X": one
@@ -1468,6 +1467,7 @@ the browser did not take the touch over for scrolling
 I checked in on {datelist}
 the streak shows {int}
 I see the streak message {string}
+I tap where the streak message is
 I do not see a streak message
 the best streak in settings is {int}
 the plant has {int} growth points and was last watered on {date}
@@ -1485,7 +1485,8 @@ the plant card shows {string}
 - `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
 - `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
   lastWatered: D, todayPoints: 0 } }`.
-- Streak: `streak-flame` text content = count; message = `streak-message` (a snackbar, its text in `snackbar-text`, auto-hides after 4 s).
+- "I tap where the streak message is": a mouse click at the centre of `streak-message`'s box (the tap must reach what lies under it, a month cell, which opens its day).
+- Streak: `streak-flame` text content = count; message = `streak-message` (a small note near the top that lets taps through, auto-hides after 4 s).
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```

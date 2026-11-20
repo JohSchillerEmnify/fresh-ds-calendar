@@ -1,7 +1,7 @@
 /** Subtask steps (feature tasklist-subtasks; STEPS.md "Subtasks"). */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { checkInMessageGone, dragItem, expandTaskList, itemById } from './support/tasklist.js';
+import { dragItem, expandTaskList, itemById } from './support/tasklist.js';
 import { box } from './support/ui.js';
 import { leaveSettings, settingControl } from './support/settings.js';
 import { attr, type World } from './support/world.js';
@@ -40,7 +40,6 @@ When('I drag the item {string} below the item {string}', async function (this: W
 const rightEdgeBefore = new WeakMap<World, number>();
 
 When('I hold the item {string} {word} step(s) to the {word}', async function (this: World, title: string, n: string, dir: string) {
-  await checkInMessageGone(this);
   const row = await itemById(this, title);
   await row.scrollIntoViewIfNeeded();
   const grip = await box(row.getByTestId('tasklist-item-grip'));

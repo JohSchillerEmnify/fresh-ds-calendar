@@ -19,9 +19,9 @@ describe('overlays, toasts and suggestion lists are kit parts', () => {
     expect(tpl).toContain('<ListItem');
     expect(tpl).not.toMatch(/<div[^>]*role="option"/);
   });
-  it('the streak message is a kit snackbar, not its own toast', () => {
-    expect(template('features/motivation/StreakToast.vue')).not.toMatch(/role="status"|snack-skin/);
-    expect(src('features/motivation/StreakToast.vue')).toContain('ui.notify(');
+  it('the streak message is a small note near the top in the snackbar look that lets taps through', () => {
+    expect(template('features/motivation/StreakToast.vue')).toContain('snack-skin');
+    expect(src('features/motivation/StreakToast.vue')).toMatch(/pointer-events: none/);
   });
 });
 
