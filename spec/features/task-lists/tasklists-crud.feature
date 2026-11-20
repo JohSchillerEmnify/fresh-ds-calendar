@@ -337,3 +337,50 @@ Feature: Creating, editing and deleting task lists
     And I cancel the task list dialog
     And I click the time slot 15:00 on 2026-10-14
     Then the new dialog opens as "Task list"
+
+  # One form for creating and editing (issue 177): the same fields in the same order, prefilled when editing. Only the
+  # sheet's title differs ("New task list" / "Edit task list").
+  @backlog
+  Scenario: Creating and editing a task list show the same fields in the same order
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items"
+    When I cancel the task list dialog
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items"
+
+  @backlog
+  Scenario: The sheet is titled "New task list" when creating and "Edit task list" when editing
+    Given the calendar contains an empty task list "Ideas" on 2026-10-14
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    Then the task list dialog is titled "New task list"
+    When I cancel the task list dialog
+    And I expand the task list "Ideas"
+    And I edit the task list details
+    Then the task list dialog is titled "Edit task list"
+
+  @backlog
+  Scenario: Editing fills the form with what the task list has
+    Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 for 45 minutes with items:
+      | item     | done |
+      | Passport | no   |
+    When I open the week view for 2026-10-12
+    And I expand the task list "Packing"
+    And I edit the task list details
+    Then the task list form shows:
+      | title    | Packing    |
+      | date     | 2026-10-15 |
+      | time     | 18:00      |
+      | estimate | 45         |
+
+  @backlog
+  Scenario: The new task list form has the "Share with" field of the edit form
+    Given "jo@example.com", "anna@example.com" and "bob@example.com" may use the calendar
+    And "jo@example.com" is signed in
+    When I open "Share with" in the new task list form
+    Then I can share only with "anna@example.com, bob@example.com"

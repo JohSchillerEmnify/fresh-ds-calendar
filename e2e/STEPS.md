@@ -288,6 +288,8 @@ the task list dialog is open
 the task list dialog is closed
 the task list dialog shows the error {string}
 the task list form shows:
+the task list form starts with the fields {string}
+the task list dialog is titled {string}
 I see the task list {string} on {date}
 I do not see the task list {string}
 the task list {string} shows the done count {string}
@@ -3098,6 +3100,7 @@ I delete the shared task list {string}
 {string} is offered to leave the list, not to delete it
 {string} has never signed in
 I open "Share with" for the task list {string}
+I open "Share with" in the new task list form
 I can share only with {string}
 ```
 
@@ -3125,6 +3128,8 @@ I can share only with {string}
 - "the task list T in the Tasks view is shared with I": the `tasks-item` T contains `tasklist-shared-badge` whose text
   is I (the other person's initial).
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
+- "the task list form starts with the fields L" (comma-separated field labels): the first fields of the open task list form (`tasklist-dialog`, in document order) are exactly these; the same form for creating and editing (issue 177). "the task list dialog is titled T": the sheet's heading reads T.
+- "I open \"Share with\" in the new task list form": opens the new task list dialog and `tasklist-share-person` (one form for creating and editing, issue 177). "I can share only with P" may name several people, `, `-separated.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
 
