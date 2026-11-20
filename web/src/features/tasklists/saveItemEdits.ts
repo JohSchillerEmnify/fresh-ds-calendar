@@ -6,10 +6,7 @@ import { useOutboxStore } from '@/stores/outbox';
 import { finalOrder, type ItemLine, type ItemPlan } from './itemEdits';
 import { addItem, patchItem, removeItem } from './ops';
 
-/**
- * `plan` was made against `seen`, the items when the form was opened; `list` is the list now. Only items of `seen` are removed or renamed
- * (when still there), and items that appeared since stay, after the others. A removed task leaves its subtasks; the order and levels go last.
- */
+/** `plan` was made against `seen` (the items when the form opened): only those are removed or renamed, newer items stay after the others; order and levels go last. */
 export function saveItemEdits(list: TaskList, seen: readonly TaskItem[], lines: readonly ItemLine[], plan: ItemPlan, ink: readonly InkStroke[][], scope?: ChangeScope): void {
   const outbox = useOutboxStore();
   const live = new Set(list.items.map((i) => i.id));

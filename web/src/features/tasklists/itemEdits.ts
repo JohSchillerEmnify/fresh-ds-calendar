@@ -44,10 +44,7 @@ function likeness(a: string, b: string): number {
   return row[y.length]! / Math.max(x.length, y.length, 1);
 }
 
-/**
- * Which item each line belongs to: equal titles stay together, also when a line moved; the lines and items that are left
- * pair up as renames, each line with the most alike item of its gap (in order when none is alike); `replaceAll` keeps nothing.
- */
+/** Which item each line belongs to: equal titles stay together, also when moved; the rest pair up as renames, most alike first; `replaceAll` keeps nothing. */
 export function planItemEdits(existing: readonly TaskItem[], lines: readonly ItemLine[], replaceAll = false): ItemPlan {
   const text = existing.filter((i) => !i.ink);
   const keptBy = new Array<number>(lines.length).fill(-1);
