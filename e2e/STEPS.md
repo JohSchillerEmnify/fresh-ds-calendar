@@ -681,8 +681,7 @@ they sign out anyway
   signed out or on the sign-in page; "keeps no unsent changes": it holds none.
 - "N minutes pass" (existing, timeline) and "1 minute passes": with "the clock is running" the page's clock (Playwright `page.clock`) and the
   server-side test clock move on by N minutes; with the server's time frozen (the offline scenarios) only the page's own `Date.now` jumps
-  (the app counts device time for the 5 minute rule); timers run in real time. The clock-running step also dismisses the check-in message
-  when it blocks a click, so such scenarios must not assert that message.
+  (the app counts device time for the 5 minute rule); timers run in real time.
 - "I see/do not see the sync failed icon": `sync-failed-icon` is visible / not in the page. It shows when no send or sync
   has succeeded for 5 minutes and goes at the next successful send or sync. "I tap the sync failed icon" opens its sheet.
   "told the last successful sync was at T": `sync-failed-last` ends with T. "the unsent changes list shows X": one
@@ -1485,7 +1484,7 @@ the plant card shows {string}
 - `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
 - `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
   lastWatered: D, todayPoints: 0 } }`.
-- Streak: `streak-flame` text content = count; message = `streak-message` (a snackbar, its text in `snackbar-text`, auto-hides after 4 s).
+- Streak: `streak-flame` text content = count; message = `streak-message` (a small note near the top that lets taps through, auto-hides after 4 s).
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```
@@ -2456,6 +2455,7 @@ the view switcher offers {string}
 the open tasks tray is not on the screen
 I tap the switch {string} in the settings
 I open the create menu
+I open the create menu while the streak message is shown
 I close the create menu
 the calendar list, the items of a week, the change feed and every task list list are read
 a task list is saved
@@ -2464,7 +2464,7 @@ task lists stay on and the calendar is untouched
 it is refused and Google has no calendar {string}
 ```
 
-- "I open/close the create menu" = the create button / Escape. The region `task lists question` is `tasks-consent` (visual steps).
+- "I open/close the create menu" = the create button / Escape. "... while the streak message is shown" clicks `create-button` with a 1.5 s limit (the message must not take the tap) and checks the message is still shown afterwards. The region `task lists question` is `tasks-consent` (visual steps).
 - "have not been turned on or off yet" = `POST /api/__test/tasks-choice { choice: 'ask' }` (API.md). Both are Given steps; reset makes every person confirmed again.
 
 ## Tasks calendar (`@tasks-calendar`)
