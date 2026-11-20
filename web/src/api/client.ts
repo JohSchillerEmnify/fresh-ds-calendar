@@ -366,13 +366,13 @@ export class ApiClient {
     return this.request<TaskList>('PUT', scoped(`/api/tasklists/${enc(id)}/items/order`, scope), levels ? { itemIds, levels } : { itemIds }, o);
   }
   // --- sharing (API.md "Shared task lists") -----------------------------------------------
-  /** The allowed people who signed in at least once, without the requester. */
+  /** The people this person may be offered when sharing: addresses typed before and people who share with them. */
   people(o?: RequestOptions) {
     return this.request<{ people: Person[] }>('GET', '/api/people', undefined, o);
   }
   /** Moves a list into the shared store (new id `shared:...`) or adds a member to a shared one. */
-  shareTaskList(id: string, person: string, o?: RequestOptions) {
-    return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/share`, { person }, o);
+  shareTaskList(id: string, email: string, o?: RequestOptions) {
+    return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/share`, { email }, o);
   }
   /** Owner: moves a shared list back into the owner's Google tasks calendar (new id). */
   unshareTaskList(id: string, o?: RequestOptions) {
@@ -385,9 +385,9 @@ export class ApiClient {
   categoryShares(o?: RequestOptions) {
     return this.request<{ shares: Record<string, Person> }>('GET', '/api/categories/shares', undefined, o);
   }
-  /** `person` null stops sharing the category. */
-  shareCategory(id: string, person: string | null, o?: RequestOptions) {
-    return this.request<{ shares: Record<string, Person> }>('PUT', `/api/categories/${enc(id)}/share`, { person }, o);
+  /** `email` null stops sharing the category. */
+  shareCategory(id: string, email: string | null, o?: RequestOptions) {
+    return this.request<{ shares: Record<string, Person> }>('PUT', `/api/categories/${enc(id)}/share`, { email }, o);
   }
   openTaskLists(today: LocalDate, days = 30, o?: RequestOptions) {
     const q = new URLSearchParams({ today, days: String(days) });

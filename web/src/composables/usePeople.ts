@@ -1,10 +1,10 @@
-/** The people a list or category can be shared with: the device copy, refreshed from the server when a sharing dialog opens. */
+/** The people offered when sharing (addresses typed before, people who share with this person): the device copy, refreshed from the server when a sharing dialog opens. */
 import { computed, ref, type ComputedRef } from 'vue';
 import { api } from '@/api/client';
 import type { Person } from '@/api/types';
 import { useDeviceStore } from '@/stores/device';
 
-/** The people to share with: the device copy (reactive), and `refresh`, which asks the server and keeps the answer there. */
+/** The suggestions: the device copy (reactive), and `refresh`, which asks the server and keeps the answer there. */
 export function usePeople(): { people: ComputedRef<Person[]>; refresh: () => Promise<void> } {
   const device = useDeviceStore();
   const fetched = ref<Person[]>([]);
@@ -12,7 +12,7 @@ export function usePeople(): { people: ComputedRef<Person[]>; refresh: () => Pro
   async function refresh(): Promise<void> {
     try {
       const answer = await api.people();
-      // the device copy must not stay behind a person who signed in after it was made
+      // the device copy follows the server's own list of this person's contacts
       device.putFile('people', answer);
       fetched.value = answer.people;
     } catch { /* offline: the device copy stays */ }

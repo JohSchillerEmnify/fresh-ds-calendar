@@ -295,6 +295,24 @@ Feature: The calendar's states look right
     Then no text in the "list form" is clipped
     And the "list form" still looks like "template-form-filled"
 
+  # Issue 182: "Share with" is an email field; an address that names nobody gets a neutral sentence under it
+  @visual @sharing
+  Scenario Outline: The "Share with" field and its neutral answer look right in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" and "anna@example.com" may use the calendar
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+    And "jo@example.com" is signed in
+    When I edit the task list "Groceries" in the Tasks view
+    Then the "list form" still looks like "tasklist-form-share-<scheme>"
+    When I try to share the task list "Groceries" with "stranger@example.com"
+    Then no text in the "list form" is clipped
+    And the "list form" still looks like "tasklist-form-share-neutral-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   @visual
   Scenario: Settings › Templates lists the templates with their details
     Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"

@@ -62,7 +62,7 @@ describe('what the API reports', () => {
     await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
     const jo = { cookie: await sessionCookie(t, JO) }, anna = { cookie: await sessionCookie(t, ANNA) };
     const own = (await t.json('POST', '/api/tasklists', { title: 'G', date: null, items: [] }, jo)).body;
-    const shared = (await t.json('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) }, jo)).body;
+    const shared = (await t.json('POST', `/api/tasklists/${own.id}/share`, { email: ANNA }, jo)).body;
     const both = [mockSub(JO), mockSub(ANNA)].sort();
     seen.length = 0;
     await t.json('POST', `/api/tasklists/${shared.id}/items`, { title: 'Milk' }, jo);
@@ -76,12 +76,11 @@ describe('what the API reports', () => {
     const JO = 'jo@example.com', ANNA = 'anna@example.com';
     await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
     const jo = { cookie: await sessionCookie(t, JO) };
-    // signing in for the first time is reported too (to everyone known), not part of this case
     seen.length = 0;
-    await t.json('PUT', '/api/categories/shopping/share', { person: mockSub(ANNA) }, jo);
+    await t.json('PUT', '/api/categories/shopping/share', { email: ANNA }, jo);
     expect(seen.find((e) => e.kind === 'shares')!.subs.sort()).toEqual([mockSub(JO), mockSub(ANNA)].sort());
     seen.length = 0;
-    await t.json('PUT', '/api/categories/shopping/share', { person: null }, jo);
+    await t.json('PUT', '/api/categories/shopping/share', { email: null }, jo);
     expect(seen.find((e) => e.kind === 'shares')!.subs).toContain(mockSub(ANNA));
   });
 

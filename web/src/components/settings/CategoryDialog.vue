@@ -7,10 +7,10 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
-import Select from '@/components/m3/Select.vue';
+import ShareAddressField from './ShareAddressField.vue';
+import { useAuthStore } from '@/stores/auth';
 import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
-import { usePeople } from '@/composables/usePeople';
 import { t } from '@/i18n';
 import { useDeviceStore } from '@/stores/device';
 import { useSyncStore } from '@/stores/sync';
@@ -25,35 +25,40 @@ const device = useDeviceStore();
 const name = ref(props.category?.name ?? '');
 const color = ref(props.category?.color ?? GOOGLE_COLORS[9].hex);
 const icon = ref(props.category?.icon ?? '');
-const { busy: saving, error, run: submit } = useAsyncSubmit({ onDone: () => emit('close') });
+let stayOpen = false;
+const { busy: saving, error, run: submit } = useAsyncSubmit({ onDone: () => { if (stayOpen) stayOpen = false; else emit('close'); } });
 const run = (fn: () => Promise<unknown>) => submit(fn, 'theme.categoryDialog.failed');
 const confirming = ref(false);
-/** "Share with" (feature shared-lists): who this category's lists are shared with, '' = nobody. */
-const { people, refresh: refreshPeople } = usePeople();
+/** "Share with" (feature shared-lists): the address of the person this category's lists are shared with, '' = nobody. */
+const auth = useAuthStore();
 const sharedWith = ref('');
 let sharedBefore = '';
+const shareNote = ref('');
 onMounted(async () => {
   if (!props.category) return;
-  void refreshPeople();
   try {
     const s = await device.read('categoryShares', () => api.categoryShares());
-    sharedWith.value = sharedBefore = s.shares[props.category.id]?.sub ?? '';
-  } catch { /* sharing stays hidden: nobody to pick */ }
+    sharedWith.value = sharedBefore = s.shares[props.category.id]?.email ?? '';
+  } catch { /* the field starts empty */ }
 });
-const shareOptions = computed(() => [{ value: '', label: t('sharing.category.nobody') }, ...people.value.map((p) => ({ value: p.sub, label: p.name }))]);
 const swatches = computed(() => GOOGLE_COLORS.map((c) => ({ value: c.hex, name: googleColorLabel(c), color: c.hex })));
 
 function save() {
+  shareNote.value = '';
   if (!name.value.trim()) { error.value = t('theme.categoryDialog.nameRequired'); return; }
   if (!isHexColor(color.value)) { error.value = t('theme.fine.invalidColor'); return; }
   const body = { name: name.value.trim(), color: color.value.trim().toLowerCase(), icon: icon.value.trim() || null };
   void run(async () => {
     if (!props.category) return settings.addCategory(body);
     await settings.updateCategory(props.category.id, body);
-    if (sharedWith.value === sharedBefore) return;
+    const typed = sharedWith.value.trim().toLowerCase();
+    if (typed === sharedBefore) return;
     // the lists of the category move into (out of) the shared store with new ids: the device takes in the move
-    device.putFile('categoryShares', await api.shareCategory(props.category.id, sharedWith.value || null));
+    const answer = await api.shareCategory(props.category.id, typed || null);
+    device.putFile('categoryShares', answer);
     void useSyncStore().resyncAfterWrite();
+    // an address that names nobody changes nothing: say so neutrally and keep the dialog open
+    if (typed && answer.shares[props.category.id]?.email !== typed) { shareNote.value = t('sharing.neutral'); stayOpen = true; }
   });
 }
 </script>
@@ -66,9 +71,10 @@ function save() {
       <ColorSwatchPicker :swatches="swatches" :model-value="color.toLowerCase()" :label="t('theme.categoryDialog.color')" @update:model-value="color = $event" />
       <TextField v-model="color" :label="t('theme.categoryDialog.colorHex')" data-testid="category-color" autocomplete="off" autocapitalize="off" />
       <TextField v-model="icon" :label="t('theme.categoryDialog.icon')" data-testid="category-icon" autocomplete="off" />
-      <template v-if="category && people.length">
-        <Select v-model="sharedWith" :label="t('sharing.category.label')" :options="shareOptions" data-testid="category-share-person" />
+      <template v-if="category && auth.status !== 'off'">
+        <ShareAddressField v-model="sharedWith" data-testid="category-share-person" />
         <p class="hint">{{ t('sharing.category.hint') }}</p>
+        <p v-if="shareNote" class="hint" role="status" data-testid="category-share-note">{{ shareNote }}</p>
       </template>
       <p v-if="error" class="err" role="alert" data-testid="category-error">{{ error }}</p>
       <div class="actions">

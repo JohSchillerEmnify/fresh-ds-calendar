@@ -35,7 +35,7 @@ describe('share, stop sharing and leave', () => {
       'GET /api/tasklists/open': () => ({ items: [], finishedToday: [] }),
     });
     await shareList('g1', 'anna');
-    expect(calls[0].body).toEqual({ person: 'anna' });
+    expect(calls[0].body).toEqual({ email: 'anna' });
     expect(items.get('g1')).toBeUndefined();
     expect(items.get('shared:s1')).toMatchObject({ calendarId: 'shared' });
   });

@@ -32,7 +32,7 @@ import { logCalendarShape } from './calendarShape.js';
 import { HolidayCalendars } from './holidays.js';
 import { isHolidayCalendarId } from '../providers/holidayRegions.js';
 import { TaskSeries } from './taskSeries.js';
-import { TaskSharing } from './taskSharing.js';
+import { SHARE_ANSWER_MS, TaskSharing } from './taskSharing.js';
 import { birthdayDateKey, birthdayDateLocked } from './birthday.js';
 import { ContactsSource } from './contactBirthdays.js';
 import { placeOf } from './place.js';
@@ -83,7 +83,7 @@ export class CalendarService {
     private readonly settings: SettingsStore,
     private readonly motivation: MotivationService,
     private readonly clock: Clock,
-    private readonly config: Pick<AppConfig, 'tz'>,
+    private readonly config: Pick<AppConfig, 'tz'> & { shareAnswerMs?: () => number },
     private readonly prefs: PrefsStore,
     readonly sub: string,
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
@@ -94,7 +94,7 @@ export class CalendarService {
     this.contacts = new ContactsSource(provider, contactsGranted, () => clock.real());
     this.holidays = new HolidayCalendars(provider, () => this.clock.real(), () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
-    this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, {
+    this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, () => config.shareAnswerMs?.() ?? SHARE_ANSWER_MS, {
       locateKind: (id, tasklist) => this.locateKind(id, tasklist), toSharedTaskList: (doc, color) => this.toSharedTaskList(doc, color),
       toTaskList: (ev, color, cats) => this.toTaskList(ev, color, cats), categoryInfo: (c) => this.categoryInfo(c), colorFor: (d) => this.colorFor(d),
       calendarColor: (id) => this.calendarColor(id),
@@ -659,10 +659,10 @@ export class CalendarService {
   summary(from: string, to: string): ReturnType<ItemQueries['summary']> { return this.queries.summary(from, to); }
 
   // ---------- sharing (see TaskSharing) ----------
-  shareTaskList(id: string, personSub: string): Promise<TaskList> { return this.sharing!.shareTaskList(id, personSub); }
+  shareTaskList(id: string, email: string): Promise<TaskList> { return this.sharing!.shareTaskList(id, email); }
   unshareTaskList(id: string): Promise<TaskList> { return this.sharing!.unshareTaskList(id); }
   leaveTaskList(id: string): void { this.sharing!.leaveTaskList(id); }
-  shareCategory(categoryId: string, personSub: string | null): Promise<Record<string, Person>> { return this.sharing!.shareCategory(categoryId, personSub); }
+  shareCategory(categoryId: string, email: string | null): Promise<Record<string, Person>> { return this.sharing!.shareCategory(categoryId, email); }
 
   // ---------- changes since (ADR 0025) ----------
   /**

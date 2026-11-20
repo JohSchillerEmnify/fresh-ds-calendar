@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { mockSub } from '../src/auth/people.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 let t: TestApp;
@@ -201,7 +200,7 @@ describe('ink of shared lists follows the list', () => {
     const jo = await as(JO);
     const anna = await as(ANNA);
     const own = (await jo('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] })).body;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
     const r = await anna('POST', `/api/tasklists/${shared.id}/items`, { strokes: [stroke()] });
     expect(r.status).toBe(201);
     const id = r.body.items[1].id;
@@ -238,7 +237,7 @@ describe('ink when a list is shared and shared no more', () => {
     const jo = (m: string, u: string, b?: unknown) => t.json(m, u, b, { cookie });
     const own = (await jo('POST', '/api/tasklists', { title: 'G', date: null, items: [{ title: '', strokes: [stroke()] }] })).body;
     const id = own.items[0].id;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
     await jo('DELETE', `/api/tasklists/${shared.id}/share`);
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
@@ -260,7 +259,7 @@ describe('erase marks (strokes without points) travel with the ink', () => {
     // erased as a whole: the item holds an erase mark now
     expect((await jo('PUT', `/api/tasklists/${own.id}/items/${id}/ink`, { strokes: [], base: [key(first)], at: NOW - 1000 })).status).toBe(200);
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
     // an older stroke arriving now is still dropped, a newer one kept, in the shared store
     const late = { ...stroke(2), t: NOW - 3000 }, fresh = { ...stroke(2), t: NOW - 500 };

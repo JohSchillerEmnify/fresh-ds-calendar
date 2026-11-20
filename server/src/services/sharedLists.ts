@@ -9,6 +9,7 @@ import { forbidden, notFound, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { formatInZone } from '../lib/time.js';
 import type { InkStore } from './inkStore.js';
+import { ShareContacts } from './shareContacts.js';
 import type { TaskListData } from './taskCodec.js';
 
 /** Prefix of a shared list's API id (`shared:<id>`) and its `calendarId` (feature shared-lists). */
@@ -60,6 +61,7 @@ export type AllowCheck = () => ((email: string) => boolean) | null;
 export class SharedListService {
   private readonly dir: string;
   private readonly rulesFile: string;
+  private readonly contacts: ShareContacts;
   private docs = new Map<string, SharedListDoc>();
   /** `owner sub -> { category id -> member sub }`. */
   private rules: Record<string, Record<string, string>> = {};
@@ -75,6 +77,7 @@ export class SharedListService {
   ) {
     this.dir = path.join(dataDir, 'shared', 'lists');
     this.rulesFile = path.join(dataDir, 'shared', 'category-shares.json');
+    this.contacts = new ShareContacts(dataDir);
     this.load();
   }
 
@@ -148,21 +151,39 @@ export class SharedListService {
     return { owned: doc.owner === sub, owner: this.person(doc.owner), with: others.map((s) => this.person(s)) };
   }
 
-  /** The allowed, known people other than `sub` (the picker of "Share with ..."). */
+  /** Who `sub` is offered in "Share with" (ADR 0046): addresses typed for a share, people on lists with `sub`, rule members; nobody else. */
   candidates(sub: string): Person[] {
     const allows = this.allow();
     if (!allows) return [];
-    return this.people.all().filter((p) => p.sub !== sub && allows(p.email));
+    const subs = new Set<string>();
+    for (const d of this.visibleTo(sub)) for (const s of [d.owner, ...d.members]) subs.add(s);
+    for (const m of Object.values(this.rules[sub] ?? {})) subs.add(m);
+    const found = new Map<string, Person>();
+    for (const s of subs) {
+      const p = this.people.get(s);
+      if (p) found.set(p.email, p);
+    }
+    for (const e of this.contacts.list(sub)) {
+      const p = this.people.byEmail(e);
+      if (p) found.set(p.email, p);
+    }
+    return [...found.values()].filter((p) => p.sub !== sub && allows(p.email)).sort((a, b) => a.email.localeCompare(b.email));
   }
 
-  /** The person to add as a member: allowed, known and not the owner, else a 400. */
-  requireMember(owner: string, sub: string): Person {
+  /** The person a typed address names, or null for nobody who may use the calendar (the caller answers neutrally); own address and no sign-in are a 400. */
+  resolve(owner: string, address: string): Person | null {
     const allows = this.allow();
-    if (!allows) throw validation('Sharing needs sign-in', 'person', 'sharing.needsSignIn');
-    if (sub === owner) throw validation('You cannot share with yourself', 'person', 'sharing.self');
-    const p = this.people.get(sub);
-    if (!p || !allows(p.email)) throw validation('This person cannot be added', 'person', 'sharing.unknownPerson');
-    return p;
+    if (!allows) throw validation('Sharing needs sign-in', 'email', 'sharing.needsSignIn');
+    const email = address.trim().toLowerCase();
+    const mine = this.people.get(owner);
+    if (mine && mine.email === email) throw validation('You cannot share with yourself', 'email', 'sharing.self');
+    const p = this.people.byEmail(email);
+    return p && p.sub !== owner && allows(p.email) ? p : null;
+  }
+
+  /** Keeps an address that named a person, so the owner's field offers it again. */
+  remember(owner: string, person: Person): void {
+    this.contacts.remember(owner, person.email);
   }
 
   // ---------- writes ----------
@@ -252,6 +273,7 @@ export class SharedListService {
   reset(): void {
     this.docs.clear();
     this.rules = {};
+    this.contacts.reset();
     fs.rmSync(path.join(path.dirname(this.dir)), { recursive: true, force: true });
   }
 }

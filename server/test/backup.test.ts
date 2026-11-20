@@ -380,7 +380,7 @@ describe('shared lists (real store)', () => {
       await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
       const jo = { cookie: await signIn(t, JO) }, anna = { cookie: await signIn(t, ANNA) };
       const own = (await t.json('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] }, jo)).body;
-      expect((await t.json('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) }, jo)).status).toBe(200);
+      expect((await t.json('POST', `/api/tasklists/${own.id}/share`, { email: ANNA }, jo)).status).toBe(200);
       await t.json('POST', '/api/backup', undefined, jo);
       await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, anna);
       await t.json('POST', '/api/backup', undefined, anna);

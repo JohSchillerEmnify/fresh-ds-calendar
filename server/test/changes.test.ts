@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeCursor } from '../src/api/changesRoutes.js';
 import { NotFoundError, ProviderError, ProviderForbiddenError, SyncTokenExpiredError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
-import { mockSub } from '../src/auth/people.js';
 import { setDiagSink } from '../src/lib/diag.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
@@ -217,7 +216,7 @@ describe('shared lists', () => {
     const jo = await as(JO), anna = await as(ANNA);
     const own = (await jo('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] })).body;
     const c0 = (await jo('GET', url())).body.cursor, a0 = (await anna('GET', url())).body.cursor;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
     // Jo's own Google copy is gone, the shared one arrives; Anna gets it too
     const jr = (await jo('GET', url(c0))).body;
     expect(jr.taskLists.removed).toContain(own.id);

@@ -3109,22 +3109,31 @@ the task list {string} in the Tasks view shows the category {string}
 {string} is not offered to change the category
 I delete the shared task list {string}
 {string} is offered to leave the list, not to delete it
-{string} has never signed in
 I open "Share with" for the task list {string}
 I open "Share with" in the new task list form
-I can share only with {string}
+I try to share the task list {string} with {string}
+"Share with" is an email field
+"Share with" offers only {string}
+"Share with" offers no addresses
+{string} is offered only {string} to share with
+{string} is offered no address to share with
+the sharing field says {string}
+the sharing line says {string}
+the task list {string} in the Tasks view is not shared
+the device holds the address {string} for sharing
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
-  (as if they had signed in once), so they can be picked as members (feature shared-lists).
+  (as if they had signed in once), so a typed address finds them (feature shared-lists). That does not make anybody a
+  suggestion: the "Share with" field offers only addresses the person typed or who share lists with them.
 - "P has an undated task list T with the items I [in the category C]": setup through `POST /api/__test/tasklists` for
   person P (API.md); items are `, `-separated; the category is found by name in the settings. Not user activity: the
   endpoint restores the plant state.
 - "I share the task list T with P": the signed-in person opens the Tasks view, opens T's dialog (`tasklist-expanded-title`),
-  picks P in `tasklist-share-person` (by the name the option shows: the part of the address before the `@`), presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
-  (200), then closes the dialog. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
+  types the address P into the email field `tasklist-share-person`, presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
+  (200), then closes the dialog. "I try to share the task list T with P": the same, but it only presses the button and waits for the answer (200); the dialog stays open when nothing was shared. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
 - "I share the category C with P in the settings": opens the settings, edits the category C (`settings-category`),
-  picks P (by name, as above) in `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
+  types P's address into the email field `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
 - "P creates the undated task list T in the category C": `POST /api/tasklists` as P (a session of its own, see below).
 - "P opens the Tasks view on another device": a fresh browser context signed in as P (like "opens the week view ... on
   another device"), then the Tasks view.
@@ -3140,7 +3149,11 @@ I can share only with {string}
   is I (the other person's initial).
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
 - "the task list form starts with the fields L" (comma-separated field labels): the first fields of the open task list form (`tasklist-dialog`, in document order) are exactly these; the same form for creating and editing (issue 177). "the task list dialog is titled T": the sheet's heading reads T.
-- "I open \"Share with\" in the new task list form": opens the new task list dialog and `tasklist-share-person` (one form for creating and editing, issue 177). "I can share only with P" may name several people, `, `-separated.
+- "I open \"Share with\" in the new task list form": `@backlog` only (issue 27), not implemented. "I open \"Share with\" for the task list T": opens T's dialog and waits for the email field.
+- "\"Share with\" is an email field": `tasklist-share-person` is an `input` of type `email`. "offers only A": the `option` values of the `datalist` named by its `list` attribute (`share-suggestions`) equal A (`, `-separated, sorted); "offers no addresses": that list is empty.
+- "P is offered only A to share with" / "P is offered no address to share with": `GET /api/people` with P's own session returns exactly those email addresses (sorted) / none.
+- "the sharing field says T": `tasklist-share-note` has exactly T (the neutral answer of an address that is not a person who may use the calendar). "the sharing line says T": `tasklist-share-who` has exactly T. "the task list T in the Tasks view is not shared": the `tasks-item` T has no `tasklist-shared-badge`.
+- "the device holds the address A for sharing": `@unit` only (`web/test/share-people.test.ts`), like the offline steps above; not run in the browser.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
 

@@ -164,10 +164,11 @@ export const updateTaskListSchema = so({
 export const inkSchema = so({ strokes, base: v.optional(v.pipe(v.array(v.string()), v.maxLength(500))), at: v.optional(whole) });
 export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: v.optional(itemTitle), strokes: v.optional(strokes), done: v.optional(v.boolean()), level: v.optional(v.picklist([0, 1, 2], 'A level is 0, 1 or 2')), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
-/** `POST /api/tasklists/:id/share`: the person (their `sub`) to add. */
-export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });
-/** `PUT /api/categories/:id/share`: the person to share the category with, or null to stop. */
-export const categoryShareSchema = so({ person: v.nullable(v.pipe(v.string('person must be text'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long'))) });
+const addressField = v.pipe(v.string('email is required'), v.trim(), v.maxLength(254, 'email is too long'), v.email('email must be an email address'));
+/** `POST /api/tasklists/:id/share`: the email address typed for the person to add. */
+export const shareSchema = so({ email: addressField });
+/** `PUT /api/categories/:id/share`: the email address of the person to share the category with, or null to stop. */
+export const categoryShareSchema = so({ email: v.nullable(addressField) });
 export const orderSchema = so({ itemIds: v.array(v.string()), levels: v.optional(v.array(v.picklist([0, 1, 2], 'A level is 0, 1 or 2'))) });
 
 export const settingsPatchSchema = so({
@@ -232,7 +233,7 @@ export const testSlowSchema = so({ ms: v.pipe(v.number(), v.integer(), v.minValu
 export const refuseNextWriteSchema = so({ status: v.optional(v.picklist([400, 404])) });
 export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testReleaseNotesSchema = so({ notes: v.array(so({ date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)), text: v.pipe(v.string(), v.minLength(1)) })) });
-export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))), googlePollMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
+export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))), googlePollMs: v.optional(v.pipe(v.number(), v.minValue(0))), shareAnswerMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
 /** `POST /api/widget-keys`: the device name. */
 export const widgetKeySchema = so({ name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(40, 'Name must be at most 40 characters')) });
 export const rateLimitSchema = so({ retryAfterSec: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(600)) });

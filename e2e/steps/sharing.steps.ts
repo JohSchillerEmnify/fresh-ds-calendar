@@ -12,9 +12,6 @@ interface Listed { id: string; title: string; items: { id: string; title: string
 /** Per scenario: one API session per person. */
 const sessions = new WeakMap<World, Map<string, APIRequestContext>>();
 
-/** The name the people picker shows for an address (the OAuth test double names a person by the part before the `@`). */
-const nameOf = (email: string) => email.split('@')[0]!;
-
 /** An API client signed in as this person (own cookie jar, kept for the scenario). */
 async function session(world: World, email: string): Promise<APIRequestContext> {
   let mine = sessions.get(world);
@@ -73,14 +70,29 @@ Given('{string} has an undated task list {string} with the items {string} in the
     await this.api.post('/api/__test/tasklists', { owner, title, items: items.split(', '), category });
   });
 
+/** Types an address into "Share with" of the open task list dialog and presses Share; resolves with the answer's status. */
+async function typeAndShare(world: World, title: string, email: string): Promise<number> {
+  if (!(await world.page.getByTestId('tasklist-dialog').isVisible())) await openDialog(world, title);
+  const dialog = world.page.getByTestId('tasklist-dialog');
+  await dialog.locator('input[data-testid="tasklist-share-person"]').fill(email);
+  const saved = world.page.waitForResponse(isCall('POST', '/share'));
+  await dialog.getByTestId('tasklist-share').click();
+  return (await saved).status();
+}
+
 When('I share the task list {string} with {string}', async function (this: World, title: string, email: string) {
   await openDialog(this, title);
-  const dialog = this.page.getByTestId('tasklist-dialog');
-  await dialog.getByTestId('tasklist-share-person').selectOption({ label: nameOf(email) });
-  const saved = this.page.waitForResponse(isCall('POST', '/share'));
-  await dialog.getByTestId('tasklist-share').click();
-  expect((await saved).status(), 'list shared').toBe(200);
-  await expect(dialog).toBeHidden();
+  expect(await typeAndShare(this, title, email), 'list shared').toBe(200);
+  await expect(this.page.getByTestId('tasklist-dialog')).toBeHidden();
+});
+
+When('I try to share the task list {string} with {string}', async function (this: World, title: string, email: string) {
+  expect(await typeAndShare(this, title, email), 'share answered').toBe(200);
+});
+
+When('I open "Share with" for the task list {string}', async function (this: World, title: string) {
+  await openDialog(this, title);
+  await expect(this.page.getByTestId('tasklist-dialog').locator('input[data-testid="tasklist-share-person"]')).toBeVisible();
 });
 
 When('I stop sharing the task list {string}', async function (this: World, title: string) {
@@ -96,7 +108,7 @@ When('I share the category {string} with {string} in the settings', async functi
   await openSettingsPage(this, 'tasklists');
   await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
   const dialog = this.page.getByTestId('category-dialog');
-  await dialog.getByTestId('category-share-person').selectOption({ label: nameOf(email) });
+  await dialog.locator('input[data-testid="category-share-person"]').fill(email);
   const saved = this.page.waitForResponse(isCall('PUT', '/share'));
   await dialog.getByTestId('category-save').click();
   expect((await saved).status(), 'category shared').toBe(200);
@@ -207,4 +219,45 @@ Then('{string} is offered to leave the list, not to delete it', async function (
   const dialog = this.page.getByTestId('tasklist-dialog');
   await expect(dialog.getByTestId('tasklist-leave'), `${who} may leave`).toBeVisible();
   await expect(dialog.getByTestId('tasklist-delete')).toHaveCount(0);
+});
+
+const shareField = (world: World) => world.page.getByTestId('tasklist-dialog').locator('input[data-testid="tasklist-share-person"]');
+const suggested = (world: World) => world.page.getByTestId('tasklist-dialog').locator('[data-testid="share-suggestions"] option');
+
+Then('{string} is offered only {string} to share with', async function (this: World, email: string, offered: string) {
+  await expect.poll(async () => (await call<{ people: { email: string }[] }>(this, email, 'GET', '/api/people')).body.people.map((p) => p.email).sort()).toEqual(offered.split(', ').sort());
+});
+
+Then('{string} is offered no address to share with', async function (this: World, email: string) {
+  expect((await call<{ people: unknown[] }>(this, email, 'GET', '/api/people')).body.people).toEqual([]);
+});
+
+Then('"Share with" is an email field', async function (this: World) {
+  await expect(shareField(this)).toHaveAttribute('type', 'email');
+});
+
+Then('"Share with" offers only {string}', async function (this: World, offered: string) {
+  const want = offered.split(', ').sort();
+  await expect.poll(async () => (await suggested(this).evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value))).sort()).toEqual(want);
+});
+
+Then('"Share with" offers no addresses', async function (this: World) {
+  await expect(shareField(this)).toBeVisible();
+  await this.page.waitForLoadState('networkidle');
+  await expect(suggested(this)).toHaveCount(0);
+});
+
+Then('the sharing field says {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('tasklist-share-note')).toHaveText(exactText(text));
+});
+
+Then('the sharing line says {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('tasklist-share-who')).toHaveText(exactText(text));
+});
+
+Then('the task list {string} in the Tasks view is not shared', async function (this: World, title: string) {
+  await this.page.getByTestId('tasklist-cancel').click().catch(() => undefined);
+  await expect(this.page.getByTestId('tasklist-dialog')).toBeHidden();
+  await expect(this.byTestId('tasks-item', attr('data-title', title))).toBeVisible();
+  await expect(this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-shared-badge')).toHaveCount(0);
 });
