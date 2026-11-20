@@ -3498,7 +3498,7 @@ I drop the dragged item in the all-day row on {date}
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
 
-## Landing time on the hour column (`@dnd`, owner 2026-11-20, #173)
+## Landing time on the hour column (`@dnd`, #173)
 
 ```
 I hold the task list {string} over {date} at {time} for {int} ms

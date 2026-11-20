@@ -259,14 +259,13 @@ Feature: Drag and drop to reschedule
       And I release the event without moving it
       Then the event "Dentist" shows no resize handles
 
-  # owner, 2026-11-20 (mockup board #173, option C): show where it lands on the hour column
   Rule: While a timed entry is moved, resized or drawn, its start and end are marked on the hour column
 
     While an event or a timed task list is dragged or resized, or a new block is drawn on the empty grid, in the day or
     week view, the hour column at the left marks the start and end it would get if let go now: a filled label with the
     time at each of the two heights, and a dashed line from each label across to the entry. The marks follow the
     15-minute snap and disappear when the entry is let go or the drag is cancelled. The dashed drop box under a dragged
-    card shows no time of its own: its small start label sat under the card and the finger (owner, 2026-11-20).
+    card shows no time of its own: its small start label sat under the card and the finger.
 
     Scenario: Moving an event marks where it would start and end
       When I open the week view for 2026-10-12
