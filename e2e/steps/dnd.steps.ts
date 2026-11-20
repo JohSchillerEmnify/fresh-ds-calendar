@@ -535,6 +535,13 @@ Then('the hour column marks {time} and {time}', async function (this: World, t1:
   }
 });
 
+Then('the hour column marks only {time}', async function (this: World, time: string) {
+  const marks = this.page.getByTestId('drag-time-mark');
+  await expect(marks).toHaveCount(1);
+  await expect(marks).toHaveAttribute('data-edge', 'start');
+  await expect(marks).toHaveAttribute('data-time', time);
+});
+
 Then('the hour column marks no times', async function (this: World) {
   await expect(this.page.getByTestId('drag-time-mark')).toHaveCount(0);
 });

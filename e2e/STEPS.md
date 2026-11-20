@@ -3504,6 +3504,7 @@ I drop the dragged item in the all-day row on {date}
 I hold the task list {string} over {date} at {time} for {int} ms
 I hold the start handle of {string} at {time}
 the hour column marks {time} and {time}
+the hour column marks only {time}
 the hour column marks no times
 the drop indicator shows no time
 ```
@@ -3512,7 +3513,7 @@ the drop indicator shows no time
 - "I hold the start handle of X at T": as "I hold the end handle of X at T", with `resize-handle-top`.
 - "the hour column marks T1 and T2": exactly two visible `drag-time-mark` elements, with `data-edge` `start` and `end`
   and `data-time` T1 and T2; each shows its time as text and its vertical centre lies within 2 px of the grid line of
-  that time. "marks no times": no `drag-time-mark` is on the page. A drawn block (`draw-block`) is marked the same way.
+  that time. "marks only T": exactly one visible `drag-time-mark`, `data-edge` `start`, with `data-time` T (an end on the next day is not marked). "marks no times": no `drag-time-mark` is on the page. A drawn block (`draw-block`) is marked the same way.
 - "the drop indicator shows no time": the visible `drop-indicator` has no text (its `data-time` hook stays).
 
 ## Events side by side (`@overlap`; settings `settings-day-side-by-side`, `settings-week-side-by-side`, prefs `daySideBySide`, `weekSideBySide`)

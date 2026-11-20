@@ -264,7 +264,8 @@ Feature: Drag and drop to reschedule
     While an event or a timed task list is dragged or resized, or a new block is drawn on the empty grid, in the day or
     week view, the hour column at the left marks the start and end it would get if let go now: a filled label with the
     time at each of the two heights, and a dashed line from each label across to the entry. The marks follow the
-    15-minute snap and disappear when the entry is let go or the drag is cancelled. The dashed drop box under a dragged
+    15-minute snap and disappear when the entry is let go or the drag is cancelled. When the end falls on the next day,
+    only the start is marked. The dashed drop box under a dragged
     card shows no time of its own: its small start label sat under the card and the finger.
 
     Scenario: Moving an event marks where it would start and end
@@ -294,6 +295,18 @@ Feature: Drag and drop to reschedule
       When I open the week view for 2026-10-12
       And I hold the task list "Packing" over 2026-10-16 at 08:15 for 300 ms
       Then the hour column marks 08:15 and 08:45
+
+    Scenario: An entry that would end on the next day marks only its start
+      Given the calendar contains an event "Late" from 2026-10-14 22:00 to 2026-10-15 02:00
+      When I open the week view for 2026-10-12
+      And I hold the event "Late" over 2026-10-16 at 23:00 for 300 ms
+      Then the hour column marks only 23:00
+
+    Scenario: The marks are gone once the drag is cancelled
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" over 2026-10-14 at 14:00 for 300 ms
+      And I press Escape
+      Then the hour column marks no times
 
     Scenario: The marks are gone once the entry is let go
       When I open the day view for 2026-10-14
