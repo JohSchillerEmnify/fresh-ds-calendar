@@ -1,4 +1,4 @@
-@visual @mobile @id:visual-states
+@mobile @id:visual-states
 Feature: The calendar's states look right
   Every state that is drawn (not just measured) has rules that need no reference picture — nothing is clipped, nothing
   overlaps, the pill covers the card it grew from — and a picture that guards against regressions once the state is
@@ -9,6 +9,7 @@ Feature: The calendar's states look right
     And tapping a task list grows it in place
     And today is 2026-10-12
 
+  @visual
   Scenario: The two-row week overview is tidy
     Given the two-row week overview is on
     And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
@@ -25,6 +26,7 @@ Feature: The calendar's states look right
     Then no text in the "week overview" is clipped
     And the "week overview" still looks like "two-row-week"
 
+  @visual
   Scenario: A task list grown downward in the overview is tidy
     Given the two-row week overview is on
     And the calendar contains a task list "Weekend chores" on 2026-10-13 at 11:00 for 90 minutes with items:
@@ -40,6 +42,7 @@ Feature: The calendar's states look right
     And the pill of the expanded task list shows the count "0/3"
     And the "top row" still looks like "two-row-grown-down"
 
+  @visual
   Scenario: A task list grown upward late in the day is tidy
     Given the two-row week overview is on
     And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
@@ -55,6 +58,7 @@ Feature: The calendar's states look right
     And the pill of the expanded task list shows the count "0/3"
     And the "top row" still looks like "two-row-grown-up"
 
+  @visual
   Scenario: A short task list grows with a tight pill
     Given the two-row week overview is on
     And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
@@ -70,6 +74,7 @@ Feature: The calendar's states look right
     And the pill of the expanded task list shows the count "0/2"
     And the "top row" still looks like "two-row-grown-tight"
 
+  @visual
   Scenario: The normal week's grown card is unchanged
     Given the calendar contains a task list "Weekend chores" on 2026-10-14 at 14:00 for 90 minutes with items:
       | Vacuum the flat    |
@@ -82,6 +87,7 @@ Feature: The calendar's states look right
     And the pill of the expanded task list covers the card "Weekend chores" it grew from
     And the "week overview" still looks like "week-grown"
 
+  @visual
   Scenario: The normal week's tight pill keeps its title on one line
     Given the calendar contains a task list "Weekly shopping for the big family barbecue" on 2026-10-14 at 11:00 for 30 minutes with items:
       | Milk |
@@ -94,6 +100,7 @@ Feature: The calendar's states look right
 
   # Owner, 2026-10-20: the overview's switch has the same two levels as the day view (titles only, expanded), never a
   # third. It replaces the 2026-10-19 "pills only, no switch" rule for the overview.
+  @visual
   Scenario: The overview's band switch has two levels, and a tap grows a list in place
     Given the two-row week overview is on
     And the calendar contains a task list "Groceries" on 2026-10-12 with items:
@@ -115,6 +122,7 @@ Feature: The calendar's states look right
     Then "Groceries" expands in place and shows "Tomatoes"
     And the "top row" still looks like "two-row-band-grown"
 
+  @visual
   Scenario: A grown task list in the dark theme is a box of its own
     Given the device prefers a dark color scheme
     And the two-row week overview is on
@@ -152,6 +160,7 @@ Feature: The calendar's states look right
     And no text in the "day column" is clipped
 
   # Owner, 2026-10-24: the clock's middle cut "Next: Anspielprobe in 3 h 17 min" to "in 3…". Title over time, two lines.
+  @visual
   Scenario: The clock's middle names a long title over its time and countdown
     Given the time is 2026-10-12 16:23
     And the calendar contains an event "Dentist" on 2026-10-12 from 09:00 to 10:00
@@ -160,6 +169,7 @@ Feature: The calendar's states look right
     Then no text in the "clock" is clipped
     And the "clock" still looks like "clock-next-long"
 
+  @visual
   Scenario: The clock's middle counts down a running entry in the dark theme
     Given the device prefers a dark color scheme
     And the time is 2026-10-12 18:30
@@ -171,6 +181,7 @@ Feature: The calendar's states look right
     Then no text in the "clock" is clipped
     And the "clock" still looks like "clock-running-dark"
 
+  @visual
   Scenario: The clock's middle names tomorrow's first entry in German
     Given the browser language is "de-DE"
     And the time is 2026-10-12 20:00
@@ -180,6 +191,7 @@ Feature: The calendar's states look right
     Then no text in the "clock" is clipped
     And the "clock" still looks like "clock-tomorrow-de"
 
+  @visual
   Scenario: The rings clock's middle on a crowded German day keeps its countdown readable
     Given the browser language is "de-DE"
     And the time is 2026-10-12 09:30
@@ -198,6 +210,7 @@ Feature: The calendar's states look right
     And the "clock" still looks like "clock-rings-crowded-de"
 
   # Feature tasklist-templates (owner's design canvas, 2026-10-25)
+  @visual
   Scenario: The list sheet's footer offers Save as template, which opens a small sheet with the name and the items
     Given tapping a task list opens the list sheet
     And the calendar contains a task list "Packing" on 2026-10-12 with items:
@@ -215,6 +228,7 @@ Feature: The calendar's states look right
     And the "template save sheet" still looks like "template-save"
 
   # Issue #48: task input uses the M3 kit (checkbox, list item, inline text field)
+  @visual
   Scenario Outline: The list sheet's item rows, the add field and an item being edited look right in <scheme>
     Given the device prefers a <scheme> color scheme
     And tapping a task list opens the list sheet
@@ -236,6 +250,7 @@ Feature: The calendar's states look right
       | light  |
       | dark   |
 
+  @visual
   Scenario: The template pill grows into the template menu, and a pick fills the form
     Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"
     And I have the template "Packing" with the items "Passport, Charger, Toothbrush"
@@ -249,6 +264,7 @@ Feature: The calendar's states look right
     Then no text in the "list form" is clipped
     And the "list form" still looks like "template-form-filled"
 
+  @visual
   Scenario: Settings › Templates lists the templates with their details
     Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"
     And I have the template "Packing" with the items "Passport, Charger, Toothbrush"
@@ -257,6 +273,7 @@ Feature: The calendar's states look right
     And no text in the "templates page" is clipped
     And the "templates page" still looks like "templates-page"
 
+  @visual
   Scenario: Settings › Templates without templates says how to make one
     When I open the templates in the settings
     Then the templates page offers "New template"
@@ -264,6 +281,7 @@ Feature: The calendar's states look right
     And the "templates page" still looks like "templates-empty"
 
   # Owner, 2026-10-25: "There are two bedtimes on that clock." A bedtime at midnight belongs to the evening before.
+  @visual
   Scenario: The clock on a Saturday shows the midnight bedtime at the top of the dial
     Given the device prefers a dark color scheme
     And the time is 2026-10-24 20:00
@@ -271,6 +289,7 @@ Feature: The calendar's states look right
     When I open the clock view for 2026-10-24
     Then the "clock" still looks like "clock-bedtime-saturday-dark"
 
+  @visual
   Scenario: The clock after a midnight bedtime shows only tonight's moon
     Given the device prefers a dark color scheme
     And the time is 2026-10-25 01:12
@@ -278,6 +297,7 @@ Feature: The calendar's states look right
     When I open the clock view for 2026-10-25
     Then the "clock" still looks like "clock-bedtime-sunday-dark"
 
+  @visual
   Scenario: The clock on a Friday shows the midnight bedtime at the top of the dial
     Given the device prefers a dark color scheme
     And the time is 2026-10-23 20:00
@@ -285,6 +305,7 @@ Feature: The calendar's states look right
     When I open the clock view for 2026-10-23
     Then the "clock" still looks like "clock-bedtime-friday-dark"
 
+  @visual
   Scenario: The Saturday column shows the midnight bedtime at its bottom edge
     Given the time is 2026-10-24 12:00
     And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
@@ -293,6 +314,7 @@ Feature: The calendar's states look right
     Then the "time grid" still looks like "day-bedtime-saturday-end"
 
   # Issue #48: checkboxes, radios and switches of the drawer, the repeat question and the event sheet are the M3 kit's
+  @visual
   Scenario Outline: The side menu's calendar checkboxes look right in <scheme>
     Given the device prefers a <scheme> color scheme
     And the view switcher on phones is set to "side menu"
@@ -307,6 +329,7 @@ Feature: The calendar's states look right
       | light  |
       | dark   |
 
+  @visual
   Scenario Outline: The repeat question's radio buttons look right in <scheme>
     Given the device prefers a <scheme> color scheme
     And the calendar contains a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with items:
@@ -324,6 +347,7 @@ Feature: The calendar's states look right
       | light  |
       | dark   |
 
+  @visual
   Scenario Outline: The event sheet's All day switch looks right in <scheme>
     Given the device prefers a <scheme> color scheme
     When I open the week view for 2026-10-12
