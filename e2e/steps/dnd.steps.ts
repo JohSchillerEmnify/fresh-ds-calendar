@@ -423,9 +423,9 @@ Then('the browser did not take the touch over for scrolling', async function (th
  * Picks the card up at its usual grab point and moves it (10 steps) to `to`, keeping it held for `ms`; the pointer or
  * finger stays down ("held"), can move on ("heldMove") and is released by a drop step or the world's cleanup.
  */
-async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Point>, ms: number, approach = 0) {
+async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Point>, ms: number, approach = 0, centreCard = true) {
   // in the middle of the grid: a pointer resting near its top or bottom would start the auto-scroll during the hold
-  await card.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  if (centreCard) await card.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
   await w.page.waitForTimeout(100);
   const from = await grabPoint(w, card);
   const dest = await to(from);
@@ -494,14 +494,62 @@ When('I hold the all-day event {string} at the right edge of the all-day row for
   await holdAt(this, eventHandle(this, title), edgePoint(this, 'right'), ms, APPROACH.right);
 });
 
-When('I hold the event {string} over {date} at {time} for {int} ms', async function (this: World, title: string, date: string, time: string, ms: number) {
-  const chip = this.eventChip(title);
-  await holdAt(this, chip, async (from) => {
-    const p = await targetPoint(this, chip, from, date, time);
-    // a phone's day column is about 49 px wide: its middle sits on the 24 px edge zone; stay 4 px clear of it
-    const e = await columnsEdges(this);
+/** Picks the card up and holds it over D at T (kept off the 24 px edge zones; a phone's day column is about 49 px wide). */
+async function holdOver(w: World, card: Locator, date: string, time: string, ms: number) {
+  // a card far from its target: centre the middle between them, so that looking the target up does not scroll after the grab
+  await card.scrollIntoViewIfNeeded();
+  const target = await targetPoint(w, card, centre(await box(card)), date, time);
+  const c = await box(card);
+  const sc = await box(w.page.locator('[data-scroll-area]').first());
+  await w.page.locator('[data-scroll-area]').first().evaluate((el, dy) => { el.scrollTop += dy; }, (c.y + c.height / 2 + target.y) / 2 - (sc.y + sc.height / 2));
+  await w.page.waitForTimeout(100);
+  await holdAt(w, card, async (from) => {
+    const p = await targetPoint(w, card, from, date, time);
+    const e = await columnsEdges(w);
     return { x: Math.min(Math.max(p.x, e.left + 28), e.right - 28), y: p.y };
-  }, ms);
+  }, ms, 0, false);
+}
+
+When('I hold the event {string} over {date} at {time} for {int} ms', async function (this: World, title: string, date: string, time: string, ms: number) {
+  await holdOver(this, this.eventChip(title), date, time, ms);
+});
+
+When('I hold the task list {string} over {date} at {time} for {int} ms', async function (this: World, title: string, date: string, time: string, ms: number) {
+  await holdOver(this, this.taskCard(title), date, time, ms);
+});
+
+/** STEPS.md "Landing time on the hour column": exactly the start and end marks, each on its time's grid line. */
+Then('the hour column marks {time} and {time}', async function (this: World, t1: string, t2: string) {
+  const marks = this.page.getByTestId('drag-time-mark');
+  await expect(marks).toHaveCount(2);
+  const hh = await hourHeight(this);
+  const grid = await box(this.page.locator('.tg:not(.fit) [data-testid="time-grid"]').first());
+  const mins = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  for (const [edge, time] of [['start', t1], ['end', t2]] as const) {
+    const mark = this.page.locator(`${tid('drag-time-mark')}${attr('data-edge', edge)}`);
+    await expect(mark).toBeVisible();
+    await expect(mark).toHaveAttribute('data-time', time);
+    await expect(mark).toHaveText(time);
+    const b = await box(mark);
+    expect(Math.abs(b.y + b.height / 2 - (grid.y + (mins(time) / 60) * hh)), `${edge} mark on the ${time} line`).toBeLessThanOrEqual(2);
+  }
+});
+
+Then('the hour column marks only {time}', async function (this: World, time: string) {
+  const marks = this.page.getByTestId('drag-time-mark');
+  await expect(marks).toHaveCount(1);
+  await expect(marks).toHaveAttribute('data-edge', 'start');
+  await expect(marks).toHaveAttribute('data-time', time);
+});
+
+Then('the hour column marks no times', async function (this: World) {
+  await expect(this.page.getByTestId('drag-time-mark')).toHaveCount(0);
+});
+
+Then('the drop indicator shows no time', async function (this: World) {
+  const drop = this.page.getByTestId('drop-indicator').locator('visible=true').first();
+  await expect(drop).toBeVisible();
+  await expect(drop).toHaveText('');
 });
 
 When('I keep holding the dragged item for {int} ms', async function (this: World, ms: number) {

@@ -259,6 +259,91 @@ Feature: Drag and drop to reschedule
       And I release the event without moving it
       Then the event "Dentist" shows no resize handles
 
+  Rule: While a timed entry is moved, resized or drawn, its start and end are marked on the hour column
+
+    While an event or a timed task list is dragged or resized, or a new block is drawn on the empty grid, in the day or
+    week view, the hour column at the left marks the start and end it would get if let go now: a filled label with the
+    time at each of the two heights, and a dashed line from each label across to the entry. The marks follow the
+    15-minute snap and disappear when the entry is let go or the drag is cancelled. When the end falls on the next day,
+    only the start is marked. The dashed drop box under a dragged
+    card shows no time of its own: its small start label sat under the card and the finger.
+
+    Scenario: Moving an event marks where it would start and end
+      When I open the week view for 2026-10-12
+      And I hold the event "Dentist" over 2026-10-16 at 14:00 for 300 ms
+      Then the hour column marks 14:00 and 15:00
+
+    Scenario: The marks follow the 15-minute snap in the day view
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" over 2026-10-14 at 11:20 for 300 ms
+      Then the hour column marks 11:15 and 12:15
+
+    Scenario: Resizing the end marks the new end
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I hold the end handle of "Dentist" at 11:00
+      Then the hour column marks 09:00 and 11:00
+
+    Scenario: Resizing the start marks the new start
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I hold the start handle of "Dentist" at 08:30
+      Then the hour column marks 08:30 and 10:00
+
+    Scenario: Moving a timed task list marks where it would start and end
+      Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 with items:
+        | item     | done |
+        | Passport | no   |
+      When I open the week view for 2026-10-12
+      And I hold the task list "Packing" over 2026-10-16 at 08:15 for 300 ms
+      Then the hour column marks 08:15 and 08:45
+
+    Scenario: An entry that would end on the next day marks only its start
+      Given the calendar contains an event "Late" from 2026-10-14 22:00 to 2026-10-15 02:00
+      When I open the week view for 2026-10-12
+      And I hold the event "Late" over 2026-10-16 at 23:00 for 300 ms
+      Then the hour column marks only 23:00
+
+    Scenario: The marks are gone once the drag is cancelled
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" over 2026-10-14 at 14:00 for 300 ms
+      And I press Escape
+      Then the hour column marks no times
+
+    Scenario: The marks are gone once the entry is let go
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" over 2026-10-14 at 14:00 for 300 ms
+      And I drop the dragged event
+      Then the hour column marks no times
+
+    Scenario: Drawing a new block marks its start and end
+      When I open the day view for 2026-10-14
+      And I hold a drawn block on 2026-10-14 from 13:00 to 14:45
+      Then the hour column marks 13:00 and 14:45
+
+    Scenario: The marks of a drawn block are gone once the new dialog opens
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 13:00 to 14:45
+      Then the event dialog is open
+      And the hour column marks no times
+
+    Scenario: The drop box shows no time of its own
+      When I open the week view for 2026-10-12
+      And I hold the event "Dentist" over 2026-10-16 at 14:00 for 300 ms
+      Then the drop indicator shows no time
+
+    @visual @mobile
+    Scenario Outline: The marks on the hour column look as drawn on a phone, <scheme>
+      Given I am using a phone
+      And the device prefers a <scheme> color scheme
+      And the support cat is set to "Off" in the settings
+      When I open the week view for 2026-10-12
+      And I hold the event "Dentist" over 2026-10-16 at 14:00 for 300 ms
+      Then the "time grid" still looks like "drag-landing-time-<scheme>"
+
+      Examples:
+        | scheme |
+        | light  |
+        | dark   |
+
   @desktop
   Scenario: Auto-scroll and wheel while dragging keep the card on the drop indicator
     When I open the day view for 2026-10-14

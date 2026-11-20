@@ -26,7 +26,7 @@ const TASKLIST_MAX_MINUTES = ESTIMATE_MAX;
 const LENIENCY = 2;
 
 /** Block geometry the grid draws instead of the stored one while a handle is dragged (or springing back). */
-export const resizePreview = shallowRef<{ id: string; date: string; startMin: number; endMin: number; settle?: boolean } | null>(null);
+export const resizePreview = shallowRef<{ id: string; date: string; startMin: number; endMin: number; settle?: boolean; continues?: boolean } | null>(null);
 
 /**
  * Whether a renderer draws its resize handles: the entry was released without moving (`ui.resizing`), and only on its

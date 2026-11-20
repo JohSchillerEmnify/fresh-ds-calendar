@@ -24,11 +24,13 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
+import { itemLengthMin } from './landing';
 import { EDGE_HOLD_MS, edgeLabel, edgeSide } from './edgeTurn';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 
 /** Where the dragged card would land now (drives the `DropIndicator` grid layer). Null when not dragging. */
-export const dragPreview = shallowRef<{ date: string; minutes: number; durationMin: number } | null>(null);
+/** `durationMin` is this day's piece (the drop box); `lengthMin` the whole entry (the hour column marks). */
+export const dragPreview = shallowRef<{ date: string; minutes: number; durationMin: number; lengthMin: number } | null>(null);
 
 /**
  * The edge band while a dragged entry rests in an edge zone of the day or week view (feature drag-to-reschedule): which
@@ -194,7 +196,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
     const seg = segment();
     const timedTarget = !!t && t.key.minutes !== null;
     dragPreview.value = t && timedTarget
-      ? { date: t.key.date, minutes: t.key.minutes!, durationMin: Math.max(15, seg.endMin - seg.startMin || 30) }
+      ? { date: t.key.date, minutes: t.key.minutes!, durationMin: Math.max(15, seg.endMin - seg.startMin || 30), lengthMin: itemLengthMin(seg.item) }
       : null;
     if (slotsMode() && seg.item.kind !== 'tasklist') return;
     const root = el.value?.closest('[data-testid="month-view"]') ?? (el.value?.isConnected ? el.value.closest('.tg') : null) ?? dragGrid;

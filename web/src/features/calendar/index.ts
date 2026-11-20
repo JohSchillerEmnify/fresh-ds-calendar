@@ -13,6 +13,7 @@ import NowMarker from './NowMarker.vue';
 import { startTransitionWarnings } from './transitionWarning';
 import './calendar.css';
 
+export { default as DragTimeMarks } from './DragTimeMarks.vue';
 export { allowContacts, useContactsOffer } from './contactsOffer';
 
 let done = false;
