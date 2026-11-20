@@ -3498,6 +3498,21 @@ I drop the dragged item in the all-day row on {date}
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
 
+## Landing time on the hour column (`@dnd`, owner 2026-11-20, #173)
+
+```
+I hold the task list {string} over {date} at {time} for {int} ms
+I hold the start handle of {string} at {time}
+the hour column marks {time} and {time}
+the hour column marks no times
+```
+
+- "I hold the task list X over D at T for N ms": as "I hold the event X over D at T for N ms", with X's `tasklist-card`.
+- "I hold the start handle of X at T": as "I hold the end handle of X at T", with `resize-handle-top`.
+- "the hour column marks T1 and T2": exactly two visible `drag-time-mark` elements, with `data-edge` `start` and `end`
+  and `data-time` T1 and T2; each shows its time as text and its vertical centre lies within 2 px of the grid line of
+  that time. "marks no times": no `drag-time-mark` is on the page.
+
 ## Events side by side (`@overlap`; settings `settings-day-side-by-side`, `settings-week-side-by-side`, prefs `daySideBySide`, `weekSideBySide`)
 
 ```
