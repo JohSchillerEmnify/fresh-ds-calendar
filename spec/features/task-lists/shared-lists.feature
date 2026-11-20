@@ -1,7 +1,8 @@
 @sharing @id:shared-lists
 Feature: Sharing task lists with another person
-  A person can share a task list with another person who may use the calendar (picked from the allow-list), or share a
-  whole category. A shared list lives on the server, not in Google: sharing moves it out of the owner's tasks
+  A person shares a task list by typing the email address of another person who may use the calendar, or shares a
+  whole category the same way. The app never lists everybody who uses it: the field offers only addresses the person
+  typed before and people who share lists with them (ADR 0046). A shared list lives on the server, not in Google: sharing moves it out of the owner's tasks
   calendar, "Stop sharing" moves it back. Both people see and edit it everywhere task lists appear and it carries a
   small "shared" badge with the other person's initial. Only the owner can delete it for everyone; the other person
   can leave it, which removes it for them only. Changes of the other person show up on the next automatic sync, and
@@ -101,24 +102,61 @@ Feature: Sharing task lists with another person
     When "anna@example.com" edits the shared task list "Groceries"
     Then "anna@example.com" is offered to leave the list, not to delete it
 
-  @backlog
-  Scenario: Someone who has never signed in is not offered for sharing
-    Given "bob@example.com" has never signed in
-    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+  Scenario: Sharing by typing the address of the other person
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" is signed in
     When I open "Share with" for the task list "Groceries"
-    Then I can share only with "anna@example.com"
+    Then "Share with" is an email field
+    And "Share with" offers no addresses
 
-  # unit: web/test/share-people.test.ts:asks the server when it opens, so a person who signed in later is offered although the device copy had nobody
-  # unit: server/test/shared-lists.test.ts:Share with offers the newcomer at once
-  @unit
-  Scenario: A person who signed in after the device copy was made is offered in Share with
-    Given "bob@example.com" has never signed in
-    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+  Scenario: An address that was typed before is offered again, to the person who typed it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" has an undated task list "Errands" with the items "Post"
     And "jo@example.com" is signed in
-    When "bob@example.com" signs in with Google
-    And I open "Share with" for the task list "Groceries"
-    Then I can share only with "bob@example.com"
+    And I share the task list "Groceries" with "anna@example.com"
+    When I open "Share with" for the task list "Errands"
+    Then "Share with" offers only "anna@example.com"
+    And "bob@example.com" is offered no address to share with
+
+  Scenario: A person who shared a list with you is offered to you
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I share the task list "Groceries" with "anna@example.com"
+    Then "anna@example.com" is offered only "jo@example.com" to share with
+
+  Scenario: The address of somebody who does not use the calendar gets a neutral message and shares nothing
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I try to share the task list "Groceries" with "stranger@example.com"
+    Then the sharing field says "If this person uses the calendar, they'll see the list."
+    And "Share with" offers no addresses
+    And the task list "Groceries" in the Tasks view is not shared
+    And "anna@example.com" sees no task lists
+
+  # unit: server/test/share-by-address.test.ts:answers an address that is not an allowed person like a success that shared nobody
+  # unit: server/test/share-by-address.test.ts:GET /api/people offers only the contacts of the person asking
+  # unit: server/test/share-by-address.test.ts:signing in is not announced to anybody
+  # unit: server/test/share-by-address.test.ts:carries the same scoped people in the change feed
+  @unit
+  Scenario: Nobody else's address is shown, and the answer for an unknown address does not tell it apart
+    Given "jo@example.com", "anna@example.com" and "bob@example.com" may use the calendar
+    Then "jo@example.com" is offered no address to share with
+
+  # unit: web/test/share-people.test.ts:offers the addresses the device copy holds while offline
+  @unit
+  Scenario: The known addresses are on the device and offered without a connection
+    Given the device holds the address "anna@example.com" for sharing
+    When the device is offline
+    Then "Share with" offers only "anna@example.com"
+
+  Scenario: A list shared before keeps saying who it is shared with and by
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Shared with anna"
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then the sharing line says "Shared by jo"
 
   # The next scenarios describe built behaviour about files on the server, which the browser suite cannot reach, so they
   # are tagged @unit and name their unit test.

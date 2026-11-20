@@ -498,4 +498,5 @@ Feature: Creating, editing and deleting task lists
     Given "jo@example.com", "anna@example.com" and "bob@example.com" may use the calendar
     And "jo@example.com" is signed in
     When I open "Share with" in the new task list form
-    Then I can share only with "anna@example.com, bob@example.com"
+    Then "Share with" is an email field
+    And "Share with" offers no addresses

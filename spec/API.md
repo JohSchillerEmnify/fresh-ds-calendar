@@ -491,7 +491,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
   (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `widgetKeys` (`{ keys }` as `GET /api/widget-keys`, never a key itself), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
-  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
+  (`GET /api/people`, the requester's own contacts), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
   repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
@@ -773,20 +773,23 @@ interface SharedInfo { owned: boolean; owner: Person; with: Person[] }          
 
 | Method | Path | Body | Success |
 |---|---|---|---|
-| `GET` | `/api/people` | – | `200` `{ people: Person[] }`: the allowed people who signed in at least once, without the requester |
-| `POST` | `/api/tasklists/:id/share` | `{ person: string }` (the person's `sub`) | `200` `TaskList` (a Google list is moved into the shared store: new id `shared:...`; on a shared list the owner adds a member) |
+| `GET` | `/api/people` | – | `200` `{ people: Person[] }`: only the requester's own known contacts (ADR 0046), sorted by address: people whose address the requester typed for a successful share, people who share a list with them, people they share with (a category rule counts). Never anybody else, never the requester; someone no longer on the allow-list drops out |
+| `POST` | `/api/tasklists/:id/share` | `{ email: string }` (the typed address; trimmed and lower-cased by the server) | `200` `TaskList`. An address of a person who may use the app and has signed in once: a Google list is moved into the shared store (new id `shared:...`), or on a shared list the owner adds a member, and the address is remembered for the owner. Any other well-formed address: the same `200` with the list unchanged (`shared` stays as it was), nothing stored, after the same minimum time |
 | `DELETE` | `/api/tasklists/:id/share` | – | `200` `TaskList` (owner only: the list moves back into the owner's tasks calendar, new Google id; members lose it) |
 | `POST` | `/api/tasklists/:id/leave` | – | `204` (member only: removes the list for the caller) |
 | `GET` | `/api/categories/shares` | – | `200` `{ shares: Record<categoryId, Person> }` |
-| `PUT` | `/api/categories/:id/share` | `{ person: string \| null }` | `200` `{ shares }`: shares the category (all its lists move, new lists are created shared) or, with `null`, unshares it (its lists move back) |
+| `PUT` | `/api/categories/:id/share` | `{ email: string \| null }` | `200` `{ shares }`: shares the category (all its lists move, new lists are created shared) with the person the typed address names or, with `null`, unshares it (its lists move back). An address that names nobody changes nothing and answers the same `200` after the same minimum time |
 
 Rules:
 - Every shared-list call checks that the caller is the owner or a member: anyone else gets `404` (the list's existence
   is not revealed). Owner-only actions (`DELETE /api/tasklists/:id`, `DELETE .../share`, adding a member) answer `403
   FORBIDDEN` to a member. A member removes a list for themselves with `leave`; `DELETE` deletes it for everyone (owner).
-- A member must be a person who may use the app (the allow-list) and has signed in once; anything else is `400`. So is
-  sharing with yourself, sharing a repeating list (`recurrence` is not stored on shared lists) and sharing while sign-in
-  is off.
+- A member must be a person who may use the app (the allow-list) and has signed in once. An address that is not such a
+  person is NOT an error: the answer is the `200` of a share that shared nobody, so neither the status, the body nor the
+  time (every answer takes at least one second outside TEST_MODE) says whether the address uses the app (ADR 0046). A `400`
+  is only for what tells nothing about others: sharing with your own address, a malformed address (`email`), sharing
+  a repeating list (`recurrence` is not stored on shared lists) and sharing while sign-in is off. What the owner can see on
+  their own list (it now says `shared`) is by design.
 - A member may change everything of a shared list except its category (`400`, key `sharing.categoryOwnerOnly`).
 - Writes with a stale `If-Match` (list `PATCH`/`DELETE`) answer `412 PRECONDITION_FAILED` (the existing conflict
   message). Item ops and unpinned writes never conflict: they read the latest version and apply on top of it.
