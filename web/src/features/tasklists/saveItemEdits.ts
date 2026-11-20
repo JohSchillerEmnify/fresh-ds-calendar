@@ -5,10 +5,7 @@ import { useOutboxStore } from '@/stores/outbox';
 import { finalOrder, type ItemLine, type ItemPlan } from './itemEdits';
 import { addItem, patchItem, removeItem } from './ops';
 
-/**
- * Order matters: a removed task takes its subtasks along, so their levels are flattened first; then removals, renames, new lines and
- * handwritten lines; last the order and levels of everything (one operation, only when it changed).
- */
+/** A removed task takes its subtasks along, so levels are flattened first; the order and levels go last, in one operation. */
 export function saveItemEdits(list: TaskList, lines: readonly ItemLine[], plan: ItemPlan, ink: readonly InkStroke[][], scope?: ChangeScope): void {
   const outbox = useOutboxStore();
   if (plan.flatten) outbox.orderItems(list.id, list.items.map((i) => i.id), list.items.map(() => 0));

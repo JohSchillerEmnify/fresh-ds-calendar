@@ -155,10 +155,10 @@ export const updateTaskListSchema = so({
   categoryId: v.optional(v.nullable(v.string())),
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
-  /** Only a list that does not repeat yet can be given a rhythm. */
-  recurrence: v.optional(recurrence),
   canvas: v.optional(canvasPlace),
   reminders: v.optional(reminders),
+  /** Only a list that does not repeat yet can be given a rhythm. */
+  recurrence: v.optional(recurrence),
 });
 /** `PUT .../ink`: the strokes; with `base` (keys of the strokes the device started from) and `at` they are merged, else they replace. */
 export const inkSchema = so({ strokes, base: v.optional(v.pipe(v.array(v.string()), v.maxLength(500))), at: v.optional(whole) });

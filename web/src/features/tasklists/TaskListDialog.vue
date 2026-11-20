@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
-/**
- * Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`): one form, the same
- * fields in the same order. The modes differ only in the title, the Event / Task list switch, Delete / Leave and the question before a template replaces a list.
- */
+/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`): one form; the modes differ only in title, kind switch, Delete / Leave and the replace question. */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';

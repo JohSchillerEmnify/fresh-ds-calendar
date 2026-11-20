@@ -1,8 +1,4 @@
-/**
- * The item lines of the task list form (feature tasklists-crud): an existing list shows its items as lines (spaces before
- * a line = a subtask), and saving turns the changed lines into the item operations the expanded list already sends
- * (add, rename, remove, order), so a kept or renamed item keeps its tick. Pure: the dialog sends what `planItemEdits` returns.
- */
+/** The item lines of the task list form: changed lines become the item operations the expanded list sends, so a kept or renamed item keeps its tick. */
 import type { TaskItem } from '@/api/types';
 import { blockIds, indentOf, levelOf } from '@calendar/shared/subtasks';
 
@@ -62,11 +58,7 @@ export function planItemEdits(existing: readonly TaskItem[], lines: readonly Ite
   };
 }
 
-/**
- * The ids and levels the list ends with, in order, given the id each added line got (`extra`: handwritten items added last): the kept and renamed items and the new
- * ones in the order of the lines, the handwritten items after the item they followed. Null when the list already is
- * that (kept items in their order, new ones at the end, every level as it was) and nothing was flattened, so no order operation is sent.
- */
+/** The ids and levels the list ends with (`extra`: handwritten items added last); null when it already is that, so no order is sent. */
 export function finalOrder(existing: readonly TaskItem[], lines: readonly ItemLine[], plan: ItemPlan, addedId: (line: number) => string, extra: readonly string[] = []): { ids: string[]; levels: number[] } | null {
   const text = existing.filter((i) => !i.ink);
   const inkAfter = new Map<string | null, TaskItem[]>();
