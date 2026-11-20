@@ -218,7 +218,7 @@ Feature: Changing a repeating task list for this one or this and all following o
     Then I am asked only whether to change "This and all following task lists"
     When I choose "This and all following task lists" for the change
     And I open the week view for 2026-10-19
-    Then I see the task list "Clean bathroom" on 2026-10-19
+    Then I see exactly one task list "Clean bathroom" on 2026-10-19
     When I open the week view for 2026-10-26
     Then I do not see the task list "Clean bathroom"
     When I open the week view for 2026-10-12

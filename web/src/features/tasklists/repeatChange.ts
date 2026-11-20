@@ -12,8 +12,9 @@ const textOf = (l: TaskList): string => JSON.stringify([l.title, l.items.map((i)
 /** Lists of the same list from `from` on (after `from`, unless `inclusive`) that were ticked or edited on their own, next to `shown`. */
 function changedOnTheirOwn(shown: TaskList, all: readonly TaskList[], from: string, inclusive: boolean): number {
   const key = shown.seriesKey ?? shown.seriesId;
+  // a ticked list counts anywhere in the list; a different text only within the same series (another part has its own on purpose)
   return all.filter((l) => l.kind === 'tasklist' && (l.seriesKey ?? l.seriesId) === key && !!l.date && (inclusive ? l.date >= from : l.date > from)
-    && (l.doneCount > 0 || textOf(l) !== textOf(shown))).length;
+    && (l.doneCount > 0 || (l.seriesId === shown.seriesId && textOf(l) !== textOf(shown)))).length;
 }
 
 /** As in Google, "this and following" is not offered on the first list; ending offers no "all"; "this list" never. */

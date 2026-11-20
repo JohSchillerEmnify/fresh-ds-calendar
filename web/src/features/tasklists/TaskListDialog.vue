@@ -214,8 +214,8 @@ async function save() {
   const s = ruleChanged ? await scope.ask(current, ruleQuestion(current!, rule, items.all.filter((i): i is TaskList => i.kind === 'tasklist'), clock.today))
     : current && (body.title !== originalTitle.trim() || itemsChanged) ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
-  // the title and the item lines have no "all lists": they follow the later lists
-  const later = s === 'following' || s === 'all' ? 'following' : undefined;
+  // the title and the item lines follow the answer: the later lists, or all of them
+  const later = s === 'this' ? undefined : s;
   const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); };
   // a list that starts to repeat gets its item changes first, so every later week has them
   const itemsFirst = !!body.recurrence && editing.value;
@@ -229,7 +229,7 @@ async function save() {
         outbox.updateList(props.id!, rest, undefined, etag);
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
       }
-      if (title !== originalTitle.trim()) outbox.updateList(props.id!, { title }, 'following');
+      if (title !== originalTitle.trim()) outbox.updateList(props.id!, { title }, later);
     } else if (editing.value) {
       const changed = changedFields(body, current);
       if (Object.keys(changed).length || (!itemsChanged && !ruleChanged)) outbox.updateList(props.id!, changed, undefined, etag);

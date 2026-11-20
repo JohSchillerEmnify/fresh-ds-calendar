@@ -298,6 +298,7 @@ the item line {string} of the task list form is indented
 the item line {string} of the task list form is not indented
 I see the task list {string} on {date}
 I do not see the task list {string}
+I see exactly one task list {string} on {date}
 I do not see the task list {string} on {date}
 the task list {string} shows the done count {string}
 the task list {string} shows no done count

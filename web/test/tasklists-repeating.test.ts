@@ -410,6 +410,25 @@ describe('the task list form on a repeating list', () => {
       expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: 'Bathroom' }, { recurrence: 'monthly' }]);
     });
 
+    it('all lists with a changed title sends the title for all lists first, then the rhythm', async () => {
+      const m = await form(week(), answerPatch);
+      await setField('tasklist-title', 'Bathroom');
+      await pick('daily');
+      await save();
+      await choose('all');
+      expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=all', 'PATCH /api/tasklists/W_20261019?scope=all']);
+      expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: 'Bathroom' }, { recurrence: 'daily' }]);
+    });
+
+    it('a later part with another title is not a list changed on its own', async () => {
+      const other = week({ id: 'N_20261026', date: '2026-10-26', title: 'Bathroom', seriesId: 'N', seriesKey: 'W' });
+      await form(week({ seriesKey: 'W' }), answerPatch);
+      useItemsStore().upsert(other);
+      await pick('daily');
+      await save();
+      expect(q(tid('repeat-scope-lost'))).toBeNull();
+    });
+
     it('the first list offers only All lists, a list that stops repeating only This and all following', async () => {
       await form(week({ seriesSince: '2026-10-19' }), answerPatch);
       await pick('daily');

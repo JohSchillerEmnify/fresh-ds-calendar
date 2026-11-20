@@ -360,7 +360,7 @@ export class ApiClient {
     return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, ink, o);
   }
   deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope, keepSubtasks?: boolean) {
-    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope) + (keepSubtasks ? `${scope === 'following' ? '&' : '?'}subtasks=keep` : ''), undefined, o);
+    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope) + (keepSubtasks ? `${scope && scope !== 'this' ? '&' : '?'}subtasks=keep` : ''), undefined, o);
   }
   reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions, levels?: number[], scope?: ChangeScope) {
     return this.request<TaskList>('PUT', scoped(`/api/tasklists/${enc(id)}/items/order`, scope), levels ? { itemIds, levels } : { itemIds }, o);

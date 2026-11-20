@@ -249,8 +249,10 @@ function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
   const result = fresh as CalendarItem | undefined;
   ports.adoptInk?.(c, result);
   setEntries(s, s.entries.value.filter((x) => x.key !== e.key));
-  if (isCreate(c) && result) replaceId(s, c.id, result);
-  const id = isCreate(c) && result ? result.id : c.id;
+  // a rhythm change can answer with a list under a new id (it took the place of the one changed): what is queued follows it
+  const moved = c.op === 'list.update' && !!c.scope && result?.kind === 'tasklist' && result.id !== c.id;
+  if (result && (isCreate(c) || moved)) replaceId(s, c.id, result);
+  const id = result && (isCreate(c) || moved) ? result.id : c.id;
   if (c.op === 'list.delete' || c.op === 'event.delete') {
     items().hide(id);
     const series = c.op === 'list.delete' ? e.series : undefined;
