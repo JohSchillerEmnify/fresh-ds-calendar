@@ -7,6 +7,7 @@
 import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, provide, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import EdgeBand from '@/features/calendar/EdgeBand.vue';
+import { DragTimeMarks } from '@/features/calendar';
 import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
@@ -212,6 +213,7 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
           </div>
           <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hh" />
         </div>
+        <DragTimeMarks v-if="!fit && !preview" :dates="dateStrs" :hour-height="hh" />
       </div>
     </div>
     <EdgeBand v-if="!fit && !preview" />

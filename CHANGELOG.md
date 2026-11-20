@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-20
+- New: while you move, resize or draw an entry in the day or week view, the hour column shows the start and end time it will land on, with a dashed line to it. The small time inside the drop box is gone.
+
 ## 2026-11-18
 - New: after you sign in for the first time, the app asks whether to turn on task lists. They live in an extra calendar the app adds to your Google account, and it is added only if you say "Turn on". "Not now" keeps task lists off until you switch them on in Settings › Task lists.
 
