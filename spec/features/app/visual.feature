@@ -397,6 +397,28 @@ Feature: The calendar's states look right
       | dark   |
 
   @visual
+  Scenario Outline: The question about how a list repeats shows its warning in <scheme>
+    Given the device prefers a <scheme> color scheme
+    And the calendar contains a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with items:
+      | item  | done |
+      | Sink  | no   |
+      | Floor | no   |
+    And "Floor" of "Clean bathroom" was ticked on 2026-10-26
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    Then I am asked whether to change "This and all following task lists" or "All task lists"
+    And the "repeat question" still looks like "repeat-rhythm-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual
   Scenario Outline: The event sheet's All day switch looks right in <scheme>
     Given the device prefers a <scheme> color scheme
     When I open the week view for 2026-10-12

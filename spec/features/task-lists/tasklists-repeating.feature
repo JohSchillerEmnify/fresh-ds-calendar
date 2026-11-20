@@ -157,19 +157,110 @@ Feature: Changing a repeating task list for this one or this and all following o
     Then the task list form shows:
       | repeat | Weekly |
 
-  # Changing the rhythm of a list that already repeats needs the series to be split with a new rule; not built yet.
-  @backlog
-  Scenario: Changing how a repeating list repeats asks for this and all following lists
+  # Changing how a list repeats mirrors Google's recurring events (Calendar Help "Create a recurring event"): the
+  # question offers "This and following" (not on the first one) and "All", never "This event", because one list cannot
+  # repeat differently from the rest. Single lists changed one by one after the change point are dropped (the app says so
+  # first; Google only warns that they can be lost).
+  Scenario: Changing how a repeating list repeats asks for this and all following lists or all lists
     When I open the day view for 2026-10-19
     And I expand the task list "Clean bathroom"
     And I edit the task list details
     And I fill in the task list form with:
       | repeat | Daily |
     And I save the task list
-    Then I am asked whether to change "This task list" or "This and all following task lists"
+    Then I am asked whether to change "This and all following task lists" or "All task lists"
+    And "This and all following task lists" is chosen
+
+  Scenario: This and all following lists start the new rhythm after this one and leave earlier lists alone
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    And I choose "This and all following task lists" for the change
+    And I open the week view for 2026-10-19
+    Then I see the task list "Clean bathroom" on 2026-10-19
+    And I see the task list "Clean bathroom" on 2026-10-20
+    And I see the task list "Clean bathroom" on 2026-10-25
+    When I open the week view for 2026-10-12
+    Then I see the task list "Clean bathroom" on 2026-10-12
+    And I do not see the task list "Clean bathroom" on 2026-10-13
+
+  Scenario: All lists change the rhythm of the whole series
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    And I choose "All task lists" for the change
+    And I open the week view for 2026-10-12
+    Then I see the task list "Clean bathroom" on 2026-10-13
+    And I see the task list "Clean bathroom" on 2026-10-18
+
+  Scenario: The first list can only change all lists
+    When I open the day view for 2026-10-12
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    Then I am asked only whether to change "All task lists"
+
+  Scenario: A list that no longer repeats from here on can only change this and all following lists
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Does not repeat |
+    And I save the task list
+    Then I am asked only whether to change "This and all following task lists"
+    When I choose "This and all following task lists" for the change
+    And I open the week view for 2026-10-19
+    Then I see the task list "Clean bathroom" on 2026-10-19
+    When I open the week view for 2026-10-26
+    Then I do not see the task list "Clean bathroom"
+    When I open the week view for 2026-10-12
+    Then I see the task list "Clean bathroom" on 2026-10-12
+
+  Scenario: A list changed on its own after this one is dropped, and the question says so first
+    Given "Floor" of "Clean bathroom" was ticked on 2026-10-26
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    Then the change question warns that lists changed on their own will be lost
     When I choose "This and all following task lists" for the change
     And I open the week view for 2026-10-26
-    Then I see the task list "Clean bathroom" on 2026-10-27
+    Then the task list "Clean bathroom" shows the done count "0/2"
+
+  Scenario: A list changed on its own before this one is kept
+    Given "Floor" of "Clean bathroom" was ticked on 2026-10-12
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    Then the change question has no warning
+    When I choose "This and all following task lists" for the change
+    And I open the week view for 2026-10-12
+    Then the task list "Clean bathroom" shows the done count "1/2"
+
+  Scenario: Cancelling the question about the rhythm changes nothing
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    And I cancel the choice
+    And I cancel the task list dialog
+    And I open the week view for 2026-10-19
+    Then I do not see the task list "Clean bathroom" on 2026-10-20
 
   Scenario: Ticking an item of a repeating list never asks
     When I open the day view for 2026-10-19

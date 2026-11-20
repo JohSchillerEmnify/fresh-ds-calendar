@@ -705,7 +705,7 @@ interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
-  recurrence?: 'daily' | 'weekly' | 'monthly' | null; // gives a list that does not repeat a rhythm; a list that repeats keeps its own (400, field `recurrence`); never with `?scope=following`; an undated or a shared list cannot repeat
+  recurrence?: 'daily' | 'weekly' | 'monthly' | null; // gives a list that does not repeat a rhythm; on a list that repeats it is only accepted with `?scope=following` or `?scope=all` and then alone in the body (else 400, field `recurrence` or `scope`; see "Changing how a list repeats"); an undated or a shared list cannot repeat
   canvas?: { x: number; y: number } | null; // x, y integers 0-10000 (else 400, field `canvas`); null clears the place
 }
 ```
@@ -754,6 +754,13 @@ given id changes, as above. `index` inserts at a position (default: append); `le
 permutation of the current ids, else 400. **Subtasks** (feature tasklist-subtasks): an item has `level` 1 or 2 (absent = a task); `levels` (one per id, 0 for a task) sets the levels with the new order, else they stay; a level is made valid (the first item is a task, an item is at most one level deeper than the one above, at most 2). A create takes `level` (0..2) on its items. Ticking an item sets `done` on its subtasks too (unticking, the same; ticking a subtask never changes its task), and deleting an item deletes its subtasks (the items right after it that have a higher level). Google's description indents a subtask by two spaces per level; the items JSON stores `l`. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
+
+**Changing how a list repeats** (feature tasklist-repeating; Google Calendar Help "Create a recurring event": "This and following events" / "All events"): `PATCH /api/tasklists/:id?scope=following|all` with body `{ recurrence: 'daily' | 'weekly' | 'monthly' | null }` (nothing else) on an occurrence or series of a repeating list. The new rhythm equal to the list's own is a no-op (200). There is no "this list only": one list cannot repeat differently from the rest.
+`TaskList.seriesSince` (on occurrences, when known) is the date of the list's first list; the app offers `following` only after it.
+- `following`: the given occurrence stays with its id and ticks and is the last one of its series (`UNTIL`; a `COUNT` rule is turned into an `UNTIL`, as Google does when it splits a series, so nothing is refused); a new series in the new rhythm starts after it (the next day, week or month; the data of the given list, unticked; same `seriesKey`); later parts of the list and the old series' later single lists are dropped. On the first list of a series the rule is replaced in place and its later single lists go back to what the series says. `recurrence: null`: the given list becomes a list of its own (new id; ticks kept), the series ends before it, later parts go; the answer is that list.
+- `all`: the rule of the list's first series is replaced, later parts go, single lists dated today or later go back to what the series says, earlier ones (history, ticks) stay. The answer is the given list, or the first one when it is not in the new rhythm. `recurrence: null` only from the first list (else 400, field `scope`).
+- A single list is dropped by resetting it to the series' data, not by deleting it: Google's delete of an instance deletes that day. A week deleted before stays deleted. Only the rule of the master is patched (Calendar API `events.patch`, `recurrence`); the Calendar API has no "this and following" operation, so the split is done as Google Calendar does it.
+- Errors: 400 `This list does not repeat` / shared list; 412 when the series changed meanwhile after three tries.
 
 ### Shared task lists (owner, 2026-10-14; feature shared-lists)
 
