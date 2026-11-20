@@ -700,7 +700,6 @@ async function draw(w: World, d1: string, t1: string, d2: string, t2: string, re
     if (!together) await scrollTo(w, toMin(t2), later ? 0.75 : 0.25);
     return gridPoint(w, d2, t2);
   };
-  let sampling: Promise<void> | undefined;
   if (useTouch(w)) {
     const f = await fingerDown(w, from, 500);
     await f.move(await end(), 10, 300);
