@@ -158,6 +158,15 @@ describe('security: who may touch a shared list', () => {
 });
 
 describe('editing together', () => {
+  it('refuses a repeat rhythm on a shared list', async () => {
+    const { t, jo } = await setup();
+    try {
+      const own = await groceries(jo, { date: '2026-10-14' });
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const r = await jo('PATCH', `/api/tasklists/${encodeURIComponent(s.id)}`, { recurrence: 'weekly' });
+      expect(r.status).toBe(400);
+    } finally { t.cleanup(); }
+  });
   it('shows the other person\'s tick, bumps the etag and refuses a stale If-Match with 412', async () => {
     const { t, jo, anna } = await setup();
     try {

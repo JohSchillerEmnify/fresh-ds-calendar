@@ -250,6 +250,25 @@ describe('item operations', () => {
   });
 });
 
+describe('item ops the form sends', () => {
+  const tree = () => mk({ items: [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Food' }] });
+  it('removes a task and keeps its subtasks when asked to', async () => {
+    const a = await tree();
+    const r = await t.json('DELETE', `/api/tasklists/${a.id}/items/${a.items[0].id}?subtasks=keep`);
+    expect(r.body.items.map((i: any) => [i.title, i.level ?? 0])).toEqual([['Pegs', 0], ['Food', 0]]);
+    const b = await tree();
+    const all = await t.json('DELETE', `/api/tasklists/${b.id}/items/${b.items[0].id}`);
+    expect(all.body.items.map((i: any) => i.title)).toEqual(['Food']);
+  });
+  it('orders the later lists of a repeating list too with scope=following', async () => {
+    const a = await mk({ date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }] });
+    const ids = a.items.map((i: any) => i.id).reverse();
+    const r = await t.json('PUT', `/api/tasklists/${a.id}/items/order?scope=following`, { itemIds: ids });
+    expect(r.status).toBe(200);
+    expect(r.body.items.map((i: any) => i.title)).toEqual(['Floor', 'Sink']);
+  });
+});
+
 describe('changing how a list repeats', () => {
   it('a list that does not repeat can start repeating', async () => {
     const a = await mk({ date: '2026-10-14' });

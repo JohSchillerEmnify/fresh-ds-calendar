@@ -682,8 +682,8 @@ are made on the server, like a calendar birthday:
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
 | `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; level?: 0 \| 1 \| 2; index?: number }` | `201` `TaskList` |
 | `PATCH` | `/api/tasklists/:id/items/:itemId` | `{ title?: string; done?: boolean }` | `200` `TaskList` |
-| `DELETE` | `/api/tasklists/:id/items/:itemId` | – | `200` `TaskList` |
-| `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[], levels?: (0 \| 1 \| 2)[] }` | `200` `TaskList` |
+| `DELETE` | `/api/tasklists/:id/items/:itemId` | – (`?subtasks=keep`: its subtasks stay) | `200` `TaskList` |
+| `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[], levels?: (0 \| 1 \| 2)[] }` (`?scope=following`: the later lists get this order too) | `200` `TaskList` |
 
 ```ts
 interface CreateTaskListInput {
