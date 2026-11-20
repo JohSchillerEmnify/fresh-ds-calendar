@@ -238,10 +238,7 @@ export class TaskSeries {
     for (const e of this.exceptionsIn(all, master)) if (e.status !== 'cancelled' && drop(e)) await this.deleteOld(e);
   }
 
-  /**
-   * A change for all lists (Google's "All events"): the series and every list dated today or later. Lists before today are never
-   * changed (owner), so it is a change for this and all following lists from the first list of today on. `check` as for {@link forFollowing}.
-   */
+  /** A change for all lists: this and all following from the first list dated today or later, so earlier lists stay as they were. */
   async forAll(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
     const { cur, master } = await this.locateSeries(id);
     check?.(decodeTaskList(cur, this.tz));
