@@ -410,7 +410,7 @@ Feature: Drag and drop to reschedule
         | left  | previous | ‹ 5–11 Oct  | 2026-10-05 | 2026-10-07 |
 
     # owner, 2026-10-25: it has to work on the iPhone too (the card leaves the page while the finger is down)
-    @iphone
+    @mobile @iphone
     Scenario: On an iPhone the dragged event is carried over to the next day
       When I open the day view for 2026-10-14
       And I hold the event "Dentist" at the right edge of the time grid until the view turns

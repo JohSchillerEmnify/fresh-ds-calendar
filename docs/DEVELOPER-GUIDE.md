@@ -182,7 +182,7 @@ Neither is a required check; both live in the Actions tab.
   `@iphone` Playwright scenarios (including deleting a task list) on macOS WebKit, much closer to Safari than Linux WebKit.
   Start it by hand with `gh workflow run safari-webkit.yml`.
 - **Nightly** (`.github/workflows/nightly-e2e.yml`, 03:47 UTC) runs everything: `pnpm verify`, `pnpm goldens`, the whole e2e
-  suite (mobile, desktop and tablet, including `@perf`, `@visual` and `@slow`, in 4 shards), the Android unit tests, the leak
+  suite (mobile, desktop and tablet, including `@perf` and `@visual`, in 8 shards), the Android unit tests, the leak
   check and the Safari (WebKit) job. A tiny first job compares main with the sha of the last nightly run and skips everything when
   nothing changed. A failure opens (or updates) one issue "Nightly e2e failed <date>" labelled `tests` with every failed
   job and scenario. Start it by hand with `gh workflow run nightly-e2e.yml` (it runs even without changes).

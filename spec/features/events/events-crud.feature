@@ -459,7 +459,7 @@ Feature: Creating, editing and deleting events
         | end time   | 10:30 |
 
     # owner, 2026-10-25: drawing works on the iPhone too (long press on the empty grid, then drag)
-    @iphone
+    @mobile @iphone
     Scenario: On an iPhone a long press on the empty grid and a drag draw a block
       When I open the day view for 2026-10-14
       And I draw a block on 2026-10-14 from 09:00 to 10:30
