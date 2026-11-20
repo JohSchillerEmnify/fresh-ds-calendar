@@ -69,11 +69,12 @@ beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0.99); });
 // The outbox engine reaches the items store through a module-wide port, so a change still being sent when a test ends would
 // act on the next test's store (a refused PATCH re-reads and hides the list 'G'): every test waits for its outbox to drain,
 // and the wait is long because a loaded CI machine can take seconds for a send that takes milliseconds here.
+// A timeout is a failure (not swallowed): it names the test that left an unsent change behind.
 afterEach(async () => {
   wrapper?.unmount();
   wrapper = null;
   const outbox = useOutboxStore();
-  await vi.waitFor(() => expect(outbox.count).toBe(0), { timeout: 9000 }).catch(() => undefined);
+  await vi.waitFor(() => expect(outbox.count).toBe(0), { timeout: 9000 });
   await flushPromises();
   vi.restoreAllMocks();
 });
@@ -313,8 +314,9 @@ describe('expanded list', () => {
 
   it('keeps the tick shown while it cannot be sent', async () => {
     const list = tl('G');
-    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': () => ({ status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } }) });
-    // the failed send schedules a retry (1 s): on a fake clock it is dropped with the test instead of firing into a later test's store
+    let online = false;
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': () => (online ? list : { status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } }) });
+    // the failed send schedules a retry (1 s) on a fake clock; the test lets it succeed at the end so no entry outlives it
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     try {
       await checkbox(w, 0).setValue(true);
@@ -322,6 +324,9 @@ describe('expanded list', () => {
       expect(done(w)[0]).toBe('true');
       expect(useOutboxStore().count).toBe(1);
       expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(false);
+      online = true;
+      await vi.advanceTimersByTimeAsync(1000);
+      await flushPromises();
     } finally {
       vi.useRealTimers();
     }
