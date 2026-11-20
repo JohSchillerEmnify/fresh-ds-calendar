@@ -38,5 +38,6 @@ above, plus `@visual` pictures of the form at 375x812 light and dark.
 
 ## Assumptions
 - Existing handwritten items are not shown as text lines in the edit form; they stay where they are.
-- Under "this and all following" the item ops carry the scope; re-ordering has no scope and changes this list only.
-- Lines are matched to existing items by title (longest common run); unmatched lines in the same gap are renames.
+- Under "this and all following" every item op carries the scope, the order and levels (`item.order`), removals that keep subtasks and handwritten adds included. An order skips ids a list lacks and keeps items it does not name after the item they followed, also for "this list".
+- Lines are matched to existing items by title (longest common run, moved lines too); the rest in a gap pair up as renames, most alike title first.
+- The form compares against the items it opened with, so items added elsewhere meanwhile stay. A line left as it was keeps its item's own level, also beside handwritten items.

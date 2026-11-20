@@ -181,10 +181,10 @@ export function writes(s: OutboxState) {
       add(s, { op: 'item.add', id: listId, itemId, title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text });
       return itemId;
     },
-    /** A handwritten item at the end of the list; returns its id. */
-    addInkItem(listId: string, strokes: InkStroke[]): string {
+    /** A handwritten item at the end of the list (`following`: of the later lists too); returns its id. */
+    addInkItem(listId: string, strokes: InkStroke[], scope?: ChangeScope): string {
       const itemId = newItemId();
-      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
+      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes, ...scoped(scope) }, { title: '' });
       return itemId;
     },
     /** The new strokes of a handwritten item (all of them) and the strokes they started from, so the server can merge them with another device's. Held until the line is done (`sendInk`). */

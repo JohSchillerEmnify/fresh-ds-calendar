@@ -77,6 +77,16 @@ describe('planItemEdits', () => {
     expect(p.adds).toEqual([0, 1]);
     expect(finalOrder(items, parseIndented('X\nY'), p, (n) => `new${n}`)?.ids ?? ['new0', 'new1']).toEqual(['new0', 'new1']);
   });
+  it('sends no order for a list with handwritten items when the lines are left as they were', () => {
+    const a = [it$('i', '', { ink: true }), it$('p', 'Pegs', { level: 1 }), it$('o', 'Poles', { level: 1 })];
+    expect(order(a, linesOfItems(a))).toBeNull();
+    const b = [it$('a', 'A'), it$('i', '', { ink: true, level: 1 }), it$('c', 'C', { level: 2 })];
+    expect(order(b, linesOfItems(b))).toBeNull();
+  });
+  it('still follows a line the person indented in a list with handwritten items', () => {
+    const b = [it$('a', 'A'), it$('i', '', { ink: true, level: 1 }), it$('c', 'C', { level: 2 }), it$('d', 'D')];
+    expect(order(b, 'A\n    C\n  D')?.levels).toEqual([0, 1, 2, 1]);
+  });
   it('keeps a handwritten item after the item it followed', () => {
     const items = [it$('a', 'A'), it$('i', '', { ink: true }), it$('b', 'B')];
     expect(order(items, 'A\nNew\nB')).toEqual({ ids: ['a', 'i', 'new1', 'b'], levels: [0, 0, 0, 0] });

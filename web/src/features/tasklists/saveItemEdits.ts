@@ -14,7 +14,7 @@ export function saveItemEdits(list: TaskList, seen: readonly TaskItem[], lines: 
   plan.deletes.filter((d) => live.has(d.id)).forEach((d) => removeItem(list.id, d.id, d.title, undefined, scope, true));
   plan.renames.filter((r) => live.has(r.id)).forEach((r) => patchItem(list.id, r.id, { title: r.title.slice(0, TITLE_MAX) }, scope));
   const added = new Map(plan.adds.map((n) => [n, addItem(list.id, lines[n]!.title.slice(0, TITLE_MAX), scope, undefined, lines[n]!.level)] as const));
-  const inked = ink.map((strokes) => outbox.addInkItem(list.id, strokes));
+  const inked = ink.map((strokes) => outbox.addInkItem(list.id, strokes, scope === 'following' ? scope : undefined));
   const order = finalOrder(seen, lines, plan, (n) => added.get(n)!, inked, newer.length > 0 && plan.adds.length + inked.length > 0);
   if (!order) return;
   const [ids, levels] = [[...order.ids], [...order.levels]];

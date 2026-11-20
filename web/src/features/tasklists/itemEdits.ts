@@ -1,6 +1,6 @@
 /** The item lines of the task list form: changed lines become the item operations the expanded list sends, so a kept or renamed item keeps its tick. */
 import type { TaskItem } from '@/api/types';
-import { indentOf, levelOf } from '@calendar/shared/subtasks';
+import { indentOf, levelOf, parseIndented } from '@calendar/shared/subtasks';
 
 export interface ItemLine { title: string; level: number }
 
@@ -88,11 +88,14 @@ export function finalOrder(existing: readonly TaskItem[], lines: readonly ItemLi
   const push = (id: string, level: number) => { ids.push(id); levels.push(level); };
   const inkOf = (a: string | null) => (inkAfter.get(a) ?? []).forEach((i) => push(i.id, levelOf(i)));
   inkOf(null);
+  // the form shows no handwritten items, so it reads a subtask beside one a level shallower: a line left as it was keeps the item's own level
+  const shown = parseIndented(linesOfItems(existing));
+  const levelOfLine = (n: number, o: number): number => (shown.length === text.length && lines[n]!.level === shown[o]!.level ? levelOf(text[o]!) : lines[n]!.level);
   const kept = new Set<string>();
   lines.forEach((l, n) => {
     const o = plan.keptBy[n]!;
     if (o < 0) { push(addedId(n), l.level); return; }
-    push(text[o]!.id, l.level);
+    push(text[o]!.id, levelOfLine(n, o));
     kept.add(text[o]!.id);
     inkOf(text[o]!.id);
   });
