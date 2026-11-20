@@ -116,12 +116,19 @@ export async function settingControl(world: World, testid: string): Promise<Loca
 /** Leaves the settings for the page that was open before them (Back until no settings page is shown). */
 export async function leaveSettings(world: World) {
   const { page } = world;
-  if (await page.getByTestId('theme-view').isVisible()) await page.getByTestId('theme-back').click();
-  // Back is a history step that lands later: wait for the address to change before looking again, or a second click hits the page that is just going away.
-  for (let i = 0; i < 4 && (await page.getByTestId('settings-view').isVisible()); i++) {
-    const before = page.url();
+  if (await page.getByTestId('theme-view').isVisible()) {
+    await page.getByTestId('theme-back').click();
+    await expect(page.getByTestId('theme-view')).toBeHidden();
+  }
+  // Back lands later (a history step): wait until the settings are gone or the history entry changed (a page can sit twice in the history, so address and title may stay the same) before the next click, which would otherwise hit the page that is going away.
+  const view = page.getByTestId('settings-view');
+  const entry = () => page.evaluate(() => `${history.state?.position}|${history.state?.current}`);
+  for (let i = 0; i < 4 && (await view.isVisible()); i++) {
+    const before = await entry();
     await page.getByTestId('settings-back').click();
-    await expect.poll(() => page.url()).not.toBe(before);
+    await expect(async () => {
+      if (await view.isVisible()) expect(await entry()).not.toBe(before);
+    }).toPass();
   }
   await expect(page.getByTestId('settings-view')).toBeHidden();
 }
