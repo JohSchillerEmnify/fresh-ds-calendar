@@ -18,7 +18,7 @@ export const NAME_MAX = 80;
 export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' | 'categoryId'>, name: string, categoriesOn: boolean, strokesOf: (itemId: string) => InkStroke[] = () => []): TaskTemplateInput {
   return {
     name: name.trim(),
-    items: l.items.map((i) => (i.ink ? { title: '', strokes: strokesOf(i.id) } : { title: i.title, ...levelProp(i.level) })),
+    items: l.items.map((i) => (i.ink ? { title: '', ...levelProp(i.level), strokes: strokesOf(i.id) } : { title: i.title, ...levelProp(i.level) })),
     estimateMinutes: l.estimateMinutes ?? null,
     categoryId: categoriesOn ? l.categoryId ?? null : null,
   };

@@ -1,7 +1,9 @@
 /** How unsent changes show subtasks on the device: the same rules as the server (feature tasklist-subtasks). */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { api } from '@/api/client';
 import type { TaskList } from '@/api/types';
 import { localTaskList, withPending, type Change, type OutboxEntry } from '@/lib/outbox';
+import { perform } from '@/lib/outboxSend';
 
 const entry = (change: Change): OutboxEntry => ({ key: 'k', person: 'p', seq: 1, change, title: 't' });
 const list = (): TaskList => ({
@@ -35,5 +37,13 @@ describe('subtasks on the device before the server answers', () => {
     const l = localTaskList('N', { title: 'Camping', date: null, items: [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food', level: 2 }] });
     expect(levels(l)).toEqual([0, 1, 2, 2]);
     expect(levels(localTaskList('N', { title: 'C', date: null, items: [{ title: 'A', level: 2 }] }))).toEqual([0]);
+  });
+  it('an added item with level 2 after a task shows level 1, and is sent with its level', async () => {
+    const add: Change = { op: 'item.add', id: 'L', itemId: 'newitem1', title: 'Rope', level: 2 };
+    expect(levels(withPending({ ...list(), items: [{ id: 'a', title: 'A', done: false }] }, [entry(add)]) as TaskList)).toEqual([0, 1]);
+    const send = vi.spyOn(api, 'addTaskItem').mockResolvedValue({} as TaskList);
+    await perform(entry(add));
+    expect(send).toHaveBeenCalledWith('L', expect.objectContaining({ title: 'Rope', level: 2 }), expect.anything(), undefined);
+    send.mockRestore();
   });
 });

@@ -19,7 +19,6 @@ import { useTaskCategories } from './categories';
 import { templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
-import { parseItems } from './validate';
 
 /** `template`: the one being edited; null makes a new one. */
 const props = defineProps<{ template: TaskTemplate | null }>();
@@ -50,7 +49,7 @@ function problem(): string {
     const n = Number(form.estimate);
     if (!Number.isInteger(n) || n < ESTIMATE_MIN || n > ESTIMATE_MAX) return t('tasks.validation.estimateRange');
   }
-  const lines = parseItems(form.items);
+  const lines = parseIndented(form.items).map((l) => l.title);
   if (lines.length > LIST_ITEMS_MAX) return t('tasks.validation.tooManyItems');
   if (lines.some((l) => l.length > TITLE_MAX)) return t('tasks.validation.itemTooLong');
   return '';

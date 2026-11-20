@@ -508,6 +508,14 @@ describe('recurring task lists: a change for this and all following ones (scope=
   const tick = async (date: string, n: number) => { const w = await week(date); await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[n].id}`, { done: true }); };
   const remote = async () => (await t.json('GET', '/api/__test/remote/events')).body.items;
 
+  it('an added subtask keeps its level, made valid, on this list and the later ones', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror', level: 2 });
+    expect(r.body.items.map((i: any) => i.level ?? 0)).toEqual([0, 0, 1]);
+    expect((await week('2026-10-28')).items.map((i: any) => i.level ?? 0)).toEqual([0, 0, 1]);
+  });
+
   it('adds an item from the shown one on: later ones keep their ticks, earlier ones stay as they were', async () => {
     const a = await create();
     await tick('2026-10-14', 0);
