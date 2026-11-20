@@ -512,8 +512,9 @@ describe('recurring task lists: a change for this and all following ones (scope=
     await create();
     const second = await week('2026-10-21');
     const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror', level: 2 });
-    expect(r.body.items.map((i: any) => i.level ?? 0)).toEqual([0, 0, 1]);
-    expect((await week('2026-10-28')).items.map((i: any) => i.level ?? 0)).toEqual([0, 0, 1]);
+    const levelsOf = (l: { items: { level?: number }[] }) => l.items.map((i) => i.level ?? 0);
+    expect(levelsOf(r.body)).toEqual([0, 0, 1]);
+    expect(levelsOf(await week('2026-10-28'))).toEqual([0, 0, 1]);
   });
 
   it('adds an item from the shown one on: later ones keep their ticks, earlier ones stay as they were', async () => {
