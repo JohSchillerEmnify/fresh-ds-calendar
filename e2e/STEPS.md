@@ -2164,15 +2164,20 @@ I am told a new version is available
 I am not told a new version is available
 I choose to reload
 the app runs the new version
-the script of the {view} view is gone from the server until the page reloads
+the script and styles of the {view} view are gone from the server until the page reloads
 the page has reloaded once
 a script file stays missing after the app reloaded
 the app does not reload a second time
+a script file the app needs in the background is missing
+the app reloads once the dialog is closed
+a script file is missing while a dialog opens
+the app reloads
+a missing file under assets is answered as not found
 the page and the worker are not kept by the browser without asking
 ```
 
 - "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
-- "the script of the V view is gone ...": `page.route('**/assets/<ViewPage>-*.js')` answers 404 until the page's next load (a
+- "the script and styles of the V view are gone ...": `page.route` of `/assets/<ViewPage>-*.js` and `.css` answers 404 until the page's next load (a
   counter of `load` events starts at the step; the route lets the file through once the page loaded again). "has reloaded
   once": exactly one further `load` event. The last three steps are `@unit` only (named in the feature).
 - "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.

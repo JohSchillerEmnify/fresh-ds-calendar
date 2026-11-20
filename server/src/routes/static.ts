@@ -24,5 +24,7 @@ export function staticRoutes(webDist: string, versionOverride: () => string | un
     })
     // `<file>.br` / `<file>.gz` written by web/scripts/precompress.mjs are served as is when the browser accepts them
     .use('*', serveStatic({ root, precompressed: true }))
+    // a removed hashed file must fail to load; the page in its place is not JavaScript or CSS
+    .get('/assets/*', (c) => c.text('Not found', 404))
     .get('*', serveStatic({ root, path: 'index.html', precompressed: true }));
 }

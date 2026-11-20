@@ -79,7 +79,7 @@ let stopDeferred: (() => void) | null = null;
 let applying = false;
 
 /** Safe moment to reload: no open dialog/editor, picker or drag/resize. */
-function uiIsSafe(): boolean {
+export function uiIsSafe(): boolean {
   const ui = useUiStore();
   return !ui.dialog && !ui.pickerOpen && !ui.resizing;
 }

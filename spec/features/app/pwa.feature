@@ -170,7 +170,7 @@ Feature: Installable progressive web app
   # A deploy replaces the app's script files; a page opened before it still names the old ones.
   Scenario: A view whose script a deploy removed opens after the app reloads itself
     Given I have seen the week view for 2026-10-12
-    And the script of the month view is gone from the server until the page reloads
+    And the script and styles of the month view are gone from the server until the page reloads
     When I switch to the month view
     Then the month view is shown
     And the page has reloaded once
@@ -181,6 +181,26 @@ Feature: Installable progressive web app
     Given I have seen the week view for 2026-10-12
     When a script file stays missing after the app reloaded
     Then the app does not reload a second time
+
+  # unit: web/test/stale-chunk.test.ts:waits while a dialog is open and reloads when it closes, so typed input is not lost
+  @unit
+  Scenario: A missing script never reloads the app while I am typing
+    Given I start creating an event
+    When a script file the app needs in the background is missing
+    Then the event dialog is open
+    And the app reloads once the dialog is closed
+
+  # unit: web/test/stale-chunk.test.ts:reloads at once when the failed file is the dialog that was just opened
+  @unit
+  Scenario: A dialog whose script is gone reloads the app at once
+    When a script file is missing while a dialog opens
+    Then the app reloads
+
+  # unit: server/test/static.test.ts:answers a missing file under /assets with 404, not with the page (a removed script must fail)
+  @unit
+  Scenario: A removed script file is answered as not found
+    When I open the app
+    Then a missing file under assets is answered as not found
 
   # unit: server/test/static.test.ts:asks again for the page, its fallback and the worker, so a deploy reaches the next load
   @unit

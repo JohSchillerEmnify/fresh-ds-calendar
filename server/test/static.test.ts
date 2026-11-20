@@ -58,6 +58,13 @@ describe('cache headers', () => {
     }
   });
 
+  it('answers a missing file under /assets with 404, not with the page (a removed script must fail)', async () => {
+    const res = await get('/assets/Gone-OLD.js', 'gzip');
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).not.toMatch(/html/);
+    expect((await get('/some/route', 'gzip')).status).toBe(200);
+  });
+
   it('leaves the hashed assets to the browser cache', async () => {
     expect((await get('/app.js', 'gzip')).headers.get('cache-control')).toBeNull();
   });
