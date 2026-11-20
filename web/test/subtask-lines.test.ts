@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gapLines, linesFor } from '@/features/tasklists/subtaskLines';
+import { linesFor } from '@/features/tasklists/subtaskLines';
 
 const lv = (...l: number[]) => l.map((level) => ({ level }));
 
@@ -20,10 +20,5 @@ describe('subtask lines', () => {
   it('tree: an ancestor line continues only while its task has a next sibling', () => {
     expect(linesFor(lv(0, 1, 2, 1), 2, 'tree')).toEqual([{ col: 0, kind: 'guide' }, { col: 1, kind: 'branch', end: true }]);
     expect(linesFor(lv(0, 1, 2, 0), 2, 'tree')).toEqual([{ col: 1, kind: 'branch', end: true }]);
-  });
-  it('the gap shows the line of the level it will get', () => {
-    expect(gapLines(0, 'tree')).toEqual([]);
-    expect(gapLines(2, 'straight')).toEqual([{ col: 0, kind: 'guide' }, { col: 1, kind: 'guide' }]);
-    expect(gapLines(2, 'tree')).toEqual([{ col: 1, kind: 'branch', end: true }]);
   });
 });

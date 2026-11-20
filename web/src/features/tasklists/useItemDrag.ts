@@ -8,7 +8,7 @@ import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import { blockEnd, levelOf } from '@calendar/shared/subtasks';
 import { createDragController, type DragContext, type DragController } from '@/motion/drag';
 import { getMotionLevel } from '@/motion/level';
-import { dropIndex, placeBlock, rowShifts, slotOffset } from './reorder';
+import { dropIndex, lineStart, placeBlock, rowShifts, slotOffset } from './reorder';
 
 /** Selector of the drag handle (`data-item-grip` in `TaskListView`); the Canvas leaves a press on it to the item. */
 const ITEM_GRIP = '[data-item-grip]';
@@ -41,11 +41,13 @@ const KEY_LEVELS = 4;
 
 /** Sideways distance (px) of one level: a row is moved one level by dragging it this far (the indent in `TaskListView`). */
 const LEVEL_PX = 28;
+/** How far (px) the finger sits inside the right end of the held card at pick-up. */
+const CARD_TAIL = 24;
 /** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
 const HELD_SUB = 'data-sub-held';
 
-/** Where the dragged item will land: the gap (top and height in px from the top of the list) and the level it will get. */
-export interface DropAim { top: number; height: number; level: number }
+/** Where the dragged item will land: the slot (top and height in px from the top of the list), the level it will get and where its drop line starts (px from the left of the list). */
+export interface DropAim { top: number; height: number; level: number; left: number }
 
 /** Duration of the other rows' move out of the way (ms); none under reduced motion. */
 const MAKE_ROOM_MS = 150;
@@ -103,6 +105,18 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       r.style.transform = shifts[i] ? `translateY(${shifts[i] / scaleOf(r)}px)` : '';
     });
   }
+  /** Where the drop line of level `level` starts: the title column of a row that stays in the list (the held card itself, level 0, when it is alone), so a mirrored row follows. */
+  function lineLeft(held: HTMLElement, ul: HTMLElement, level: number): number {
+    const ref = rowsOf().find((r) => r !== held && !r.hasAttribute(HELD_SUB)) ?? held;
+    const title = ref.querySelector<HTMLElement>('.ititle');
+    // the list's scale: the held card's own is lifted by 5 %
+    const s = scaleOf(ul);
+    if (!title) return 0;
+    // the held card is shifted under the finger: its own place is the row's
+    const shifted = ref === held ? (parseFloat(held.style.translate) || 0) * s : 0;
+    const refLevel = ref === held ? 0 : Number(ref.dataset.level) || 0;
+    return lineStart(title.getBoundingClientRect().left - shifted - ul.getBoundingClientRect().left, refLevel, level, LEVEL_PX * s) / s;
+  }
   /** The subtasks of the held task travel with it: their rows fold away for the drag. */
   function foldSubtasks(held: HTMLElement): void {
     const items = o.items();
@@ -128,10 +142,13 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       return { top: pickup!.originRect.top + m, bottom: pickup!.originRect.bottom + m };
     };
     let pen = false;
+    /** Where the press was (client x): the compact card is put under the finger there. */
+    let downX = 0;
     let thaw: (() => void) | null = null;
     const onDown = (e: Event) => {
       fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP);
       pen = (e as PointerEvent).pointerType === 'pen';
+      downX = (e as PointerEvent).clientX;
     };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
@@ -145,13 +162,13 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         pickup = ctx;
         const hovered = dropIndex(live.map((r, i) => (i === from ? ownSpan() : r)), y);
         // the sideways move decides the level; the item above and the three levels limit it
-        const step = LEVEL_PX * scaleOf(row);
+        const step = LEVEL_PX * scaleOf(row.parentElement ?? row);
         const own = levelOf(o.items().find((i) => i.id === id) ?? {});
         const wanted = own + Math.round((x - ctx.originRect.left - ctx.grab.x) / step);
         const p = placeBlock(o.items(), id, hovered, wanted);
         if (!p) return null;
         chosen = { to: hovered, wanted, level: p.level };
-        // the gap opens where the block lands: after row `p.after`; the card keeps its column (only the gap indents)
+        // the slot opens where the block lands: after row `p.after`; the card itself follows the finger freely
         const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
         const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
@@ -163,16 +180,26 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         if (id && !unchanged) o.onMove(id, chosen.to, chosen.wanted);
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
+      magnet: false,
+      cardBox: () => ({ left: (parseFloat(row.style.translate) || 0) * scaleOf(row), width: row.offsetWidth * scaleOf(row) }),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
         held = t ? { row, to: Math.floor(t.key / KEY_LEVELS), own: ownSpan } : null;
         if (t) makeRoom(row, held!.to, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
         const ul = o.root.value?.querySelector<HTMLElement>('ul');
-        aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level } : null;
+        aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level, left: lineLeft(row, ul, chosen.level) } : null;
       },
       onStateChange: (st) => {
-        if (st === 'dragging') { thaw ??= freezeSheet(row); foldSubtasks(row); }
-        else if (st === 'idle') { thaw?.(); thaw = null; }
+        if (st === 'dragging') {
+          thaw ??= freezeSheet(row);
+          foldSubtasks(row);
+          // the row is the compact card now, put under the finger with the finger near its right end: moving right has room
+          const grabX = downX - row.getBoundingClientRect().left;
+          row.style.translate = `${Math.max(0, grabX / scaleOf(row) - row.offsetWidth + CARD_TAIL)}px 0`;
+        } else {
+          row.style.translate = '';
+          if (st === 'idle') { thaw?.(); thaw = null; }
+        }
         if (st !== 'dragging') { held = null; aim.value = null; unfoldSubtasks(); }
         // a drop reorders the rows at once; a cancel lets the rows glide back until the card has settled
         if (st === 'dropping' || st === 'idle') clearRoom();

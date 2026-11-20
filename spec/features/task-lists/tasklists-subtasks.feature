@@ -4,7 +4,7 @@ Feature: Subtasks in task lists
   dragging: further right makes an item a subtask, further left moves it up a level. On a computer, Tab and Shift+Tab do
   the same while an item is being edited. There is no extra button for it. Subtasks are always shown, indented one
   checkbox width per level, with faint lines that show the levels: straight guides by default, tree branches if chosen in
-  the settings; while dragging, the gap shows the level the item will get, with its line.
+  the settings; while dragging, a drop line shows the level the item will get.
 
   Background:
     Given the calendar is empty
@@ -53,11 +53,6 @@ Feature: Subtasks in task lists
       When I drag the item "Tent" one step to the right
       Then the item "Tent" is not a subtask
 
-    Scenario: While an item is held at a subtask level, only the dashed gap indents; the bin stays where it is
-      When I hold the item "Pegs" one step to the right
-      Then the dashed gap is indented one level
-      And the item "Pegs" keeps its right side where it was
-
     Scenario: A task moves together with its subtasks
       Given the item "Pegs" was made a subtask of "Tent"
       When I drag the item "Tent" below the item "Food"
@@ -70,6 +65,66 @@ Feature: Subtasks in task lists
       When I drag the item "Pegs" one step to the left
       Then the item "Pegs" is not a subtask
       And the item "Poles" is a subtask of "Pegs"
+
+  Rule: A held item is a compact card that follows the finger, and a drop line shows where it lands
+
+    The picked-up task becomes a compact card (checkbox and title, no grip, no bin) that follows the finger freely in
+    every direction. A drop line in the list marks where it will land: it starts at the indent of the level the item
+    will get and stops short of every checkbox. Moving sideways changes the level in steps of 28 px. The grips and bins
+    of the rows never move.
+
+    Scenario: The held item is a compact card with the checkbox and the title only
+      When I hold the item "Pegs" one step to the right
+      Then the held card shows the checkbox and the title "Pegs" but no grip and no bin
+
+    Scenario: The card follows the finger in every direction
+      When I hold the item "Pegs" and move the finger 50 px to the right and 30 px down
+      Then the held card is under the finger
+      When I move the finger 90 px to the left and 60 px up
+      Then the held card is under the finger
+
+    Scenario: A long title does not make the held card taller
+      Given the browser window is 560 by 900 pixels wide and high
+      And the item "Pegs" gets the title "Pegs for the big tent, the long ones with the hooks and the ones that bend easily when the ground is stony"
+      When I hold the item "Pegs for the big tent, the long ones with the hooks and the ones that bend easily when the ground is stony" and move the finger 20 px to the right and 0 px down
+      Then the held card is one line tall
+
+    Scenario: The drop line starts at the indent of the level the item will get
+      When I hold the item "Pegs" one step to the right
+      Then the drop line is at the indent of level 1
+
+    Scenario: Two levels in, the drop line starts two indents in
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I hold the item "Poles" two steps to the right
+      Then the drop line is at the indent of level 2
+
+    Scenario: A task keeps its level until the finger has moved half a step sideways
+      When I hold the item "Pegs" and move the finger 13 px to the right and 0 px down
+      Then the drop line is at the indent of level 0
+      When I move the finger 2 px to the right and 0 px down
+      Then the drop line is at the indent of level 1
+
+    Scenario: The drop line stays clear of every checkbox
+      When I hold the item "Pegs" one step to the right
+      Then the drop line touches no checkbox
+
+    Scenario: The grips and bins of all rows stay where they are while an item is held
+      When I hold the item "Pegs" one step to the right
+      Then the grips and bins of the other items have not moved sideways
+
+    @visual @mobile
+    Scenario Outline: The held card and the drop line look right at <level> in the <scheme> scheme
+      Given the device prefers a <scheme> color scheme
+      And the item "Pegs" was made a subtask of "Tent"
+      When I hold the item "Poles" <steps> to the right
+      Then the expanded task list "Packing" looks like the picture "subtasks-held-<level>-<scheme>"
+
+      Examples:
+        | scheme | steps     | level      |
+        | light  | one step  | one-level  |
+        | dark   | one step  | one-level  |
+        | light  | two steps | two-levels |
+        | dark   | two steps | two-levels |
 
   Rule: When a list is created, spaces before a line make it a subtask
 

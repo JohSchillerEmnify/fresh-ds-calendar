@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropIndex, moveTo, rowShifts, slotOffset } from '@/features/tasklists/reorder';
+import { dropIndex, lineStart, moveTo, rowShifts, slotOffset } from '@/features/tasklists/reorder';
 
 const rows = [
   { top: 0, bottom: 40 },
@@ -62,5 +62,14 @@ describe('rowShifts', () => {
   });
   it('is all zero for a bad index', () => {
     expect(rowShifts(even, 9, 0)).toEqual([0, 0, 0, 0]);
+  });
+});
+
+describe('lineStart', () => {
+  it('moves one step per level from the title column of any row, also when the rows are mirrored', () => {
+    expect(lineStart(56, 0, 2, 28)).toBe(112);
+    expect(lineStart(84, 1, 0, 28)).toBe(56);
+    // a mirrored row has its title column elsewhere: the reference row decides, not a constant
+    expect(lineStart(120, 0, 1, 28)).toBe(148);
   });
 });

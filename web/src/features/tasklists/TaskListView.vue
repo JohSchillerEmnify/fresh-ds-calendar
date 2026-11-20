@@ -37,7 +37,7 @@ import { isCollapsed, setCollapsed } from './collapse';
 import { addItem, moveItemTo, patchItem, toggleSingleTask } from './ops';
 import { blockEnd, blockIds, levelOf } from '@calendar/shared/subtasks';
 import { linesFor } from './subtaskLines';
-import SubtaskGap from './SubtaskGap.vue';
+import DropLine from './DropLine.vue';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
@@ -365,7 +365,7 @@ defineExpose({ root, busy });
               <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
             </template>
           </ListItem>
-          <SubtaskGap v-if="aim && aim.level > 0" :aim="aim" :lines="prefs.subtaskLines" />
+          <DropLine v-if="aim" :aim="aim" />
         </ul>
         <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
           <InkLine class="draft" :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />

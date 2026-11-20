@@ -177,6 +177,38 @@ describe('drag state machine', () => {
     expect(c.state).toBe('idle');
     expect(onDrop).toHaveBeenCalledTimes(2);
   });
+  it('a press while the card still wobbles after a drop picks it up on the first long press, and the old wobble ending does not end the new drag', async () => {
+    const { c, states } = make();
+    down(); vi.advanceTimersByTime(351); move(80, 90); up(80, 90);
+    expect(c.state).toBe('dropping');
+    down();
+    vi.advanceTimersByTime(351);
+    expect(c.state).toBe('dragging');
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('dragging');
+    expect(states).toEqual(['pending', 'dragging', 'dropping', 'idle', 'pending', 'dragging']);
+    up(80, 90); await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+  });
+  it('a press while the card still springs back after a cancel is taken on the first long press', async () => {
+    const { c, states } = make();
+    down(); vi.advanceTimersByTime(351); move(80, 90); c.cancel();
+    expect(c.state).toBe('returning');
+    down();
+    vi.advanceTimersByTime(351);
+    expect(c.state).toBe('dragging');
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('dragging');
+    expect(states).toEqual(['pending', 'dragging', 'returning', 'idle', 'pending', 'dragging']);
+  });
+  it('a right-button press leaves a wobbling card alone', async () => {
+    const { c } = make();
+    down(); vi.advanceTimersByTime(351); move(80, 90); up(80, 90);
+    expect(c.state).toBe('dropping');
+    el.dispatchEvent(pe('pointerdown', { x: 50, y: 50, pointerType: 'mouse', button: 2 }));
+    expect(c.state).toBe('dropping');
+    await flush(); finishAll(); await flush();
+  });
   it('late PATCH failure rolls back visually without touching a new gesture', async () => {
     let reject!: (e: Error) => void;
     const onDrop = vi.fn(() => new Promise<void>((_, r) => { reject = r; }));

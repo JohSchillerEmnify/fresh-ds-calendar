@@ -112,6 +112,14 @@ Feature: Working with task list items
       Then the expanded task list items are "Milk, Bread, Eggs"
 
     @mobile
+    Scenario: An item can be picked up again right after it was dropped, on the first long press
+      When I long-press the item "Bread" and drag it above the item "Eggs"
+      And I press the item "Bread" while it still wobbles from the drop and hold
+      Then the item "Bread" is lifted
+      When I release the item without moving it
+      Then the expanded task list items are "Milk, Bread, Eggs"
+
+    @mobile
     Scenario: A short tap on an item still ticks it and starts no drag
       When I tap the item "Eggs"
       Then the item "Eggs" is ticked
