@@ -334,6 +334,7 @@ Feature: Drag and drop to reschedule
     Scenario Outline: The marks on the hour column look as drawn on a phone, <scheme>
       Given I am using a phone
       And the device prefers a <scheme> color scheme
+      And the support cat is set to "Off" in the settings
       When I open the week view for 2026-10-12
       And I hold the event "Dentist" over 2026-10-16 at 14:00 for 300 ms
       Then the "time grid" still looks like "drag-landing-time-<scheme>"
