@@ -538,8 +538,8 @@ export class CalendarService {
         if (title !== undefined || Object.keys(rest).length) throw validation('Only how the list repeats changes with this scope', 'scope');
         return this.series.changeRule(id, recurrence, scope);
       }
-      if (scope === 'all' || title === undefined || Object.keys(rest).length) throw validation('Only the title changes for the following lists', 'scope');
-      return this.series.forFollowing(id, (d) => ({ ...d, title }));
+      if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for the following lists', 'scope');
+      return this.series.forScope(scope, id, (d) => ({ ...d, title }));
     }
     if (input.recurrence && isSharedId(id)) throw validation('A shared list cannot repeat', 'recurrence');
     return this.modify(id, (d) => {
@@ -585,10 +585,10 @@ export class CalendarService {
 
   /** `input.id` (optional, from the client) makes a repeated add idempotent: a list that holds that id already stays as it is. */
   async addItem(id: string, input: { id?: string; title: string; ink?: boolean; done?: boolean; level?: number; index?: number }, scope?: Scope): Promise<TaskList> {
-    if (scope === 'following') {
+    if (scope) {
       // one id in every list, unticked; a list that has it already (a repeated write) is left as it is
       const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false, ...levelProp(input.level), ...(input.ink ? { ink: true as const } : {}) };
-      return this.series.forFollowing(id, (d) => {
+      return this.series.forScope(scope, id, (d) => {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
         items.splice(input.index === undefined ? items.length : Math.min(input.index, items.length), 0, item);
@@ -606,11 +606,11 @@ export class CalendarService {
   }
 
   async patchItem(id: string, itemId: string, input: { title?: string; done?: boolean }, scope?: Scope): Promise<TaskList> {
-    if (scope === 'following') {
+    if (scope) {
       // ticks stay with each list: only the text changes for the following ones
       const title = input.title;
       if (title === undefined || input.done !== undefined) throw validation('Only the item text changes for the following lists', 'scope');
-      return this.series.forFollowing(id, (d) => ({ ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, title } : i)) }), requireItem(itemId));
+      return this.series.forScope(scope, id, (d) => ({ ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, title } : i)) }), requireItem(itemId));
     }
     let ticked = false;
     const list = await this.modify(id, (d) => {
@@ -633,7 +633,7 @@ export class CalendarService {
   /** `keepSubtasks`: only the item goes; its subtasks stay (the form removes a task and keeps the lines under it). */
   async deleteItem(id: string, itemId: string, scope?: Scope, keepSubtasks = false): Promise<TaskList> {
     const without = (d: TaskListData): TaskListData => { const gone = new Set(keepSubtasks ? [itemId] : blockIds(d.items, itemId)); return { ...d, items: clampLevels(d.items.filter((i) => !gone.has(i.id))) }; };
-    if (scope === 'following') return this.series.forFollowing(id, without, requireItem(itemId));
+    if (scope) return this.series.forScope(scope, id, without, requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
       return without(d);
@@ -654,7 +654,7 @@ export class CalendarService {
       });
       return { ...d, items: clampLevels(result) };
     };
-    if (scope === 'following') return this.series.forFollowing(id, place);
+    if (scope) return this.series.forScope(scope, id, place);
     return this.modify(id, place, undefined, undefined, true);
   }
 

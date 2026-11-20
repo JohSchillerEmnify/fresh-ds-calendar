@@ -720,7 +720,7 @@ describe('recurring task lists: a change for this and all following ones (scope=
     const a = await create();
     expect((await t.json('PATCH', `/api/tasklists/${a.id}?scope=following`, { title: 'B', date: '2026-10-15' })).status).toBe(400);
     expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=following`, { done: true })).status).toBe(400);
-    expect((await t.json('POST', `/api/tasklists/${a.id}/items?scope=all`, { title: 'X' })).status).toBe(400);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items?scope=bogus`, { title: 'X' })).status).toBe(400);
     expect((await weeks()).map((w: any) => w[2])).toEqual(['Vacuum:0,Laundry:1', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0']);
   });
 

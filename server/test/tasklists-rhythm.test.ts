@@ -110,7 +110,7 @@ describe('this and all following lists', () => {
     expect((await change(w.id, 'following', 'weekly')).status).toBe(200);
     expect((await lists()).filter((l: Row) => l.title === 'Clean').map((l: Row) => l.date)).toEqual(['2026-10-12', '2026-10-19', '2026-10-26']);
     expect((await t.json('PATCH', `/api/tasklists/${w.id}`, { recurrence: 'daily' })).status).toBe(400);
-    expect((await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[0].id}?scope=all`, { title: 'X' })).status).toBe(400);
+    expect((await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[0].id}?scope=all`, { done: true })).status).toBe(400);
   });
 });
 
@@ -149,5 +149,79 @@ describe('all lists', () => {
     await create();
     const w = await on('2026-10-19');
     expect((await change(w.id, 'all', null)).status).toBe(400);
+  });
+});
+
+describe('review fixes', () => {
+  const count = async (date: string) => (await lists()).filter((l: Row) => l.date === date).length;
+
+  it('B1 ending an untouched list shows the shown day once, all-day and timed', async () => {
+    await create();
+    await change((await on('2026-10-19')).id, 'following', null);
+    expect(await count('2026-10-19')).toBe(1);
+    await t.req('POST', '/api/__test/reset');
+    await freeze(t);
+    await create({ time: '09:00' });
+    await change((await on('2026-10-19')).id, 'following', null);
+    expect(await count('2026-10-19')).toBe(1);
+  });
+
+  it('B2 all lists keeps past single lists of earlier-split parts (on the new rhythm or as lists of their own)', async () => {
+    await create();
+    await t.json('PATCH', `/api/tasklists/${(await on('2026-10-19')).id}?scope=following`, { title: 'Bathroom' });
+    await tick('2026-10-26', 0);
+    await t.json('POST', '/api/__test/clock', { now: '2026-11-03T08:00:00+01:00' });
+    await change((await on('2026-10-26')).id, 'all', 'daily');
+    expect(await count('2026-10-26')).toBe(1);
+    expect((await on('2026-10-26')).doneCount).toBe(1);
+    await t.req('POST', '/api/__test/reset');
+    await freeze(t);
+    await create();
+    await t.json('PATCH', `/api/tasklists/${(await on('2026-10-19')).id}?scope=following`, { title: 'Bathroom' });
+    await tick('2026-10-26', 0);
+    await t.json('POST', '/api/__test/clock', { now: '2026-11-03T08:00:00+01:00' });
+    await change((await on('2026-10-26')).id, 'all', 'monthly');
+    expect(await count('2026-10-26')).toBe(1);
+    expect((await on('2026-10-26')).doneCount).toBe(1);
+    expect((await on('2026-10-26')).title).toBe('Bathroom');
+  });
+
+  it('B3 a title and an item added for all lists reach every part, then the rhythm changes', async () => {
+    await create();
+    const w2 = await on('2026-10-19');
+    await t.json('PATCH', `/api/tasklists/${w2.id}?scope=following`, { title: 'Later' });
+    expect((await t.json('PATCH', `/api/tasklists/${w2.id}?scope=all`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await t.json('POST', `/api/tasklists/${w2.id}/items?scope=all`, { title: 'Mirror' })).status).toBe(201);
+    const ls = await lists();
+    expect(ls.map((l: Row) => l.title)).toEqual(['Bathroom', 'Bathroom', 'Bathroom']);
+    expect(ls.every((l: Row) => l.items.length === 3)).toBe(true);
+    await change(w2.id, 'all', 'daily');
+    expect((await on('2026-10-20')).title).toBe('Bathroom');
+    expect((await on('2026-10-20')).items).toHaveLength(3);
+  });
+
+  it('S4 single lists on dates the new rhythm does not produce do not stay (weekly to monthly)', async () => {
+    await create();
+    await tick('2026-10-19', 0);
+    await tick('2026-10-26', 0);
+    await t.json('POST', '/api/__test/clock', { now: '2026-10-21T08:00:00+02:00' });
+    await change((await on('2026-10-19')).id, 'all', 'monthly');
+    expect(await count('2026-10-26')).toBe(0);
+    expect(await count('2026-10-19')).toBe(1);
+    await t.req('POST', '/api/__test/reset');
+    await freeze(t);
+    await create();
+    await tick('2026-10-26', 0);
+    await change((await on('2026-10-12')).id, 'following', 'monthly');
+    expect(await count('2026-10-26')).toBe(0);
+    expect(await dates('2026-11-20')).toEqual(['2026-10-12', '2026-11-12']);
+  });
+
+  it('the same rhythm as the first series is nothing for all lists', async () => {
+    await create();
+    const w2 = await on('2026-10-19');
+    await change(w2.id, 'following', 'daily');
+    expect((await change((await on('2026-10-20')).id, 'all', 'daily')).status).toBe(200);
+    expect(await count('2026-10-13')).toBe(1);
   });
 });

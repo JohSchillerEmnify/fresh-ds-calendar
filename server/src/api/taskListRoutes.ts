@@ -48,7 +48,7 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
     return c.json(list, 201);
   });
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
-  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c, true))));
+  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c))));
   r.delete('/tasklists/:id', async (c) => {
     const before = await cal(c).getTaskList(c.req.param('id'));
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
@@ -121,7 +121,7 @@ function registerInkItems({ r, ctx, person, cal }: RouteDeps): void {
     const keep = c.req.query('subtasks') === 'keep';
     const list = await cal(c).deleteItem(listId, itemId, scope, keep);
     // one occurrence of a repeating list losing the item leaves it to the others (the ink is shared by item id)
-    if (scope === 'following' || !before.seriesId) {
+    if (scope || !before.seriesId) {
       const gone = new Set(keep ? [itemId] : blockIds(before.items, itemId));
       const inked = before.items.filter((i) => i.ink && gone.has(i.id)).map((i) => i.id);
       if (inked.length) ctx.inks.remove(person(c), listId, inked);
