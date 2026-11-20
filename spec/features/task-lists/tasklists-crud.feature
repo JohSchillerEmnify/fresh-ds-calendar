@@ -196,6 +196,22 @@ Feature: Creating, editing and deleting task lists
     And the item "Oat milk" is ticked
     And the task list "Groceries" shows the done count "1/2"
 
+  Scenario: A line moved to another place keeps its item and its tick
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | yes  |
+      | Eggs | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Eggs; Milk |
+    And I save the task list
+    And I expand the task list "Groceries"
+    Then the expanded task list items are "Eggs, Milk"
+    And the item "Milk" is ticked
+    And the task list "Groceries" shows the done count "1/2"
+
   Scenario: A line taken out removes the item
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item  | done |
@@ -239,6 +255,20 @@ Feature: Creating, editing and deleting task lists
     And I save the task list
     And I open the week view for 2026-10-19
     Then I see the task list "Groceries" on 2026-10-21
+
+  Scenario: A task list made to repeat and given a new line in one save has the line in every week
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items  | Milk; Eggs |
+      | repeat | Weekly     |
+    And I save the task list
+    And I open the week view for 2026-10-19
+    Then the collapsed task list "Groceries" lists the items "Milk, Eggs"
 
   Scenario: Move a task list to another date and give it a time
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:

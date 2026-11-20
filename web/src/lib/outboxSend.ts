@@ -31,8 +31,8 @@ export function perform(e: OutboxEntry): Promise<unknown> {
     case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, ...(c.strokes ? { strokes: c.strokes } : { title: c.title }), ...(c.done ? { done: true } : {}), ...levelProp(c.level) }, plain, c.scope);
     case 'item.ink': return api.putItemInk(c.id, c.itemId, { strokes: c.strokes, base: c.base, at: c.at }, plain);
     case 'item.patch': return api.updateTaskItem(c.id, c.itemId, c.patch, plain, c.scope);
-    case 'item.delete': return api.deleteTaskItem(c.id, c.itemId, plain, c.scope);
-    case 'item.order': return api.reorderTaskItems(c.id, c.itemIds, plain, c.levels);
+    case 'item.delete': return api.deleteTaskItem(c.id, c.itemId, plain, c.scope, c.keepSubtasks);
+    case 'item.order': return api.reorderTaskItems(c.id, c.itemIds, plain, c.levels, c.scope);
   }
 }
 

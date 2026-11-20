@@ -765,6 +765,21 @@ describe('dialog', () => {
     expect(sent).toEqual(['POST /api/tasklists/G/items', 'PUT /api/tasklists/G/items/order']);
     expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toHaveLength(4);
   });
+  it('items that appeared elsewhere while the form was open stay, and the order keeps them', async () => {
+    const list = tl('G', { done: [false, false] });
+    const { pinia, m } = await setup({ 'POST /api/tasklists/G/items': () => list, 'PUT /api/tasklists/G/items/order': () => list });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    useItemsStore().upsert({ ...list, items: [...list.items, { id: 'other', title: 'Jam', done: false }] });
+    await w.get(tid('tasklist-items')).setValue('Milk\nEggs\nTea');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    const sent = m.calls.filter((c) => c.method !== 'GET');
+    expect(sent.map((c) => c.method)).toEqual(['POST', 'PUT']);
+    expect(sent[1]!.body.itemIds).toHaveLength(4);
+    expect(sent[1]!.body.itemIds.at(-1)).toBe('other');
+  });
   it('editing refuses more items than a list may hold', async () => {
     const { pinia } = await setup();
     useItemsStore().upsert(tl('G', { done: new Array(199).fill(false) }));

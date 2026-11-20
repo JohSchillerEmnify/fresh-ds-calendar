@@ -1,18 +1,27 @@
 /** Sends what the item lines of the task list form changed, through the item operations the expanded list uses (device first, in order). */
-import type { ChangeScope, InkStroke, TaskList } from '@/api/types';
+import type { ChangeScope, InkStroke, TaskItem, TaskList } from '@/api/types';
 import { TITLE_MAX } from '@calendar/shared/limits';
+import { levelOf } from '@calendar/shared/subtasks';
 import { useOutboxStore } from '@/stores/outbox';
 import { finalOrder, type ItemLine, type ItemPlan } from './itemEdits';
 import { addItem, patchItem, removeItem } from './ops';
 
-/** A removed task takes its subtasks along, so levels are flattened first; the order and levels go last, in one operation. */
-export function saveItemEdits(list: TaskList, lines: readonly ItemLine[], plan: ItemPlan, ink: readonly InkStroke[][], scope?: ChangeScope): void {
+/**
+ * `plan` was made against `seen`, the items when the form was opened; `list` is the list now. Only items of `seen` are removed or renamed
+ * (when still there), and items that appeared since stay, after the others. A removed task leaves its subtasks; the order and levels go last.
+ */
+export function saveItemEdits(list: TaskList, seen: readonly TaskItem[], lines: readonly ItemLine[], plan: ItemPlan, ink: readonly InkStroke[][], scope?: ChangeScope): void {
   const outbox = useOutboxStore();
-  if (plan.flatten) outbox.orderItems(list.id, list.items.map((i) => i.id), list.items.map(() => 0));
-  plan.deletes.forEach((d) => removeItem(list.id, d.id, d.title, undefined, scope));
-  plan.renames.forEach((r) => patchItem(list.id, r.id, { title: r.title.slice(0, TITLE_MAX) }, scope));
+  const live = new Set(list.items.map((i) => i.id));
+  const newer = list.items.filter((i) => !seen.some((s) => s.id === i.id));
+  plan.deletes.filter((d) => live.has(d.id)).forEach((d) => removeItem(list.id, d.id, d.title, undefined, scope, true));
+  plan.renames.filter((r) => live.has(r.id)).forEach((r) => patchItem(list.id, r.id, { title: r.title.slice(0, TITLE_MAX) }, scope));
   const added = new Map(plan.adds.map((n) => [n, addItem(list.id, lines[n]!.title.slice(0, TITLE_MAX), scope, undefined, lines[n]!.level)] as const));
   const inked = ink.map((strokes) => outbox.addInkItem(list.id, strokes));
-  const order = finalOrder(list.items, lines, plan, (n) => added.get(n)!, inked);
-  if (order) outbox.orderItems(list.id, order.ids, order.levels);
+  const order = finalOrder(seen, lines, plan, (n) => added.get(n)!, inked, newer.length > 0 && plan.adds.length + inked.length > 0);
+  if (!order) return;
+  const [ids, levels] = [[...order.ids], [...order.levels]];
+  const keep = ids.map((id) => live.has(id) || [...added.values(), ...inked].includes(id));
+  newer.forEach((i) => { ids.push(i.id); levels.push(levelOf(i)); keep.push(true); });
+  outbox.orderItems(list.id, ids.filter((_, n) => keep[n]), levels.filter((_, n) => keep[n]), scope);
 }

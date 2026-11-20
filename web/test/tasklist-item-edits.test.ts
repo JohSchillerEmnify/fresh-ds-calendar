@@ -18,7 +18,7 @@ describe('linesOfItems', () => {
 describe('planItemEdits', () => {
   it('changes nothing for the same lines', () => {
     const p = plan(milk, 'Milk\nEggs\nBread');
-    expect(p).toMatchObject({ renames: [], deletes: [], adds: [], flatten: false });
+    expect(p).toMatchObject({ renames: [], deletes: [], adds: [] });
     expect(order(milk, 'Milk\nEggs\nBread')).toBeNull();
   });
   it('adds a line at the end without an order', () => {
@@ -49,22 +49,40 @@ describe('planItemEdits', () => {
   it('changes a level by indenting and orders', () => {
     expect(order(milk, 'Milk\n  Eggs\nBread')).toEqual({ ids: ['m', 'e', 'b'], levels: [0, 1, 0] });
   });
-  it('flattens first when a removed task leaves subtasks behind', () => {
+  it('leaves the subtasks of a removed task in place and lowers them', () => {
     const items = [it$('t', 'Tent'), it$('p', 'Pegs', { level: 1 })];
     const p = plan(items, 'Pegs');
     expect(p.deletes.map((d) => d.id)).toEqual(['t']);
-    expect(p.flatten).toBe(true);
     expect(order(items, 'Pegs')).toEqual({ ids: ['p'], levels: [0] });
   });
-  it('does not flatten when the subtasks go too', () => {
-    expect(plan([it$('t', 'Tent'), it$('p', 'Pegs', { level: 1 })], '').flatten).toBe(false);
+  it('keeps the item and its tick when a line moves (swap, last line to the top)', () => {
+    const ab = [it$('a', 'A', { done: true }), it$('b', 'B')];
+    const swap = plan(ab, 'B\nA');
+    expect(swap).toMatchObject({ renames: [], deletes: [], adds: [] });
+    expect(order(ab, 'B\nA')).toEqual({ ids: ['b', 'a'], levels: [0, 0] });
+    const abc = [it$('a', 'A'), it$('b', 'B'), it$('c', 'C', { done: true })];
+    expect(plan(abc, 'C\nA\nB')).toMatchObject({ renames: [], deletes: [], adds: [] });
+    expect(order(abc, 'C\nA\nB')?.ids).toEqual(['c', 'a', 'b']);
+  });
+  it('renames the most alike item of the gap, not the first', () => {
+    const items = [it$('a', 'A'), it$('b', 'B', { done: true }), it$('c', 'C'), it$('d', 'D')];
+    const p = plan(items, 'A\nC2\nD');
+    expect(p.renames).toEqual([{ id: 'c', title: 'C2' }]);
+    expect(p.deletes.map((d) => d.id)).toEqual(['b']);
+  });
+  it('replaces everything, handwriting too, when asked', () => {
+    const items = [it$('a', 'A', { done: true }), it$('i', '', { ink: true })];
+    const p = planItemEdits(items, parseIndented('X\nY'), true);
+    expect(p.deletes.map((d) => d.id)).toEqual(['a', 'i']);
+    expect(p.adds).toEqual([0, 1]);
+    expect(finalOrder(items, parseIndented('X\nY'), p, (n) => `new${n}`)?.ids ?? ['new0', 'new1']).toEqual(['new0', 'new1']);
   });
   it('keeps a handwritten item after the item it followed', () => {
     const items = [it$('a', 'A'), it$('i', '', { ink: true }), it$('b', 'B')];
     expect(order(items, 'A\nNew\nB')).toEqual({ ids: ['a', 'i', 'new1', 'b'], levels: [0, 0, 0, 0] });
   });
-  it('moves the handwriting of a removed item to the end', () => {
+  it('leaves the handwriting of a removed item where it is', () => {
     const items = [it$('a', 'A'), it$('i', '', { ink: true }), it$('b', 'B')];
-    expect(order(items, 'B')).toEqual({ ids: ['b', 'i'], levels: [0, 0] });
+    expect(order(items, 'B')).toBeNull();
   });
 });

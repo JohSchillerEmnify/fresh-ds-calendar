@@ -4,7 +4,7 @@ import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
-import type { Reminders, TaskList, TaskTemplate } from '@/api/types';
+import type { Reminders, TaskItem, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import InkLine from './InkLine.vue';
@@ -68,6 +68,10 @@ const loading = ref(false);
 let etag = '';
 let original = '';
 let originalTitle = '';
+/** The items when the form was opened: the lines are compared with these, not with what other devices changed since. */
+let seen: TaskItem[] = [];
+/** A template replaced the list: its items replace all items, ticks and handwriting included. */
+let replaced = false;
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
@@ -113,9 +117,9 @@ onMounted(async () => {
   }
   void refreshPeople();
   const cur = items.get(props.id!);
-  if (cur?.kind === 'tasklist') { fill(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
+  if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });
@@ -153,7 +157,10 @@ function confirmReplace() {
   if (tpl) pickTemplate(tpl);
 }
 function pickTemplate(tpl: TaskTemplate) {
-  Object.assign(form, fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id)));
+  const filled = fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id));
+  // a member cannot change the list's category
+  Object.assign(form, memberOnly.value ? { ...filled, categoryId: form.categoryId } : filled);
+  replaced = editing.value;
   inkForm.set(inkLinesOf(tpl));
   pickedTemplate.value = tpl.name;
 }
@@ -180,10 +187,10 @@ async function save() {
   const current = found?.kind === 'tasklist' ? found : undefined;
   const lines = parseIndented(form.items);
   // the handwritten items an existing list keeps are items too
-  const kept = current ? current.items.filter((i) => i.ink).length : 0;
+  const kept = current && !replaced ? seen.filter((i) => i.ink).length : 0;
   error.value = validateForm(form, lines.length + kept + inkForm.written.value.length) ?? templateProblem();
   if (error.value || saving.value) return;
-  const plan = current ? planItemEdits(current.items, lines) : null;
+  const plan = current ? planItemEdits(seen, lines, replaced) : null;
   saving.value = true;
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
   const body = {
@@ -200,7 +207,11 @@ async function save() {
   // a renamed repeating list or changed item lines: the change may go to the following lists too, the rest of the form stays with this one
   const s = current && (body.title !== originalTitle.trim() || itemsChanged) ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
+  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, s === 'following' ? s : undefined); };
+  // a list that starts to repeat gets its item changes first, so every later week has them
+  const itemsFirst = !!body.recurrence && editing.value;
   try {
+    if (itemsFirst) sendItems();
     if (editing.value && s === 'following') {
       const { title, ...rest } = body;
       // the item lines are sent separately, they are no change of the list's own fields
@@ -219,7 +230,7 @@ async function save() {
       });
     }
     // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
-    if (current && plan) saveItemEdits(current, lines, plan, inkForm.written.value, s === 'following' ? s : undefined);
+    if (!itemsFirst) sendItems();
     // the list is saved; a template that fails now is only reported, the list stays
     if (alsoTemplate.value) {
       await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
@@ -291,7 +302,7 @@ function remove() {
       <div v-else class="textlines" :class="{ ruled: inkMode.ruled.value || (toolsShown && inkStore.mode === 'text') }" data-testid="tasklist-text-lines" data-field="items">
         <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="itemRows" data-testid="tasklist-items" />
       </div>
-      <Select v-if="form.date" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" :disabled="!!current?.recurrence" data-testid="tasklist-repeat" data-field="repeat" />
+      <Select v-if="form.date && !current?.shared" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" :disabled="!!current?.recurrence" data-testid="tasklist-repeat" data-field="repeat" />
       <div class="tplrow">
         <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
         <Switch v-model="alsoTemplate" :label="t('tasks.templates.alsoSave')" data-testid="tasklist-save-as-template" />

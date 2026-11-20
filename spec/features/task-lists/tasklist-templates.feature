@@ -288,6 +288,7 @@ Feature: Task list templates
       When I save the task list
       And I expand the task list "Packing"
       Then the expanded task list items are "Passport, Charger"
+      And the task list "Packing" shows the done count "0/2"
       And I see the task list "Packing" on 2026-10-14
       And the task list "Packing" is positioned at 18:00
 

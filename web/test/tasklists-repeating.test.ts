@@ -316,6 +316,19 @@ describe('the task list form on a repeating list', () => {
     await vi.waitFor(() => expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items?scope=following']));
   });
 
+  it('removing a task and keeping its subtask for this and all following lists keeps the subtask in every later list', async () => {
+    const tree = week({ items: [{ id: 'i0', title: 'Tent', done: false }, { id: 'i1', title: 'Pegs', done: false, level: 1 }], totalCount: 2 });
+    const m = await form(tree, { 'DELETE /api/tasklists/W_20261019/items/i0': answer(tree), 'PUT /api/tasklists/W_20261019/items/order': answer(tree) });
+    await setField('tasklist-items', 'Pegs');
+    q(tid('tasklist-save'))!.click();
+    await flushPromises();
+    await choose('following');
+    await vi.waitFor(() => expect(writes(m)).toEqual([
+      'DELETE /api/tasklists/W_20261019/items/i0?scope=following&subtasks=keep',
+      'PUT /api/tasklists/W_20261019/items/order?scope=following',
+    ]));
+  });
+
   it('ticking the title of a repeating title-only list moves the title into a ticked item for this list without asking', async () => {
     const m = await open(week({ items: [], totalCount: 0 }), { 'POST /api/tasklists/W_20261019/items': answer(week()), 'PATCH /api/tasklists/W_20261019': answer(week()) });
     (q(`${tid('tasklist-title-item-checkbox')} input`) as HTMLInputElement).click();

@@ -28,8 +28,8 @@ export function toggleSingleTask(listId: string, task: SingleTask): void {
 }
 
 /** Remove an item; `done` is called at once (the change is kept in the outbox). */
-export function removeItem(listId: string, itemId: string, title: string, done?: () => void, scope?: ChangeScope): void {
-  useOutboxStore().deleteItem(listId, itemId, title, scope === 'following' ? scope : undefined);
+export function removeItem(listId: string, itemId: string, title: string, done?: () => void, scope?: ChangeScope, keepSubtasks?: boolean): void {
+  useOutboxStore().deleteItem(listId, itemId, title, scope === 'following' ? scope : undefined, keepSubtasks);
   done?.();
 }
 
