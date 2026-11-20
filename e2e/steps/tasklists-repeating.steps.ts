@@ -32,10 +32,23 @@ When('I rename the expanded task list to {string}', async function (this: World,
   await expect(input).toBeHidden();
 });
 
-Then('I am asked whether to change {string} or {string}', async function (this: World, one: string, following: string) {
+Then('I am asked whether to change {string} or {string}', async function (this: World, one: string, other: string) {
   await expect(choice(this)).toBeVisible();
-  await expect(choice(this).getByTestId('repeat-scope-this')).toHaveText(exactText(one));
-  await expect(choice(this).getByTestId('repeat-scope-following')).toHaveText(exactText(following));
+  await expect(choice(this).locator('label')).toHaveText([exactText(one), exactText(other)]);
+});
+
+Then('I am asked only whether to change {string}', async function (this: World, one: string) {
+  await expect(choice(this)).toBeVisible();
+  await expect(choice(this).locator('label')).toHaveText([exactText(one)]);
+});
+
+Then('the change question warns that lists changed on their own will be lost', async function (this: World) {
+  await expect(choice(this).getByTestId('repeat-scope-lost')).toBeVisible();
+});
+
+Then('the change question has no warning', async function (this: World) {
+  await expect(choice(this)).toBeVisible();
+  await expect(choice(this).getByTestId('repeat-scope-lost')).toHaveCount(0);
 });
 
 Then('{string} is chosen', async function (this: World, label: string) {
@@ -45,13 +58,13 @@ Then('{string} is chosen', async function (this: World, label: string) {
 
 When('I choose {string} for the change', async function (this: World, label: string) {
   await expect(choice(this)).toBeVisible();
-  const following = label === (await choice(this).getByTestId('repeat-scope-following').textContent())?.trim();
+  const id = (await choice(this).locator('label', { hasText: exactText(label) }).getAttribute('data-testid'))!.replace('repeat-scope-', '');
   // the write this choice sends (an item delete waits for its undo time instead)
   const written = this.page.waitForResponse((r) => {
     const u = new URL(r.url());
-    return r.request().method() !== 'GET' && u.pathname.startsWith('/api/tasklists/') && (!following || u.searchParams.get('scope') === 'following');
+    return r.request().method() !== 'GET' && u.pathname.startsWith('/api/tasklists/') && (id === 'this' || u.searchParams.get('scope') === id);
   });
-  await choice(this).getByTestId(following ? 'repeat-scope-following' : 'repeat-scope-this').click();
+  await choice(this).getByTestId(`repeat-scope-${id}`).click();
   await choice(this).getByTestId('repeat-scope-ok').click();
   await expect(choice(this)).toBeHidden();
   const undo = this.page.getByTestId('undo-snackbar');

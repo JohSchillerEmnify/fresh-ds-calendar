@@ -298,6 +298,8 @@ the item line {string} of the task list form is indented
 the item line {string} of the task list form is not indented
 I see the task list {string} on {date}
 I do not see the task list {string}
+I see exactly one task list {string} on {date}
+I do not see the task list {string} on {date}
 the task list {string} shows the done count {string}
 the task list {string} shows no done count
 the task list {string} shows the progress ring
@@ -481,6 +483,9 @@ the calendar contains a weekly task list {string} on Mondays since {date} with i
 {string} of {string} was ticked on {date}
 I rename the expanded task list to {string}
 I am asked whether to change {string} or {string}
+I am asked only whether to change {string}
+the change question warns that lists changed on their own will be lost
+the change question has no warning
 {string} is chosen
 I choose {string} for the change
 I cancel the choice
@@ -495,7 +500,12 @@ the task list {string} has no estimate
   `{ done: true }` (that week is split off, as a tick in the app does).
 - "I rename the expanded task list to T": taps `tasklist-expanded-title` in the list sheet, fills
   `tasklist-expanded-title-input` with T and presses Enter.
-- "I am asked whether to change A or B": the choice is visible and its two options read A and B. "A is chosen": the
+- The choice of a changed repeat rhythm offers `repeat-scope-following` and `repeat-scope-all` (no `repeat-scope-this`; on the
+  first list only `repeat-scope-all`, when the list stops repeating only `repeat-scope-following`) and shows `repeat-scope-lost`
+  while lists changed on their own would be dropped. "I choose A for the change" picks the option labelled A (with "All task
+  lists": the request with `?scope=all`).
+- "I am asked whether to change A or B": the choice is visible and its options, in order, read A and B ("only A": just A).
+  "the change question warns ...": `repeat-scope-lost` is visible; "has no warning": it is absent. "A is chosen": the
   checked option reads A.
 - "I choose A for the change": picks option A, presses OK and waits until the choice is gone and the write it sends has
   answered (with "This and all following task lists": the request with `?scope=following`); an item delete sends nothing before its undo time, so the

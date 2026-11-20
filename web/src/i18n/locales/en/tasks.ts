@@ -110,6 +110,8 @@ export default {
     title: 'Change repeating list',
     this: 'This task list',
     following: 'This and all following task lists',
+    all: 'All task lists',
+    lost: 'Changes you made to single task lists that come later will be lost.',
     ok: 'OK',
   },
   list: {

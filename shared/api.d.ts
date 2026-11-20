@@ -128,6 +128,8 @@ export interface TaskList {
   seriesId?: string;
   /** On an occurrence: the same for every part of a list split by a "this and following" change (the first series' id). */
   seriesKey?: string;
+  /** On an occurrence: the date of the list's first occurrence, when known (older lists lack it); the app offers "This and all following" only after it. */
+  seriesSince?: LocalDate;
   categoryId: string | null;
   tags: string[];
   color: string;

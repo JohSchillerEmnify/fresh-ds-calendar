@@ -108,6 +108,8 @@ export default {
     title: 'Wiederkehrende Liste ändern',
     this: 'Diese Aufgabenliste',
     following: 'Diese und alle folgenden Aufgabenlisten',
+    all: 'Alle Aufgabenlisten',
+    lost: 'Änderungen, die du an einzelnen späteren Aufgabenlisten vorgenommen hast, gehen verloren.',
     ok: 'OK',
   },
   list: {

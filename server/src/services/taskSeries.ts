@@ -1,7 +1,7 @@
 import { notFound, preconditionFailed, validation, ApiException } from '../lib/errors.js';
-import { addDays, formatInZone, localDateOf, startOfLocalDay } from '../lib/time.js';
+import { addDays, addMonthsClamp, dayNumber, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import { NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent } from '../providers/CalendarProvider.js';
-import type { TaskList } from '../api/types.js';
+import type { Recurrence, TaskList } from '../api/types.js';
 import { decodeTaskList, encodeTaskList, encodeTaskListPatch, nextCompletedOn, type TaskListData } from './taskCodec.js';
 import { isSharedId } from './sharedLists.js';
 
@@ -18,6 +18,14 @@ export interface SeriesHost {
 /** Changes to repeating task lists that reach beyond one occurrence: "this and following" splits, first-occurrence lookup, part cleanup. */
 export class TaskSeries {
   constructor(private readonly provider: CalendarProvider, private readonly tz: string, private readonly host: SeriesHost) {}
+
+  /** The list `id` and the series it belongs to (400 when it does not repeat or is shared). */
+  private async locateSeries(id: string): Promise<{ cur: GoogleEvent; master: GoogleEvent }> {
+    const cur = isSharedId(id) ? null : await this.host.locateKind(id, true);
+    const seriesId = cur?.recurringEventId ?? (cur?.recurrence?.length ? cur.id : null);
+    if (!cur || !seriesId) throw validation('This list does not repeat', 'scope');
+    return { cur, master: cur.id === seriesId ? cur : await this.host.locateKind(seriesId, true) };
+  }
 
   /**
    * The first occurrence of a repeating list (the instance on the master's own start day, as a range read lists it). An
@@ -90,13 +98,9 @@ export class TaskSeries {
    * `check` runs on the shown occurrence first (unknown item → 404) so a refused change writes nothing.
    */
   async forFollowing(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
-    const cur = isSharedId(id) ? null : await this.host.locateKind(id, true);
-    const seriesId = cur?.recurringEventId ?? (cur?.recurrence?.length ? cur.id : null);
-    if (!cur || !seriesId) throw validation('This list does not repeat', 'scope');
+    const { cur, master: found } = await this.locateSeries(id);
     check?.(decodeTaskList(cur, this.tz));
-    const master = cur.id === seriesId ? cur : await this.host.locateKind(seriesId, true);
-    // a rule that ends after a number of times cannot be cut at a date without counting it out: not split
-    if (/[:;]COUNT=/.test(ruleLine(master))) throw validation('This list repeats a set number of times; change it in Google Calendar', 'scope');
+    const master = await this.countToUntil(found);
     const root = master.extendedProperties?.private?.series ?? master.id;
     const shown = this.ruleStart(cur);
     const all = await this.seriesEvents(master.calendarId);
@@ -112,6 +116,171 @@ export class TaskSeries {
     await this.host.modify(cur.id, change);
     await this.splitAt(master, shown, change, parts);
     return this.host.getTaskList(id);
+  }
+
+  /** A change of how a list repeats: `following` splits the series after the shown list, `all` replaces its rule (spec/API.md). */
+  async changeRule(id: string, rule: Recurrence | null, scope: 'following' | 'all'): Promise<TaskList> {
+    const { cur, master } = await this.locateSeries(id);
+    const root = master.extendedProperties?.private?.series ?? master.id;
+    const shown = this.ruleStart(cur);
+    const all = await this.seriesEvents(master.calendarId);
+    const parts = this.partsIn(all, root).sort((a, b) => (this.ruleStart(a).date < this.ruleStart(b).date ? -1 : 1));
+    const first = parts[0] ?? master;
+    // nothing to change when the series this is for repeats like that already (for all lists: the first one)
+    if (decodeTaskList(scope === 'all' ? first : master, this.tz).recurrence === rule) return this.host.getTaskList(id);
+    if (scope === 'all' && rule === null && shown.date > this.ruleStart(first).date) throw validation('Ending a list that repeats needs this and all following lists', 'scope');
+    const laterParts = parts.filter((p) => p.id !== master.id && this.ruleStart(p).date > shown.date);
+    const firstOfPart = shown.date <= this.ruleStart(master).date;
+    if (rule === null) return this.endHere(cur, master, shown, firstOfPart, all, laterParts);
+    if (scope === 'all') { const today = this.host.today(); return this.replaceRule(id, first, rule, all, parts.filter((p) => p.id !== first.id), (e) => this.ruleStart(e).date >= today, today); }
+    if (firstOfPart) return this.replaceRule(id, master, rule, all, laterParts, (e) => this.ruleStart(e).date > shown.date);
+    const fresh = await this.newRhythmPart(cur, master, parts, root, rule, shown.date);
+    const head = await this.occurrenceOn(fresh, shown.date);
+    if (!head) throw new ApiException('PROVIDER_ERROR', 502, 'The new task list could not be found; nothing was ended');
+    // the shown list's own data (ticks, title, items) goes to the new series' first list
+    const own = decodeTaskList(cur, this.tz);
+    const mine = await this.provider.patchEvent(head.calendarId, head.id, encodeTaskListPatch({ ...own, recurrence: rule }, this.tz, this.host.colorFor(own), head), { ifMatch: head.etag });
+    for (const p of laterParts) if (p.id !== fresh.id) await this.deleteOld(p);
+    await this.dropExceptions(all, master, (e) => this.ruleStart(e).date >= shown.date);
+    await this.endSeries(master, untilValue({ date: addDays(shown.date, -1), ms: shown.ms === null ? null : shown.ms - 1000 }));
+    return this.host.getTaskList(mine.id);
+  }
+
+  /** The series in the new rhythm from `start` (the shown list's data, unticked); one an earlier try made there is used again. */
+  private async newRhythmPart(cur: GoogleEvent, master: GoogleEvent, parts: GoogleEvent[], root: string, rule: Recurrence, start: string): Promise<GoogleEvent> {
+    const had = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === start);
+    if (had) return had;
+    const base = { ...decodeTaskList(cur, this.tz), date: start, completedOn: null, recurrence: rule };
+    base.items = base.items.map((i) => ({ ...i, done: false }));
+    this.host.checkTaskData(base, base);
+    const g = encodeTaskList(base, this.tz, this.host.colorFor(base));
+    g.extendedProperties!.private!.series = root;
+    if (cur.reminders) g.reminders = cur.reminders;
+    return this.provider.insertEvent(master.calendarId, g);
+  }
+
+  /** The rule of `part` replaced, `others` deleted; single lists `drop` names reset or deleted off the rule; earlier ones of `others` kept (`keepBefore`). */
+  private async replaceRule(
+    id: string, part: GoogleEvent, rule: Recurrence, all: GoogleEvent[], others: GoogleEvent[], drop: (e: GoogleEvent) => boolean, keepBefore?: string,
+  ): Promise<TaskList> {
+    const start = this.ruleStart(part).date;
+    const saved = keepBefore ? others.flatMap((p) => this.exceptionsIn(all, p)).filter((e) => e.status !== 'cancelled' && this.ruleStart(e).date < keepBefore) : [];
+    await this.host.modify(part.id, (d) => ({ ...d, recurrence: rule }));
+    const template = decodeTaskList(await this.host.locateKind(part.id, true), this.tz);
+    for (const e of this.exceptionsIn(all, part)) if (e.status !== 'cancelled') await this.settleSingle(part, e, rule, start, template, drop(e));
+    for (const e of saved) await this.keepList(part, e, rule, onRule(rule, start, this.ruleStart(e).date));
+    for (const p of others) await this.deleteOld(p);
+    try {
+      return await this.host.getTaskList(id);
+    } catch (e) {
+      // the shown list is not in the new rhythm: the first one of the list is shown instead
+      if (!(e instanceof ApiException) || e.status !== 404) throw e;
+      return this.host.getTaskList(((await this.futureOccurrence([part])) ?? (await this.firstOccurrence(part))).id);
+    }
+  }
+
+  /** One single list of a part whose rule changed: reset to the series' data where the rule has that day, deleted where not (what the API does with such an exception is undocumented), or kept. */
+  private async settleSingle(part: GoogleEvent, e: GoogleEvent, rule: Recurrence, start: string, template: TaskListData, dropped: boolean): Promise<void> {
+    const day = this.ruleStart(e).date;
+    if (!onRule(rule, start, day)) {
+      // off the new rhythm: dropped goes, a kept (past) one becomes a list of its own
+      if (!dropped) await this.keepList(part, e, rule, false);
+      await this.deleteOld(e);
+    } else await this.host.modify(e.id, (d) => (dropped ? { ...template, date: day, completedOn: null } : { ...d, recurrence: rule }));
+  }
+
+  /** A single list of a part that goes: its data moves into `part`'s list of that day, or (`onRhythm` false or no such list) into a list of its own. */
+  private async keepList(part: GoogleEvent, e: GoogleEvent, rule: Recurrence, onRhythm: boolean): Promise<void> {
+    const own = decodeTaskList(e, this.tz);
+    const inst = onRhythm ? await this.occurrenceOn(part, this.ruleStart(e).date) : null;
+    if (inst) {
+      await this.provider.patchEvent(inst.calendarId, inst.id, encodeTaskListPatch({ ...own, recurrence: rule }, this.tz, this.host.colorFor(own), inst), { ifMatch: inst.etag });
+      return;
+    }
+    const alone = { ...own, recurrence: null, seriesSince: null };
+    const g = encodeTaskList(alone, this.tz, this.host.colorFor(alone));
+    if (e.reminders) g.reminders = e.reminders;
+    await this.provider.insertEvent(part.calendarId, g);
+  }
+
+  /** The shown list becomes a list of its own; its series ends before it (deleted when it was the series' first) and later parts go. */
+  private async endHere(cur: GoogleEvent, master: GoogleEvent, shown: { date: string; ms: number | null }, firstOfPart: boolean, all: GoogleEvent[], laterParts: GoogleEvent[]): Promise<TaskList> {
+    const own = { ...decodeTaskList(cur, this.tz), recurrence: null, seriesSince: null };
+    const g = encodeTaskList(own, this.tz, this.host.colorFor(own));
+    if (cur.reminders) g.reminders = cur.reminders;
+    const alone = await this.provider.insertEvent(master.calendarId, g);
+    for (const p of laterParts) await this.deleteOld(p);
+    if (firstOfPart) await this.deleteOld(master);
+    else {
+      await this.dropExceptions(all, master, (e) => this.ruleStart(e).date >= shown.date);
+      await this.endSeries(master, untilValue({ date: addDays(shown.date, -1), ms: shown.ms === null ? null : shown.ms - 1000 }));
+    }
+    return this.host.getTaskList(alone.id);
+  }
+
+  /** Ends `master`'s rule at `until` (If-Match, retried on a change in between); the rule it had (UNTIL, COUNT) is replaced. */
+  private async endSeries(master: GoogleEvent, until: string): Promise<void> {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const cur = await this.host.locateKind(master.id, true);
+      try {
+        await this.provider.patchEvent(cur.calendarId, cur.id, { recurrence: withUntil(cur.recurrence ?? [], until) }, { ifMatch: cur.etag });
+        return;
+      } catch (e) {
+        if (!(e instanceof PreconditionFailedError)) throw e;
+      }
+    }
+    throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
+  }
+
+  /** Deletes the live single lists of `master`'s series that `drop` names (a week deleted before stays deleted). */
+  private async dropExceptions(all: GoogleEvent[], master: GoogleEvent, drop: (e: GoogleEvent) => boolean): Promise<void> {
+    for (const e of this.exceptionsIn(all, master)) if (e.status !== 'cancelled' && drop(e)) await this.deleteOld(e);
+  }
+
+  /** A change for all lists: this and all following from the first list dated today or later, so earlier lists stay as they were. */
+  async forAll(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
+    const { cur, master } = await this.locateSeries(id);
+    check?.(decodeTaskList(cur, this.tz));
+    const parts = this.partsIn(await this.seriesEvents(master.calendarId), master.extendedProperties?.private?.series ?? master.id);
+    const next = await this.futureOccurrence(parts);
+    if (next) await this.forFollowing(next.id, change);
+    try {
+      return await this.host.getTaskList(id);
+    } catch (e) {
+      // the split moved the list to the new series: its list of that day answers
+      if (!(e instanceof ApiException) || e.status !== 404) throw e;
+      const day = this.ruleStart(cur).date;
+      const now = this.partsIn(await this.seriesEvents(master.calendarId), master.extendedProperties?.private?.series ?? master.id);
+      for (const p of now) { const o = await this.occurrenceOn(p, day); if (o) return this.host.getTaskList(o.id); }
+      throw e;
+    }
+  }
+
+  /** The first live list dated today or later in any of `parts`; null when there is none. */
+  private async futureOccurrence(parts: GoogleEvent[]): Promise<GoogleEvent | null> {
+    const before = addDays(this.host.today(), -1);
+    const found: GoogleEvent[] = [];
+    for (const p of parts) {
+      const o = (await this.nextOccurrence(p, before, 62)) ?? (this.untilOf(p) === null ? await this.nextOccurrence(p, before, 400) : null);
+      if (o) found.push(o);
+    }
+    return found.sort((x, y) => (this.ruleStart(x).date < this.ruleStart(y).date ? -1 : 1))[0] ?? null;
+  }
+
+  /** `change` for the occurrences `scope` names. */
+  forScope(scope: 'following' | 'all', id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
+    return scope === 'all' ? this.forAll(id, change, check) : this.forFollowing(id, change, check);
+  }
+
+  /** A rule that ends after a number of times is written as the date of its last list (`UNTIL`), as Google does when it splits one. */
+  private async countToUntil(master: GoogleEvent): Promise<GoogleEvent> {
+    const n = Number(/[:;]COUNT=(\d+)/.exec(ruleLine(master))?.[1]);
+    if (!n) return master;
+    const d = decodeTaskList(master, this.tz);
+    if (!d.date || !d.recurrence) throw validation('This list repeats in a way the app cannot change; change it in Google Calendar', 'scope');
+    const last = d.recurrence === 'daily' ? addDays(d.date, n - 1) : d.recurrence === 'weekly' ? addDays(d.date, 7 * (n - 1)) : addMonthsClamp(d.date, n - 1).date;
+    const ms = d.time ? zonedToUtc(last, d.time, this.tz) : null;
+    return this.provider.patchEvent(master.calendarId, master.id, { recurrence: withUntil(master.recurrence ?? [], untilValue({ date: last, ms })) }, { ifMatch: master.etag });
   }
 
   /** The first live occurrence of `master` after `day` within `days` days; null when none. */
@@ -262,3 +431,10 @@ const withUntil = (lines: string[], until: string): string[] => lines.map((l) =>
 /** RFC 5545 UNTIL of an occurrence's rule start: a date for an all-day series, the UTC instant for a timed one. */
 const untilValue = (at: { date: string; ms: number | null }): string => (at.ms === null
   ? at.date.replaceAll('-', '') : new Date(at.ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''));
+
+/** Whether a series in `rule` starting on `start` has a list on `day`. */
+const onRule = (rule: Recurrence, start: string, day: string): boolean => {
+  if (day < start) return false;
+  if (rule === 'daily') return true;
+  return rule === 'weekly' ? (dayNumber(day) - dayNumber(start)) % 7 === 0 : day.slice(8) === start.slice(8);
+};

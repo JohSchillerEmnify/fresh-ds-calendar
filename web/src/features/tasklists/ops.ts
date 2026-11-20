@@ -12,12 +12,12 @@ import { useOutboxStore } from '@/stores/outbox';
 
 /** Set or merge a patch for one item (tick / rename); `scope` `following` renames it in this and all later occurrences of a repeating list. */
 export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void {
-  useOutboxStore().patchItem(listId, itemId, patch, scope === 'following' ? scope : undefined);
+  useOutboxStore().patchItem(listId, itemId, patch, scope === 'this' ? undefined : scope);
 }
 
 /** Add an item at the end (`done`: already ticked); the add names the item's id, so a resend never adds it twice. Returns that id. */
 export function addItem(listId: string, title: string, scope?: ChangeScope, done?: boolean, level?: number): string {
-  return useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done, level);
+  return useOutboxStore().addItem(listId, title, scope === 'this' ? undefined : scope, done, level);
 }
 
 /** Tick (or untick) the one task of a one-line list; a title-only list moves its title into the one ticked item and has no title after (it is then the same as a list of one item). */
@@ -29,7 +29,7 @@ export function toggleSingleTask(listId: string, task: SingleTask): void {
 
 /** Remove an item; `done` is called at once (the change is kept in the outbox). */
 export function removeItem(listId: string, itemId: string, title: string, done?: () => void, scope?: ChangeScope, keepSubtasks?: boolean): void {
-  useOutboxStore().deleteItem(listId, itemId, title, scope === 'following' ? scope : undefined, keepSubtasks);
+  useOutboxStore().deleteItem(listId, itemId, title, scope === 'this' ? undefined : scope, keepSubtasks);
   done?.();
 }
 

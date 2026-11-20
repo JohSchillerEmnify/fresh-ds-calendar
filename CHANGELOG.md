@@ -5,6 +5,7 @@
 - Fixed: after an app update, buttons such as Week, Settings or an entry could stop reacting until you restarted the app. The app now reloads itself once and opens what you tapped.
 - Changed: creating and editing a task list now use the same form. When you edit a list, its items are lines you can change, indent, remove and add; ticks stay. "From template", "Also save as template", the repeat choice and handwriting lines are there as well; picking a template on an existing list asks before it replaces the list.
 - New: a task list that does not repeat can be set to repeat from its edit form.
+- New: you can change how a repeating task list repeats, or stop it repeating, from its edit form. Like in Google Calendar you choose between this and all following lists (this one included) and all lists. The app tells you before saving if single lists you changed later will be lost.
 - New: while you move, resize or draw an entry in the day or week view, the hour column shows the start and end time it will land on, with a dashed line to it. The small time inside the drop box is gone.
 - Fixed: templates now keep the subtask levels of a list, also with "Also save as template", and a list made from a template has the same levels.
 - Fixed: lines that start with spaces, typed under "Add items" while editing a list, now become subtasks, as in a new list.

@@ -121,7 +121,7 @@ function registerInkItems({ r, ctx, person, cal }: RouteDeps): void {
     const keep = c.req.query('subtasks') === 'keep';
     const list = await cal(c).deleteItem(listId, itemId, scope, keep);
     // one occurrence of a repeating list losing the item leaves it to the others (the ink is shared by item id)
-    if (scope === 'following' || !before.seriesId) {
+    if (scope || !before.seriesId) {
       const gone = new Set(keep ? [itemId] : blockIds(before.items, itemId));
       const inked = before.items.filter((i) => i.ink && gone.has(i.id)).map((i) => i.id);
       if (inked.length) ctx.inks.remove(person(c), listId, inked);

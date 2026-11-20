@@ -111,6 +111,8 @@ export default {
     title: 'Wiederkehrende Liste ändern, yo',
     this: 'Nur diese Aufgabenliste',
     following: 'Diese und alle folgenden Aufgabenlisten, fresh',
+    all: 'Alle Aufgabenlisten, yo',
+    lost: 'Deine Änderungen an einzelnen späteren Aufgabenlisten sind dann weg, yo.',
     ok: 'OK, yo',
   },
   list: {

@@ -212,6 +212,50 @@ describe('outbox: things created offline', () => {
   });
 });
 
+describe('outbox: a rhythm change that answers with another list', () => {
+  it('what is queued behind it follows the new id, in the store and the expanded card', async () => {
+    let release!: () => void;
+    const m = mockFetch({
+      'PATCH /api/tasklists/W_20261019': () => new Promise((r) => { release = () => r(list({ id: 'N_20261019', recurrence: 'daily', seriesId: 'N' })); }),
+      'PATCH /api/tasklists/N_20261019/items/m': () => list({ id: 'N_20261019', recurrence: 'daily', seriesId: 'N' }),
+    });
+    const items = useItemsStore();
+    const ui = useUiStore();
+    const out = useOutboxStore();
+    items.upsert(list({ id: 'W_20261019', recurrence: 'weekly', seriesId: 'W' }));
+    ui.expandCard({ id: 'W_20261019', date: '2026-10-12' });
+    out.updateList('W_20261019', { recurrence: 'daily' }, 'following');
+    out.patchItem('W_20261019', 'm', { done: true });
+    await flushPromises();
+    release();
+    await flushPromises();
+    expect(writes(m).map((c) => c.path)).toEqual(['/api/tasklists/W_20261019', '/api/tasklists/N_20261019/items/m']);
+    expect(items.get('W_20261019')).toBeUndefined();
+    expect(ui.expandedCards).toContainEqual({ id: 'N_20261019', date: '2026-10-12' });
+    expect(ui.expandedCards.some((c) => c.id === 'W_20261019')).toBe(false);
+  });
+});
+
+describe('outbox: a rhythm change for all lists that answers with another day', () => {
+  it('a tick queued for the vanished list is dropped, a change for all lists follows the answer', async () => {
+    let release!: () => void;
+    const m = mockFetch({
+      'PATCH /api/tasklists/W_20261019': ({ url }) => (url.search ? new Promise((r) => { release = () => r(list({ id: 'W_20261026', date: '2026-10-26', recurrence: 'monthly', seriesId: 'W' })); }) : list()),
+      'PATCH /api/tasklists/W_20261026': () => list({ id: 'W_20261026', date: '2026-10-26', seriesId: 'W' }),
+    });
+    const items = useItemsStore();
+    const out = useOutboxStore();
+    items.upsert(list({ id: 'W_20261019', date: '2026-10-19', recurrence: 'weekly', seriesId: 'W' }));
+    out.updateList('W_20261019', { recurrence: 'monthly' }, 'all');
+    out.patchItem('W_20261019', 'm', { done: true });
+    out.updateList('W_20261019', { title: 'Bathroom' }, 'all');
+    await flushPromises();
+    release();
+    await flushPromises();
+    expect(writes(m).map((c) => `${c.method} ${c.path}${c.url.search}`)).toEqual(['PATCH /api/tasklists/W_20261019?scope=all', 'PATCH /api/tasklists/W_20261026?scope=all']);
+  });
+});
+
 describe('outbox: people', () => {
   it('never sends under another person: a change of one person is dropped when another is signed in', async () => {
     const m = mockFetch({ 'PATCH /api/tasklists/G/items/m': () => tick(list(), 'm') });
