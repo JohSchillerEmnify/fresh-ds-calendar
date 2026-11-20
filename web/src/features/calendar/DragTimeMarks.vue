@@ -19,7 +19,7 @@ const top = (minutes: number) => (minutes / 60) * props.hourHeight + 'px';
 
 <template>
   <div v-for="m in marks" :key="m.edge" class="mark" :style="{ top: top(m.minutes), '--cols': m.col + 1 }" aria-hidden="true">
-    <span class="label" :class="{ atTop: m.minutes * hourHeight / 60 < 10 }" data-testid="drag-time-mark" :data-edge="m.edge" :data-time="m.time">{{ m.time }}</span>
+    <span class="label" :class="{ atTop: m.minutes * hourHeight / 60 < 10, atBottom: m.minutes * hourHeight / 60 > 24 * hourHeight - 10 }" data-testid="drag-time-mark" :data-edge="m.edge" :data-time="m.time">{{ m.time }}</span>
     <i class="line" />
   </div>
 </template>
@@ -34,6 +34,7 @@ const top = (minutes: number) => (minutes / 60) * props.hourHeight + 'px';
   border-radius: var(--md-sys-shape-corner-small); background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
   font: var(--md-sys-typescale-label-small); font-variant-numeric: tabular-nums;
 }
-.label.atTop { transform: none; } /* the label of 00:00 hangs below the line instead of being cut off at the top of the grid */
+.label.atTop { transform: none; } /* a label at the grid's top or bottom edge hangs inside it instead of being cut off */
+.label.atBottom { transform: translateY(-100%); }
 .line { grid-column: 2 / span var(--cols); align-self: start; border-top: 2px dashed var(--md-sys-color-primary); transform: translateY(-1px); }
 </style>

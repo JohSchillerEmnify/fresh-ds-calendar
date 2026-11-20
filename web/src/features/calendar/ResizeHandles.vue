@@ -31,7 +31,7 @@ function onMove(e: PointerEvent) {
   if (e.cancelable) e.preventDefault();
   active.delta = (e.clientY - active.startY) / active.ppm;
   const s = props.segment;
-  resizePreview.value = { id: s.item.id, date: s.date, ...resizeEdges(s, active.edge, active.delta) };
+  resizePreview.value = { id: s.item.id, date: s.date, continues: !s.last, ...resizeEdges(s, active.edge, active.delta) };
 }
 
 function onUp(e: PointerEvent) {

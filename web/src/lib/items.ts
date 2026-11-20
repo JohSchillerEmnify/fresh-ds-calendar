@@ -6,7 +6,7 @@ import { addDays, differenceInCalendarDays, parseIsoDate, timeToMinutes, toIsoDa
 import type { CalendarItem, LocalDate } from '@/api/types';
 import { t } from '@/i18n';
 
-const TASKLIST_BLOCK_MINUTES = 30;
+export const TASKLIST_BLOCK_MINUTES = 30;
 
 /** Title as shown in the UI: an untitled task list has none (""), so no row is drawn and no task stands in for it. */
 export function displayTitle(item: Pick<CalendarItem, 'kind' | 'title'>): string {
