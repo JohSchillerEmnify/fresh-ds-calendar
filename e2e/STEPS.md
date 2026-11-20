@@ -3086,6 +3086,13 @@ I delete the shared task list {string}
 {string} has never signed in
 I open "Share with" for the task list {string}
 I can share only with {string}
+{string} has a weekly task list {string} on Mondays since {date} with the items {string}
+{string} sees the task list {string} on {date}
+{string} sees the task list {string} on {date} with the items {string}
+{string} sees the task list {string} on {date} with the done count {string}
+{string} sees no task list {string} on {date}
+{string} ticks the item {string} of the shared task list {string} on {date}
+{string} adds the item {string} to the shared task list {string} on {date} for {string}
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
@@ -3114,6 +3121,15 @@ I can share only with {string}
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
+- "P has a weekly task list T on Mondays since D with the items I": the plant of "P has an undated task list" with
+  `recurrence: weekly` and `date: D` (D is a Monday), items `, `-separated.
+- "P sees the task list T on D [with the items I | with the done count N]", "P sees no task list T on D": `GET
+  /api/items?from=D&to=D+1` of P's own session; the occurrence titled T, its item titles in order, its done count
+  `done/total`.
+- "P ticks the item I of the shared task list T on D": the occurrence of T on D from the same read, then `PATCH
+  /api/tasklists/:id/items/:itemId` `{ done: true }` with P's session; the occurrence id names the date.
+- "P adds the item I to the shared task list T on D for S": `POST /api/tasklists/:id/items` on the occurrence of D with
+  `scope` `this` or `following` (S is "This task list" or "This and all following task lists").
 
 ## View switcher position (`@nav-position`)
 

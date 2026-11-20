@@ -151,3 +151,71 @@ Feature: Sharing task lists with another person
     When "jo@example.com" restores from the Drive backup
     Then the shared list "Groceries" is back
     And the damaged shared list is left out and noted in the server log
+
+  # Repeating lists (ADR 0046): the whole series is shared, every occurrence for every member.
+  @backlog
+  Scenario: A repeating list can be shared and is no longer refused
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    When I share the task list "Clean bathroom" with "anna@example.com"
+    Then the task list "Clean bathroom" in the Tasks view is shared with "J"
+
+  @backlog
+  Scenario: A member sees every occurrence of a shared repeating list
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    Then "anna@example.com" sees the task list "Clean bathroom" on 2026-10-12
+    And "anna@example.com" sees the task list "Clean bathroom" on 2026-10-26
+    And "anna@example.com" sees the task list "Clean bathroom" on 2026-11-09
+
+  @backlog
+  Scenario: A tick counts for one occurrence only, for both people
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    When "anna@example.com" ticks the item "Sink" of the shared task list "Clean bathroom" on 2026-10-19
+    Then "jo@example.com" sees the task list "Clean bathroom" on 2026-10-19 with the done count "1/2"
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-12 with the done count "0/2"
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-26 with the done count "0/2"
+
+  @backlog
+  Scenario: The owner changes this and all following occurrences and the member sees it
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I add the item "Mirror"
+    And I choose "This and all following task lists" for the change
+    Then "anna@example.com" sees the task list "Clean bathroom" on 2026-10-26 with the items "Sink, Floor, Mirror"
+    And "anna@example.com" sees the task list "Clean bathroom" on 2026-10-12 with the items "Sink, Floor"
+
+  @backlog
+  Scenario: A member changes this and all following occurrences and the owner sees it
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    When "anna@example.com" adds the item "Mirror" to the shared task list "Clean bathroom" on 2026-10-19 for "This and all following task lists"
+    Then "jo@example.com" sees the task list "Clean bathroom" on 2026-11-02 with the items "Sink, Floor, Mirror"
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-12 with the items "Sink, Floor"
+
+  @backlog
+  Scenario: Stop sharing a repeating list gives the owner the whole series back
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    And "anna@example.com" ticks the item "Sink" of the shared task list "Clean bathroom" on 2026-10-19
+    When I stop sharing the task list "Clean bathroom"
+    Then "anna@example.com" sees no task list "Clean bathroom" on 2026-10-26
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-26
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-19 with the done count "1/2"
+
+  @backlog
+  Scenario: A member who leaves a shared repeating list loses every occurrence and the owner keeps them
+    Given "jo@example.com" has a weekly task list "Clean bathroom" on Mondays since 2026-10-12 with the items "Sink, Floor"
+    And "jo@example.com" is signed in
+    And I share the task list "Clean bathroom" with "anna@example.com"
+    When "anna@example.com" leaves the shared task list "Clean bathroom"
+    Then "anna@example.com" sees no task list "Clean bathroom" on 2026-10-26
+    And "jo@example.com" sees the task list "Clean bathroom" on 2026-10-26
