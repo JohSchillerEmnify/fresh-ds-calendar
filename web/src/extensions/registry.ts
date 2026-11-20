@@ -18,11 +18,15 @@ export interface CreateContext {
 // --- 2. dialogs / sheets ----------------------------------------------------------------------
 type Loader = () => Promise<Component | { default: Component }> | Component;
 export const dialogs = shallowReactive<Record<string, Component>>({});
+/** Dialog scripts being fetched right now: a failed fetch then belongs to the dialog the person just opened (nothing typed yet). */
+export const dialogLoads = { pending: 0 };
 /** Register the component rendered when `ui.openDialog(kind, props)` is called. It receives `props` and must emit `close`. */
 export function registerDialog(kind: string, loader: Loader): void {
   const probe = loader as () => unknown;
   dialogs[kind] = markRaw(defineAsyncComponent(async () => {
-    const m = (await probe()) as Component | { default: Component };
+    dialogLoads.pending++;
+    let m: Component | { default: Component };
+    try { m = (await probe()) as Component | { default: Component }; } finally { dialogLoads.pending--; }
     return ('default' in (m as object) ? (m as { default: Component }).default : m) as Component;
   }));
 }

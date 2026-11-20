@@ -19,6 +19,7 @@ import { useSettingsStore } from './stores/settings';
 import { pushWidget } from './stores/sync';
 import { useThemeStore } from './stores/theme';
 import { registerServiceWorker } from './pwa/register';
+import { installStaleChunkReload } from './pwa/staleChunk';
 import { checkReleaseNotes } from './pwa/releaseNotes';
 import { registerBuiltinExtensions } from './extensions/builtin';
 import { installMotion } from './motion';
@@ -66,6 +67,7 @@ async function bootstrap() {
 
   const router = createAppRouter();
   app.use(router);
+  installStaleChunkReload(router);
   await router.isReady();
   app.mount('#app');
   void registerServiceWorker();
