@@ -118,7 +118,7 @@ Feature: Sharing task lists with another person
     When I share the task list "Groceries" with "anna@example.com" who accepts
     Then "anna@example.com" is offered only "jo@example.com" to share with
 
-  # unit: server/test/share-by-address.test.ts:answers an address that is not an allowed person like a success that shared nobody
+  # unit: server/test/invitations.test.ts:answers a known, an unknown and a removed address the same way
   # unit: server/test/share-by-address.test.ts:GET /api/people offers only the contacts of the person asking
   # unit: server/test/share-by-address.test.ts:signing in is not announced to anybody
   # unit: server/test/share-by-address.test.ts:carries the same scoped people in the change feed

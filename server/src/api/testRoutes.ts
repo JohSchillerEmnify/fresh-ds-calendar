@@ -323,6 +323,14 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json({ on: true, allowedEmails: ctx.auth.allowedEmails });
   });
 
+  // An address that may sign in but has not yet: it is allowed and not recorded as a person.
+  t.post('/auth/newcomer', async (c) => {
+    const b = (await body(c)) as { email?: unknown } | undefined;
+    if (typeof b?.email !== 'string' || !b.email) throw validation('email is required', 'email');
+    ctx.auth.allowedEmails = parseEmails([...ctx.auth.allowedEmails, b.email].join(','));
+    return c.json({ email: b.email });
+  });
+
   // When a widget key was last used (`at: null` = never); the key is named by its device name.
   t.post('/widget-keys/last-used', async (c) => {
     const b = (await body(c)) as { owner?: unknown; name?: unknown; at?: unknown } | undefined;

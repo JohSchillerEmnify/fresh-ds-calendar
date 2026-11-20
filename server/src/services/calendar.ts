@@ -667,7 +667,9 @@ export class CalendarService {
   summary(from: string, to: string): ReturnType<ItemQueries['summary']> { return this.queries.summary(from, to); }
 
   // ---------- sharing (see TaskSharing) ----------
-  shareTaskList(id: string, email: string): Promise<TaskList> { return this.sharing!.shareTaskList(id, email); }
+  inviteToList(id: string, email: string): Promise<TaskList> { return this.sharing!.inviteToList(id, email); }
+  grantList(id: string, memberSub: string): Promise<string> { return this.sharing!.grantList(id, memberSub); }
+  grantCategory(categoryId: string, memberSub: string): Promise<void> { return this.sharing!.grantCategory(categoryId, memberSub); }
   unshareTaskList(id: string): Promise<TaskList> { return this.sharing!.unshareTaskList(id); }
   leaveTaskList(id: string): void { this.sharing!.leaveTaskList(id); }
   shareCategory(categoryId: string, email: string | null): Promise<Record<string, Person>> { return this.sharing!.shareCategory(categoryId, email); }

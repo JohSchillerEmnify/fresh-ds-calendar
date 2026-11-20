@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
-import { makeApp, sessionCookie, type TestApp } from './helpers.js';
+import { makeApp, sessionCookie, shareAndAccept, type TestApp } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each test reads a different answer shape
@@ -67,7 +67,7 @@ describe('two people\'s settings are separate', () => {
     const { jo, anna } = await twoPeople();
     const cat = (await jo('POST', '/api/categories', { name: 'Garden', color: '#0b8043', icon: '🌻' })).body.categories.at(-1);
     const own = (await jo('POST', '/api/tasklists', { title: 'Weeds', date: null, items: [{ title: 'Pull' }], categoryId: cat.id })).body;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+    const shared = await shareAndAccept(jo, anna, own.id, ANNA);
     const hers = (await anna('GET', `/api/tasklists/${shared.id}`)).body;
     expect(hers).toMatchObject({ categoryId: cat.id, categoryInfo: { name: 'Garden', icon: '🌻', color: '#0b8043' } });
     expect((await anna('GET', '/api/settings')).body.categories.map((c: Named) => c.name)).not.toContain('Garden');
