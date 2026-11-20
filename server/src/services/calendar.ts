@@ -633,23 +633,25 @@ export class CalendarService {
     }, undefined, undefined, true);
   }
 
-  /** `levels` (one per id) sets the levels too: a drag changes the place and the level together. `following` puts the later lists in this order too (items they do not have are skipped, theirs that are not named stay last). */
+  /**
+   * `levels` (one per id) sets the levels too: a drag changes the place and the level together. Ids the list does not have are skipped and
+   * items the order does not name stay after the item they followed, so a change another device made meanwhile is kept. `following` does the same in the later lists.
+   */
   async reorder(id: string, itemIds: string[], levels?: number[], scope?: Scope): Promise<TaskList> {
-    const exact = (d: TaskListData): void => {
-      const ids = new Set(d.items.map((i) => i.id));
-      if (itemIds.length !== ids.size || new Set(itemIds).size !== itemIds.length || itemIds.some((x) => !ids.has(x))) {
-        throw validation('itemIds must contain every item id exactly once', 'itemIds');
-      }
-      if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
-    };
+    if (new Set(itemIds).size !== itemIds.length) throw validation('itemIds must not repeat an id', 'itemIds');
+    if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
     const place = (d: TaskListData): TaskListData => {
       const at = new Map(itemIds.map((x, n) => [x, n] as const));
-      const named = d.items.filter((i) => at.has(i.id)).sort((a, b) => at.get(a.id)! - at.get(b.id)!);
-      const ordered = [...named.map((i) => withLevel(i, levels?.[at.get(i.id)!] ?? i.level ?? 0)), ...d.items.filter((i) => !at.has(i.id))];
-      return { ...d, items: clampLevels(ordered) };
+      const result = d.items.filter((i) => at.has(i.id)).sort((a, b) => at.get(a.id)! - at.get(b.id)!).map((i) => withLevel(i, levels?.[at.get(i.id)!] ?? i.level ?? 0));
+      d.items.forEach((item, n) => {
+        if (at.has(item.id)) return;
+        const prev = n > 0 ? result.findIndex((r) => r.id === d.items[n - 1]!.id) : -1;
+        result.splice(prev + 1, 0, item);
+      });
+      return { ...d, items: clampLevels(result) };
     };
-    if (scope === 'following') return this.series.forFollowing(id, place, exact);
-    return this.modify(id, (d) => { exact(d); return place(d); }, undefined, undefined, true);
+    if (scope === 'following') return this.series.forFollowing(id, place);
+    return this.modify(id, place, undefined, undefined, true);
   }
 
   // ---------- reads (see ItemQueries) ----------
