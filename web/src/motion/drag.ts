@@ -320,9 +320,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   // ---- pointer down ----
   function onDown(e: PointerEvent) {
+    if ((e.pointerType === 'mouse' && e.button !== 0) || !e.isPrimary) return;
     // a press during the short wobble after a drop or cancel must not be lost: the wobble ends at once
     if ((state === 'dropping' || state === 'returning') && !opts.disabled?.()) { epoch++; finishVisual(); }
-    if (state !== 'idle' || opts.disabled?.() || (e.pointerType === 'mouse' && e.button !== 0) || !e.isPrimary) return;
+    if (state !== 'idle' || opts.disabled?.()) return;
     const rect = el.getBoundingClientRect();
     isTouch = e.pointerType !== 'mouse';
     // Android's own long press moves the focus to the card while the finger is down; a cancelled pointerdown stops it
@@ -541,8 +542,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     const dx = sx.x * k - s.x;
     const dy = sy.x * k - s.y;
     const r = ctx.originRect;
+    const box = opts.cardBox?.() ?? { left: 0, width: r.width };
     const { vx, vy } = vt.velocity();
-    lastFrame = { phase, rect: { left: r.left + dx, top: r.top + dy, width: r.width, height: r.height }, dx, dy, vx, vy, stillMs: Math.max(0, t - stillSince) };
+    lastFrame = { phase, rect: { left: r.left + box.left + dx, top: r.top + dy, width: box.width, height: r.height }, dx, dy, vx, vy, stillMs: Math.max(0, t - stillSince) };
     emitDrag(lastFrame);
   }
 

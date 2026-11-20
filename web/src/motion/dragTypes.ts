@@ -37,6 +37,8 @@ export interface DragOptions<K = unknown> {
   disabled?: () => boolean;
   /** Scale of the element's ancestors (a zoomed Canvas): a translate of 1 px moves it by this many screen px. Read at pick-up; default 1. */
   scale?: () => number;
+  /** Where the drawn card sits inside the pick-up rect (px from its left, and its width) when it is not the whole element: for drag watchers. */
+  cardBox?: () => { left: number; width: number };
   onStateChange?: (s: DragState) => void;
   onTarget?: (t: DropTarget<K> | null) => void;
   /**

@@ -114,7 +114,7 @@ Feature: Working with task list items
     @mobile
     Scenario: An item can be picked up again right after it was dropped, on the first long press
       When I long-press the item "Bread" and drag it above the item "Eggs"
-      And I pick up the item "Bread"
+      And I press the item "Bread" while it still wobbles from the drop and hold
       Then the item "Bread" is lifted
       When I release the item without moving it
       Then the expanded task list items are "Milk, Bread, Eggs"

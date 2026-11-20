@@ -423,21 +423,31 @@ When('I tap the item {string}', async function (this: World, title: string) {
   await (await itemById(this, title)).getByTestId('tasklist-item-checkbox').tap();
 });
 
+/** Presses the item's title at once after a drop: the row must still be in the wobble (`data-dragging="false"`), so the press really lands in it. */
+When('I press the item {string} while it still wobbles from the drop and hold', async function (this: World, title: string) {
+  await pickUp(this, title, true);
+});
+
 When('I pick up the item {string}', async function (this: World, title: string) {
-  const row = await itemById(this, title);
+  await pickUp(this, title, false);
+});
+
+async function pickUp(w: World, title: string, inWobble: boolean): Promise<void> {
+  const row = await itemById(w, title);
   const b = await box(row.getByTestId('tasklist-item-title'));
   const from = { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) };
-  const cdp = await this.context.newCDPSession(this.page);
+  const cdp = await w.context.newCDPSession(w.page);
+  if (inWobble) expect(await row.getAttribute('data-dragging'), 'the drop wobble is still running when the press lands').toBe('false');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] });
-  this.heldAt = from;
-  this.held = async () => {
+  w.heldAt = from;
+  w.held = async () => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
     await cdp.detach().catch(() => {});
-    this.held = undefined;
-    this.heldAt = undefined;
+    w.held = undefined;
+    w.heldAt = undefined;
   };
-  await this.page.waitForTimeout(500);
-});
+  await w.page.waitForTimeout(500);
+}
 
 When('I release the item without moving it', async function (this: World) {
   if (!this.held) throw new Error('nothing is picked up');
