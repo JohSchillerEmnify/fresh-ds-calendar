@@ -633,10 +633,7 @@ export class CalendarService {
     }, undefined, undefined, true);
   }
 
-  /**
-   * `levels` (one per id) sets the levels too: a drag changes the place and the level together. Ids the list does not have are skipped and
-   * items the order does not name stay after the item they followed, so a change another device made meanwhile is kept. `following` does the same in the later lists.
-   */
+  /** `levels` (one per id) set the levels too. Ids the list lacks are skipped; items the order does not name stay after the item they followed (`following`: in the later lists too). */
   async reorder(id: string, itemIds: string[], levels?: number[], scope?: Scope): Promise<TaskList> {
     if (new Set(itemIds).size !== itemIds.length) throw validation('itemIds must not repeat an id', 'itemIds');
     if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
