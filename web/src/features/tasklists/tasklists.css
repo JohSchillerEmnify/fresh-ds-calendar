@@ -13,10 +13,12 @@
 .tlv .ln-stem { top: calc(50% + 14px); bottom: 0; border-left: 1px solid var(--lc); }
 .tlv .ln-branch { top: 0; height: 50%; width: 16px; border-left: 1px solid var(--lc); border-bottom: 1px solid var(--lc); }
 .tlv .ln-branch[data-end='true'] { border-bottom-left-radius: 8px; }
-/* a held task is a compact card (checkbox and title): no grip, no bin, no level lines, no indent; it is put under the finger */
+/* a held task is a compact card (checkbox and title): no grip, no bin, no level lines, no indent, one line; it is put under the finger */
 .tlv .list > .row[data-dragging='true'] {
   width: fit-content; max-width: 80%; padding-left: 16px; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container-high);
 }
+.tlv .list > .row[data-dragging='true'] .ititle { white-space: nowrap; overflow: hidden; }
+.tlv .list > .row[data-dragging='true'] .tt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .tlv .list > .row[data-dragging='true'] .li-trail, .tlv .list > .row[data-dragging='true'] .ln { display: none; }
 /* the subtasks of a held task travel with it: folded away while it is lifted */
 .tlv .list > .row[data-sub-held] { height: 0; min-height: 0; overflow: hidden; opacity: 0; pointer-events: none; }

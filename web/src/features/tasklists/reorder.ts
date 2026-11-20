@@ -97,3 +97,8 @@ export function applyPlacement(items: readonly { id: string; level?: number }[],
   const out = [...rest.slice(0, p.index).map((i) => ({ id: i.id, level: levelOf(i) })), ...moved, ...rest.slice(p.index).map((i) => ({ id: i.id, level: levelOf(i) }))];
   return { ids: out.map((i) => i.id), levels: out.map((i) => i.level) };
 }
+
+/** Where the drop line of a block that will get `level` starts: the title column of a row at `refLevel` (at `refLeft`), moved one `step` per level. */
+export function lineStart(refLeft: number, refLevel: number, level: number, step: number): number {
+  return refLeft + (level - refLevel) * step;
+}

@@ -114,6 +114,13 @@ Then('the held card shows the checkbox and the title {string} but no grip and no
   await expect(card.getByTestId('tasklist-item-delete')).toBeHidden();
 });
 
+Then('the held card is one line tall', async function (this: World) {
+  const card = await box(heldRow(this));
+  const rows = await this.expanded.locator('[data-testid="tasklist-item"]:not([data-dragging="true"])').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+  // the lift scales the card by 1.05
+  expect(card.height, 'the held card is taller than a row: its title wrapped').toBeLessThanOrEqual(Math.min(...rows) * 1.05 + 6);
+});
+
 Then('the held card is under the finger', async function (this: World) {
   const f = finger.get(this);
   if (!f) throw new Error('no item is held');
@@ -144,12 +151,24 @@ Then('the drop line touches no checkbox', async function (this: World) {
 });
 
 Then('the grips and bins of the other items have not moved sideways', async function (this: World) {
+  const held = await heldRow(this).evaluateAll((els) => els.map((e) => e.getAttribute('data-title') ?? ''));
   const [before, now] = [sidesBefore.get(this)!, await sides(this)];
   for (const [title, was] of Object.entries(before)) {
-    if (title === 'Pegs') continue;
+    if (held.includes(title)) continue;
     expect(Math.abs(now[title]!.grip - was.grip), `grip of ${title}`).toBeLessThanOrEqual(1);
     expect(Math.abs(now[title]!.bin - was.bin), `bin of ${title}`).toBeLessThanOrEqual(1);
   }
+});
+
+When('the item {string} gets the title {string}', async function (this: World, title: string, next: string) {
+  const list = await this.api.get<{ id: string; items: { id: string; title: string }[] }>(`/api/tasklists/${encodeURIComponent((await this.expanded.getAttribute('data-tasklist-id')) ?? '')}`);
+  const item = list.items.find((i) => i.title === title);
+  if (!item) throw new Error(`no item "${title}" in the open list`);
+  await this.api.call('PATCH', `/api/tasklists/${encodeURIComponent(list.id)}/items/${encodeURIComponent(item.id)}`, { title: next });
+  const name = (await this.expanded.getAttribute('data-title')) ?? '';
+  await this.page.reload();
+  await this.settled();
+  await expandTaskList(this, name);
 });
 
 /** Sets the levels through the server (the list's items in the given levels), then loads the page again with the list open. */

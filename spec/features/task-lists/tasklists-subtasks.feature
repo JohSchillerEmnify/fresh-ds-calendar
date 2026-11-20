@@ -83,6 +83,12 @@ Feature: Subtasks in task lists
       When I move the finger 90 px to the left and 60 px up
       Then the held card is under the finger
 
+    Scenario: A long title does not make the held card taller
+      Given the browser window is 560 by 900 pixels wide and high
+      And the item "Pegs" gets the title "Pegs for the big tent, the long ones with the hooks and the ones that bend easily when the ground is stony"
+      When I hold the item "Pegs for the big tent, the long ones with the hooks and the ones that bend easily when the ground is stony" and move the finger 20 px to the right and 0 px down
+      Then the held card is one line tall
+
     Scenario: The drop line starts at the indent of the level the item will get
       When I hold the item "Pegs" one step to the right
       Then the drop line is at the indent of level 1

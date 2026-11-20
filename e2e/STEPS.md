@@ -345,6 +345,7 @@ I drag the item {string} over the gap between {string} and {string} and hold
 the items {string} and {string} do not overlap the dragged item {string} and it lies between them
 I tap the item {string}
 I pick up the item {string}
+I press the item {string} while it still wobbles from the drop and hold
 I release the item without moving it
 I start adding an item
 the add field is open and focused
@@ -440,7 +441,7 @@ the real time block of the expanded task list matches the card {string}
   (`PUT /api/tasklists/:id/items/order`, 200) and for `data-dragging` to go. "I long-press the item X and drag it above Y" = the
   same, phone project only. "drag X and drop it where it was" = away and back (a finger: held and released in place); no request
   is expected. "I tap the item X" taps its `tasklist-item-checkbox` (a short tap ticks and starts no drag). "I pick up the item X" =
-  a finger held 500 ms on its title and kept down; "is lifted" = `data-dragging="true"` on its row; "I release the item without
+  a finger held 500 ms on its title and kept down; "I press the item X while it still wobbles from the drop and hold" is the same but first checks that X's row still has `data-dragging="false"` (the wobble after a drop), so the press lands in it; "is lifted" = `data-dragging="true"` on its row; "I release the item without
   moving it" lifts the finger. "I start adding an item" taps `tasklist-add` and waits for the focused `tasklist-new-item`; "the add field is open and focused" = `tasklist-new-item` is visible and is the page's active element (the phone keyboard stays up). "the list stays where it is while the item is held, even when the keyboard closes" = with the item still held the viewport grows 300 px taller (a closing phone keyboard resizes the app) and the expanded list's top moves by at most 1 px. "I drag X over the gap between A and B and hold" = grip (a finger: long-press) moved in 10 steps to the upper edge of B and kept down for 900 ms (released by the world's cleanup); "the items A and B do not overlap the dragged item X ..." = A's bottom <= X's top and X's bottom <= B's top (4 px tolerance for the 1.05 lift scale), i.e. the other rows made room. "has the drag handle L" = `aria-label` L on its `tasklist-item-grip`. In the Tasks view the same
   drag acts on the `tasklist-view` of that list's `tasks-item`.
 
@@ -3399,6 +3400,8 @@ I hold the item {string} and move the finger {int} px to the {word} and {int} px
 I move the finger {int} px to the {word} and {int} px {word}
 the held card shows the checkbox and the title {string} but no grip and no bin
 the held card is under the finger
+the held card is one line tall
+the item {string} gets the title {string}
 the drop line is at the indent of level {int}
 the drop line touches no checkbox
 the grips and bins of the other items have not moved sideways
@@ -3417,6 +3420,7 @@ the collapsed task list {string} shows the item {string} indented under {string}
 
 - Every `tasklist-item` row has `data-level` (0 task, 1 subtask, 2 sub-subtask); "X is a subtask of Y" = the nearest row above X with a lower level is Y, "is not a subtask" = no such row (level 0); both only read the rows. "X was made a subtask of Y" (set-up) sets X one level deeper than Y through `PUT /api/tasklists/:id/items/order` (with `levels`), reloads the page and opens the list again.
 - "I hold the item X N step(s) to the right / left": the same grab (X's grip) and sideways move (N x 28 px) as the drag, but the pointer stays down (released by the world's cleanup); it first remembers the left edge of every row's grip and bin, and waits 900 ms for the card to be at rest. "I hold the item X and move the finger A px to the right / left and B px up / down" is the same with a free move; "I move the finger ..." moves the held pointer on from where it is.
+- "the item X gets the title T" renames X through `PATCH /api/tasklists/:id/items/:itemId`, reloads the page and opens the list again. "the held card is one line tall": the held row is at most 1.05 x the height of the shortest other row + 6 px (the lift tilts it).
 - "the held card ...": exactly one `tasklist-item` has `data-dragging="true"`; its checkbox and title (text = the given title) are visible, its grip and bin are hidden. "the held card is under the finger": the pointer's place lies in the card's box (2 px tolerance). "the drop line is at the indent of level N": `tasklist-drop-line` has `data-level` N and its left edge is N x 28 px (2 px tolerance) right of the title column of the first level-0 row that is not held. "the drop line touches no checkbox": its box overlaps no checkbox of the other rows. "the grips and bins of the other items have not moved sideways": the left edge of every other row's grip and bin is within 1 px of before.
 - "I drag the item X N step(s) to the right / left": the pointer takes the item's drag handle (a finger long-presses the row, as in "I drag the item X above the item Y") and moves N x 28 px sideways on the same row, then lets go; it waits for the saved order (`PUT .../items/order`, 200) unless the level cannot change (the first item, or already as deep as the item above allows). N is one, two or three. "below the item Y" = the same drag to the lower edge of Y's row.
 - "I start renaming the item X and press Tab": taps the title, waits for the focused field and presses Tab (the field stays open); "I press Shift+Tab" presses it in that field.
