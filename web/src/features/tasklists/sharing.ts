@@ -26,9 +26,11 @@ function swap(oldId: string, next: TaskList): void {
   void useTaskListsStore().refresh().catch(() => undefined);
 }
 
-/** Shares the list with a person (the list moves into the shared store). */
-export async function shareList(id: string, personSub: string): Promise<void> {
-  swap(id, await api.shareTaskList(id, personSub));
+/** Shares the list with the person a typed address names; false when it named nobody (the list is unchanged, the caller says so neutrally). */
+export async function shareList(id: string, email: string): Promise<boolean> {
+  const next = await api.shareTaskList(id, email.trim());
+  swap(id, next);
+  return !!next.shared;
 }
 
 /** "Stop sharing" (owner): the list moves back into the owner's Google tasks calendar. */

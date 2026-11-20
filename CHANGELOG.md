@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-20
+- Changed: sharing a task list no longer shows everyone who uses the app. You type the email address of the person you want to share with; addresses you typed before and people who share lists with you are offered next time. If the address does not belong to someone who uses the calendar, nothing is shared and the app says so without telling more.
 - Fixed: after an app update, buttons such as Week, Settings or an entry could stop reacting until you restarted the app. The app now reloads itself once and opens what you tapped.
 - Changed: creating and editing a task list now use the same form. When you edit a list, its items are lines you can change, indent, remove and add; ticks stay. "From template", "Also save as template", the repeat choice and handwriting lines are there as well; picking a template on an existing list asks before it replaces the list.
 - New: a task list that does not repeat can be set to repeat from its edit form.

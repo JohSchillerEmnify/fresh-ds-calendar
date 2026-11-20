@@ -132,7 +132,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.065
+   "duplicated-percent": 0.064
   },
   "types": {
    "AppConfig": 1,
@@ -161,7 +161,7 @@
    "@typescript-eslint/no-explicit-any|server/test/reminders.test.ts": 3,
    "@typescript-eslint/no-explicit-any|server/test/security.test.ts": 1,
    "@typescript-eslint/no-explicit-any|server/test/settings.test.ts": 4,
-   "@typescript-eslint/no-explicit-any|server/test/shared-lists.test.ts": 9,
+   "@typescript-eslint/no-explicit-any|server/test/shared-lists.test.ts": 8,
    "@typescript-eslint/no-explicit-any|server/test/sync-tokens.test.ts": 2,
    "@typescript-eslint/no-explicit-any|server/test/tasklists.test.ts": 73,
    "@typescript-eslint/no-explicit-any|server/test/tasksCalendar.test.ts": 4,
@@ -200,7 +200,6 @@
    "max-lines-per-function|server/src/api/authRoutes.ts": 1,
    "max-lines-per-function|server/src/api/routes.ts": 1,
    "max-lines-per-function|server/src/api/testRoutes.ts": 1,
-   "max-lines-per-function|server/src/context.ts": 1,
    "max-lines-per-function|web/src/features/calendar/dnd.ts": 1,
    "max-lines-per-function|web/src/features/calendar/draw.ts": 1,
    "max-lines-per-function|web/src/features/calendar/transitionWarning.ts": 2,

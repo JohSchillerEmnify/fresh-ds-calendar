@@ -20,6 +20,8 @@ import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
+import ShareAddressField from '@/components/settings/ShareAddressField.vue';
+import { useAuthStore } from '@/stores/auth';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useDeviceStore } from '@/stores/device';
@@ -28,7 +30,6 @@ import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { enterNext } from '@/composables/useEnterNext';
-import { usePeople } from '@/composables/usePeople';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
@@ -85,13 +86,13 @@ const current = computed(() => {
 });
 /** The popup leads of the tasks calendar's default, shown while the list follows it. */
 const taskDefaults = ref<number[]>([]);
-const { people, refresh: refreshPeople } = usePeople();
-const person = ref('');
-const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => emit('close'), error });
+/** The typed address of "Share with"; `shareNote` is the neutral answer for an address that shared nobody (dialog stays open). */
+const address = ref('');
+const shareNote = ref('');
+let stayOpen = false;
+const auth = useAuthStore();
+const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => { if (stayOpen) stayOpen = false; else emit('close'); }, error });
 const memberOnly = computed(() => isMemberOnly(current.value));
-const peopleOptions = computed(() => [
-  { value: '', label: t('sharing.choose') }, ...people.value.map((p) => ({ value: p.sub, label: p.name })),
-]);
 
 function fill(src: TaskList) {
   etag = src.etag;
@@ -115,7 +116,6 @@ onMounted(async () => {
     original = JSON.stringify(props.draftList ? form : { ...form, title: '' });
     return;
   }
-  void refreshPeople();
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
@@ -247,7 +247,14 @@ function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
   if (sharing.value) return;
   return runSharing(fn, failed);
 }
-const share = () => sharingAction(() => shareList(props.id!, person.value), 'sharing.shareFailed');
+const share = () => {
+  shareNote.value = '';
+  return sharingAction(async () => {
+    if (await shareList(props.id!, address.value)) return;
+    stayOpen = true;
+    shareNote.value = t('sharing.neutral');
+  }, 'sharing.shareFailed');
+};
 const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
 const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
@@ -281,16 +288,17 @@ function remove() {
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" data-field="category" />
       </div>
-      <div v-if="current && (current.shared || people.length)" class="share" data-testid="tasklist-sharing" data-field="share">
+      <div v-if="current && (current.shared || auth.status !== 'off')" class="share" data-testid="tasklist-sharing" data-field="share">
         <template v-if="current.shared">
-          <p class="who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
+          <p class="who" data-testid="tasklist-share-who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
           <Button v-if="!memberOnly" variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
         </template>
         <template v-else>
-          <Select v-model="person" :label="t('sharing.title')" :options="peopleOptions" class="grow" data-testid="tasklist-share-person" />
-          <Button variant="tonal" :disabled="!person || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
+          <ShareAddressField v-model="address" class="grow" data-testid="tasklist-share-person" @keydown.enter.prevent="address.trim() && share()" />
+          <Button variant="tonal" :disabled="!address.trim() || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
         </template>
       </div>
+      <p v-if="shareNote" class="note" role="status" data-testid="tasklist-share-note">{{ shareNote }}</p>
       <div v-if="form.reminders && !current?.shared" class="remrow" data-field="reminders">
         <span class="remlab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
@@ -345,6 +353,7 @@ function remove() {
 .remrow { display: flex; flex-direction: column; gap: 2px; }
 .remlab { padding-left: 4px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .share { display: flex; gap: 10px; align-items: center; }
+.note { margin: -6px 0 0; padding-left: 4px; font: var(--md-sys-typescale-body-small); color: var(--md-sys-color-on-surface-variant); }
 .who { flex: 1; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
