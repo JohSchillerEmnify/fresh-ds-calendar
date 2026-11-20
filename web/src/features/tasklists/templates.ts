@@ -5,7 +5,8 @@
  */
 import type { InkStroke, TaskList, TaskTemplate, TaskTemplateInput } from '@/api/types';
 import { t } from '@/i18n';
-import { parseItems, type TaskListForm } from './validate';
+import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
+import type { TaskListForm } from './validate';
 
 /** The longest template name (the server's limit). */
 export const NAME_MAX = 80;
@@ -17,7 +18,7 @@ export const NAME_MAX = 80;
 export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' | 'categoryId'>, name: string, categoriesOn: boolean, strokesOf: (itemId: string) => InkStroke[] = () => []): TaskTemplateInput {
   return {
     name: name.trim(),
-    items: l.items.map((i) => (i.ink ? { title: '', strokes: strokesOf(i.id) } : { title: i.title })),
+    items: l.items.map((i) => (i.ink ? { title: '', strokes: strokesOf(i.id) } : { title: i.title, ...levelProp(i.level) })),
     estimateMinutes: l.estimateMinutes ?? null,
     categoryId: categoriesOn ? l.categoryId ?? null : null,
   };
@@ -27,7 +28,7 @@ export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' |
 export function templateFromForm(f: TaskListForm, categoriesOn: boolean, ink: InkStroke[][] = []): TaskTemplateInput {
   return {
     name: f.title.trim(),
-    items: [...parseItems(f.items).map((title) => ({ title })), ...ink.map((strokes) => ({ title: '', strokes }))],
+    items: [...parseIndented(f.items).map(({ title, level }) => ({ title, ...levelProp(level) })), ...ink.map((strokes) => ({ title: '', strokes }))],
     estimateMinutes: f.estimate.trim() ? Number(f.estimate) : null,
     categoryId: categoriesOn && f.categoryId !== 'none' ? f.categoryId : null,
   };
@@ -41,7 +42,7 @@ export function fillFromTemplate(f: TaskListForm, tpl: TaskTemplate, categoryExi
   return {
     ...f,
     title: tpl.name,
-    items: tpl.items.filter((i) => !i.strokes).map((i) => i.title).join('\n'),
+    items: tpl.items.filter((i) => !i.strokes).map((i) => indentOf(i) + i.title).join('\n'),
     estimate: tpl.estimateMinutes ? String(tpl.estimateMinutes) : '',
     categoryId: tpl.categoryId && categoryExists(tpl.categoryId) ? tpl.categoryId : 'none',
   };

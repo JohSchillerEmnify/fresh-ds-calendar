@@ -16,8 +16,8 @@ export function patchItem(listId: string, itemId: string, patch: { title?: strin
 }
 
 /** Add an item at the end (`done`: already ticked); the add names the item's id, so a resend never adds it twice. */
-export function addItem(listId: string, title: string, scope?: ChangeScope, done?: boolean): void {
-  useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done);
+export function addItem(listId: string, title: string, scope?: ChangeScope, done?: boolean, level?: number): void {
+  useOutboxStore().addItem(listId, title, scope === 'following' ? scope : undefined, done, level);
 }
 
 /** Tick (or untick) the one task of a one-line list; a title-only list moves its title into the one ticked item and has no title after (it is then the same as a list of one item). */

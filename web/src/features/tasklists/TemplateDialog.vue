@@ -18,6 +18,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
+import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
 import { parseItems } from './validate';
 
 /** `template`: the one being edited; null makes a new one. */
@@ -30,7 +31,7 @@ const cats = useTaskCategories();
 const tpl = props.template;
 const form = reactive({
   name: tpl?.name ?? '',
-  items: tpl?.items.map((i) => i.title).join('\n') ?? '',
+  items: tpl?.items.map((i) => indentOf(i) + i.title).join('\n') ?? '',
   estimate: tpl?.estimateMinutes ? String(tpl.estimateMinutes) : '',
   categoryId: tpl?.categoryId && settings.categoryById(tpl.categoryId) ? tpl.categoryId : 'none',
 });
@@ -61,7 +62,7 @@ async function save(): Promise<void> {
   saving.value = true;
   const input = {
     name: form.name.trim(),
-    items: parseItems(form.items).map((title) => ({ title })),
+    items: parseIndented(form.items).map(({ title, level }) => ({ title, ...levelProp(level) })),
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
     // categories off: the picker is hidden, so the stored category is left alone
     categoryId: cats.on.value ? (form.categoryId === 'none' ? null : form.categoryId) : tpl?.categoryId ?? null,

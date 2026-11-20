@@ -12,7 +12,7 @@ export type Change =
   | { op: 'list.create'; id: string; input: CreateTaskListInput }
   | { op: 'list.update'; id: string; patch: UpdateTaskListInput; scope?: ChangeScope }
   | { op: 'list.delete'; id: string }
-  | { op: 'item.add'; id: string; itemId: string; title: string; done?: boolean; scope?: ChangeScope; strokes?: InkStroke[] }
+  | { op: 'item.add'; id: string; itemId: string; title: string; done?: boolean; level?: number; scope?: ChangeScope; strokes?: InkStroke[] }
   /** `base`: keys of the strokes the change started from, `at`: when it was made; the server merges with other devices' changes (decision G5). */
   | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[]; base: string[]; at: number }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
@@ -93,7 +93,7 @@ export function applyEntry(cur: CalendarItem | null | undefined, e: OutboxEntry)
 /** One unsent item change on top of a task list. */
 function applyItemOp(cur: TaskList, c: Change): TaskList {
   switch (c.op) {
-    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: !!c.done, ...(c.strokes ? { ink: true as const } : {}) }]);
+    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, clampLevels([...cur.items, { id: c.itemId, title: c.title, done: !!c.done, ...levelProp(c.level), ...(c.strokes ? { ink: true as const } : {}) }]));
     case 'item.patch': {
       // a tick goes to the subtasks of the task as well, as on the server
       const ticked = new Set(c.patch.done === undefined ? [] : blockIds(cur.items, c.itemId));

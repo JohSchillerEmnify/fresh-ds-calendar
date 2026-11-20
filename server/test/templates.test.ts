@@ -26,6 +26,12 @@ describe('task list templates (/api/templates, feature tasklist-templates)', () 
     expect(all[0]).toMatchObject({ estimateMinutes: null, categoryId: null });
   });
 
+  it('keeps the level of an item, made valid like a list (the first is a task, at most one deeper than the line above)', async () => {
+    const r = await t.json('POST', '/api/templates', tpl({ items: [{ title: 'Tent', level: 1 }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food', level: 0 }] }));
+    expect(r.body.items).toEqual([{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food' }]);
+    expect((await t.json('POST', '/api/templates', tpl({ name: 'Bad', items: [{ title: 'A', level: 3 }] }))).status).toBe(400);
+  });
+
   it('keeps item titles only (never a done state) and drops empty lines', async () => {
     const r = await t.json('POST', '/api/templates', tpl({ items: [{ title: ' Sink ' }, { title: '  ' }, { title: 'Floor' }] }));
     expect(r.body.items).toEqual([{ title: 'Sink' }, { title: 'Floor' }]);
@@ -121,6 +127,18 @@ describe('TemplateStore', () => {
       expect(s.list('alice').map((x) => x.name)).toEqual(['Packing']);
       expect(s.list('bob')).toEqual([]);
       expect(fs.existsSync(path.join(dir, 'users', 'alice', 'templates.json'))).toBe(true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('loads a template stored before levels existed with flat items', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tpl-'));
+    try {
+      const file = path.join(dir, 'users', 'alice', 'templates.json');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify({ version: 1, templates: [{ id: 'old', name: 'Old', items: [{ title: 'A' }, { title: 'B' }], estimateMinutes: null, categoryId: null }] }));
+      expect(new TemplateStore(dir).list('alice')[0]!.items).toEqual([{ title: 'A' }, { title: 'B' }]);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

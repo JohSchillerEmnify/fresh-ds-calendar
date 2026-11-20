@@ -857,6 +857,15 @@ describe('subtasks', () => {
     expect((await t.json('POST', '/api/tasklists', { title: 'x', date: null, items: [{ title: 'A', level: 3 }] })).status).toBe(400);
   });
 
+  it('an added item can have a level, made valid by the item above it', async () => {
+    const a = await mk({ items: [{ title: 'Tent' }] });
+    const one = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Pegs', level: 2 });
+    expect(levels(one.body)).toEqual([0, 1]);
+    const two = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Poles', level: 2 });
+    expect(levels(two.body)).toEqual([0, 1, 2]);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'x', level: 3 })).status).toBe(400);
+  });
+
   it('a reorder with levels changes place and level together; without levels the levels stay', async () => {
     const a = await mk({ items: four });
     const [tent, pegs, poles, food] = a.items.map((i: Item) => i.id);

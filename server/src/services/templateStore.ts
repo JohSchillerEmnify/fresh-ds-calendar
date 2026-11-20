@@ -1,4 +1,5 @@
 import type { TaskTemplate, TaskTemplateInput } from '../api/types.js';
+import { clampLevels, levelProp } from '@calendar/shared/subtasks';
 import { ApiException, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
@@ -98,7 +99,7 @@ export class TemplateStore {
       id,
       name: input.name.trim(),
       // a template never keeps a tick, and an empty line is no item
-      items: input.items.map((it) => ({ title: it.title.trim(), ...(it.strokes ? { strokes: it.strokes } : {}) })).filter((it) => it.title.length > 0 || it.strokes),
+      items: clampLevels(input.items.map((it) => ({ title: it.title.trim(), ...levelProp(it.level), ...(it.strokes ? { strokes: it.strokes } : {}) })).filter((it) => it.title.length > 0 || it.strokes)),
       estimateMinutes: input.estimateMinutes ?? null,
       categoryId: input.categoryId ?? null,
     };

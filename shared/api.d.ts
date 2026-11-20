@@ -263,7 +263,8 @@ export interface TaskTemplate {
   id: string;
   name: string;
   /** An ink item has an empty `title` and its `strokes` (feature handwritten-lists). */
-  items: { title: string; strokes?: InkStroke[] }[];
+  /** `level` 1 or 2 makes the item a subtask (absent = a task), as on a list. */
+  items: { title: string; level?: number; strokes?: InkStroke[] }[];
   estimateMinutes: number | null;
   categoryId: string | null;
 }
@@ -271,7 +272,7 @@ export interface TaskTemplate {
 /** `POST /api/templates` and `PUT /api/templates/:id` body. */
 export interface TaskTemplateInput {
   name: string;
-  items: { title: string; strokes?: InkStroke[] }[];
+  items: { title: string; level?: number; strokes?: InkStroke[] }[];
   estimateMinutes?: number | null;
   categoryId?: string | null;
 }
