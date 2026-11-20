@@ -41,10 +41,12 @@ const KEY_LEVELS = 4;
 
 /** Sideways distance (px) of one level: a row is moved one level by dragging it this far (the indent in `TaskListView`). */
 const LEVEL_PX = 28;
+/** How far (px) the finger sits inside the right end of the held card at pick-up. */
+const CARD_TAIL = 24;
 /** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
 const HELD_SUB = 'data-sub-held';
 
-/** Where the dragged item will land: the gap (top and height in px from the top of the list) and the level it will get. */
+/** Where the dragged item will land: the slot (top and height in px from the top of the list) and the level it will get. */
 export interface DropAim { top: number; height: number; level: number }
 
 /** Duration of the other rows' move out of the way (ms); none under reduced motion. */
@@ -128,10 +130,13 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       return { top: pickup!.originRect.top + m, bottom: pickup!.originRect.bottom + m };
     };
     let pen = false;
+    /** Where the press was across the row: the compact card is put under the finger there. */
+    let grabX = 0;
     let thaw: (() => void) | null = null;
     const onDown = (e: Event) => {
       fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP);
       pen = (e as PointerEvent).pointerType === 'pen';
+      grabX = (e as PointerEvent).clientX - row.getBoundingClientRect().left;
     };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
@@ -151,7 +156,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         const p = placeBlock(o.items(), id, hovered, wanted);
         if (!p) return null;
         chosen = { to: hovered, wanted, level: p.level };
-        // the gap opens where the block lands: after row `p.after`; the card keeps its column (only the gap indents)
+        // the slot opens where the block lands: after row `p.after`; the card itself follows the finger freely
         const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
         const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
@@ -163,6 +168,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         if (id && !unchanged) o.onMove(id, chosen.to, chosen.wanted);
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
+      magnet: false,
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
         held = t ? { row, to: Math.floor(t.key / KEY_LEVELS), own: ownSpan } : null;
@@ -171,8 +177,15 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level } : null;
       },
       onStateChange: (st) => {
-        if (st === 'dragging') { thaw ??= freezeSheet(row); foldSubtasks(row); }
-        else if (st === 'idle') { thaw?.(); thaw = null; }
+        if (st === 'dragging') {
+          thaw ??= freezeSheet(row);
+          foldSubtasks(row);
+          // the row is the compact card now, put under the finger with the finger near its right end: moving right has room
+          row.style.translate = `${Math.max(0, grabX / scaleOf(row) - row.offsetWidth + CARD_TAIL)}px 0`;
+        } else {
+          row.style.translate = '';
+          if (st === 'idle') { thaw?.(); thaw = null; }
+        }
         if (st !== 'dragging') { held = null; aim.value = null; unfoldSubtasks(); }
         // a drop reorders the rows at once; a cancel lets the rows glide back until the card has settled
         if (st === 'dropping' || st === 'idle') clearRoom();

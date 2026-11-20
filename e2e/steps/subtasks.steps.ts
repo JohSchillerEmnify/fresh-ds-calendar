@@ -37,47 +37,119 @@ When('I drag the item {string} below the item {string}', async function (this: W
   await dragItem(this, this.expanded, title, { below });
 });
 
-const rightEdgeBefore = new WeakMap<World, number>();
+/** The pointer of a held item: where it is and how to move it (the press stays down until the world's cleanup). */
+const finger = new WeakMap<World, { at: { x: number; y: number }; moveTo: (p: { x: number; y: number }) => Promise<void> }>();
+/** The sideways places of every row's grip and bin before the item was held, by title. */
+const sidesBefore = new WeakMap<World, Record<string, { grip: number; bin: number }>>();
 
-When('I hold the item {string} {word} step(s) to the {word}', async function (this: World, title: string, n: string, dir: string) {
-  const row = await itemById(this, title);
+const sides = (w: World) => w.expanded.getByTestId('tasklist-item').evaluateAll((els) => Object.fromEntries(els.map((e) => [
+  e.getAttribute('data-title') ?? '',
+  { grip: e.querySelector('[data-testid="tasklist-item-grip"]')?.getBoundingClientRect().left ?? NaN, bin: e.querySelector('[data-testid="tasklist-item-delete"]')?.getBoundingClientRect().left ?? NaN },
+])));
+
+/** Presses the grip of the item and holds it, then moves by (dx, dy) px; the card is at rest when the step ends. */
+async function hold(w: World, title: string, dx: number, dy: number): Promise<void> {
+  const row = await itemById(w, title);
   await row.scrollIntoViewIfNeeded();
   const grip = await box(row.getByTestId('tasklist-item-grip'));
-  const rb = await box(row);
-  rightEdgeBefore.set(this, rb.x + rb.width);
+  sidesBefore.set(w, await sides(w));
   const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
-  const to = { x: from.x + steps(n, dir) * 28, y: from.y };
-  if (this.testInfo.project.use.hasTouch) {
-    const cdp = await this.context.newCDPSession(this.page);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] });
-    await this.page.waitForTimeout(500);
-    for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: Math.round(from.x + ((to.x - from.x) * i) / 10), y: from.y, id: 1 }] });
-    this.held = async () => {
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
+  if (w.testInfo.project.use.hasTouch) {
+    const cdp = await w.context.newCDPSession(w.page);
+    const send = (type: string, p?: { x: number; y: number }) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: p ? [{ x: Math.round(p.x), y: Math.round(p.y), id: 1 }] : [] } as never);
+    await send('touchStart', from);
+    await w.page.waitForTimeout(500);
+    finger.set(w, { at: from, moveTo: async (p) => { const f = finger.get(w)!; for (let i = 1; i <= 10; i++) await send('touchMove', { x: f.at.x + ((p.x - f.at.x) * i) / 10, y: f.at.y + ((p.y - f.at.y) * i) / 10 }); } });
+    w.held = async () => {
+      await send('touchEnd').catch(() => {});
       await cdp.detach().catch(() => {});
-      this.held = undefined;
+      w.held = undefined;
     };
   } else {
-    const { mouse } = this.page;
+    const { mouse } = w.page;
     await mouse.move(from.x, from.y);
     await mouse.down();
-    await mouse.move(to.x, to.y, { steps: 10 });
-    this.held = async () => { await mouse.up(); this.held = undefined; };
+    finger.set(w, { at: from, moveTo: (p) => mouse.move(p.x, p.y, { steps: 10 }) });
+    w.held = async () => { await mouse.up(); w.held = undefined; };
   }
-  await this.page.waitForTimeout(900);
+  await moveFinger(w, dx, dy);
+}
+
+async function moveFinger(w: World, dx: number, dy: number): Promise<void> {
+  const f = finger.get(w);
+  if (!f) throw new Error('no item is held');
+  const to = { x: f.at.x + dx, y: f.at.y + dy };
+  await f.moveTo(to);
+  f.at = to;
+  await w.page.waitForTimeout(900);
+}
+
+const toward = (n: number, dir: string): number => {
+  if (dir === 'left' || dir === 'up') return -n;
+  if (dir === 'right' || dir === 'down') return n;
+  throw new Error(`"${dir}" is not a direction`);
+};
+
+When('I hold the item {string} {word} step(s) to the {word}', async function (this: World, title: string, n: string, dir: string) {
+  await hold(this, title, steps(n, dir) * 28, 0);
 });
 
-Then('the dashed gap is indented {word} level(s)', async function (this: World, n: string) {
-  const level = NUMBER[n]!;
-  const gap = this.page.getByTestId('tasklist-drop-gap');
-  await expect(gap).toHaveAttribute('data-level', String(level));
-  const [g, b] = [await box(gap), await box(this.page.getByTestId('tasklist-drop-gap-box'))];
-  expect(Math.abs(b.x - g.x - (4 + level * 28)), 'the dashed part starts one indent per level in').toBeLessThanOrEqual(2);
+When('I hold the item {string} and move the finger {int} px to the {word} and {int} px {word}', async function (this: World, title: string, x: number, xd: string, y: number, yd: string) {
+  await hold(this, title, toward(x, xd), toward(y, yd));
 });
 
-Then('the item {string} keeps its right side where it was', async function (this: World, title: string) {
-  const rb = await box(await itemById(this, title));
-  expect(Math.abs(rb.x + rb.width - rightEdgeBefore.get(this)!), 'right edge of the held row').toBeLessThanOrEqual(14);
+When('I move the finger {int} px to the {word} and {int} px {word}', async function (this: World, x: number, xd: string, y: number, yd: string) {
+  await moveFinger(this, toward(x, xd), toward(y, yd));
+});
+
+const heldRow = (w: World) => w.expanded.locator('[data-testid="tasklist-item"][data-dragging="true"]');
+
+Then('the held card shows the checkbox and the title {string} but no grip and no bin', async function (this: World, title: string) {
+  const card = heldRow(this);
+  await expect(card).toHaveCount(1);
+  await expect(card.getByTestId('tasklist-item-checkbox')).toBeVisible();
+  await expect(card.getByTestId('tasklist-item-title')).toHaveText(title);
+  await expect(card.getByTestId('tasklist-item-title')).toBeVisible();
+  await expect(card.getByTestId('tasklist-item-grip')).toBeHidden();
+  await expect(card.getByTestId('tasklist-item-delete')).toBeHidden();
+});
+
+Then('the held card is under the finger', async function (this: World) {
+  const f = finger.get(this);
+  if (!f) throw new Error('no item is held');
+  const b = await box(heldRow(this));
+  expect(f.at.x, 'finger across the card').toBeGreaterThanOrEqual(b.x - 2);
+  expect(f.at.x).toBeLessThanOrEqual(b.x + b.width + 2);
+  expect(f.at.y, 'finger down the card').toBeGreaterThanOrEqual(b.y - 2);
+  expect(f.at.y).toBeLessThanOrEqual(b.y + b.height + 2);
+});
+
+Then('the drop line is at the indent of level {int}', async function (this: World, level: number) {
+  const line = this.page.getByTestId('tasklist-drop-line');
+  await expect(line).toHaveAttribute('data-level', String(level));
+  // the title column of a task (level 0) plus one indent per level
+  const task = this.expanded.locator('[data-testid="tasklist-item"][data-level="0"]:not([data-dragging="true"])').first();
+  const [l, t] = [await box(line), await box(task.getByTestId('tasklist-item-title'))];
+  expect(Math.abs(l.x - (t.x + level * 28)), 'the line starts at the title column of the level').toBeLessThanOrEqual(2);
+});
+
+Then('the drop line touches no checkbox', async function (this: World) {
+  const l = await box(this.page.getByTestId('tasklist-drop-line'));
+  const boxes = await this.expanded.getByTestId('tasklist-item-checkbox').evaluateAll((els) => els.filter((e) => !e.closest('[data-dragging="true"]')).map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }));
+  expect(boxes.length).toBeGreaterThan(1);
+  for (const c of boxes) {
+    const overlap = l.x < c.x + c.width && l.x + l.width > c.x && l.y < c.y + c.height && l.y + l.height > c.y;
+    expect(overlap, 'the drop line crosses a checkbox').toBe(false);
+  }
+});
+
+Then('the grips and bins of the other items have not moved sideways', async function (this: World) {
+  const [before, now] = [sidesBefore.get(this)!, await sides(this)];
+  for (const [title, was] of Object.entries(before)) {
+    if (title === 'Pegs') continue;
+    expect(Math.abs(now[title]!.grip - was.grip), `grip of ${title}`).toBeLessThanOrEqual(1);
+    expect(Math.abs(now[title]!.bin - was.bin), `bin of ${title}`).toBeLessThanOrEqual(1);
+  }
 });
 
 /** Sets the levels through the server (the list's items in the given levels), then loads the page again with the list open. */
@@ -152,7 +224,7 @@ When('I set {string} to {string} in the task list settings', async function (thi
 Then('the expanded task list {string} looks like the picture {string}', async function (this: World, title: string, picture: string) {
   const list = this.byTestId('tasklist-expanded', `${attr('data-title', title)}:not([data-presentation="overlay"])`);
   await expect(list).toBeVisible();
-  await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
+  await this.page.addStyleTag({ content: '[data-testid="streak-message"], .drag-cat { display: none !important; }' });
   await expect(list).toHaveScreenshot(`${picture}.png`);
 });
 

@@ -3395,8 +3395,13 @@ I drag the item {string} {word} step(s) to the {word}
 I long-press the item {string} and drag it {word} step(s) to the {word}
 I drag the item {string} below the item {string}
 I hold the item {string} {word} step(s) to the {word}
-the dashed gap is indented {word} level(s)
-the item {string} keeps its right side where it was
+I hold the item {string} and move the finger {int} px to the {word} and {int} px {word}
+I move the finger {int} px to the {word} and {int} px {word}
+the held card shows the checkbox and the title {string} but no grip and no bin
+the held card is under the finger
+the drop line is at the indent of level {int}
+the drop line touches no checkbox
+the grips and bins of the other items have not moved sideways
 the item {string} was made a subtask of {string}
 the item {string} is a subtask of {string}
 the item {string} is not a subtask
@@ -3411,12 +3416,13 @@ the collapsed task list {string} shows the item {string} indented under {string}
 ```
 
 - Every `tasklist-item` row has `data-level` (0 task, 1 subtask, 2 sub-subtask); "X is a subtask of Y" = the nearest row above X with a lower level is Y, "is not a subtask" = no such row (level 0); both only read the rows. "X was made a subtask of Y" (set-up) sets X one level deeper than Y through `PUT /api/tasklists/:id/items/order` (with `levels`), reloads the page and opens the list again.
-- "I hold the item X N step(s) to the right / left": the same grab and sideways move as the drag, but the pointer stays down (released by the world's cleanup) and the step waits 900 ms for the card to be at rest; it first remembers the right edge of X's row. "the dashed gap is indented N level(s)": `tasklist-drop-gap` has `data-level` N and its `tasklist-drop-gap-box` starts 4 + N x 28 px (2 px tolerance) right of the gap's left edge. "X keeps its right side where it was": the right edge of X's lifted row (the bin side) differs from the remembered one by at most 14 px (the lift scales the card by 1.05; a card that followed the level would be 28 px off).
+- "I hold the item X N step(s) to the right / left": the same grab (X's grip) and sideways move (N x 28 px) as the drag, but the pointer stays down (released by the world's cleanup); it first remembers the left edge of every row's grip and bin, and waits 900 ms for the card to be at rest. "I hold the item X and move the finger A px to the right / left and B px up / down" is the same with a free move; "I move the finger ..." moves the held pointer on from where it is.
+- "the held card ...": exactly one `tasklist-item` has `data-dragging="true"`; its checkbox and title (text = the given title) are visible, its grip and bin are hidden. "the held card is under the finger": the pointer's place lies in the card's box (2 px tolerance). "the drop line is at the indent of level N": `tasklist-drop-line` has `data-level` N and its left edge is N x 28 px (2 px tolerance) right of the title column of the first level-0 row that is not held. "the drop line touches no checkbox": its box overlaps no checkbox of the other rows. "the grips and bins of the other items have not moved sideways": the left edge of every other row's grip and bin is within 1 px of before.
 - "I drag the item X N step(s) to the right / left": the pointer takes the item's drag handle (a finger long-presses the row, as in "I drag the item X above the item Y") and moves N x 28 px sideways on the same row, then lets go; it waits for the saved order (`PUT .../items/order`, 200) unless the level cannot change (the first item, or already as deep as the item above allows). N is one, two or three. "below the item Y" = the same drag to the lower edge of Y's row.
 - "I start renaming the item X and press Tab": taps the title, waits for the focused field and presses Tab (the field stays open); "I press Shift+Tab" presses it in that field.
 - "I type the items:" fills `tasklist-items` of the task list dialog with the text block as it is (leading spaces kept).
 - "I set S to C in the task list settings": settings → Task lists, option `settings-subtask-lines-<c>` of `settings-subtask-lines`, waits for `PATCH /api/prefs` (200), then leaves the settings.
-- "the expanded task list T looks like the picture P": a `toHaveScreenshot` of the open list T (`tasklist-expanded`), baseline `P.png`.
+- "the expanded task list T looks like the picture P": a `toHaveScreenshot` of the open list T (`tasklist-expanded`), baseline `P.png`; the streak message and the drag helper cat are hidden.
 - "the collapsed task list T shows the item Y indented under X": inside the card's `tasklist-card-items` the text of Y starts at least 2 px right of the text of X.
 
 ## Visual states (`@visual`)

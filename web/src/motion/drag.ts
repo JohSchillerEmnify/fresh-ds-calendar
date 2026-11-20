@@ -90,6 +90,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let ghost: HTMLElement | null = null;
   let prevVisibility = '';
   let destroyLater = false;
+  /** Bumped when a new press ends a drop's or a return's wobble early: the old animation's ending then does nothing. */
+  let epoch = 0;
   /** Touch events the window listeners already handled (the card's own listeners skip them; they serve a removed card). */
   const seenTouch = new WeakSet<Event>();
   const sx = new Spring1D(springs.follow);
@@ -318,6 +320,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   // ---- pointer down ----
   function onDown(e: PointerEvent) {
+    // a press during the short wobble after a drop or cancel must not be lost: the wobble ends at once
+    if ((state === 'dropping' || state === 'returning') && !opts.disabled?.()) { epoch++; finishVisual(); }
     if (state !== 'idle' || opts.disabled?.() || (e.pointerType === 'mouse' && e.button !== 0) || !e.isPrimary) return;
     const rect = el.getBoundingClientRect();
     isTouch = e.pointerType !== 'mouse';
@@ -556,6 +560,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   }
 
   function springBack(from: Point, scaleFrom = 1.05) {
+    const mine = epoch;
     setState('returning');
     stopRaf();
     const a = animate(
@@ -570,7 +575,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     el.style.boxShadow = prevStyle.boxShadow;
     if (!a) return finishVisual();
     anims.push(a);
-    a.finished.then(finishVisual, finishVisual);
+    const done = () => { if (mine === epoch) finishVisual(); };
+    a.finished.then(done, done);
   }
 
   function cancel() {
@@ -612,6 +618,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       springBack(from);
       return;
     }
+    const mine = epoch;
     setState('dropping');
     el.dataset.dragging = 'false';
     const shift = scrollShift();
@@ -655,6 +662,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       let settled = false;
       const outcome = Promise.resolve(p).then(() => { settled = true; }, () => { settled = true; failed = true; });
       if (w) await w.finished.then(() => undefined, () => undefined);
+      if (mine !== epoch) return;
       if (!settled) {
         finishVisual();
         void outcome.then(() => {
@@ -690,8 +698,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     try {
       await p;
       spawnBling(blingAt);
-      finishVisual();
+      if (mine === epoch) finishVisual();
     } catch {
+      if (mine !== epoch) return;
       cancelAnims();
       springBack(dest, 1);
     }

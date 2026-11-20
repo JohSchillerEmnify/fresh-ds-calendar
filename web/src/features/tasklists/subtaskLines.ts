@@ -1,4 +1,4 @@
-/** The lines that show the levels of subtasks (feature tasklist-subtasks): pure, so the list and its drop gap draw the same. */
+/** The lines that show the levels of subtasks (feature tasklist-subtasks): pure. */
 import { levelOf } from '@calendar/shared/subtasks';
 import type { SubtaskLines } from '@/api/types';
 
@@ -29,10 +29,4 @@ export function linesFor(items: readonly object[], index: number, style: Subtask
   }
   if (index + 1 < items.length && levelOf(items[index + 1]!) > level) out.push({ col: level, kind: 'stem' });
   return out;
-}
-
-/** The lines of the gap a dragged item will fill at `level` (no neighbours known: the branch is round). */
-export function gapLines(level: number, style: SubtaskLines): RowLine[] {
-  return Array.from({ length: level }, (_, col) => col)
-    .flatMap((col): RowLine[] => (style === 'straight' ? [{ col, kind: 'guide' }] : col === level - 1 ? [{ col, kind: 'branch', end: true }] : []));
 }
