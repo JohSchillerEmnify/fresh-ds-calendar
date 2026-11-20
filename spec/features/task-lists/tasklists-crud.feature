@@ -136,7 +136,19 @@ Feature: Creating, editing and deleting task lists
     When I reload the page
     Then I see the task list "Weekly shop" on 2026-10-14
 
-  Scenario: Items can be added to a task list while editing its details
+  # The edit form lists every item as a line (spaces before a line make a subtask); saving applies the changes (issue 177).
+  Scenario: Editing shows the items of the task list as lines
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | yes  |
+      | Eggs | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    Then the task list form shows:
+      | items | Milk; Eggs |
+
+  Scenario: A line added while editing is added, and the ticks stay
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | yes  |
@@ -144,7 +156,7 @@ Feature: Creating, editing and deleting task lists
     And I expand the task list "Groceries"
     And I edit the task list details
     And I fill in the task list form with:
-      | items | Eggs; Bread |
+      | items | Milk; Eggs; Bread |
     And I save the task list
     Then the task list "Groceries" shows the done count "1/3"
     When I expand the task list "Groceries"
@@ -153,6 +165,54 @@ Feature: Creating, editing and deleting task lists
     And the item "Eggs" is not ticked
     When I reload the page
     Then the collapsed task list "Groceries" lists the items "Milk, Eggs, Bread"
+
+  Scenario: A line added in the middle takes its place
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item  | done |
+      | Milk  | no   |
+      | Bread | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Milk; Eggs; Bread |
+    And I save the task list
+    And I expand the task list "Groceries"
+    Then the expanded task list items are "Milk, Eggs, Bread"
+
+  Scenario: A changed line renames the item and keeps its tick
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | yes  |
+      | Eggs | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Oat milk; Eggs |
+    And I save the task list
+    And I expand the task list "Groceries"
+    Then the expanded task list items are "Oat milk, Eggs"
+    And the item "Oat milk" is ticked
+    And the task list "Groceries" shows the done count "1/2"
+
+  Scenario: A line taken out removes the item
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item  | done |
+      | Milk  | yes  |
+      | Eggs  | no   |
+      | Bread | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Milk; Bread |
+    And I save the task list
+    And I expand the task list "Groceries"
+    Then the expanded task list items are "Milk, Bread"
+    And the item "Milk" is ticked
+    When I reload the page
+    Then the collapsed task list "Groceries" lists the items "Milk, Bread"
 
   Scenario: Items can be added while editing a list that has only a title
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
@@ -164,6 +224,21 @@ Feature: Creating, editing and deleting task lists
     And I save the task list
     And I expand the task list "Ideas"
     Then the expanded task list items are "Sketch"
+
+  Scenario: A task list can be made to repeat from its edit form
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I edit the task list details
+    Then the task list form shows:
+      | repeat | Does not repeat |
+    When I fill in the task list form with:
+      | repeat | Weekly |
+    And I save the task list
+    And I open the week view for 2026-10-19
+    Then I see the task list "Groceries" on 2026-10-21
 
   Scenario: Move a task list to another date and give it a time
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
@@ -339,21 +414,20 @@ Feature: Creating, editing and deleting task lists
     Then the new dialog opens as "Task list"
 
   # One form for creating and editing (issue 177): the same fields in the same order, prefilled when editing. Only the
-  # sheet's title differs ("New task list" / "Edit task list").
-  @backlog
+  # sheet's title, the Event / Task list switch (new only), Delete / Leave (edit only) and the question before "From
+  # template" replaces a list (edit only) differ. "Share with" joins the order in its own issue (27).
   Scenario: Creating and editing a task list show the same fields in the same order
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | no   |
     When I open the day view for 2026-10-14
     And I start creating a task list
-    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items"
+    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items, Repeat"
     When I cancel the task list dialog
     And I expand the task list "Groceries"
     And I edit the task list details
-    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items"
+    Then the task list form starts with the fields "Title, Date, Time, Estimate in minutes, Category, Reminders, Items, Repeat"
 
-  @backlog
   Scenario: The sheet is titled "New task list" when creating and "Edit task list" when editing
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
     When I open the day view for 2026-10-14
@@ -364,7 +438,18 @@ Feature: Creating, editing and deleting task lists
     And I edit the task list details
     Then the task list dialog is titled "Edit task list"
 
-  @backlog
+  Scenario: Only the new form has the Event / Task list switch and only the edit form has Delete
+    Given the calendar contains an empty task list "Ideas" on 2026-10-14
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    Then the task list dialog shows the Event / Task list switch
+    And the task list dialog does not offer "Delete"
+    When I cancel the task list dialog
+    And I expand the task list "Ideas"
+    And I edit the task list details
+    Then the task list dialog shows no Event / Task list switch
+    And the task list dialog offers "Delete"
+
   Scenario: Editing fills the form with what the task list has
     Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 for 45 minutes with items:
       | item     | done |

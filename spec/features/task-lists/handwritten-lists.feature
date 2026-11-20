@@ -345,6 +345,32 @@ Feature: Labs: handwritten lists
       And I save the task list
       Then the collapsed task list shows the items "Milk"
 
+  Rule: The form of an existing list has the writing lines too (one form for creating and editing, issue 177)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
+      And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+        | item | done |
+        | Milk | no   |
+
+    Scenario: A line written in the form of an existing list becomes an ink item
+      When I open the day view for 2026-10-14
+      And I expand the task list "Groceries"
+      And I edit the task list details
+      And I draw a stroke with the pen
+      And I save the task list
+      And I expand the task list "Groceries"
+      Then the expanded task list has 2 items
+      And the ink item number 2 has 1 stroke
+
+    Scenario: The form of an existing list shows the writing mode switch and ruled lines
+      When I open the day view for 2026-10-14
+      And I expand the task list "Groceries"
+      And I edit the task list details
+      Then the new list form shows the writing mode switch with the pen icon
+      And the dialog shows ruled lines to write on
+
   Rule: Ink is shown read-only and small outside the places where I write
 
     Background:

@@ -112,25 +112,51 @@ Feature: Subtasks in task lists
       Then the item "Pegs" is a subtask of "Tent"
       And the item "Poles" is a subtask of "Tent"
 
-  Rule: Lines typed while editing a list follow the same rule
+  Rule: The lines of the edit form follow the same rule
 
-    The lines typed into "Add items" are judged among themselves, as when a list is created; they are added after the
-    items the list already has.
+    The edit form shows every item as a line, a subtask with spaces before it, judged by the rule of a new list. Changing
+    the spaces changes the item's level; new lines get their level the same way.
 
-    Scenario: Indented lines typed while editing become subtasks
+    Scenario: Indented lines in the edit form change the levels and add subtasks
       When I edit the task list details
-      And I type the items:
+      Then the task list form shows:
+        | items | Tent; Pegs; Poles; Food |
+      When I type the items:
         """
+        Tent
+          Pegs
+            Poles
+        Food
         Rope
           Knots
-            Loops
         """
       And I save the task list
       And I expand the task list "Packing"
-      Then the item "Knots" is a subtask of "Rope"
-      And the item "Loops" is a subtask of "Knots"
-      And the item "Rope" is not a subtask
+      Then the item "Pegs" is a subtask of "Tent"
+      And the item "Poles" is a subtask of "Pegs"
       And the item "Food" is not a subtask
+      And the item "Knots" is a subtask of "Rope"
+      And the item "Rope" is not a subtask
+
+    Scenario: A subtask shows with spaces before its line when editing
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I edit the task list details
+      Then the item line "Pegs" of the task list form is indented
+      And the item line "Tent" of the task list form is not indented
+
+    Scenario: Taking out a task keeps the subtasks that stay in their lines
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I edit the task list details
+      And I type the items:
+        """
+        Pegs
+        Poles
+        Food
+        """
+      And I save the task list
+      And I expand the task list "Packing"
+      Then the expanded task list items are "Pegs, Poles, Food"
+      And the item "Pegs" is not a subtask
 
   Rule: On a computer, Tab and Shift+Tab nest the item being edited
 

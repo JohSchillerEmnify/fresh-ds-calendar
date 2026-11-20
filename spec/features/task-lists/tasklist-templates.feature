@@ -6,9 +6,10 @@ Feature: Task list templates
   time, repeat, reminders) is set as for any new list (owner: "you can then set time and stuff").
   UI (owner, design canvas 2026-10-25): "Save as template" is an entry of the list's overflow menu (three dots, ADR 0032;
   it was a tonal pill in the footer); it opens a small dialog with the name (prefilled with the title), the items and Cancel/Save.
-  The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a panel whose
+  The task list form (the same for a new and for an existing list, issue 177) has a "From template ▾" pill next to its heading; a tap grows the pill in place into a panel whose
   top row is the pill itself ("From template ▴" where the pill was), then the templates ("2 items · ~45 min · Home"
-  under each name), a divider and "Manage templates"; after a pick the pill shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
+  under each name), a divider and "Manage templates"; after a pick the pill shows the template's name. "Also save as template" is a switch row right above Cancel and Save, also when a list is edited. On an existing list a pick first asks whether to
+  replace the list's title, items, estimate and category with the template's; date, time, repeat and reminders stay.
   The Archive keeps its one-off copy, renamed "Copy" so "template" only means these templates, and gets "Save as
   template" next to it (owner).
   A template keeps a name, its items in their order (always unticked), the estimate and the category. It never keeps
@@ -197,7 +198,20 @@ Feature: Task list templates
       And my templates are "Weekly shop"
       And the template "Weekly shop" has the items "Milk, Eggs, Bread"
 
-  Rule: A new task list can start from a template
+    Scenario: An existing list can also be saved as a template from its edit form
+      Given the calendar contains a task list "Weekly shop" on 2026-10-14 with items:
+        | item  | done |
+        | Milk  | yes  |
+        | Bread | no   |
+      When I open the day view for 2026-10-14
+      And I expand the task list "Weekly shop"
+      And I edit the task list details
+      And I turn on "Also save as template" in the task list form
+      And I save the task list
+      Then my templates are "Weekly shop"
+      And the template "Weekly shop" has the items "Milk, Bread"
+
+  Rule: A task list can start from a template
 
     Scenario: Create a task list from a template and set its time
       Given I have the template "Packing" with the items "Passport, Charger, Toothbrush"
@@ -253,6 +267,44 @@ Feature: Task list templates
       And I save the task list
       Then the collapsed task list "Packing for Rome" lists the items "Passport, Charger, Adapter"
       And the template "Packing" has the items "Passport, Charger"
+
+    Scenario: On an existing list the template asks before it replaces the list
+      Given I have the template "Packing" with the items "Passport, Charger"
+      And the calendar contains a task list "Groceries" on 2026-10-14 at 18:00 with items:
+        | item | done |
+        | Milk | yes  |
+      When I open the day view for 2026-10-14
+      And I expand the task list "Groceries"
+      And I edit the task list details
+      And I choose the template "Packing"
+      Then I am asked whether to replace the task list with the template
+      When I confirm replacing the task list
+      Then the template pill shows "Packing"
+      And the task list form shows:
+        | title | Packing           |
+        | items | Passport; Charger |
+        | date  | 2026-10-14        |
+        | time  | 18:00             |
+      When I save the task list
+      And I expand the task list "Packing"
+      Then the expanded task list items are "Passport, Charger"
+      And I see the task list "Packing" on 2026-10-14
+      And the task list "Packing" is positioned at 18:00
+
+    Scenario: Saying no to the question leaves the existing list's form as it was
+      Given I have the template "Packing" with the items "Passport, Charger"
+      And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+        | item | done |
+        | Milk | no   |
+      When I open the day view for 2026-10-14
+      And I expand the task list "Groceries"
+      And I edit the task list details
+      And I choose the template "Packing"
+      And I decline replacing the task list
+      Then the template pill shows "From template"
+      And the task list form shows:
+        | title | Groceries |
+        | items | Milk      |
 
     Scenario: The same template can be used again and again
       Given I have the template "Clean bathroom" with the items "Sink, Floor"
