@@ -458,19 +458,21 @@ async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Poin
     const f = await fingerDown(w, from, 500);
     await f.move(near, 10, 300);
     sampling = armSample(w, ms, approach);
+    sampling?.catch(() => {});
     if (approach) await f.move(dest, 1, 0);
     w.heldMove = (p, steps, t) => f.move(p, steps, t);
-    w.held = async () => { await f.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+    w.held = async () => { await f.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; w.heldPath = w.heldBand = w.heldMs = undefined; };
   } else {
     const { mouse } = w.page;
     await mouse.move(from.x, from.y);
     await mouse.down();
     await mouse.move(near.x, near.y, { steps: 10 });
     sampling = armSample(w, ms, approach);
+    sampling?.catch(() => {});
     if (approach) await mouse.move(dest.x, dest.y);
     let at = dest;
     w.heldMove = async (p, steps) => { await mouse.move(p.x, p.y, { steps }); at = p; };
-    w.held = async () => { await mouse.move(at.x, at.y); await mouse.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+    w.held = async () => { await mouse.move(at.x, at.y); await mouse.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; w.heldPath = w.heldBand = w.heldMs = undefined; };
   }
   w.heldAt = dest;
   if (sampling) await sampling;
