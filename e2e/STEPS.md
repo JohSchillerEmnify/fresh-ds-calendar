@@ -3132,6 +3132,16 @@ the sharing field says {string}
 the sharing line says {string}
 the task list {string} in the Tasks view is not shared
 the device holds the address {string} for sharing
+I withdraw the invitation to share the task list {string}
+I withdraw the invitation to share the category {string} in the settings
+I open the category {string} in the settings
+{string} accepts the invitation to the task list {string}
+{string} declines the invitation to the task list {string}
+{string} accepts the invitation to the category {string}
+{string} cannot accept the invitation to the task list {string}
+{string} sees no invitations
+the Tasks view shows the invitation to the task list {string} from {string}
+the Tasks view shows the invitation to the category {string} from {string}
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
@@ -3164,6 +3174,7 @@ the device holds the address {string} for sharing
 - "\"Share with\" is an email field": `tasklist-share-person` is an `input` of type `email`. "offers only A": the `option` values of the `datalist` named by its `list` attribute (`share-suggestions`) equal A (`, `-separated, sorted); "offers no addresses": that list is empty.
 - "P is offered only A to share with" / "P is offered no address to share with": `GET /api/people` with P's own session returns exactly those email addresses (sorted) / none.
 - "the sharing field says T": `tasklist-share-note` has exactly T (the neutral answer of an address that is not a person who may use the calendar). "the sharing line says T": `tasklist-share-who` has exactly T. "the task list T in the Tasks view is not shared": the `tasks-item` T has no `tasklist-shared-badge`.
+- Invitations (issue 183, `@backlog`, not implemented): "the sharing field says T" then also reads the note of a sent invitation (`tasklist-share-note`, `category-share-note`), and "the sharing line says T" the pending line (`tasklist-share-who`). "I withdraw the invitation to share the task list T": opens T's dialog and presses `tasklist-invite-withdraw`; the category step does the same with `category-invite-withdraw` in the category's dialog. "I open the category C in the settings": opens the settings category C (`settings-category`) and waits for `category-dialog`. "P accepts / declines the invitation to the task list T" and "... to the category C": P acts through the API with a session of their own, answering the invitation found in `GET /api/invitations` (`POST /api/invitations/:id/accept` or `/decline`, 200). "P cannot accept the invitation to the task list T": the same call with P's session answers `404`. "P sees no invitations": `GET /api/invitations` of P's session is empty. "the Tasks view shows the invitation to the task list T from A": the Open tab holds an `invitation-card` of kind list with `data-title` T whose text names A and which has `invitation-accept` and `invitation-decline`; the category step is the same with kind category.
 - "the device holds the address A for sharing": `@unit` only (`web/test/share-people.test.ts`), like the offline steps above; not run in the browser.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).

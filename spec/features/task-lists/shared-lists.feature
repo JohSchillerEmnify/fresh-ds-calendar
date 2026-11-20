@@ -189,3 +189,94 @@ Feature: Sharing task lists with another person
     When "jo@example.com" restores from the Drive backup
     Then the shared list "Groceries" is back
     And the damaged shared list is left out and noted in the server log
+
+  # Invitation to accept (issue 183): sharing only sends an invitation. Nothing is revealed and nothing is shared until
+  # the other person accepts. Once built, these replace the scenarios above that share at once and the neutral
+  # message of an unknown address; the invitation note below is the same for every address.
+
+  @backlog
+  Scenario Outline: Sharing sends an invitation and shares nothing yet
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I try to share the task list "Groceries" with "<address>"
+    Then the sharing field says "Invitation sent to <address>"
+    And the task list "Groceries" in the Tasks view is not shared
+    And "anna@example.com" sees no task lists
+
+    Examples:
+      | address              |
+      | anna@example.com     |
+      | stranger@example.com |
+
+  @backlog
+  Scenario: The sharer sees the pending invitation and can withdraw it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I try to share the task list "Groceries" with "anna@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Invitation sent to anna@example.com"
+    When I withdraw the invitation to share the task list "Groceries"
+    Then the task list "Groceries" in the Tasks view is not shared
+    And "anna@example.com" sees no invitations
+
+  @backlog
+  Scenario: The invited person sees the invitation in the Tasks view
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+    And the Open tab does not list "Groceries"
+
+  @backlog
+  Scenario: Accepting an invitation shares the list both ways
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" accepts the invitation to the task list "Groceries"
+    Then "anna@example.com" sees the task lists "Groceries"
+    And "anna@example.com" sees no invitations
+    And "jo@example.com" sees the task lists "Groceries"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Shared with anna"
+
+  @backlog
+  Scenario: Declining an invitation shares nothing and tells the sharer nothing new
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" declines the invitation to the task list "Groceries"
+    Then "anna@example.com" sees no task lists
+    And "anna@example.com" sees no invitations
+    And the task list "Groceries" in the Tasks view is not shared
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Invitation sent to anna@example.com"
+
+  @backlog
+  Scenario: Only the invited person can answer an invitation
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    Then "bob@example.com" cannot accept the invitation to the task list "Groceries"
+
+  @backlog
+  Scenario: Sharing a category sends one invitation, and accepting shares its lists and the new ones
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    When I share the category "Shopping" with "anna@example.com" in the settings
+    Then "anna@example.com" sees no task lists
+    When "anna@example.com" opens the Tasks view on another device
+    Then the Tasks view shows the invitation to the category "Shopping" from "jo@example.com"
+    When "anna@example.com" accepts the invitation to the category "Shopping"
+    And "jo@example.com" creates the undated task list "Party snacks" in the category "Shopping"
+    Then "anna@example.com" sees the task lists "Groceries, Party snacks"
+
+  @backlog
+  Scenario: The sharer sees a pending category invitation and can withdraw it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    When I open the category "Shopping" in the settings
+    Then the sharing field says "Invitation sent to anna@example.com"
+    When I withdraw the invitation to share the category "Shopping" in the settings
+    Then "anna@example.com" sees no invitations
