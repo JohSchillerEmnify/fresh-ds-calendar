@@ -785,8 +785,10 @@ Rules:
   is not revealed). Owner-only actions (`DELETE /api/tasklists/:id`, `DELETE .../share`, adding a member) answer `403
   FORBIDDEN` to a member. A member removes a list for themselves with `leave`; `DELETE` deletes it for everyone (owner).
 - A member must be a person who may use the app (the allow-list) and has signed in once. An address that is not such a
-  person is NOT an error: the answer is the `200` of a share that shared nobody, so neither the status, the body nor the
-  time (every answer takes at least one second outside TEST_MODE) says whether the address uses the app (ADR 0046). A `400`
+  person is NOT an error: the answer is the `200` of a share that shared nobody, with the same shape and, outside
+  TEST_MODE, after at least one second (ADR 0046). What it does NOT hide: a share that works returns the list as shared,
+  with the other person's Google display name and address, and a category share that works puts them in `shares`, so the
+  sharer can learn that an address uses the app and what name it carries, for addresses they typed. A `400`
   is only for what tells nothing about others: sharing with your own address, a malformed address (`email`), sharing
   a repeating list (`recurrence` is not stored on shared lists) and sharing while sign-in is off. What the owner can see on
   their own list (it now says `shared`) is by design.

@@ -1,5 +1,6 @@
 import type { AppConfig } from './config.js';
 import { AuthState } from './auth/state.js';
+import { SHARE_ANSWER_MS } from './services/taskSharing.js';
 import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
 import { CanvasStore } from './services/canvasStore.js';
@@ -80,7 +81,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; /** Test mode: the next event or task list write answers this status and changes nothing. */ refuseNextWrite?: 400 | 404; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
+  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: the least time a share answer takes (ms); 0 unless set. */ shareAnswerMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; /** Test mode: the next event or task list write answers this status and changes nothing. */ refuseNextWrite?: 400 | 404; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
@@ -139,10 +140,10 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   registerServerFilesBackup(backup, { people, shared });
   // test mode: persons count as having confirmed task lists, so scenarios about other things need no confirmation
   if (mock) prefs.tasksChoiceDefault = 'on';
-  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared, contactsGranted(LOCAL_PERSON));
+  const calConfig = { ...config, shareAnswerMs: () => ctx.overrides.shareAnswerMs ?? (config.testMode ? 0 : SHARE_ANSWER_MS) };
+  const calendar = new CalendarService(prov, settings, motivation, clock, calConfig, prefs, LOCAL_PERSON, shared, contactsGranted(LOCAL_PERSON));
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
-  const mocks = new Map<string, MockGoogleProvider>(), calendars = new Map<string, CalendarService>();
-  const changes = new ChangeBus();
+  const mocks = new Map<string, MockGoogleProvider>(), calendars = new Map<string, CalendarService>(), changes = new ChangeBus();
   const poller = new GooglePoller({
     calendarFor: (sub) => ctx.calendarFor(sub === LOCAL_PERSON ? null : sub), today: () => motivation.today(),
     intervalMs: () => ctx.overrides.googlePollMs ?? config.googlePollMs, publish: (subs, kind) => changes.emit(subs, kind),
@@ -162,7 +163,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
         // google: one provider per person; mock: one calendar per person; tests with an injected provider share it
         const p = personProvider ? personProvider(sub) : mock ? ctx.mockFor(sub) : null;
         if (!p) return calendar;
-        calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub, shared, contactsGranted(sub))));
+        calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, calConfig, prefs, sub, shared, contactsGranted(sub))));
       }
       return c;
     },

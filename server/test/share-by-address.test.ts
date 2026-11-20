@@ -1,7 +1,8 @@
 /** Sharing by a typed address (spec feature @id:shared-lists, ADR 0046): who is offered, and what an unknown address answers. */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 import { mockSub } from '../src/auth/people.js';
-import { SHARE_ANSWER_MS, TaskSharing } from '../src/services/taskSharing.js';
+import { SHARE_ANSWER_MS } from '../src/services/taskSharing.js';
 import { makeApp, sessionCookie } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com', STRANGER = 'stranger@example.com';
@@ -141,12 +142,45 @@ describe('a typed address that names nobody', () => {
     } finally { t.cleanup(); }
   });
 
-  it('holds every answer for the same minimum time outside tests', async () => {
-    const started = Date.now();
-    const sharing = new TaskSharing({} as never, {} as never, {} as never, {} as never, 'jo', 'Europe/Berlin', 60, {} as never);
-    await (sharing as unknown as { hold(s: number): Promise<void> }).hold(started);
-    expect(Date.now() - started).toBeGreaterThanOrEqual(55);
-    expect(SHARE_ANSWER_MS).toBeGreaterThanOrEqual(500);
+  it('holds every answer, known address or not, for the minimum time (list share and category share)', async () => {
+    const { t, jo } = await setup();
+    try {
+      await t.json('POST', '/api/__test/config', { shareAnswerMs: 300 });
+      await jo('POST', '/api/categories', { id: 'shopping', name: 'Shopping', color: '#112233' });
+      const timed = async (call: () => Promise<{ status: number }>) => { const t0 = Date.now(); const r = await call(); expect(r.status).toBe(200); return Date.now() - t0; };
+      const a = await list(jo, 'A');
+      const b = await list(jo, 'B');
+      expect(await timed(() => jo('POST', `/api/tasklists/${a.id}/share`, { email: STRANGER }))).toBeGreaterThanOrEqual(290);
+      expect(await timed(() => jo('POST', `/api/tasklists/${b.id}/share`, { email: ANNA }))).toBeGreaterThanOrEqual(290);
+      expect(await timed(() => jo('PUT', '/api/categories/shopping/share', { email: STRANGER }))).toBeGreaterThanOrEqual(290);
+      expect(await timed(() => jo('PUT', '/api/categories/shopping/share', { email: BOB }))).toBeGreaterThanOrEqual(290);
+      expect(SHARE_ANSWER_MS).toBeGreaterThanOrEqual(500);
+    } finally { t.cleanup(); }
+  });
+
+  it('answers a person who signed in and was then removed from the allow-list neutrally, shares nothing and remembers nothing', async () => {
+    const { t, jo } = await setup();
+    try {
+      const own = await list(jo, 'Groceries');
+      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, BOB] });
+      const r = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
+      expect(r.status).toBe(200);
+      expect(r.body.shared).toBeFalsy();
+      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA, BOB] });
+      expect(await offered(jo)).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+
+  it('remembers the address only after the share worked', async () => {
+    const { t, jo } = await setup();
+    try {
+      const own = await list(jo, 'Groceries');
+      const spy = vi.spyOn(MockGoogleProvider.prototype, 'deleteEvent').mockRejectedValueOnce(new Error('Google is down'));
+      const failed = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
+      expect(failed.status).toBeGreaterThanOrEqual(400);
+      spy.mockRestore();
+      expect(await offered(jo)).toEqual([]);
+    } finally { t.cleanup(); }
   });
 });
 

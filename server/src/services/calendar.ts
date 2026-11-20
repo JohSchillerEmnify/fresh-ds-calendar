@@ -83,7 +83,7 @@ export class CalendarService {
     private readonly settings: SettingsStore,
     private readonly motivation: MotivationService,
     private readonly clock: Clock,
-    private readonly config: Pick<AppConfig, 'tz' | 'testMode'>,
+    private readonly config: Pick<AppConfig, 'tz'> & { shareAnswerMs?: () => number },
     private readonly prefs: PrefsStore,
     readonly sub: string,
     /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
@@ -94,7 +94,7 @@ export class CalendarService {
     this.contacts = new ContactsSource(provider, contactsGranted, () => clock.real());
     this.holidays = new HolidayCalendars(provider, () => this.clock.real(), () => this.providerCalendars(), () => { this.dropCalendars(); });
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.dropCalendars(); });
-    this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, config.testMode ? 0 : SHARE_ANSWER_MS, {
+    this.sharing = shared && new TaskSharing(provider, settings, this.tasks, shared, sub, config.tz, () => config.shareAnswerMs?.() ?? SHARE_ANSWER_MS, {
       locateKind: (id, tasklist) => this.locateKind(id, tasklist), toSharedTaskList: (doc, color) => this.toSharedTaskList(doc, color),
       toTaskList: (ev, color, cats) => this.toTaskList(ev, color, cats), categoryInfo: (c) => this.categoryInfo(c), colorFor: (d) => this.colorFor(d),
       calendarColor: (id) => this.calendarColor(id),

@@ -16,11 +16,13 @@ person who uses the app. An address is personal data that its owner never agreed
   they share with (a category rule counts). The addresses typed are stored per person (`users/<sub>/share-contacts.json`).
 - A person is chosen by typing an email address (trimmed, lower case). The server finds the person behind it; an address
   that names nobody who may use the calendar gets the same `200` as a share that shared nobody, after the same minimum
-  time, and stores nothing. So the answer reveals neither that an address uses the app nor that it does not. The app
-  shows one neutral sentence for it.
+  time, and stores nothing. The status, body shape and time do not tell the two apart.
+  The app shows one neutral sentence for it.
 - The device keeps the contacts like every file of the change feed, so the suggestions work offline.
 - The "a newcomer signed in" nudge to everybody's devices is gone: nobody else's list changes when someone signs in.
-- What the owner can see on their own list (it turns shared, with a name) is by design and not hidden.
+- What a successful share reveals is not hidden: the sharer's list turns shared and shows the other person's Google
+  display name and address, and a category share lists them in `shares`. So a sharer can learn that an address uses the
+  app, and its display name, for addresses they typed. This is open for the owner to decide.
 
 ## Alternatives
 
@@ -34,4 +36,6 @@ person who uses the app. An address is personal data that its owner never agreed
 ## Consequences
 
 - Sharing needs the other person's address; there is no browsing.
-- A removed person drops out of every contact list; a typed address that failed is not remembered.
+- A removed person drops out of every contact list; an address is remembered only after its share worked.
+- An address you shared with stays suggested to you after you stop sharing. A person who only shared a list with you is
+  suggested while a list connects you and drops out when it is gone.

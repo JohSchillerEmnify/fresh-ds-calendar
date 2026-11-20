@@ -94,6 +94,7 @@ export function testRoutes(ctx: Ctx): Hono {
     const b = parse(testConfigSchema, await body(c));
     if (b.pollIntervalMs !== undefined) ctx.overrides.pollIntervalMs = b.pollIntervalMs;
     if (b.googlePollMs !== undefined) ctx.overrides.googlePollMs = b.googlePollMs;
+    if (b.shareAnswerMs !== undefined) ctx.overrides.shareAnswerMs = b.shareAnswerMs;
     return c.json(configResponse(ctx));
   });
 

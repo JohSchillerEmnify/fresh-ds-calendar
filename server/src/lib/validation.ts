@@ -233,7 +233,7 @@ export const testSlowSchema = so({ ms: v.pipe(v.number(), v.integer(), v.minValu
 export const refuseNextWriteSchema = so({ status: v.optional(v.picklist([400, 404])) });
 export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testReleaseNotesSchema = so({ notes: v.array(so({ date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)), text: v.pipe(v.string(), v.minLength(1)) })) });
-export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))), googlePollMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
+export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))), googlePollMs: v.optional(v.pipe(v.number(), v.minValue(0))), shareAnswerMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
 /** `POST /api/widget-keys`: the device name. */
 export const widgetKeySchema = so({ name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(40, 'Name must be at most 40 characters')) });
 export const rateLimitSchema = so({ retryAfterSec: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(600)) });

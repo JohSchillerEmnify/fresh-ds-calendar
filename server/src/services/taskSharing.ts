@@ -25,13 +25,13 @@ const repeating = () => validation('A repeating task list cannot be shared', 're
 export class TaskSharing {
   constructor(
     private readonly provider: CalendarProvider, private readonly settings: SettingsStore, private readonly tasks: TasksCalendar,
-    private readonly shared: SharedListService, private readonly sub: string, private readonly tz: string, private readonly answerMs: number,
+    private readonly shared: SharedListService, private readonly sub: string, private readonly tz: string, private readonly answerMs: () => number,
     private readonly host: SharingHost,
   ) {}
 
   /** Waits until a share answer has taken `answerMs` since `startedMs` (see {@link SHARE_ANSWER_MS}). */
   private async hold(startedMs: number): Promise<void> {
-    const left = this.answerMs - (Date.now() - startedMs);
+    const left = this.answerMs() - (Date.now() - startedMs);
     if (left > 0) await new Promise((r) => setTimeout(r, left));
   }
 
@@ -53,13 +53,13 @@ export class TaskSharing {
     if (!person) {
       out = doc ? this.host.toSharedTaskList(doc, '#039be5') : this.host.toTaskList(ev!, await this.host.calendarColor(ev!.calendarId), this.settings.categories(this.sub));
     } else {
-      shared.remember(this.sub, person);
       if (doc) {
         shared.setMembers(doc, [...doc.members, person.sub]);
         out = this.host.toSharedTaskList(doc, '#039be5');
       } else {
         out = this.host.toSharedTaskList(await this.moveIn(ev!, [person.sub]), '#039be5');
       }
+      shared.remember(this.sub, person);
     }
     await this.hold(started);
     return out;
@@ -122,7 +122,6 @@ export class TaskSharing {
     const shared = this.shared;
     const personSub = person?.sub ?? null;
     const previous = shared.ruleFor(this.sub, categoryId);
-    if (person) shared.remember(this.sub, person);
     shared.setRule(this.sub, categoryId, personSub);
     if (personSub === null) {
       // members of lists that were shared through this rule lose them; a list left without anybody moves back
@@ -142,5 +141,6 @@ export class TaskSharing {
         await this.moveIn(ev, [personSub]);
       }
     }
+    if (person) shared.remember(this.sub, person);
   }
 }
