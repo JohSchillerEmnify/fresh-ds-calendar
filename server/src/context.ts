@@ -143,8 +143,6 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>(), calendars = new Map<string, CalendarService>();
   const changes = new ChangeBus();
-  // a newcomer is offered in everybody's "Share with" at once, not at their next poll
-  people.onNew = () => changes.emitAll(people.all().map((p) => p.sub));
   const poller = new GooglePoller({
     calendarFor: (sub) => ctx.calendarFor(sub === LOCAL_PERSON ? null : sub), today: () => motivation.today(),
     intervalMs: () => ctx.overrides.googlePollMs ?? config.googlePollMs, publish: (subs, kind) => changes.emit(subs, kind),

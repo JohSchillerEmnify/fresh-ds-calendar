@@ -57,14 +57,14 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
   });
   // ---- sharing (feature shared-lists) ----
   r.get('/people', (c) => c.json({ people: ctx.shared.candidates(person(c)) }));
-  r.post('/tasklists/:id/share', async (c) => c.json(await cal(c).shareTaskList(c.req.param('id'), parse(shareSchema, await body(c)).person)));
+  r.post('/tasklists/:id/share', async (c) => c.json(await cal(c).shareTaskList(c.req.param('id'), parse(shareSchema, await body(c)).email)));
   r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));
   r.post('/tasklists/:id/leave', (c) => {
     cal(c).leaveTaskList(c.req.param('id'));
     return c.body(null, 204);
   });
   r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));
-  r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).person) }));
+  r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).email) }));
   registerInkItems({ r, ctx, person, cal });
 }
 

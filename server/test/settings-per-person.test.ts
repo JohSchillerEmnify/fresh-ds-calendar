@@ -67,7 +67,7 @@ describe('two people\'s settings are separate', () => {
     const { jo, anna } = await twoPeople();
     const cat = (await jo('POST', '/api/categories', { name: 'Garden', color: '#0b8043', icon: '🌻' })).body.categories.at(-1);
     const own = (await jo('POST', '/api/tasklists', { title: 'Weeds', date: null, items: [{ title: 'Pull' }], categoryId: cat.id })).body;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
     const hers = (await anna('GET', `/api/tasklists/${shared.id}`)).body;
     expect(hers).toMatchObject({ categoryId: cat.id, categoryInfo: { name: 'Garden', icon: '🌻', color: '#0b8043' } });
     expect((await anna('GET', '/api/settings')).body.categories.map((c: Named) => c.name)).not.toContain('Garden');

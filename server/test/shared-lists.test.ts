@@ -37,7 +37,7 @@ describe('sharing a list', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const shared = await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) });
+      const shared = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
       expect(shared.status).toBe(200);
       expect(shared.body.id).toMatch(/^shared:/);
       expect(shared.body).toMatchObject({ calendarId: 'shared', title: 'Groceries', totalCount: 2 });
@@ -61,7 +61,7 @@ describe('sharing a list', () => {
     try {
       const own = await groceries(jo, { date: '2026-10-14', time: '10:00', tags: ['home'], estimateMinutes: 30, items: [{ title: 'Milk', done: true }, { title: 'Eggs' }] });
       await jo('PATCH', `/api/tasklists/${own.id}`, { canvas: { x: 100, y: 200 } });
-      const s = await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) });
+      const s = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
       expect(s.body).toMatchObject({ date: '2026-10-14', time: '10:00', tags: ['home'], estimateMinutes: 30, canvas: { x: 100, y: 200 }, doneCount: 1 });
       // on its date it shows in the calendar of both people
       for (const c of [jo, anna]) {
@@ -75,37 +75,13 @@ describe('sharing a list', () => {
     const { t, jo } = await setup();
     try {
       const own = await groceries(jo);
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub('stranger@example.com') })).status).toBe(400);
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(JO) })).status).toBe(400);
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { person: 'nobody' })).status).toBe(400);
-      // not allowed any more: removed from the allow-list after they signed in
-      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(BOB) })).status).toBe(400);
+      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { email: JO })).status).toBe(400);
+      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { email: 'nobody' })).status).toBe(400);
       const weekly = await jo('POST', '/api/tasklists', { title: 'Weekly', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'x' }] });
-      const r = await jo('POST', `/api/tasklists/${weekly.body.id}/share`, { person: mockSub(ANNA) });
+      const r = await jo('POST', `/api/tasklists/${weekly.body.id}/share`, { email: ANNA });
       expect(r.status).toBe(400);
       expect(r.body.error.key).toBe('sharing.repeating');
       expect([...new Set(await titles(jo))]).toEqual(['Groceries', 'Weekly']); // nothing was lost
-    } finally { t.cleanup(); }
-  });
-
-  it('offers a person whose session predates the people list, once they use the app', async () => {
-    const { t, jo, anna } = await setup();
-    try {
-      // a session made before people.json existed (or whose entry was lost): the sign-in callback never recorded it
-      t.app.ctx.people.reset();
-      expect((await jo('GET', '/api/people')).body.people).toEqual([]);
-      await anna('GET', '/api/people');
-      expect((await jo('GET', '/api/people')).body.people.map((p: { email: string }) => p.email)).toEqual([ANNA]);
-    } finally { t.cleanup(); }
-  });
-
-  it('offers the allowed people who signed in, without yourself', async () => {
-    const { t, jo } = await setup();
-    try {
-      const r = await jo('GET', '/api/people');
-      expect(r.body.people.map((p: any) => p.email).sort()).toEqual([ANNA, BOB]);
-      expect(r.body.people[0]).toMatchObject({ sub: expect.any(String), name: expect.any(String), initial: expect.stringMatching(/^[AB]$/) });
     } finally { t.cleanup(); }
   });
 });
@@ -115,7 +91,7 @@ describe('security: who may touch a shared list', () => {
     const { t, jo, anna, bob } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       const id = encodeURIComponent(s.id);
       const item = s.items[0].id;
       expect(await allOpen(bob)).toEqual([]);
@@ -127,7 +103,7 @@ describe('security: who may touch a shared list', () => {
         ['PATCH', `/api/tasklists/${id}/items/${item}`, { done: true }],
         ['DELETE', `/api/tasklists/${id}/items/${item}`],
         ['PUT', `/api/tasklists/${id}/items/order`, { itemIds: s.items.map((i: any) => i.id) }],
-        ['POST', `/api/tasklists/${id}/share`, { person: mockSub(BOB) }],
+        ['POST', `/api/tasklists/${id}/share`, { email: BOB }],
         ['DELETE', `/api/tasklists/${id}/share`],
         ['POST', `/api/tasklists/${id}/leave`],
       ];
@@ -143,11 +119,11 @@ describe('security: who may touch a shared list', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       const id = encodeURIComponent(s.id);
       expect((await anna('PATCH', `/api/tasklists/${id}`, { title: 'Weekly shop' })).body.title).toBe('Weekly shop');
       expect((await anna('POST', `/api/tasklists/${id}/items`, { title: 'Bread' })).status).toBe(201);
-      for (const [m, u, b] of [['DELETE', `/api/tasklists/${id}`], ['DELETE', `/api/tasklists/${id}/share`], ['POST', `/api/tasklists/${id}/share`, { person: mockSub(BOB) }]] as [string, string, unknown?][]) {
+      for (const [m, u, b] of [['DELETE', `/api/tasklists/${id}`], ['DELETE', `/api/tasklists/${id}/share`], ['POST', `/api/tasklists/${id}/share`, { email: BOB }]] as [string, string, unknown?][]) {
         const r = await anna(m, u, b);
         expect([r.status, r.body.error.code], `${m} ${u}`).toEqual([403, 'FORBIDDEN']);
       }
@@ -162,7 +138,7 @@ describe('editing together', () => {
     const { t, jo } = await setup();
     try {
       const own = await groceries(jo, { date: '2026-10-14' });
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       const r = await jo('PATCH', `/api/tasklists/${encodeURIComponent(s.id)}`, { recurrence: 'weekly' });
       expect(r.status).toBe(400);
     } finally { t.cleanup(); }
@@ -171,7 +147,7 @@ describe('editing together', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       const id = encodeURIComponent(s.id);
       const milk = s.items.find((i: any) => i.title === 'Milk').id;
       const ticked = await anna('PATCH', `/api/tasklists/${id}/items/${milk}`, { done: true });
@@ -192,7 +168,7 @@ describe('editing together', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await jo('POST', '/api/tasklists', { title: 'One', date: null, items: [{ title: 'a' }] });
-      const s = (await jo('POST', `/api/tasklists/${own.body.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.body.id}/share`, { email: ANNA })).body;
       await anna('PATCH', `/api/tasklists/${encodeURIComponent(s.id)}/items/${s.items[0].id}`, { done: true });
       for (const c of [jo, anna]) {
         expect((await c('GET', '/api/tasklists/archive?today=2026-10-12')).body.items.map((l: any) => l.title)).toEqual(['One']);
@@ -207,7 +183,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo, { items: [{ title: 'Milk', done: true }, { title: 'Eggs' }] });
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       const back = await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}/share`);
       expect(back.status).toBe(200);
       expect(back.body.id).not.toMatch(/^shared:/);
@@ -225,7 +201,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       expect((await anna('POST', `/api/tasklists/${encodeURIComponent(s.id)}/leave`)).status).toBe(204);
       expect(await allOpen(anna)).toEqual([]);
       expect((await anna('GET', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(404);
@@ -238,7 +214,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
       expect((await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(204);
       expect(await allOpen(jo)).toEqual([]);
       expect(await allOpen(anna)).toEqual([]);
@@ -254,7 +230,7 @@ describe('sharing a category', () => {
     try {
       await groceries(jo, { categoryId: shopping });
       await jo('POST', '/api/tasklists', { title: 'Taxes', date: null, items: [{ title: 'Form' }], categoryId: 'work' });
-      const on = await jo('PUT', `/api/categories/${shopping}/share`, { person: mockSub(ANNA) });
+      const on = await jo('PUT', `/api/categories/${shopping}/share`, { email: ANNA });
       expect(on.body.shares[shopping]).toMatchObject({ sub: mockSub(ANNA) });
       expect((await jo('GET', '/api/categories/shares')).body.shares[shopping].initial).toBe('A');
       expect(await titles(anna)).toEqual(['Groceries']);
@@ -265,7 +241,7 @@ describe('sharing a category', () => {
       expect(other.body.id).not.toMatch(/^shared:/);
       expect(await titles(anna)).toEqual(['Groceries', 'Party snacks']);
       // unsharing moves them back to Jo only
-      const off = await jo('PUT', `/api/categories/${shopping}/share`, { person: null });
+      const off = await jo('PUT', `/api/categories/${shopping}/share`, { email: null });
       expect(off.body.shares).toEqual({});
       expect(await titles(anna)).toEqual([]);
       expect(await titles(jo)).toEqual(['Groceries', 'Party snacks', 'Plan', 'Taxes']);
@@ -277,7 +253,7 @@ describe('sharing a category', () => {
     const { t, jo, anna } = await setup();
     try {
       await groceries(jo, { categoryId: 'shopping' });
-      await jo('PUT', `/api/categories/shopping/share`, { person: mockSub(ANNA) });
+      await jo('PUT', `/api/categories/shopping/share`, { email: ANNA });
       const hers = (await allOpen(anna))[0];
       expect(hers).toMatchObject({ categoryId: 'shopping', categoryInfo: { name: 'Shopping', icon: '🛒' } });
       const id = encodeURIComponent(hers.id);
@@ -293,11 +269,11 @@ describe('sharing a category', () => {
     } finally { t.cleanup(); }
   });
 
-  it('refuses sharing a category the person does not have and with people who may not be added', async () => {
+  it('refuses sharing a category the person does not have and a malformed address', async () => {
     const { t, jo } = await setup();
     try {
-      expect((await jo('PUT', '/api/categories/nope/share', { person: mockSub(ANNA) })).status).toBe(404);
-      expect((await jo('PUT', '/api/categories/shopping/share', { person: mockSub('stranger@example.com') })).status).toBe(400);
+      expect((await jo('PUT', '/api/categories/nope/share', { email: ANNA })).status).toBe(404);
+      expect((await jo('PUT', '/api/categories/shopping/share', { email: 'nobody' })).status).toBe(400);
       expect((await jo('PUT', '/api/categories/shopping/share', {})).status).toBe(400);
     } finally { t.cleanup(); }
   });
@@ -319,26 +295,6 @@ describe('SharedListService store', () => {
       expect(() => again.access('mallory', `shared:${doc.id}`)).toThrow();
       expect(() => again.access('jo', 'shared:../../etc/passwd')).toThrow();
       expect(() => again.access('jo', doc.id)).toThrow(); // no prefix: not a shared id
-    } finally { t.cleanup(); }
-  });
-});
-
-
-describe('a new person signing in for the first time', () => {
-  it('tells everyone\'s devices to sync, so the owner\'s Share with offers the newcomer at once', async () => {
-    const t = makeApp();
-    try {
-      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
-      t.app.ctx.people.reset();
-      await sessionCookie(t, JO);
-      const seen: Array<{ subs: string[]; kind: string }> = [];
-      t.app.ctx.changes.on((e) => seen.push(e));
-      await sessionCookie(t, ANNA);
-      expect(seen.some((e) => e.subs.includes(mockSub(JO)))).toBe(true);
-      // a second sign-in of the same person changes nothing about who is known
-      seen.length = 0;
-      await sessionCookie(t, ANNA);
-      expect(seen).toEqual([]);
     } finally { t.cleanup(); }
   });
 });

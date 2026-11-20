@@ -12,8 +12,6 @@ interface Known { email: string; name?: string }
 export class PeopleStore {
   private readonly file: string | null;
   private known!: Record<string, Known>;
-  /** Called after somebody new was remembered, so the others' devices can learn of them at once. */
-  onNew: (() => void) | null = null;
 
   constructor(dataDir: string | null) {
     this.file = dataDir ? path.join(dataDir, 'people.json') : null;
@@ -32,7 +30,6 @@ export class PeopleStore {
     if (cur && cur.email === next.email && cur.name === next.name) return;
     this.known[sub] = next;
     if (this.file) writeJsonAtomic(this.file, this.known);
-    if (!cur) this.onNew?.();
   }
 
   /** TEST_MODE: knows an address as if it had signed in once (the sub and the name, the part before the `@`, are the mock account's). */
@@ -47,6 +44,13 @@ export class PeopleStore {
     if (!k) return null;
     const name = k.name || k.email;
     return { sub, name, email: k.email, initial: (name.trim()[0] ?? '?').toUpperCase() };
+  }
+
+  /** The person who signed in with this address (any case), or null. Only for resolving an address somebody typed. */
+  byEmail(email: string): Person | null {
+    const e = email.trim().toLowerCase();
+    const sub = Object.keys(this.known).find((s) => this.known[s]!.email === e);
+    return sub ? this.get(sub) : null;
   }
 
   /** Every known person. */
