@@ -64,23 +64,34 @@ describe('Share with in the task list dialog', () => {
     expect(suggestions(w)).toEqual(['bea@example.test']);
   });
 
-  it('sends the typed address and keeps the dialog open with a neutral note when nobody was shared', async () => {
-    const { w, calls } = await open({ 'GET /api/people': () => ({ people: [] }), 'POST /api/tasklists/G/share': () => list });
+  it('sends the typed address as an invitation and keeps the dialog open with the pending line', async () => {
+    const sent = { invitations: [], sent: [{ id: 'i1', kind: 'list', target: 'G', address: 'nobody@example.test', expires: 'x' }] };
+    let answered = false;
+    const { w, calls } = await open({
+      'GET /api/people': () => ({ people: [] }), 'GET /api/invitations': () => (answered ? sent : { invitations: [], sent: [] }),
+      'POST /api/tasklists/G/share': () => { answered = true; return list; },
+    });
     await input(w).setValue('  Nobody@Example.test ');
     await w.get('[data-testid="tasklist-share"]').trigger('click');
     await flushPromises();
     expect(calls.find((c) => c.path === '/api/tasklists/G/share')?.body).toEqual({ email: 'Nobody@Example.test' });
-    expect(w.get('[data-testid="tasklist-share-note"]').text()).toBe("If this person uses the calendar, they'll see the list.");
+    expect(w.get('[data-testid="tasklist-share-who"]').text()).toBe('Invitation sent to nobody@example.test');
+    expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(false);
     expect(w.emitted('close')).toBeUndefined();
   });
 
-  it('closes after a share that worked', async () => {
-    const shared = { ...list, id: 'shared:x', shared: { owned: true, owner: BEA, with: [BEA] } };
-    const { w } = await open({ 'GET /api/people': () => ({ people: [] }), 'POST /api/tasklists/G/share': () => shared });
-    await input(w).setValue('bea@example.test');
-    await w.get('[data-testid="tasklist-share"]').trigger('click');
+  it('shows the pending invitation from the device copy and withdraws it', async () => {
+    const { w, calls, device } = await open({
+      'GET /api/people': () => ({ people: [] }), 'GET /api/invitations': () => ({ status: 503, body: { error: { code: 'X', message: 'down' } } }),
+      'POST /api/invitations/i1/withdraw': () => ({ ok: true }),
+    });
+    device.putFile('invitations', { invitations: [], sent: [{ id: 'i1', kind: 'list', target: 'G', address: 'bea@example.test', expires: 'x' }] });
     await flushPromises();
-    expect(w.find('[data-testid="tasklist-share-note"]').exists()).toBe(false);
-    expect(w.emitted('close')).toHaveLength(1);
+    expect(w.get('[data-testid="tasklist-share-who"]').text()).toBe('Invitation sent to bea@example.test');
+    await w.get('[data-testid="tasklist-invite-withdraw"]').trigger('click');
+    await flushPromises();
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/api/invitations/i1/withdraw')).toBe(true);
+    expect(w.find('[data-testid="tasklist-share-who"]').exists()).toBe(false);
+    expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(true);
   });
 });
