@@ -101,10 +101,10 @@ Then('the event dialog opened without an animation', async function (this: World
 });
 
 Then('at most {int} app timers are active', async function (this: World, max: number) {
-  // a paused browser clock keeps a short debounce (the last known state's 300 ms save) pending for ever: let it run out first
+  // a paused browser clock keeps short timers (the last known state's 300 ms save, the 4 s check-in message) pending for ever: let them run out first
   if (this.clockNowMs !== undefined) {
-    this.clockNowMs += 1_000;
-    await this.page.clock.runFor(1_000);
+    this.clockNowMs += 5_000;
+    await this.page.clock.runFor(5_000);
     await this.api.setClock(new Date(this.clockNowMs).toISOString(), false);
   }
   const timers = await this.page.evaluate(() => {

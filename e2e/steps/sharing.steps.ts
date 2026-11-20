@@ -167,7 +167,8 @@ When('I edit the task list {string} in the Tasks view', async function (this: Wo
 });
 
 Then('{string} sees the task lists {string}', async function (this: World, email: string, titles: string) {
-  expect((await listsOf(this, email)).map((l) => l.title).sort()).toEqual(titles.split(', ').sort());
+  // an edit is saved through the device's outbox after the dialog has closed: the server shows it a moment later
+  await expect.poll(async () => (await listsOf(this, email)).map((l) => l.title).sort()).toEqual(titles.split(', ').sort());
 });
 
 Then('{string} sees no task lists', async function (this: World, email: string) {

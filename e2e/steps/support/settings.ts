@@ -117,7 +117,12 @@ export async function settingControl(world: World, testid: string): Promise<Loca
 export async function leaveSettings(world: World) {
   const { page } = world;
   if (await page.getByTestId('theme-view').isVisible()) await page.getByTestId('theme-back').click();
-  for (let i = 0; i < 4 && (await page.getByTestId('settings-view').isVisible()); i++) await page.getByTestId('settings-back').click();
+  // Back is a history step that lands later: wait for the address to change before looking again, or a second click hits the page that is just going away.
+  for (let i = 0; i < 4 && (await page.getByTestId('settings-view').isVisible()); i++) {
+    const before = page.url();
+    await page.getByTestId('settings-back').click();
+    await expect.poll(() => page.url()).not.toBe(before);
+  }
   await expect(page.getByTestId('settings-view')).toBeHidden();
 }
 

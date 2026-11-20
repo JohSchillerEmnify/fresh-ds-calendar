@@ -6,6 +6,7 @@ import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
 import { exactText, tid, type World } from './support/world.js';
+import { checkInMessageGone } from './support/tasklist.js';
 import { openSettingsPage, settingControl, turnOnLabsSwitch } from './support/settings.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
@@ -89,6 +90,7 @@ Then('the task list {string} has a text contrast ratio of at least {float}', asy
 
 Then('pressing the create button shows a state layer', async function (this: World) {
   const button = this.page.getByTestId('create-button');
+  await checkInMessageGone(this); // the message lies over the create button for its 4 s
   const b = await button.boundingBox();
   if (!b) throw new Error('create-button not visible');
   await this.page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
