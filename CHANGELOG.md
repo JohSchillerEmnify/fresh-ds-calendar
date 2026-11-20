@@ -5,6 +5,7 @@
 - Fixed: templates now keep the subtask levels of a list, also with "Also save as template", and a list made from a template has the same levels.
 - Fixed: lines that start with spaces, typed under "Add items" while editing a list, now become subtasks, as in a new list.
 - Fixed: while you drag an item to a subtask level, only the dashed gap moves in; the item you hold stays in its column, with its bin where it was.
+- Fixed: security updates for the server.
 
 ## 2026-11-18
 - New: after you sign in for the first time, the app asks whether to turn on task lists. They live in an extra calendar the app adds to your Google account, and it is added only if you say "Turn on". "Not now" keeps task lists off until you switch them on in Settings › Task lists.
