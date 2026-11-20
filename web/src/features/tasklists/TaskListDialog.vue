@@ -220,6 +220,8 @@ async function save() {
   // a list that starts to repeat gets its item changes first, so every later week has them
   const itemsFirst = !!body.recurrence && editing.value;
   try {
+    // for all lists the rhythm goes first: the title and item changes then address the list as it is afterwards
+    if (ruleChanged && s === 'all') outbox.updateList(props.id!, { recurrence: rule }, s);
     if (itemsFirst) sendItems();
     if (editing.value && later) {
       const { title, ...rest } = body;
@@ -241,7 +243,7 @@ async function save() {
     // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
     if (!itemsFirst) sendItems();
     // last: it may take this list's place, so the other changes address it first
-    if (ruleChanged) outbox.updateList(props.id!, { recurrence: rule }, s);
+    if (ruleChanged && s !== 'all') outbox.updateList(props.id!, { recurrence: rule }, s);
     // the list is saved; a template that fails now is only reported, the list stays
     if (alsoTemplate.value) {
       await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));

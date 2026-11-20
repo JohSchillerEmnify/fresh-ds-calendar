@@ -168,7 +168,7 @@ export class TaskSeries {
     const saved = keepBefore ? others.flatMap((p) => this.exceptionsIn(all, p)).filter((e) => e.status !== 'cancelled' && this.ruleStart(e).date < keepBefore) : [];
     await this.host.modify(part.id, (d) => ({ ...d, recurrence: rule }));
     const template = decodeTaskList(await this.host.locateKind(part.id, true), this.tz);
-    for (const e of this.exceptionsIn(all, part)) if (e.status !== 'cancelled') await this.settleSingle(e, rule, start, template, drop(e));
+    for (const e of this.exceptionsIn(all, part)) if (e.status !== 'cancelled') await this.settleSingle(part, e, rule, start, template, drop(e));
     for (const e of saved) await this.keepList(part, e, rule, onRule(rule, start, this.ruleStart(e).date));
     for (const p of others) await this.deleteOld(p);
     try {
@@ -176,15 +176,18 @@ export class TaskSeries {
     } catch (e) {
       // the shown list is not in the new rhythm: the first one of the list is shown instead
       if (!(e instanceof ApiException) || e.status !== 404) throw e;
-      return this.host.getTaskList((await this.firstOccurrence(part)).id);
+      return this.host.getTaskList(((await this.futureOccurrence([part])) ?? (await this.firstOccurrence(part))).id);
     }
   }
 
   /** One single list of a part whose rule changed: reset to the series' data where the rule has that day, deleted where not (what the API does with such an exception is undocumented), or kept. */
-  private async settleSingle(e: GoogleEvent, rule: Recurrence, start: string, template: TaskListData, dropped: boolean): Promise<void> {
+  private async settleSingle(part: GoogleEvent, e: GoogleEvent, rule: Recurrence, start: string, template: TaskListData, dropped: boolean): Promise<void> {
     const day = this.ruleStart(e).date;
-    if (dropped && !onRule(rule, start, day)) await this.deleteOld(e);
-    else await this.host.modify(e.id, (d) => (dropped ? { ...template, date: day, completedOn: null } : { ...d, recurrence: rule }));
+    if (!onRule(rule, start, day)) {
+      // off the new rhythm: dropped goes, a kept (past) one becomes a list of its own
+      if (!dropped) await this.keepList(part, e, rule, false);
+      await this.deleteOld(e);
+    } else await this.host.modify(e.id, (d) => (dropped ? { ...template, date: day, completedOn: null } : { ...d, recurrence: rule }));
   }
 
   /** A single list of a part that goes: its data moves into `part`'s list of that day, or (`onRhythm` false or no such list) into a list of its own. */
@@ -235,13 +238,37 @@ export class TaskSeries {
     for (const e of this.exceptionsIn(all, master)) if (e.status !== 'cancelled' && drop(e)) await this.deleteOld(e);
   }
 
-  /** A change for the whole list (every part, every single list, also the past ones), the way Google's "All events" does. `check` as for {@link forFollowing}. */
+  /**
+   * A change for all lists (Google's "All events"): the series and every list dated today or later. Lists before today are never
+   * changed (owner), so it is a change for this and all following lists from the first list of today on. `check` as for {@link forFollowing}.
+   */
   async forAll(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
     const { cur, master } = await this.locateSeries(id);
     check?.(decodeTaskList(cur, this.tz));
-    const all = await this.seriesEvents(master.calendarId);
-    for (const part of this.partsIn(all, master.extendedProperties?.private?.series ?? master.id)) await this.forWhole(part, change, this.exceptionsIn(all, part));
-    return this.host.getTaskList(id);
+    const parts = this.partsIn(await this.seriesEvents(master.calendarId), master.extendedProperties?.private?.series ?? master.id);
+    const next = await this.futureOccurrence(parts);
+    if (next) await this.forFollowing(next.id, change);
+    try {
+      return await this.host.getTaskList(id);
+    } catch (e) {
+      // the split moved the list to the new series: its list of that day answers
+      if (!(e instanceof ApiException) || e.status !== 404) throw e;
+      const day = this.ruleStart(cur).date;
+      const now = this.partsIn(await this.seriesEvents(master.calendarId), master.extendedProperties?.private?.series ?? master.id);
+      for (const p of now) { const o = await this.occurrenceOn(p, day); if (o) return this.host.getTaskList(o.id); }
+      throw e;
+    }
+  }
+
+  /** The first live list dated today or later in any of `parts`; null when there is none. */
+  private async futureOccurrence(parts: GoogleEvent[]): Promise<GoogleEvent | null> {
+    const before = addDays(this.host.today(), -1);
+    const found: GoogleEvent[] = [];
+    for (const p of parts) {
+      const o = (await this.nextOccurrence(p, before, 62)) ?? (this.untilOf(p) === null ? await this.nextOccurrence(p, before, 400) : null);
+      if (o) found.push(o);
+    }
+    return found.sort((x, y) => (this.ruleStart(x).date < this.ruleStart(y).date ? -1 : 1))[0] ?? null;
   }
 
   /** `change` for the occurrences `scope` names. */

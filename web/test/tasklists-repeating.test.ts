@@ -410,14 +410,14 @@ describe('the task list form on a repeating list', () => {
       expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: 'Bathroom' }, { recurrence: 'monthly' }]);
     });
 
-    it('all lists with a changed title sends the title for all lists first, then the rhythm', async () => {
+    it('all lists with a changed title sends the rhythm first, then the title for all lists', async () => {
       const m = await form(week(), answerPatch);
       await setField('tasklist-title', 'Bathroom');
       await pick('daily');
       await save();
       await choose('all');
       expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=all', 'PATCH /api/tasklists/W_20261019?scope=all']);
-      expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: 'Bathroom' }, { recurrence: 'daily' }]);
+      expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ recurrence: 'daily' }, { title: 'Bathroom' }]);
     });
 
     it('a later part with another title is not a list changed on its own', async () => {

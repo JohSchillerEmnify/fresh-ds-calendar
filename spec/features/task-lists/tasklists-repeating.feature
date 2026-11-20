@@ -250,6 +250,42 @@ Feature: Changing a repeating task list for this one or this and all following o
     And I open the week view for 2026-10-12
     Then the task list "Clean bathroom" shows the done count "1/2"
 
+  # "All task lists" changes the rule and every list from today on; a list before today is never changed (a past list stays as it was).
+  Scenario: A new title with all task lists reaches the lists from today on and leaves earlier ones as they were
+    Given today is 2026-10-21
+    When I open the day view for 2026-10-26
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | title  | Bathroom |
+      | repeat | Daily    |
+    And I save the task list
+    And I choose "All task lists" for the change
+    And I open the week view for 2026-10-19
+    Then I do not see the task list "Bathroom" on 2026-10-20
+    And I see the task list "Bathroom" on 2026-10-22
+    When I open the week view for 2026-10-26
+    Then I see the task list "Bathroom" on 2026-10-26
+
+  Scenario: An item added with all task lists reaches the lists from today on and a finished earlier list stays finished
+    Given "Sink" of "Clean bathroom" was ticked on 2026-10-12
+    And "Floor" of "Clean bathroom" was ticked on 2026-10-12
+    And today is 2026-10-21
+    When I open the day view for 2026-10-26
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items  | Sink; Floor; Mirror |
+      | repeat | Daily               |
+    And I save the task list
+    And I choose "All task lists" for the change
+    And I open the week view for 2026-10-12
+    Then the task list "Clean bathroom" shows the done count "2/2"
+    When I open the week view for 2026-10-19
+    Then the collapsed task list "Clean bathroom" lists the items "Sink, Floor"
+    When I open the week view for 2026-10-26
+    Then the collapsed task list "Clean bathroom" lists the items "Sink, Floor, Mirror"
+
   Scenario: Cancelling the question about the rhythm changes nothing
     When I open the day view for 2026-10-19
     And I expand the task list "Clean bathroom"

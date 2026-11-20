@@ -1,6 +1,7 @@
 /** Changing how a repeating list repeats (feature tasklist-repeating): `PATCH /api/tasklists/:id?scope=following|all` with `recurrence`. */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freeze, makeApp, type TestApp } from './helpers.js';
+import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -223,5 +224,83 @@ describe('review fixes', () => {
     await change(w2.id, 'following', 'daily');
     expect((await change((await on('2026-10-20')).id, 'all', 'daily')).status).toBe(200);
     expect(await count('2026-10-13')).toBe(1);
+  });
+});
+
+describe('all lists never change a past list', () => {
+  const full = async () => (await lists()).map((l: Row & { completedOn?: string | null }) => `${l.date} ${l.title} ${(l.items as { title: string; done: boolean }[]).map((i) => `${i.title}:${i.done ? 1 : 0}`).join(',')} ${l.completedOn ?? '-'}`);
+  const seeded = async () => {
+    await create();
+    for (const i of (await on('2026-10-12')).items) await t.json('PATCH', `/api/tasklists/${(await on('2026-10-12')).id}/items/${i.id}`, { done: true });
+    await t.json('POST', '/api/__test/clock', { now: '2026-10-21T08:00:00+02:00' });
+    return full();
+  };
+  const at = async (date: string) => (await lists('2026-11-09')).find((l: Row) => l.date === date);
+  const sameBefore = async (was: string[], keep = 2) => expect((await full()).slice(0, keep)).toEqual(was.slice(0, keep));
+
+  it('C1 an item added, renamed or removed for all lists leaves the lists before today as they were', async () => {
+    const was = await seeded();
+    const w2 = await on('2026-10-19');
+    await t.json('POST', `/api/tasklists/${w2.id}/items?scope=all`, { title: 'Mirror' });
+    await sameBefore(was);
+    expect((await on('2026-10-26')).items.map((i: { title: string }) => i.title)).toEqual(['Sink', 'Floor', 'Mirror']);
+    await t.json('PATCH', `/api/tasklists/${w2.id}/items/${w2.items[0].id}?scope=all`, { title: 'Basin' });
+    await sameBefore(was);
+    expect((await on('2026-10-26')).items[0].title).toBe('Basin');
+    await t.json('DELETE', `/api/tasklists/${w2.id}/items/${w2.items[1].id}?scope=all`);
+    await sameBefore(was);
+    expect((await at('2026-11-02')).items.map((i: { title: string }) => i.title)).toEqual(['Basin', 'Mirror']);
+    await t.json('PUT', `/api/tasklists/${w2.id}/items/order?scope=all`, { itemIds: [(await on('2026-10-26')).items[1].id, w2.items[0].id] });
+    await sameBefore(was);
+    expect((await on('2026-10-26')).items.map((i: { title: string }) => i.title)).toEqual(['Mirror', 'Basin']);
+  });
+
+  it('C1 a title for all lists leaves the lists before today alone', async () => {
+    const was = await seeded();
+    const w4 = await on('2026-10-26');
+    const r = await t.json('PATCH', `/api/tasklists/${w4.id}?scope=all`, { title: 'Bathroom' });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ date: '2026-10-26', title: 'Bathroom' });
+    await sameBefore(was);
+    expect((await on('2026-10-26')).title).toBe('Bathroom');
+  });
+
+  it('W3 a delete for all lists that failed half way can be sent again', async () => {
+    await seeded();
+    const w4 = await at('2026-11-02');
+    await t.json('PATCH', `/api/tasklists/${(await on('2026-10-26')).id}/items/${(await on('2026-10-26')).items[0].id}`, { done: true });
+    const w2 = await on('2026-10-19');
+    type Write = (cal: string, id: string, patch: object, o?: unknown) => unknown;
+    const proto = MockGoogleProvider.prototype as unknown as { doPatch: Write };
+    const orig = proto.doPatch;
+    let n = 0;
+    const spy = vi.spyOn(proto, 'doPatch').mockImplementation(function (this: unknown, cal, id, patch, o) {
+      if (++n === 2) throw new Error('boom');
+      return orig.call(this, cal, id, patch, o);
+    });
+    const url = `/api/tasklists/${w2.id}/items/${w2.items[1].id}?scope=all`;
+    try { expect((await t.json('DELETE', url)).status).toBeGreaterThanOrEqual(500); } finally { spy.mockRestore(); }
+    expect((await t.json('DELETE', url)).status).toBe(200);
+    expect((await on('2026-10-26')).items.map((i: { title: string }) => i.title)).toEqual(['Sink']);
+    expect(w4.items).toHaveLength(2);
+    expect((await at('2026-11-02')).items.map((i: { title: string }) => i.title)).toEqual(['Sink']);
+  });
+
+  it('W4 a past single list of the first series off the new rhythm becomes a list of its own', async () => {
+    await create();
+    await tick('2026-10-19', 0);
+    await t.json('POST', '/api/__test/clock', { now: '2026-10-21T08:00:00+02:00' });
+    await change((await on('2026-10-26')).id, 'all', 'monthly');
+    const past = await on('2026-10-19');
+    expect(past).toMatchObject({ doneCount: 1 });
+    expect(past.seriesId).toBeUndefined();
+    expect((await remote()).filter((e: Raw) => e.recurringEventId && e.start.date === '2026-10-19')).toEqual([]);
+  });
+
+  it('an answer for a list that left the rhythm is the first list from today on', async () => {
+    await create();
+    await t.json('POST', '/api/__test/clock', { now: '2026-10-21T08:00:00+02:00' });
+    const r = await change((await on('2026-10-19')).id, 'all', 'monthly');
+    expect(r.body.date >= '2026-10-21').toBe(true);
   });
 });

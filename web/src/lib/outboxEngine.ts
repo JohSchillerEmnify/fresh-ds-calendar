@@ -251,6 +251,10 @@ function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
   setEntries(s, s.entries.value.filter((x) => x.key !== e.key));
   // a rhythm change can answer with a list under a new id (it took the place of the one changed): what is queued follows it
   const moved = c.op === 'list.update' && !!c.scope && result?.kind === 'tasklist' && result.id !== c.id;
+  // the answer is another day's list (the changed one left the new rhythm): only changes for the whole list still make sense there
+  if (moved && (items().get(c.id) as TaskList | undefined)?.date !== (result as TaskList).date) {
+    setEntries(s, s.entries.value.filter((x) => x.change.id !== c.id || !!(x.change as { scope?: ChangeScope }).scope));
+  }
   if (result && (isCreate(c) || moved)) replaceId(s, c.id, result);
   const id = result && (isCreate(c) || moved) ? result.id : c.id;
   if (c.op === 'list.delete' || c.op === 'event.delete') {

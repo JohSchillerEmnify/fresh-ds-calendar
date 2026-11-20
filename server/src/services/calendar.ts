@@ -633,7 +633,8 @@ export class CalendarService {
   /** `keepSubtasks`: only the item goes; its subtasks stay (the form removes a task and keeps the lines under it). */
   async deleteItem(id: string, itemId: string, scope?: Scope, keepSubtasks = false): Promise<TaskList> {
     const without = (d: TaskListData): TaskListData => { const gone = new Set(keepSubtasks ? [itemId] : blockIds(d.items, itemId)); return { ...d, items: clampLevels(d.items.filter((i) => !gone.has(i.id))) }; };
-    if (scope) return this.series.forScope(scope, id, without, requireItem(itemId));
+    // for all lists a list lacking the item is left as it is, so a send that failed half way can be repeated
+    if (scope) return this.series.forScope(scope, id, without, scope === 'all' ? undefined : requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
       return without(d);
