@@ -64,11 +64,6 @@ async function penDrag(world: World, grab: { x: number; y: number }, to: { x: nu
   await cdp.detach().catch(() => {});
 }
 
-/** The check-in message floats over the bottom of a phone sheet for 4 s and takes the touch: a finger waits until it is gone. */
-export async function checkInMessageGone(world: World) {
-  await expect(world.page.getByTestId('streak-message')).toBeHidden({ timeout: 8000 });
-}
-
 /** Where a sideways drag ends (one level = 28 px, the item stays on its row) and whether the level can change (not for the first item, nor deeper than the item above allows). */
 async function sidewaysTarget(rows: Locator, from: number, grab: { x: number; y: number }, steps: number) {
   const level = Number(await rows.nth(from).getAttribute('data-level'));
@@ -100,7 +95,6 @@ async function dropPoint(rows: Locator, from: number, place: (k: string | number
  */
 export async function dragItem(world: World, list: Locator, title: string | number, drop: Drop, byGrip: boolean | 'pen' = false) {
   const rows = list.getByTestId('tasklist-item');
-  await checkInMessageGone(world);
   // a number is the 0-based place of the row (an ink item has no title to find it by)
   const row = typeof title === 'number' ? rows.nth(title) : rows.filter({ has: world.page.locator(attr('data-title', title)) }).or(rows.and(world.page.locator(attr('data-title', title)))).first();
   await row.scrollIntoViewIfNeeded();

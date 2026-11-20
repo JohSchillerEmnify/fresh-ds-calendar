@@ -92,6 +92,16 @@ Then('I see the streak message {string}', async function (this: World, text: str
   await expect(this.page.getByTestId('streak-message')).toHaveText(exactText(text));
 });
 
+When('I tap where the streak message is', async function (this: World) {
+  const note = this.page.getByTestId('streak-message');
+  // a paused page clock holds the entry's frames: let a short moment pass (the note lasts 4 s), then its box is where it stays
+  if (this.clockNowMs !== undefined) await this.page.clock.runFor(300);
+  await expect(note).toHaveCSS('opacity', '1');
+  const b = await note.boundingBox();
+  if (!b) throw new Error('streak-message not visible');
+  await this.page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+});
+
 Then('I do not see a streak message', async function (this: World) {
   await this.settled();
   await expect(this.page.getByTestId('streak-message')).toHaveCount(0);

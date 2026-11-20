@@ -76,12 +76,6 @@ When('I open the create menu', async function (this: World) {
   await expect(this.page.getByTestId('new-kind-event')).toBeVisible();
 });
 
-When('I open the create menu while the streak message is shown', async function (this: World) {
-  await expect(this.page.getByTestId('streak-message')).toBeVisible();
-  await this.page.getByTestId('create-button').click({ timeout: 1500 });
-  await expect(this.page.getByTestId('new-kind-event')).toBeVisible();
-});
-
 When('I close the create menu', async function (this: World) {
   await this.page.keyboard.press('Escape');
   await expect(this.page.getByTestId('new-kind-event')).toHaveCount(0);

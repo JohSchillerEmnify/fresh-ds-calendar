@@ -1467,6 +1467,7 @@ the browser did not take the touch over for scrolling
 I checked in on {datelist}
 the streak shows {int}
 I see the streak message {string}
+I tap where the streak message is
 I do not see a streak message
 the best streak in settings is {int}
 the plant has {int} growth points and was last watered on {date}
@@ -1484,6 +1485,7 @@ the plant card shows {string}
 - `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
 - `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
   lastWatered: D, todayPoints: 0 } }`.
+- "I tap where the streak message is": a mouse click at the centre of `streak-message`'s box (the tap must reach what lies under it, a month cell, which opens its day).
 - Streak: `streak-flame` text content = count; message = `streak-message` (a small note near the top that lets taps through, auto-hides after 4 s).
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
@@ -2455,7 +2457,6 @@ the view switcher offers {string}
 the open tasks tray is not on the screen
 I tap the switch {string} in the settings
 I open the create menu
-I open the create menu while the streak message is shown
 I close the create menu
 the calendar list, the items of a week, the change feed and every task list list are read
 a task list is saved
@@ -2464,7 +2465,7 @@ task lists stay on and the calendar is untouched
 it is refused and Google has no calendar {string}
 ```
 
-- "I open/close the create menu" = the create button / Escape. "... while the streak message is shown" clicks `create-button` with a 1.5 s limit (the message must not take the tap) and checks the message is still shown afterwards. The region `task lists question` is `tasks-consent` (visual steps).
+- "I open/close the create menu" = the create button / Escape. The region `task lists question` is `tasks-consent` (visual steps).
 - "have not been turned on or off yet" = `POST /api/__test/tasks-choice { choice: 'ask' }` (API.md). Both are Given steps; reset makes every person confirmed again.
 
 ## Tasks calendar (`@tasks-calendar`)

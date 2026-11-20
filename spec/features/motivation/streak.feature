@@ -34,11 +34,12 @@ Feature: Daily check-in streak
       | dark   |
 
   Scenario: The check-in message lets taps through to the buttons behind it
-    Given today is 2026-10-12
+    Given the time is 2026-10-12 09:00 and the clock is running
     When I open the app
     Then I see the streak message "Checked in, day 1"
-    When I open the create menu while the streak message is shown
-    Then I see the streak message "Checked in, day 1"
+    When I tap where the streak message is
+    Then the day view is shown
+    And I see the streak message "Checked in, day 1"
 
   Scenario: Opening the app again on the same day does not count twice
     Given I checked in on 2026-10-11 and 2026-10-12
