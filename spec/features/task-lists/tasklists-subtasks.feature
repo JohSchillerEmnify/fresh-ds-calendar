@@ -107,6 +107,26 @@ Feature: Subtasks in task lists
       Then the item "Pegs" is a subtask of "Tent"
       And the item "Poles" is a subtask of "Tent"
 
+  Rule: Lines typed while editing a list follow the same rule
+
+    The lines typed into "Add items" are judged among themselves, as when a list is created; they are added after the
+    items the list already has.
+
+    Scenario: Indented lines typed while editing become subtasks
+      When I edit the task list details
+      And I type the items:
+        """
+        Rope
+          Knots
+            Loops
+        """
+      And I save the task list
+      And I expand the task list "Packing"
+      Then the item "Knots" is a subtask of "Rope"
+      And the item "Loops" is a subtask of "Knots"
+      And the item "Rope" is not a subtask
+      And the item "Food" is not a subtask
+
   Rule: On a computer, Tab and Shift+Tab nest the item being edited
 
     Scenario: Tab makes the item a subtask, Shift+Tab moves it back

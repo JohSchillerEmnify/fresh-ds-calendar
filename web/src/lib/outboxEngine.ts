@@ -3,6 +3,7 @@ import type { Ref, ShallowRef } from 'vue';
 import { ApiError } from '@/api/client';
 import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, InkStroke, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import { inkKey } from '@calendar/shared/ink';
+import { levelProp } from '@calendar/shared/subtasks';
 import { t } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
@@ -174,7 +175,7 @@ export function writes(s: OutboxState) {
       return localTaskList(id, input);
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
-    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...scoped(scope) }, { title: text }),
+    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean, level?: number): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text }),
     /** A handwritten item at the end of the list; returns its id. */
     addInkItem(listId: string, strokes: InkStroke[]): string {
       const itemId = newItemId();

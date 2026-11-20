@@ -78,7 +78,7 @@ const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1),
 /** `POST /api/templates`, `PUT /api/templates/:id` (feature tasklist-templates): a name, item titles, estimate, category. */
 export const templateSchema = so({
   name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(80, 'Name must be at most 80 characters')),
-  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
+  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), level: v.optional(v.picklist([0, 1, 2], 'A level is 0, 1 or 2')), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
   estimateMinutes: v.optional(estimate),
   categoryId: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
 });
@@ -160,7 +160,7 @@ export const updateTaskListSchema = so({
 });
 /** `PUT .../ink`: the strokes; with `base` (keys of the strokes the device started from) and `at` they are merged, else they replace. */
 export const inkSchema = so({ strokes, base: v.optional(v.pipe(v.array(v.string()), v.maxLength(500))), at: v.optional(whole) });
-export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: v.optional(itemTitle), strokes: v.optional(strokes), done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
+export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: v.optional(itemTitle), strokes: v.optional(strokes), done: v.optional(v.boolean()), level: v.optional(v.picklist([0, 1, 2], 'A level is 0, 1 or 2')), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
 /** `POST /api/tasklists/:id/share`: the person (their `sub`) to add. */
 export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });

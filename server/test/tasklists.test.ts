@@ -508,6 +508,15 @@ describe('recurring task lists: a change for this and all following ones (scope=
   const tick = async (date: string, n: number) => { const w = await week(date); await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[n].id}`, { done: true }); };
   const remote = async () => (await t.json('GET', '/api/__test/remote/events')).body.items;
 
+  it('an added subtask keeps its level, made valid, on this list and the later ones', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror', level: 2 });
+    const levelsOf = (l: { items: { level?: number }[] }) => l.items.map((i) => i.level ?? 0);
+    expect(levelsOf(r.body)).toEqual([0, 0, 1]);
+    expect(levelsOf(await week('2026-10-28'))).toEqual([0, 0, 1]);
+  });
+
   it('adds an item from the shown one on: later ones keep their ticks, earlier ones stay as they were', async () => {
     const a = await create();
     await tick('2026-10-14', 0);
@@ -855,6 +864,15 @@ describe('subtasks', () => {
     const a = await mk({ items: [{ title: 'A', level: 1 }, { title: 'B', level: 2 }, { title: 'C', level: 0 }, { title: 'D', level: 2 }] });
     expect(levels(a)).toEqual([0, 1, 0, 1]);
     expect((await t.json('POST', '/api/tasklists', { title: 'x', date: null, items: [{ title: 'A', level: 3 }] })).status).toBe(400);
+  });
+
+  it('an added item can have a level, made valid by the item above it', async () => {
+    const a = await mk({ items: [{ title: 'Tent' }] });
+    const one = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Pegs', level: 2 });
+    expect(levels(one.body)).toEqual([0, 1]);
+    const two = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Poles', level: 2 });
+    expect(levels(two.body)).toEqual([0, 1, 2]);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'x', level: 3 })).status).toBe(400);
   });
 
   it('a reorder with levels changes place and level together; without levels the levels stay', async () => {

@@ -21,9 +21,25 @@ describe('templateFromList', () => {
   });
 });
 
+describe('levels of template items', () => {
+  const items = [{ id: 'a', title: 'Tent', done: false }, { id: 'b', title: 'Pegs', done: false, level: 1 }, { id: 'c', title: 'Food', done: false }];
+  it('a list saves its levels, a task has none', () => {
+    expect(templateFromList(list({ items } as Partial<TaskList>), 'Camp', false).items).toEqual([{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Food' }]);
+  });
+  it('a form saves the levels of its indented lines', () => {
+    const f = { ...newTaskListForm('2026-10-14'), title: 'Camp', items: 'Tent\n  Pegs\n    Poles\nFood' };
+    expect(templateFromForm(f, false).items).toEqual([{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Poles', level: 2 }, { title: 'Food' }]);
+  });
+  it('a template fills the form with indented lines, an old flat one with flat lines', () => {
+    const f = newTaskListForm('2026-10-14');
+    expect(fillFromTemplate(f, tpl({ items: [{ title: 'Tent' }, { title: 'Pegs', level: 1 }] }), () => false).items).toBe('Tent\n  Pegs');
+    expect(fillFromTemplate(f, tpl(), () => false).items).toBe('Passport\nCharger');
+  });
+});
+
 describe('templateFromForm', () => {
   it('takes the title, the item lines, the estimate and the category of a new list form', () => {
-    const f = { ...newTaskListForm('2026-10-14'), title: ' Weekly shop ', items: 'Milk\n\n Eggs ', estimate: '30', categoryId: 'shopping' };
+    const f = { ...newTaskListForm('2026-10-14'), title: ' Weekly shop ', items: 'Milk\n\nEggs ', estimate: '30', categoryId: 'shopping' };
     expect(templateFromForm(f, true)).toEqual({ name: 'Weekly shop', items: [{ title: 'Milk' }, { title: 'Eggs' }], estimateMinutes: 30, categoryId: 'shopping' });
     expect(templateFromForm({ ...f, estimate: '', categoryId: 'none' }, true)).toMatchObject({ estimateMinutes: null, categoryId: null });
   });

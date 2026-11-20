@@ -1,6 +1,7 @@
 /** How an outbox entry becomes a request, and which answers are worth a resend (ADR 0031). */
 import { api, ApiError, type RequestOptions } from '@/api/client';
 import type { CalendarItem } from '@/api/types';
+import { levelProp } from '@calendar/shared/subtasks';
 import type { Change, OutboxEntry } from './outbox';
 
 /** Nothing the server could have decided differently on a resend: the network, Google, the session, a rate limit. */
@@ -27,7 +28,7 @@ export function perform(e: OutboxEntry): Promise<unknown> {
       const series = e.series;
       return series ? api.deleteTaskList(series, plain) : api.deleteTaskList(c.id, o);
     }
-    case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, ...(c.strokes ? { strokes: c.strokes } : { title: c.title }), ...(c.done ? { done: true } : {}) }, plain, c.scope);
+    case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, ...(c.strokes ? { strokes: c.strokes } : { title: c.title }), ...(c.done ? { done: true } : {}), ...levelProp(c.level) }, plain, c.scope);
     case 'item.ink': return api.putItemInk(c.id, c.itemId, { strokes: c.strokes, base: c.base, at: c.at }, plain);
     case 'item.patch': return api.updateTaskItem(c.id, c.itemId, c.patch, plain, c.scope);
     case 'item.delete': return api.deleteTaskItem(c.id, c.itemId, plain, c.scope);

@@ -32,7 +32,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
 import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
-import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
+import { newTaskListForm, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
 import { useTaskCategories } from './categories';
@@ -165,7 +165,7 @@ function changedFields<T extends Record<string, unknown>>(body: T, current: unkn
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
   // editing: the typed lines are added to the items the list already has
-  const typed = parseItems(form.items);
+  const typed = parseIndented(form.items);
   error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length + typed.length) : validateForm(form, typed.length + inkForm.written.value.length)) ?? templateProblem();
   if (error.value || saving.value) return;
   saving.value = true;
@@ -204,7 +204,7 @@ async function save() {
       }
     }
     // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
-    if (editing.value) typed.forEach((title) => outbox.addItem(props.id!, title.slice(0, TITLE_MAX), s === 'following' ? s : undefined));
+    if (editing.value) typed.forEach(({ title, level }) => outbox.addItem(props.id!, title.slice(0, TITLE_MAX), s === 'following' ? s : undefined, undefined, level));
     void lists.refresh().catch(() => undefined);
     emit('close');
   } catch (e) {
