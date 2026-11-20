@@ -1,7 +1,8 @@
 /** Subtask steps (feature tasklist-subtasks; STEPS.md "Subtasks"). */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { dragItem, expandTaskList, itemById } from './support/tasklist.js';
+import { checkInMessageGone, dragItem, expandTaskList, itemById } from './support/tasklist.js';
+import { box } from './support/ui.js';
 import { leaveSettings, settingControl } from './support/settings.js';
 import { attr, type World } from './support/world.js';
 
@@ -34,6 +35,50 @@ When('I long-press the item {string} and drag it {word} step(s) to the {word}', 
 
 When('I drag the item {string} below the item {string}', async function (this: World, title: string, below: string) {
   await dragItem(this, this.expanded, title, { below });
+});
+
+const rightEdgeBefore = new WeakMap<World, number>();
+
+When('I hold the item {string} {word} step(s) to the {word}', async function (this: World, title: string, n: string, dir: string) {
+  await checkInMessageGone(this);
+  const row = await itemById(this, title);
+  await row.scrollIntoViewIfNeeded();
+  const grip = await box(row.getByTestId('tasklist-item-grip'));
+  const rb = await box(row);
+  rightEdgeBefore.set(this, rb.x + rb.width);
+  const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
+  const to = { x: from.x + steps(n, dir) * 28, y: from.y };
+  if (this.testInfo.project.use.hasTouch) {
+    const cdp = await this.context.newCDPSession(this.page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] });
+    await this.page.waitForTimeout(500);
+    for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: Math.round(from.x + ((to.x - from.x) * i) / 10), y: from.y, id: 1 }] });
+    this.held = async () => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
+      await cdp.detach().catch(() => {});
+      this.held = undefined;
+    };
+  } else {
+    const { mouse } = this.page;
+    await mouse.move(from.x, from.y);
+    await mouse.down();
+    await mouse.move(to.x, to.y, { steps: 10 });
+    this.held = async () => { await mouse.up(); this.held = undefined; };
+  }
+  await this.page.waitForTimeout(900);
+});
+
+Then('the dashed gap is indented {word} level(s)', async function (this: World, n: string) {
+  const level = NUMBER[n]!;
+  const gap = this.page.getByTestId('tasklist-drop-gap');
+  await expect(gap).toHaveAttribute('data-level', String(level));
+  const [g, b] = [await box(gap), await box(this.page.getByTestId('tasklist-drop-gap-box'))];
+  expect(Math.abs(b.x - g.x - (4 + level * 28)), 'the dashed part starts one indent per level in').toBeLessThanOrEqual(2);
+});
+
+Then('the item {string} keeps its right side where it was', async function (this: World, title: string) {
+  const rb = await box(await itemById(this, title));
+  expect(Math.abs(rb.x + rb.width - rightEdgeBefore.get(this)!), 'right edge of the held row').toBeLessThanOrEqual(14);
 });
 
 /** Sets the levels through the server (the list's items in the given levels), then loads the page again with the list open. */

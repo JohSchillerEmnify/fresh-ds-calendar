@@ -53,6 +53,11 @@ Feature: Subtasks in task lists
       When I drag the item "Tent" one step to the right
       Then the item "Tent" is not a subtask
 
+    Scenario: While an item is held at a subtask level, only the dashed gap indents; the bin stays where it is
+      When I hold the item "Pegs" one step to the right
+      Then the dashed gap is indented one level
+      And the item "Pegs" keeps its right side where it was
+
     Scenario: A task moves together with its subtasks
       Given the item "Pegs" was made a subtask of "Tent"
       When I drag the item "Tent" below the item "Food"
