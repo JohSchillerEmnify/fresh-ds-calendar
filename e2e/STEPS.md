@@ -1435,7 +1435,8 @@ the browser did not take the touch over for scrolling
   chip's centre lies in the `month-cell` under the finger (it snaps to the cell's top), and the topmost element there
   (`elementFromPoint`, which honours clipping) is the chip or inside it.
 - "I swipe up quickly starting on the event X": finger down 5 minutes below X's top, 240 px up in 8 moves over 150 ms
-  (no long press), up. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
+  (no long press), up, all sent at once (Chromium: event time stamps; the iPhone model: timed by the page), so that a slow
+  test process cannot hold the finger still for 500 ms and make it a long press. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
   `time-grid`'s scroll container `scrollTop` grew by at least 40 px.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
@@ -3485,6 +3486,10 @@ I drop the dragged item in the all-day row on {date}
   stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
   Before a hold the card is scrolled to the middle of the grid (a pointer resting near its top or bottom would start the
   auto-scroll); an edge hold stops 40 px short of the zone and then enters it in one move, so the time counts from there.
+  The page itself times an edge hold: its clock starts just before the move into the zone, and at N ms (and again after
+  each "I keep holding" at the total so far) it notes the URL path and the edge band text. The next "the URL path is" and
+  "the edge band says" accept that noted value, else look at the live page (so a slow test process cannot see a view that
+  turned at 600 ms before it looked at the 300 ms mark).
 - "I hold the event X at the right edge of the time grid until the view turns": the same hold, kept until the URL path
   changes (polled every 50 ms, at most 5 s), then the pointer moves at once to the middle of the grid (no second turn on
   a slow device: the iPhone model is too slow for timed holds).

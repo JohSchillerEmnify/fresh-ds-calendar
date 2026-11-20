@@ -137,6 +137,16 @@ export function iosFinger(page: Page) {
       }
       await page.waitForTimeout(holdMs / 2);
     },
+    /** Down, interpolated moves and up, timed by the page itself: a slow test process cannot stretch the swipe. */
+    swipe: (from: Point, to: Point, steps: number, durationMs: number) => page.evaluate(async ([a, b, n, ms]) => {
+      const finger = (window as unknown as { __iosFinger: { down(x: number, y: number): void; move(x: number, y: number): void; up(): void } }).__iosFinger;
+      finger.down(a.x, a.y);
+      for (let i = 1; i <= n; i++) {
+        finger.move(a.x + ((b.x - a.x) * i) / n, a.y + ((b.y - a.y) * i) / n);
+        await new Promise((r) => setTimeout(r, ms / n));
+      }
+      finger.up();
+    }, [from, to, steps, durationMs] as const),
     /** Interpolated moves from `from` to `to` over about `durationMs`. */
     async moves(from: Point, to: Point, steps: number, durationMs: number) {
       for (let i = 1; i <= steps; i++) {

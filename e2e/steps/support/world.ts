@@ -100,6 +100,11 @@ export class World {
   held?: () => Promise<void>;
   /** Where "I pick up ..." pressed (page coordinates). */
   heldAt?: { x: number; y: number };
+  /** The URL path and the edge band text as an edge hold ended, noted by the page (dnd.steps.ts noteAt). */
+  heldPath?: string;
+  heldBand?: string | null;
+  /** How long an edge hold has lasted so far, by the page's clock (dnd.steps.ts noteAt). */
+  heldMs?: number;
   /** Moves the held pointer or finger to a point in steps over a time (set by the hold steps that can move on). */
   heldMove?: (to: { x: number; y: number }, steps: number, ms: number) => Promise<void>;
   /** Middle of the time grid's day columns, noted before an edge hold, so leaving the edge zone needs no lookup first. */
