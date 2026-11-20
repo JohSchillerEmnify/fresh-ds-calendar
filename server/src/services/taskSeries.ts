@@ -114,10 +114,7 @@ export class TaskSeries {
     return this.host.getTaskList(id);
   }
 
-  /**
-   * A change of how a list repeats: `following` splits the series after the shown list, `all` replaces its rule (Google's
-   * "This and following events" / "All events"). Rules and edge cases: spec/API.md "Changing how a list repeats".
-   */
+  /** A change of how a list repeats: `following` splits the series after the shown list, `all` replaces its rule (spec/API.md). */
   async changeRule(id: string, rule: Recurrence | null, scope: 'following' | 'all'): Promise<TaskList> {
     if (isSharedId(id)) throw validation('A shared list cannot repeat', 'recurrence');
     const cur = await this.host.locateKind(id, true);
