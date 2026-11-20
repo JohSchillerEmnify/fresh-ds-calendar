@@ -86,7 +86,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
   /** Layout places of the rows: their rects without the shift the other rows carry to make room. */
   const layoutSpans = (rows: HTMLElement[]) => rows.map((r) => { const b = r.getBoundingClientRect(), s = shiftOf(r); return { top: b.top - s, bottom: b.bottom - s }; });
 
-/** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
+  /** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
   let held: { row: HTMLElement; to: number; own: () => { top: number; bottom: number } } | null = null;
 
   /** Moves the rows other than `lifted` so that a gap opens at place `to` (null: everything back). */
