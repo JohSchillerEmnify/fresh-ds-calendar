@@ -260,12 +260,13 @@ Feature: Drag and drop to reschedule
       Then the event "Dentist" shows no resize handles
 
   # owner, 2026-11-20 (mockup board #173, option C): show where it lands on the hour column
-  Rule: While a timed entry is moved or resized, its start and end are marked on the hour column
+  Rule: While a timed entry is moved, resized or drawn, its start and end are marked on the hour column
 
-    While an event or a timed task list is dragged or resized in the day or week view, the hour column at the left
-    marks the start and end the entry would get if let go now: a filled label with the time at each of the two heights,
-    and a dashed line from each label across to the entry. The marks follow the 15-minute snap and disappear when
-    the entry is let go or the drag is cancelled.
+    While an event or a timed task list is dragged or resized, or a new block is drawn on the empty grid, in the day or
+    week view, the hour column at the left marks the start and end it would get if let go now: a filled label with the
+    time at each of the two heights, and a dashed line from each label across to the entry. The marks follow the
+    15-minute snap and disappear when the entry is let go or the drag is cancelled. The dashed drop box under a dragged
+    card shows no time of its own: its small start label sat under the card and the finger (owner, 2026-11-20).
 
     Scenario: Moving an event marks where it would start and end
       When I open the week view for 2026-10-12
@@ -300,6 +301,22 @@ Feature: Drag and drop to reschedule
       And I hold the event "Dentist" over 2026-10-14 at 14:00 for 300 ms
       And I drop the dragged event
       Then the hour column marks no times
+
+    Scenario: Drawing a new block marks its start and end
+      When I open the day view for 2026-10-14
+      And I hold a drawn block on 2026-10-14 from 13:00 to 14:45
+      Then the hour column marks 13:00 and 14:45
+
+    Scenario: The marks of a drawn block are gone once the new dialog opens
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 13:00 to 14:45
+      Then the event dialog is open
+      And the hour column marks no times
+
+    Scenario: The drop box shows no time of its own
+      When I open the week view for 2026-10-12
+      And I hold the event "Dentist" over 2026-10-16 at 14:00 for 300 ms
+      Then the drop indicator shows no time
 
     @visual @mobile
     Scenario Outline: The marks on the hour column look as drawn on a phone, <scheme>
