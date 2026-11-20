@@ -498,8 +498,8 @@ When('I hold the all-day event {string} at the right edge of the all-day row for
 async function holdOver(w: World, card: Locator, date: string, time: string, ms: number) {
   // a card far from its target: centre the middle between them, so that looking the target up does not scroll after the grab
   await card.scrollIntoViewIfNeeded();
+  const target = await targetPoint(w, card, centre(await box(card)), date, time);
   const c = await box(card);
-  const target = await targetPoint(w, card, centre(c), date, time);
   const sc = await box(w.page.locator('[data-scroll-area]').first());
   await w.page.locator('[data-scroll-area]').first().evaluate((el, dy) => { el.scrollTop += dy; }, (c.y + c.height / 2 + target.y) / 2 - (sc.y + sc.height / 2));
   await w.page.waitForTimeout(100);
