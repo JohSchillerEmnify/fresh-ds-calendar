@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
-/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`). */
+/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`): one form; the modes differ only in title, kind switch, Delete / Leave and the replace question. */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
-import type { Reminders, TaskList, TaskTemplate } from '@/api/types';
+import type { Reminders, TaskItem, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import InkLine from './InkLine.vue';
@@ -17,6 +17,7 @@ import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { IconClose } from '@/components/icons';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
+import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import Switch from '@/components/m3/Switch.vue';
@@ -31,7 +32,9 @@ import { usePeople } from '@/composables/usePeople';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { sameReminders } from '@/features/calendar/eventForm';
-import { indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
+import { levelProp, parseIndented } from '@calendar/shared/subtasks';
+import { linesOfItems, planItemEdits } from './itemEdits';
+import { saveItemEdits } from './saveItemEdits';
 import { newTaskListForm, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
@@ -45,13 +48,13 @@ import { useTemplatesStore } from './templatesStore';
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; title?: string; draftList?: TaskList }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
-// handwriting (feature handwritten-lists): ink lines for the new list, in a wider ruled dialog where a pen is used
+// handwriting (feature handwritten-lists): ink lines for the items to add, in a wider ruled dialog where a pen is used
 const inkMode = useInkMode();
 const inkStore = useInkStore();
 const inkForm = useInkForm();
-const toolsShown = computed(() => !editing.value && inkMode.enabled.value);
+const toolsShown = computed(() => inkMode.enabled.value);
 const inking = computed(() => toolsShown.value && inkStore.mode === 'ink' && inkMode.ruled.value);
-const wide = computed(() => !editing.value && inkMode.ruled.value);
+const wide = computed(() => inkMode.ruled.value);
 usePenDoubleTap(inkForm.undo, () => inking.value);
 const outbox = useOutboxStore();
 const device = useDeviceStore();
@@ -65,6 +68,10 @@ const loading = ref(false);
 let etag = '';
 let original = '';
 let originalTitle = '';
+/** The items when the form was opened: the lines are compared with these, not with what other devices changed since. */
+let seen: TaskItem[] = [];
+/** A template replaced the list: its items replace all items, ticks and handwriting included. */
+let replaced = false;
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
@@ -90,7 +97,7 @@ function fill(src: TaskList) {
   etag = src.etag;
   Object.assign(form, {
     title: src.title, date: src.date ?? '', time: src.time ?? '', estimate: src.estimateMinutes ? String(src.estimateMinutes) : '',
-    categoryId: src.categoryId ?? 'none',
+    categoryId: src.categoryId ?? 'none', repeat: src.recurrence ?? '', items: linesOfItems(src.items),
     reminders: !src.reminders || src.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...src.reminders.minutes] },
   });
   if (src.reminders?.useDefault) taskDefaults.value = src.reminders.minutes;
@@ -99,24 +106,26 @@ function fill(src: TaskList) {
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
 onMounted(async () => {
+  // the names already taken, for "Also save as template"
+  templates.load().catch(() => undefined);
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
-    if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => indentOf(i) + i.title).join('\n'); }
+    if (props.draftList) fill(props.draftList);
     // a carried title is unsaved input: the original stays untitled so closing asks first
     original = JSON.stringify(props.draftList ? form : { ...form, title: '' });
-    // the names already taken, for "Also save as template"
-    templates.load().catch(() => undefined);
     return;
   }
   void refreshPeople();
   const cur = items.get(props.id!);
-  if (cur?.kind === 'tasklist') { fill(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
+  if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });
 
+/** The item field shows all lines of an existing list (at most ten rows, then it scrolls). */
+const itemRows = computed(() => Math.min(10, Math.max(4, form.items.split('\n').length + 1)));
 const dirty = computed(() => JSON.stringify(form) !== original);
 const cats = useTaskCategories();
 const catOptions = computed(() => [{ value: 'none', label: t('tasks.noCategory') }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
@@ -139,8 +148,19 @@ const pickedTemplate = ref<string | null>(null);
 /** "Also save as template": saving the new list also keeps it as a template named by its title. */
 const alsoTemplate = ref(false);
 const pill = ref<InstanceType<typeof TemplatePill> | null>(null);
+/** A template picked on an existing list waits for the answer to "replace the list?". */
+const replacing = ref<TaskTemplate | null>(null);
+const onPick = (tpl: TaskTemplate) => { if (editing.value) replacing.value = tpl; else pickTemplate(tpl); };
+function confirmReplace() {
+  const tpl = replacing.value;
+  replacing.value = null;
+  if (tpl) pickTemplate(tpl);
+}
 function pickTemplate(tpl: TaskTemplate) {
-  Object.assign(form, fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id)));
+  const filled = fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id));
+  // a member cannot change the list's category
+  Object.assign(form, memberOnly.value ? { ...filled, categoryId: form.categoryId } : filled);
+  replaced = editing.value;
   inkForm.set(inkLinesOf(tpl));
   pickedTemplate.value = tpl.name;
 }
@@ -150,7 +170,7 @@ function manageTemplates() {
 }
 /** The problem with "Also save as template", or '' (the list needs a title, and the name must be free). */
 function templateProblem(): string {
-  if (!alsoTemplate.value || editing.value) return '';
+  if (!alsoTemplate.value) return '';
   if (!form.title.trim()) return t('tasks.templates.titleRequired');
   return templateNameProblem(templates.list, form.title);
 }
@@ -163,11 +183,14 @@ function changedFields<T extends Record<string, unknown>>(body: T, current: unkn
 }
 
 async function save() {
-  const current = editing.value ? items.get(props.id!) : undefined;
-  // editing: the typed lines are added to the items the list already has
-  const typed = parseIndented(form.items);
-  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length + typed.length) : validateForm(form, typed.length + inkForm.written.value.length)) ?? templateProblem();
+  const found = editing.value ? items.get(props.id!) : undefined;
+  const current = found?.kind === 'tasklist' ? found : undefined;
+  const lines = parseIndented(form.items);
+  // the handwritten items an existing list keeps are items too
+  const kept = current && !replaced ? seen.filter((i) => i.ink).length : 0;
+  error.value = validateForm(form, lines.length + kept + inkForm.written.value.length) ?? templateProblem();
   if (error.value || saving.value) return;
+  const plan = current ? planItemEdits(seen, lines, replaced) : null;
   saving.value = true;
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
   const body = {
@@ -176,15 +199,22 @@ async function save() {
     // categories off: the picker is hidden, so the stored category is left alone
     ...(cats.on.value ? { categoryId: form.categoryId === 'none' ? null : form.categoryId } : {}),
     // the reminders are only sent when they changed (a create: when the list has its own)
-    ...(form.reminders && !(current?.kind === 'tasklist' && current.shared) && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
+    ...(form.reminders && !current?.shared && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
+    // a list that repeats keeps its rhythm: only one that does not repeat can be given one
+    ...(current && !current.recurrence && form.date && form.repeat ? { recurrence: form.repeat } : {}),
   };
-  // a renamed repeating list: the title may go to the following lists too, the rest of the form stays with this one
-  const s = editing.value && current?.kind === 'tasklist' && (body.title !== originalTitle.trim() || typed.length) ? await scope.ask(current) : 'this';
+  const itemsChanged = !!plan && !!(plan.renames.length || plan.deletes.length || plan.adds.length || inkForm.written.value.length);
+  // a renamed repeating list or changed item lines: the change may go to the following lists too, the rest of the form stays with this one
+  const s = current && (body.title !== originalTitle.trim() || itemsChanged) ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
+  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, s === 'following' ? s : undefined); };
+  // a list that starts to repeat gets its item changes first, so every later week has them
+  const itemsFirst = !!body.recurrence && editing.value;
   try {
+    if (itemsFirst) sendItems();
     if (editing.value && s === 'following') {
       const { title, ...rest } = body;
-      // typed items are added separately, they are no change of the list's own fields
+      // the item lines are sent separately, they are no change of the list's own fields
       const othersChanged = JSON.stringify({ ...form, title: '', items: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '', items: '' });
       if (othersChanged) {
         outbox.updateList(props.id!, rest, undefined, etag);
@@ -193,18 +223,18 @@ async function save() {
       if (title !== originalTitle.trim()) outbox.updateList(props.id!, { title }, 'following');
     } else if (editing.value) {
       const changed = changedFields(body, current);
-      if (!typed.length || Object.keys(changed).length) outbox.updateList(props.id!, changed, undefined, etag);
+      if (Object.keys(changed).length || !itemsChanged) outbox.updateList(props.id!, changed, undefined, etag);
     } else {
       outbox.createList({
-        ...body, items: [...parseIndented(form.items).map(({ title, level }) => ({ title, ...levelProp(level) })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
+        ...body, items: [...lines.map(({ title, level }) => ({ title, ...levelProp(level) })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
       });
-      // the list is saved; a template that fails now is only reported, the list stays
-      if (alsoTemplate.value) {
-        await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
-      }
     }
     // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
-    if (editing.value) typed.forEach(({ title, level }) => outbox.addItem(props.id!, title.slice(0, TITLE_MAX), s === 'following' ? s : undefined, undefined, level));
+    if (!itemsFirst) sendItems();
+    // the list is saved; a template that fails now is only reported, the list stays
+    if (alsoTemplate.value) {
+      await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
+    }
     void lists.refresh().catch(() => undefined);
     emit('close');
   } catch (e) {
@@ -230,28 +260,28 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet open :wide="wide" :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
+  <AdaptiveSheet open :wide="wide" :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open && !replacing" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" :title="form.title" />
       <div class="headrow">
         <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
-        <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
+        <TemplatePill ref="pill" :picked="pickedTemplate" @pick="onPick" @manage="manageTemplates" />
       </div>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
-      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" :maxlength="TITLE_MAX" autocomplete="off" enterkeyhint="next" />
+      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" data-field="title" :maxlength="TITLE_MAX" autocomplete="off" enterkeyhint="next" />
       <div class="two" :class="{ dated: !!form.date }">
         <div class="datecell">
-          <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" class="grow" data-testid="tasklist-date" />
+          <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" class="grow" data-testid="tasklist-date" data-field="date" />
           <IconButton v-if="form.date" :label="t('tasks.dialog.clearDate')" class="clear" data-testid="tasklist-date-clear" @click="clearDate"><IconClose /></IconButton>
         </div>
-        <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" data-testid="tasklist-time" />
+        <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" data-testid="tasklist-time" data-field="time" />
       </div>
-      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" :min="ESTIMATE_MIN" :max="ESTIMATE_MAX" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
+      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" :min="ESTIMATE_MIN" :max="ESTIMATE_MAX" step="5" enterkeyhint="next" data-testid="tasklist-estimate" data-field="estimate" />
       <div v-if="cats.on.value" class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
-        <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />
+        <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" data-field="category" />
       </div>
-      <div v-if="current && (current.shared || people.length)" class="share" data-testid="tasklist-sharing">
+      <div v-if="current && (current.shared || people.length)" class="share" data-testid="tasklist-sharing" data-field="share">
         <template v-if="current.shared">
           <p class="who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
           <Button v-if="!memberOnly" variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
@@ -261,19 +291,19 @@ function remove() {
           <Button variant="tonal" :disabled="!person || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
         </template>
       </div>
-      <div v-if="form.reminders && !current?.shared" class="remrow">
+      <div v-if="form.reminders && !current?.shared" class="remrow" data-field="reminders">
         <span class="remlab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
       </div>
       <InkTools v-if="toolsShown" :tools="inking" :can-undo="inkForm.canUndo.value" @undo="inkForm.undo" />
-      <div v-if="inking" class="inklines" :class="{ ruled: inkMode.ruled.value }" data-testid="tasklist-ink-lines">
+      <div v-if="inking" class="inklines" :class="{ ruled: inkMode.ruled.value }" data-testid="tasklist-ink-lines" data-field="items">
         <InkLine v-for="(line, i) in inkForm.shown.value" :key="i" class="inkrow" :strokes="line" editable :label="t('ink.area')" @change="inkForm.change(i, $event)" />
       </div>
-      <div v-else class="textlines" :class="{ ruled: !editing && (inkMode.ruled.value || (toolsShown && inkStore.mode === 'text')) }" data-testid="tasklist-text-lines">
-        <TextField v-model="form.items" :label="editing ? t('tasks.dialog.addItems') : t('tasks.dialog.items')" multiline :rows="editing ? 2 : 4" data-testid="tasklist-items" />
+      <div v-else class="textlines" :class="{ ruled: inkMode.ruled.value || (toolsShown && inkStore.mode === 'text') }" data-testid="tasklist-text-lines" data-field="items">
+        <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="itemRows" data-testid="tasklist-items" />
       </div>
-      <Select v-if="!editing && form.date" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
-      <div v-if="!editing" class="tplrow">
+      <Select v-if="form.date && !current?.shared" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" :disabled="!!current?.recurrence" data-testid="tasklist-repeat" data-field="repeat" />
+      <div class="tplrow">
         <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
         <Switch v-model="alsoTemplate" :label="t('tasks.templates.alsoSave')" data-testid="tasklist-save-as-template" />
       </div>
@@ -286,7 +316,10 @@ function remove() {
       </div>
     </form>
     <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
-    <Teleport to="body"><RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" /></Teleport>
+    <Teleport to="body">
+      <RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" />
+      <ConfirmDialog :open="!!replacing" :title="t('tasks.templates.replaceTitle')" :message="t('tasks.templates.replaceHint')" :ok-label="t('tasks.templates.replaceOk')" @ok="confirmReplace" @cancel="replacing = null" />
+    </Teleport>
   </AdaptiveSheet>
 </template>
 

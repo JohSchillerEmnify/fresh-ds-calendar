@@ -16,9 +16,9 @@ export type Change =
   /** `base`: keys of the strokes the change started from, `at`: when it was made; the server merges with other devices' changes (decision G5). */
   | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[]; base: string[]; at: number }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
-  | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope }
+  | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope; keepSubtasks?: boolean }
   /** `levels`: one per id, set together with the place (a drag to the right or left; feature tasklist-subtasks). */
-  | { op: 'item.order'; id: string; itemIds: string[]; levels?: number[] };
+  | { op: 'item.order'; id: string; itemIds: string[]; levels?: number[]; scope?: ChangeScope };
 
 /** An unsent change as the outbox keeps it (IndexedDB). */
 export interface OutboxEntry {
@@ -99,7 +99,7 @@ function applyItemOp(cur: TaskList, c: Change): TaskList {
       const ticked = new Set(c.patch.done === undefined ? [] : blockIds(cur.items, c.itemId));
       return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : ticked.has(i.id) ? { ...i, done: c.patch.done! } : i)));
     }
-    case 'item.delete': { const gone = new Set(blockIds(cur.items, c.itemId)); return recount(cur, cur.items.filter((i) => !gone.has(i.id))); }
+    case 'item.delete': { const gone = new Set(c.keepSubtasks ? [c.itemId] : blockIds(cur.items, c.itemId)); return recount(cur, clampLevels(cur.items.filter((i) => !gone.has(i.id)))); }
     case 'item.order': {
       const at = (i: TaskItem) => { const n = c.itemIds.indexOf(i.id); return n < 0 ? Infinity : n; };
       const sorted = [...cur.items].sort((a, b) => at(a) - at(b));

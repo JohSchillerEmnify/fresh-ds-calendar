@@ -60,6 +60,49 @@ Then('the task list form shows:', async function (this: World, table: DataTable)
   }
 });
 
+Then('the task list form starts with the fields {string}', async function (this: World, list: string) {
+  const want = list.split(', ');
+  // the field names of the form tables ("estimate in minutes" is the estimate); a field a control marks twice counts once
+  const names: Record<string, string> = { 'estimate in minutes': 'estimate' };
+  const marked = await dialog(this).locator('[data-field]').evaluateAll((els) => els.map((e) => e.getAttribute('data-field')));
+  const fields = marked.filter((f, i) => f !== marked[i - 1]);
+  expect(fields.slice(0, want.length)).toEqual(want.map((n) => names[n.toLowerCase()] ?? n.toLowerCase()));
+});
+
+Then('the task list dialog is titled {string}', async function (this: World, title: string) {
+  await expect(dialog(this).getByRole('heading', { level: 2 })).toHaveText(exactText(title));
+});
+
+Then('the task list dialog shows the kind switch', async function (this: World) {
+  await expect(dialog(this).getByTestId('new-kind-tasklist')).toBeVisible();
+});
+
+Then('the task list dialog shows no kind switch', async function (this: World) {
+  await expect(dialog(this).getByTestId('new-kind-tasklist')).toHaveCount(0);
+});
+
+const ACTIONS: Record<string, string> = { Delete: 'tasklist-delete' };
+Then('the task list dialog offers {string}', async function (this: World, name: string) {
+  await expect(dialog(this).getByTestId(ACTIONS[name]!)).toBeVisible();
+});
+
+Then('the task list dialog does not offer {string}', async function (this: World, name: string) {
+  await expect(dialog(this).getByTestId(ACTIONS[name]!)).toHaveCount(0);
+});
+
+const itemLine = async (w: World, title: string) => {
+  const lines = (await dialog(w).getByTestId('tasklist-items').inputValue()).split('\n');
+  const line = lines.find((l) => l.trim() === title);
+  expect(line, `an item line "${title}"`).toBeDefined();
+  return line!;
+};
+Then('the item line {string} of the task list form is indented', async function (this: World, title: string) {
+  expect(await itemLine(this, title)).toMatch(/^\s/);
+});
+Then('the item line {string} of the task list form is not indented', async function (this: World, title: string) {
+  expect(await itemLine(this, title)).not.toMatch(/^\s/);
+});
+
 When('I press Enter in the task list field {string}', async function (this: World, name: string) {
   await field(dialog(this), TASKLIST_FIELDS, name).press('Enter');
 });

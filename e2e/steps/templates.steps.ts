@@ -130,6 +130,20 @@ When('I open the template picker', async function (this: World) {
   await expect(picker(this)).toBeVisible();
 });
 
+Then('I am asked whether to replace the task list with the template', async function (this: World) {
+  await expect(this.page.getByTestId('confirm-dialog')).toBeVisible();
+});
+
+When('I confirm replacing the task list', async function (this: World) {
+  await this.page.getByTestId('confirm-ok').click();
+  await expect(this.page.getByTestId('confirm-dialog')).toBeHidden();
+});
+
+When('I decline replacing the task list', async function (this: World) {
+  await this.page.getByTestId('confirm-cancel').click();
+  await expect(this.page.getByTestId('confirm-dialog')).toBeHidden();
+});
+
 Then('the template pill shows {string}', async function (this: World, label: string) {
   await expect(listDialog(this).getByTestId('tasklist-from-template-label')).toHaveText(exactText(label));
 });

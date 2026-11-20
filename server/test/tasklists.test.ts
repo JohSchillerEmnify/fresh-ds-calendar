@@ -212,7 +212,6 @@ describe('item operations', () => {
     expect((await t.json('POST', `/api/tasklists/${a.id}/items`, { title: '  ' })).status).toBe(400);
     expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/nope`, { done: true })).status).toBe(404);
     expect((await t.json('DELETE', `/api/tasklists/${a.id}/items/nope`)).status).toBe(404);
-    expect((await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [a.items[0].id] })).status).toBe(400);
     expect((await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [a.items[0].id, a.items[0].id] })).status).toBe(400);
     expect((await t.json('POST', '/api/tasklists/zzz/items', { title: 'x' })).status).toBe(404);
     const full = await mk({ items: Array.from({ length: 200 }, (_, i) => ({ title: `i${i}` })) });
@@ -247,6 +246,40 @@ describe('item operations', () => {
     const fail = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'y' });
     expect(fail.status).toBe(412);
     mock.patchEvent = orig;
+  });
+});
+
+describe('item ops the form sends', () => {
+  const tree = () => mk({ items: [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Food' }] });
+  it('removes a task and keeps its subtasks when asked to', async () => {
+    const a = await tree();
+    const r = await t.json('DELETE', `/api/tasklists/${a.id}/items/${a.items[0].id}?subtasks=keep`);
+    expect(r.body.items.map((i: { title: string; level?: number }) => [i.title, i.level ?? 0])).toEqual([['Pegs', 0], ['Food', 0]]);
+    const b = await tree();
+    const all = await t.json('DELETE', `/api/tasklists/${b.id}/items/${b.items[0].id}`);
+    expect(all.body.items.map((i: { title: string; level?: number }) => i.title)).toEqual(['Food']);
+  });
+});
+
+describe('changing how a list repeats', () => {
+  it('a list that does not repeat can start repeating', async () => {
+    const a = await mk({ date: '2026-10-14' });
+    const u = await t.json('PATCH', `/api/tasklists/${a.id}`, { recurrence: 'weekly' });
+    expect(u.status).toBe(200);
+    expect(u.body.recurrence).toBe('weekly');
+    expect((await raw(a.id)).recurrence).toEqual(['RRULE:FREQ=WEEKLY']);
+  });
+
+  it('a list that repeats keeps its rhythm when the same one is sent, and refuses another', async () => {
+    const a = await mk({ date: '2026-10-14', recurrence: 'weekly' });
+    const next = (await t.json('GET', '/api/tasklists/' + a.id)).body;
+    expect((await t.json('PATCH', `/api/tasklists/${next.id}`, { recurrence: 'weekly', title: 'Same' })).status).toBe(200);
+    expect((await t.json('PATCH', `/api/tasklists/${next.id}`, { recurrence: 'daily' })).status).toBe(400);
+  });
+
+  it('an undated list cannot start repeating', async () => {
+    const a = await mk({ date: null });
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}`, { recurrence: 'weekly' })).status).toBe(400);
   });
 });
 
@@ -507,6 +540,42 @@ describe('recurring task lists: a change for this and all following ones (scope=
   const week = async (date: string) => (await all()).find((i: any) => i.date === date);
   const tick = async (date: string, n: number) => { const w = await week(date); await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[n].id}`, { done: true }); };
   const remote = async () => (await t.json('GET', '/api/__test/remote/events')).body.items;
+
+  const shape = (l: { items: { title: string; level?: number }[] }) => l.items.map((i) => `${i.title}:${i.level ?? 0}`);
+  const seeded = async () => {
+    await create({ items: [{ title: 'Sink' }, { title: 'Floor' }, { title: 'Mirror' }] });
+    const [w2, w3] = [await week('2026-10-21'), await week('2026-10-28')];
+    // each week has an item of its own: one the order names and the other week lacks, and one it does not name
+    await t.json('POST', `/api/tasklists/${w2.id}/items`, { id: 'only-week-2', title: 'Only2' });
+    await t.json('POST', `/api/tasklists/${w3.id}/items`, { id: 'only-week-3', title: 'Only3' });
+    return { w2: await week('2026-10-21') };
+  };
+  it('an order for this and all following lists reaches the later weeks, with levels, and keeps their own items', async () => {
+    const { w2 } = await seeded();
+    const ids = ['Mirror', 'Sink', 'Floor'].map((n) => w2.items.find((i: { title: string; id: string }) => i.title === n).id);
+    const r = await t.json('PUT', `/api/tasklists/${w2.id}/items/order?scope=following`, { itemIds: [...ids, 'only-week-2'], levels: [0, 0, 1, 0] });
+    expect(r.status).toBe(200);
+    expect(shape(r.body)).toEqual(['Mirror:0', 'Sink:0', 'Floor:1', 'Only2:0']);
+    // week 3 lacks Only2 (skipped) and keeps Only3 after the item it followed (Mirror)
+    expect(shape(await week('2026-10-28'))).toEqual(['Mirror:0', 'Only3:0', 'Sink:0', 'Floor:1']);
+    expect(shape(await week('2026-10-14'))).toEqual(['Sink:0', 'Floor:0', 'Mirror:0']);
+  });
+  it('removing a task for this and all following lists with subtasks=keep leaves its subtasks in the later weeks', async () => {
+    await create({ items: [{ title: 'Tent' }, { title: 'Pegs', level: 1 }, { title: 'Food' }] });
+    const w2 = await week('2026-10-21');
+    const r = await t.json('DELETE', `/api/tasklists/${w2.id}/items/${w2.items[0].id}?scope=following&subtasks=keep`);
+    expect(shape(r.body)).toEqual(['Pegs:0', 'Food:0']);
+    expect(shape(await week('2026-10-28'))).toEqual(['Pegs:0', 'Food:0']);
+    expect(shape(await week('2026-10-14'))).toEqual(['Tent:0', 'Pegs:1', 'Food:0']);
+  });
+  it('an order for this list only skips ids that are gone and keeps items it does not name', async () => {
+    const a = await create({ items: [{ title: 'Sink' }, { title: 'Floor' }, { title: 'Mirror' }] });
+    const [s, f, m] = a.items.map((i: { id: string }) => i.id);
+    await t.json('POST', `/api/tasklists/${a.id}/items`, { id: 'added-elsewhere', title: 'Tea', index: 1 });
+    const r = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [m, 'gone-elsewhere', s, f] });
+    expect(r.status).toBe(200);
+    expect(shape(r.body)).toEqual(['Mirror:0', 'Sink:0', 'Tea:0', 'Floor:0']);
+  });
 
   it('an added subtask keeps its level, made valid, on this list and the later ones', async () => {
     await create();

@@ -535,8 +535,13 @@ export class CalendarService {
       if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for the following lists', 'scope');
       return this.series.forFollowing(id, (d) => ({ ...d, title }));
     }
+    if (input.recurrence && isSharedId(id)) throw validation('A shared list cannot repeat', 'recurrence');
     return this.modify(id, (d) => {
       const next = { ...d };
+      if (input.recurrence !== undefined && input.recurrence !== d.recurrence) {
+        if (d.recurrence) throw validation('A repeating list keeps its rhythm', 'recurrence');
+        next.recurrence = input.recurrence;
+      }
       if (input.title !== undefined) next.title = input.title;
       if (input.date !== undefined) next.date = input.date;
       if (input.time !== undefined) next.time = input.time;
@@ -618,9 +623,9 @@ export class CalendarService {
     return list;
   }
 
-  async deleteItem(id: string, itemId: string, scope?: Scope): Promise<TaskList> {
-    // the subtasks of a task go with it
-    const without = (d: TaskListData): TaskListData => { const gone = new Set(blockIds(d.items, itemId)); return { ...d, items: d.items.filter((i) => !gone.has(i.id)) }; };
+  /** `keepSubtasks`: only the item goes; its subtasks stay (the form removes a task and keeps the lines under it). */
+  async deleteItem(id: string, itemId: string, scope?: Scope, keepSubtasks = false): Promise<TaskList> {
+    const without = (d: TaskListData): TaskListData => { const gone = new Set(keepSubtasks ? [itemId] : blockIds(d.items, itemId)); return { ...d, items: clampLevels(d.items.filter((i) => !gone.has(i.id))) }; };
     if (scope === 'following') return this.series.forFollowing(id, without, requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
@@ -628,21 +633,22 @@ export class CalendarService {
     }, undefined, undefined, true);
   }
 
-  /** `levels` (one per id) sets the levels too: a drag changes the place and the level together. */
-  async reorder(id: string, itemIds: string[], levels?: number[]): Promise<TaskList> {
-    return this.modify(id, (d) => {
-      const ids = new Set(d.items.map((i) => i.id));
-      if (itemIds.length !== ids.size || new Set(itemIds).size !== itemIds.length || itemIds.some((x) => !ids.has(x))) {
-        throw validation('itemIds must contain every item id exactly once', 'itemIds');
-      }
-      if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
-      const byId = new Map(d.items.map((i) => [i.id, i]));
-      const ordered = itemIds.map((x, n) => {
-        const item = byId.get(x)!;
-        return withLevel(item, levels?.[n] ?? item.level ?? 0);
+  /** `levels` (one per id) set the levels too. Ids the list lacks are skipped; items the order does not name stay after the item they followed (`following`: in the later lists too). */
+  async reorder(id: string, itemIds: string[], levels?: number[], scope?: Scope): Promise<TaskList> {
+    if (new Set(itemIds).size !== itemIds.length) throw validation('itemIds must not repeat an id', 'itemIds');
+    if (levels && levels.length !== itemIds.length) throw validation('levels must hold one level per item id', 'levels');
+    const place = (d: TaskListData): TaskListData => {
+      const at = new Map(itemIds.map((x, n) => [x, n] as const));
+      const result = d.items.filter((i) => at.has(i.id)).sort((a, b) => at.get(a.id)! - at.get(b.id)!).map((i) => withLevel(i, levels?.[at.get(i.id)!] ?? i.level ?? 0));
+      d.items.forEach((item, n) => {
+        if (at.has(item.id)) return;
+        const prev = n > 0 ? result.findIndex((r) => r.id === d.items[n - 1]!.id) : -1;
+        result.splice(prev + 1, 0, item);
       });
-      return { ...d, items: clampLevels(ordered) };
-    }, undefined, undefined, true);
+      return { ...d, items: clampLevels(result) };
+    };
+    if (scope === 'following') return this.series.forFollowing(id, place);
+    return this.modify(id, place, undefined, undefined, true);
   }
 
   // ---------- reads (see ItemQueries) ----------

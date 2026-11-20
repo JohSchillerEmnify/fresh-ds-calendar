@@ -288,6 +288,14 @@ the task list dialog is open
 the task list dialog is closed
 the task list dialog shows the error {string}
 the task list form shows:
+the task list form starts with the fields {string}
+the task list dialog is titled {string}
+the task list dialog shows the kind switch
+the task list dialog shows no kind switch
+the task list dialog offers {string}
+the task list dialog does not offer {string}
+the item line {string} of the task list form is indented
+the item line {string} of the task list form is not indented
 I see the task list {string} on {date}
 I do not see the task list {string}
 the task list {string} shows the done count {string}
@@ -2777,6 +2785,9 @@ I confirm the template
 I turn on {string} in the task list form
 I open the template picker
 I choose the template {string}
+I am asked whether to replace the task list with the template
+I confirm replacing the task list
+I decline replacing the task list
 I choose {string} in the template picker
 the template pill shows {string}
 the template menu has grown out of the template pill
@@ -2826,16 +2837,18 @@ I have no templates
   "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
 - "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
   A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
-- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only; a
-  switch row right above Cancel and Save) set to `aria-checked="true"`.
+- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (a
+  switch row right above Cancel and Save, in both modes) set to `aria-checked="true"`.
 - "I open the template picker": clicks the pill `tasklist-from-template` next to the heading of the open
-  `tasklist-dialog` (create mode); the pill grows in place into the menu `template-picker`. "the template pill shows
+  `tasklist-dialog` (both modes); the pill grows in place into the menu `template-picker`. "the template pill shows
   T" = the pill's label without the `▾` (`From template` before a pick, the template's name after). "the template
   menu has grown out of the template pill": once the menu is at rest (no running animation) its top edge and its right
   edge are within 4 px of where the pill's were before the tap (the pill sits at the right end of the heading row, so
   the menu opens from its top-right corner), it is taller than the pill, its first row is the header pill
   `template-picker-header` standing where the pill was (top and right edge within 4 px, the same height within 2 px,
-  owner's canvas variant 4D), and the pill itself is hidden meanwhile. "I choose the template T"
+  owner's canvas variant 4D), and the pill itself is hidden meanwhile. "I am asked whether to replace the task
+  list with the template": the `confirm-dialog` is open; "I confirm ..." clicks `confirm-ok`, "I decline ..." `confirm-cancel`
+  (an existing list asks before a template replaces its title, items, estimate and category, issue 177). "I choose the template T"
   opens the menu if needed and clicks its `template-picker-item` with `data-name` T; the menu shrinks back into the
   pill and the form is filled. "I choose Manage templates in the template picker" clicks `template-picker-manage`.
   "the template menu shows:" = two-column table, one row per `template-picker-item` in DOM order (by name): its
@@ -3098,6 +3111,7 @@ I delete the shared task list {string}
 {string} is offered to leave the list, not to delete it
 {string} has never signed in
 I open "Share with" for the task list {string}
+I open "Share with" in the new task list form
 I can share only with {string}
 ```
 
@@ -3125,6 +3139,8 @@ I can share only with {string}
 - "the task list T in the Tasks view is shared with I": the `tasks-item` T contains `tasklist-shared-badge` whose text
   is I (the other person's initial).
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
+- "the task list form starts with the fields L" (comma-separated field labels): the first fields of the open task list form (`tasklist-dialog`, in document order) are exactly these; the same form for creating and editing (issue 177). "the task list dialog is titled T": the sheet's heading reads T.
+- "I open \"Share with\" in the new task list form": opens the new task list dialog and `tasklist-share-person` (one form for creating and editing, issue 177). "I can share only with P" may name several people, `, `-separated.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
 

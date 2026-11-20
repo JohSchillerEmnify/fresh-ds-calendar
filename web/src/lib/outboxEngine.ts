@@ -175,11 +175,16 @@ export function writes(s: OutboxState) {
       return localTaskList(id, input);
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
-    addItem: (listId: string, text: string, scope?: ChangeScope, done?: boolean, level?: number): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text }),
-    /** A handwritten item at the end of the list; returns its id. */
-    addInkItem(listId: string, strokes: InkStroke[]): string {
+    /** Returns the new item's id. */
+    addItem(listId: string, text: string, scope?: ChangeScope, done?: boolean, level?: number): string {
       const itemId = newItemId();
-      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
+      add(s, { op: 'item.add', id: listId, itemId, title: text, ...(done ? { done } : {}), ...levelProp(level), ...scoped(scope) }, { title: text });
+      return itemId;
+    },
+    /** A handwritten item at the end of the list (`following`: of the later lists too); returns its id. */
+    addInkItem(listId: string, strokes: InkStroke[], scope?: ChangeScope): string {
+      const itemId = newItemId();
+      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes, ...scoped(scope) }, { title: '' });
       return itemId;
     },
     /** The new strokes of a handwritten item (all of them) and the strokes they started from, so the server can merge them with another device's. Held until the line is done (`sendInk`). */
@@ -189,8 +194,8 @@ export function writes(s: OutboxState) {
     },
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),
-    deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope) }, { title: text }),
-    orderItems: (listId: string, itemIds: string[], levels?: number[]): void => add(s, { op: 'item.order', id: listId, itemIds, ...(levels ? { levels } : {}) }, { title: items().get(listId)?.title ?? '' }),
+    deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope, keepSubtasks?: boolean): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope), ...(keepSubtasks ? { keepSubtasks } : {}) }, { title: text }),
+    orderItems: (listId: string, itemIds: string[], levels?: number[], scope?: ChangeScope): void => add(s, { op: 'item.order', id: listId, itemIds, ...(levels ? { levels } : {}), ...scoped(scope) }, { title: items().get(listId)?.title ?? '' }),
   };
 }
 
@@ -235,7 +240,7 @@ function showAnswer(s: OutboxState, c: Change, id: string, result: CalendarItem)
   if (shown) items().upsert(shown);
   const series = result.kind === 'tasklist' ? result.seriesId : undefined;
   if (c.op === 'list.create' && series) items().noteSeries(result.id, series);
-  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && c.scope === 'following')) ports.resync?.();
+  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && (c.scope === 'following' || c.patch.recurrence))) ports.resync?.();
 }
 
 /** An entry reached the server: it leaves the outbox and the server's version replaces the device copy. */

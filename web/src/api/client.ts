@@ -359,11 +359,11 @@ export class ApiClient {
   putItemInk(id: string, itemId: string, ink: { strokes: InkStroke[]; base: string[]; at: number }, o?: RequestOptions) {
     return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, ink, o);
   }
-  deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
-    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);
+  deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope, keepSubtasks?: boolean) {
+    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope) + (keepSubtasks ? `${scope === 'following' ? '&' : '?'}subtasks=keep` : ''), undefined, o);
   }
-  reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions, levels?: number[]) {
-    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, levels ? { itemIds, levels } : { itemIds }, o);
+  reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions, levels?: number[], scope?: ChangeScope) {
+    return this.request<TaskList>('PUT', scoped(`/api/tasklists/${enc(id)}/items/order`, scope), levels ? { itemIds, levels } : { itemIds }, o);
   }
   // --- sharing (API.md "Shared task lists") -----------------------------------------------
   /** The allowed people who signed in at least once, without the requester. */

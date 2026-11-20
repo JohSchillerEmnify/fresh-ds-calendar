@@ -112,16 +112,17 @@ function registerInkItems({ r, ctx, person, cal }: RouteDeps): void {
   });
   r.put('/tasklists/:id/items/order', async (c) => {
     const { itemIds, levels } = parse(orderSchema, await body(c));
-    return c.json(await cal(c).reorder(c.req.param('id'), itemIds, levels));
+    return c.json(await cal(c).reorder(c.req.param('id'), itemIds, levels, scopeOf(c)));
   });
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));
   r.delete('/tasklists/:id/items/:itemId', async (c) => {
     const [listId, itemId, scope] = [c.req.param('id'), c.req.param('itemId'), scopeOf(c)];
     const before = await cal(c).getTaskList(listId);
-    const list = await cal(c).deleteItem(listId, itemId, scope);
+    const keep = c.req.query('subtasks') === 'keep';
+    const list = await cal(c).deleteItem(listId, itemId, scope, keep);
     // one occurrence of a repeating list losing the item leaves it to the others (the ink is shared by item id)
     if (scope === 'following' || !before.seriesId) {
-      const gone = new Set(blockIds(before.items, itemId));
+      const gone = new Set(keep ? [itemId] : blockIds(before.items, itemId));
       const inked = before.items.filter((i) => i.ink && gone.has(i.id)).map((i) => i.id);
       if (inked.length) ctx.inks.remove(person(c), listId, inked);
     }

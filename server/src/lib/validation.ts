@@ -157,6 +157,8 @@ export const updateTaskListSchema = so({
   estimateMinutes: v.optional(estimate),
   canvas: v.optional(canvasPlace),
   reminders: v.optional(reminders),
+  /** Only a list that does not repeat yet can be given a rhythm. */
+  recurrence: v.optional(recurrence),
 });
 /** `PUT .../ink`: the strokes; with `base` (keys of the strokes the device started from) and `at` they are merged, else they replace. */
 export const inkSchema = so({ strokes, base: v.optional(v.pipe(v.array(v.string()), v.maxLength(500))), at: v.optional(whole) });

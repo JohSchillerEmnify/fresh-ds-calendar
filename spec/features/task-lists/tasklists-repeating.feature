@@ -121,6 +121,56 @@ Feature: Changing a repeating task list for this one or this and all following o
     When I open the week view for 2026-10-12
     Then I see the task list "Clean bathroom" on 2026-10-12
 
+  Scenario: Item lines changed in the task list form ask as well
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Sink; Floor; Mirror |
+    And I save the task list
+    Then I am asked whether to change "This task list" or "This and all following task lists"
+    When I choose "This task list" for the change
+    Then the task list dialog is closed
+    When I expand the task list "Clean bathroom"
+    Then the expanded task list items are "Sink, Floor, Mirror"
+    When I open the week view for 2026-10-26
+    Then the collapsed task list "Clean bathroom" lists the items "Sink, Floor"
+
+  Scenario: Item lines removed in the task list form for this and all following lists reach the later ones
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | items | Sink |
+    And I save the task list
+    And I choose "This and all following task lists" for the change
+    Then the task list dialog is closed
+    When I open the week view for 2026-10-26
+    Then the collapsed task list "Clean bathroom" lists the items "Sink"
+    When I open the week view for 2026-10-12
+    Then the collapsed task list "Clean bathroom" lists the items "Sink, Floor"
+
+  Scenario: The task list form shows how a list repeats
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    Then the task list form shows:
+      | repeat | Weekly |
+
+  # Changing the rhythm of a list that already repeats needs the series to be split with a new rule; not built yet.
+  @backlog
+  Scenario: Changing how a repeating list repeats asks for this and all following lists
+    When I open the day view for 2026-10-19
+    And I expand the task list "Clean bathroom"
+    And I edit the task list details
+    And I fill in the task list form with:
+      | repeat | Daily |
+    And I save the task list
+    Then I am asked whether to change "This task list" or "This and all following task lists"
+    When I choose "This and all following task lists" for the change
+    And I open the week view for 2026-10-26
+    Then I see the task list "Clean bathroom" on 2026-10-27
+
   Scenario: Ticking an item of a repeating list never asks
     When I open the day view for 2026-10-19
     And I expand the task list "Clean bathroom"

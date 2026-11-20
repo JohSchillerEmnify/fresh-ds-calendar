@@ -703,7 +703,7 @@ describe('dialog', () => {
     expect(patches[0]).not.toHaveProperty('tags');
     expect(w.emitted('close')).toHaveLength(1);
   });
-  it('editing adds the typed items to the list, one per line, and sends no title change', async () => {
+  it('editing adds the new lines of the items to the list and sends no title change', async () => {
     const added: { title: string }[] = [];
     const list = tl('G', { done: [true] });
     const { pinia, m } = await setup({
@@ -713,7 +713,7 @@ describe('dialog', () => {
     useItemsStore().upsert(list);
     const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
     await flushPromises();
-    await w.get(tid('tasklist-items')).setValue('Eggs\n\n  Bread \n');
+    await w.get(tid('tasklist-items')).setValue('Milk\nEggs\n\n  Bread \n');
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(added.map((a) => a.title)).toEqual(['Eggs', 'Bread']);
@@ -721,12 +721,72 @@ describe('dialog', () => {
     expect(w.emitted('close')).toHaveLength(1);
     expect((useItemsStore().get('G') as TaskList).items.map((i) => i.title)).toEqual(['Milk', 'Eggs', 'Bread']);
   });
+  it('editing renames changed lines and keeps the ticks', async () => {
+    const list = tl('G', { done: [true, false, false] });
+    const { pinia, m } = await setup({
+      'PATCH /api/tasklists/G/items/G-i0': () => list, 'PATCH /api/tasklists/G/items/G-i1': () => list,
+    });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    expect((w.get(tid('tasklist-items')).element as HTMLTextAreaElement).value).toBe('Milk\nEggs\nBread');
+    await w.get(tid('tasklist-items')).setValue('Oat milk\nTea\nBread');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    const sent = m.calls.filter((c) => c.method !== 'GET').map((c) => `${c.method} ${c.url.pathname}`);
+    expect(sent).toContain('PATCH /api/tasklists/G/items/G-i0');
+    expect(m.calls.find((c) => c.url.pathname.endsWith('/items/G-i0'))!.body).toEqual({ title: 'Oat milk' });
+    expect(m.calls.find((c) => c.url.pathname.endsWith('/items/G-i1'))!.body).toEqual({ title: 'Tea' });
+    expect(sent).toHaveLength(2);
+    // renames send only the title: the tick stays where it is
+    expect(m.calls.filter((c) => c.method === 'PATCH').every((c) => Object.keys(c.body).join() === 'title')).toBe(true);
+  });
+  it('editing removes a line that is gone', async () => {
+    const list = tl('G', { done: [true, false, false] });
+    const { pinia, m } = await setup({ 'DELETE /api/tasklists/G/items/G-i1': () => list });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('Milk\nBread');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method !== 'GET').map((c) => `${c.method} ${c.url.pathname}`)).toEqual(['DELETE /api/tasklists/G/items/G-i1']);
+  });
+  it('editing orders a line put in the middle after adding it', async () => {
+    const list = tl('G', { done: [true, false, false] });
+    const { pinia, m } = await setup({ 'POST /api/tasklists/G/items': () => list, 'PUT /api/tasklists/G/items/order': () => list });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await w.get(tid('tasklist-items')).setValue('Milk\nTea\nEggs\nBread');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    const sent = m.calls.filter((c) => c.method !== 'GET').map((c) => `${c.method} ${c.url.pathname}`);
+    expect(sent).toEqual(['POST /api/tasklists/G/items', 'PUT /api/tasklists/G/items/order']);
+    expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toHaveLength(4);
+  });
+  it('items that appeared elsewhere while the form was open stay, and the order keeps them', async () => {
+    const list = tl('G', { done: [false, false] });
+    const { pinia, m } = await setup({ 'POST /api/tasklists/G/items': () => list, 'PUT /api/tasklists/G/items/order': () => list });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    useItemsStore().upsert({ ...list, items: [...list.items, { id: 'other', title: 'Jam', done: false }] });
+    await w.get(tid('tasklist-items')).setValue('Milk\nEggs\nTea');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    const sent = m.calls.filter((c) => c.method !== 'GET');
+    expect(sent.map((c) => c.method)).toEqual(['POST', 'PUT']);
+    expect(sent[1]!.body.itemIds).toHaveLength(4);
+    expect(sent[1]!.body.itemIds.at(-1)).toBe('other');
+  });
   it('editing refuses more items than a list may hold', async () => {
     const { pinia } = await setup();
     useItemsStore().upsert(tl('G', { done: new Array(199).fill(false) }));
     const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
     await flushPromises();
-    await w.get(tid('tasklist-items')).setValue('A\nB');
+    const field = w.get(tid('tasklist-items'));
+    await field.setValue(`${(field.element as HTMLTextAreaElement).value}\nA\nB`);
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(w.get(tid('tasklist-error')).text()).toBe('A task list can have 200 items at most');

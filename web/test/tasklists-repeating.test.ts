@@ -307,13 +307,26 @@ describe('the task list form on a repeating list', () => {
     expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=following']);
   });
 
-  it('only items typed: they are added with scope=following, and no change of the list itself is sent', async () => {
+  it('only a line added to the items: it is added with scope=following, and no change of the list itself is sent', async () => {
     const m = await form(week(), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
-    await setField('tasklist-items', 'Mirror');
+    await setField('tasklist-items', 'Sink\nFloor\nMirror');
     q(tid('tasklist-save'))!.click();
     await flushPromises();
     await choose('following');
     await vi.waitFor(() => expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items?scope=following']));
+  });
+
+  it('removing a task and keeping its subtask for this and all following lists keeps the subtask in every later list', async () => {
+    const tree = week({ items: [{ id: 'i0', title: 'Tent', done: false }, { id: 'i1', title: 'Pegs', done: false, level: 1 }], totalCount: 2 });
+    const m = await form(tree, { 'DELETE /api/tasklists/W_20261019/items/i0': answer(tree), 'PUT /api/tasklists/W_20261019/items/order': answer(tree) });
+    await setField('tasklist-items', 'Pegs');
+    q(tid('tasklist-save'))!.click();
+    await flushPromises();
+    await choose('following');
+    await vi.waitFor(() => expect(writes(m)).toEqual([
+      'DELETE /api/tasklists/W_20261019/items/i0?scope=following&subtasks=keep',
+      'PUT /api/tasklists/W_20261019/items/order?scope=following',
+    ]));
   });
 
   it('ticking the title of a repeating title-only list moves the title into a ticked item for this list without asking', async () => {
