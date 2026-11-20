@@ -1,5 +1,5 @@
 import { notFound, preconditionFailed, validation, ApiException } from '../lib/errors.js';
-import { addDays, dayNumber, formatInZone, localDateOf, startOfLocalDay } from '../lib/time.js';
+import { addDays, addMonthsClamp, dayNumber, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import { NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent } from '../providers/CalendarProvider.js';
 import type { Recurrence, TaskList } from '../api/types.js';
 import { decodeTaskList, encodeTaskList, encodeTaskListPatch, nextCompletedOn, type TaskListData } from './taskCodec.js';
@@ -98,10 +98,9 @@ export class TaskSeries {
    * `check` runs on the shown occurrence first (unknown item → 404) so a refused change writes nothing.
    */
   async forFollowing(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
-    const { cur, master } = await this.locateSeries(id);
+    const { cur, master: found } = await this.locateSeries(id);
     check?.(decodeTaskList(cur, this.tz));
-    // a rule that ends after a number of times cannot be cut at a date without counting it out: not split
-    if (/[:;]COUNT=/.test(ruleLine(master))) throw validation('This list repeats a set number of times; change it in Google Calendar', 'scope');
+    const master = await this.countToUntil(found);
     const root = master.extendedProperties?.private?.series ?? master.id;
     const shown = this.ruleStart(cur);
     const all = await this.seriesEvents(master.calendarId);
@@ -271,6 +270,17 @@ export class TaskSeries {
   /** `change` for the occurrences `scope` names. */
   forScope(scope: 'following' | 'all', id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
     return scope === 'all' ? this.forAll(id, change, check) : this.forFollowing(id, change, check);
+  }
+
+  /** A rule that ends after a number of times is written as the date of its last list (`UNTIL`), as Google does when it splits one. */
+  private async countToUntil(master: GoogleEvent): Promise<GoogleEvent> {
+    const n = Number(/[:;]COUNT=(\d+)/.exec(ruleLine(master))?.[1]);
+    if (!n) return master;
+    const d = decodeTaskList(master, this.tz);
+    if (!d.date || !d.recurrence) throw validation('This list repeats in a way the app cannot change; change it in Google Calendar', 'scope');
+    const last = d.recurrence === 'daily' ? addDays(d.date, n - 1) : d.recurrence === 'weekly' ? addDays(d.date, 7 * (n - 1)) : addMonthsClamp(d.date, n - 1).date;
+    const ms = d.time ? zonedToUtc(last, d.time, this.tz) : null;
+    return this.provider.patchEvent(master.calendarId, master.id, { recurrence: withUntil(master.recurrence ?? [], untilValue({ date: last, ms })) }, { ifMatch: master.etag });
   }
 
   /** The first live occurrence of `master` after `day` within `days` days; null when none. */

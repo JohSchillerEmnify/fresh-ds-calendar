@@ -899,14 +899,6 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect((await remote()).find((e: any) => e.id === a.seriesId).recurrence).toEqual(['EXDATE;VALUE=DATE:20270106', 'RRULE:FREQ=WEEKLY;WKST=MO;UNTIL=20261021']);
   });
 
-  it('a rule that ends after a number of times (COUNT) is not split: 400, nothing changes', async () => {
-    const a = await create();
-    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY;COUNT=10'] });
-    const r = await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
-    expect(r.status).toBe(400);
-    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'Clean', 'Clean', 'Clean']);
-  });
-
   it('an unknown item answers 404 and changes nothing', async () => {
     await create();
     const second = await week('2026-10-21');

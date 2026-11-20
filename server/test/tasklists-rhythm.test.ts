@@ -304,3 +304,30 @@ describe('all lists never change a past list', () => {
     expect(r.body.date >= '2026-10-21').toBe(true);
   });
 });
+
+describe('a rule that ends after a number of times (COUNT)', () => {
+  const countSeries = async (time?: string) => {
+    const a = await create(time ? { time } : {});
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY;COUNT=6'] });
+    return a;
+  };
+  const titles = async () => (await lists('2026-12-07')).map((l: Row) => `${l.date} ${l.title} ${l.items.length}`);
+
+  it.each(['following', 'all'])('a title and an added item for %s lists work and the series ends where it ended', async (scope) => {
+    await countSeries();
+    const w2 = await on('2026-10-19');
+    expect((await t.json('PATCH', `/api/tasklists/${w2.id}?scope=${scope}`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await t.json('POST', `/api/tasklists/${w2.id}/items?scope=${scope}`, { title: 'Mirror' })).status).toBe(201);
+    // today is 2026-10-12, so for all lists the first list changes too
+    expect(await titles()).toEqual([
+      scope === 'all' ? '2026-10-12 Bathroom 3' : '2026-10-12 Clean 2', '2026-10-19 Bathroom 3', '2026-10-26 Bathroom 3', '2026-11-02 Bathroom 3', '2026-11-09 Bathroom 3', '2026-11-16 Bathroom 3',
+    ]);
+  });
+
+  it('a timed series keeps its last list too', async () => {
+    await countSeries('09:00');
+    const w2 = await on('2026-10-19');
+    expect((await t.json('PATCH', `/api/tasklists/${w2.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await lists('2026-12-07')).map((l: Row) => l.date)).toEqual(['2026-10-12', '2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16']);
+  });
+});
