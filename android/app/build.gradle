@@ -90,7 +90,7 @@ dependencies {
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     testImplementation 'org.json:json:20260814' // the android.jar's org.json is a stub on the JVM
-    testImplementation 'org.robolectric:robolectric:4.17' // inflates the widgets like a launcher and draws them with the real Canvas (GraphicsMode NATIVE)
+    testImplementation 'org.robolectric:robolectric:4.18' // inflates the widgets like a launcher and draws them with the real Canvas (GraphicsMode NATIVE)
     testImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation 'androidx.test:core:1.7.0'
