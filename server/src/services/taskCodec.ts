@@ -258,7 +258,7 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
     recurrence,
     completedOn: isoDay(p.completedOn),
     createdOn: isoDay(p.createdOn),
-    seriesSince: isoDay(p.since),
+    ...(isoDay(p.since) ? { seriesSince: isoDay(p.since) } : {}),
     canvas: readCanvas(p),
   };
 }

@@ -115,13 +115,8 @@ export class TaskSeries {
   }
 
   /**
-   * A change of how a list repeats (feature tasklist-repeating; Google's "This and following events" / "All events" for
-   * a changed rule). `following`: the shown occurrence stays and ends its series (`UNTIL`, a COUNT is turned into it, as
-   * Google does when it splits), a new series with the new rule starts after it (id and ticks of the shown list stay), later
-   * parts and the old series' later single lists are dropped; from the first list of a part the rule is replaced in place.
-   * `all`: the rule of the first series is replaced, later parts go, single lists dated today or later are dropped, earlier
-   * ones (history) stay. A deleted week stays deleted. `rule` null: the shown list becomes a list of its own and nothing
-   * after it repeats; for `all` only from the first list. Never splits when the rhythm is the series' already.
+   * A change of how a list repeats: `following` splits the series after the shown list, `all` replaces its rule (Google's
+   * "This and following events" / "All events"). Rules and edge cases: spec/API.md "Changing how a list repeats".
    */
   async changeRule(id: string, rule: Recurrence | null, scope: 'following' | 'all'): Promise<TaskList> {
     if (isSharedId(id)) throw validation('A shared list cannot repeat', 'recurrence');
@@ -141,22 +136,24 @@ export class TaskSeries {
     if (rule === null) return this.endHere(cur, master, shown, firstOfPart, all, laterParts);
     if (scope === 'all') { const today = this.host.today(); return this.replaceRule(id, first, rule, all, parts.filter((p) => p.id !== first.id), (e) => this.ruleStart(e).date >= today); }
     if (firstOfPart) return this.replaceRule(id, master, rule, all, laterParts, (e) => this.ruleStart(e).date > shown.date);
-    // a series from the day after the shown list's next one in the new rhythm; one an earlier try made there is used again
-    const start = nextStart(shown.date, rule);
-    let fresh = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === start) ?? null;
-    if (!fresh) {
-      const base = { ...decodeTaskList(cur, this.tz), date: start, completedOn: null, recurrence: rule };
-      base.items = base.items.map((i) => ({ ...i, done: false }));
-      this.host.checkTaskData(base, base);
-      const g = encodeTaskList(base, this.tz, this.host.colorFor(base));
-      g.extendedProperties!.private!.series = root;
-      if (cur.reminders) g.reminders = cur.reminders;
-      fresh = await this.provider.insertEvent(master.calendarId, g);
-    }
+    const fresh = await this.newRhythmPart(cur, master, parts, root, rule, nextStart(shown.date, rule));
     for (const p of laterParts) if (p.id !== fresh.id) await this.deleteOld(p);
     await this.dropExceptions(all, master, (e) => this.ruleStart(e).date > shown.date);
     await this.endSeries(master, untilValue(shown));
     return this.host.getTaskList(id);
+  }
+
+  /** The series in the new rhythm from `start` (the shown list's data, unticked); one an earlier try made there is used again. */
+  private async newRhythmPart(cur: GoogleEvent, master: GoogleEvent, parts: GoogleEvent[], root: string, rule: Recurrence, start: string): Promise<GoogleEvent> {
+    const had = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === start);
+    if (had) return had;
+    const base = { ...decodeTaskList(cur, this.tz), date: start, completedOn: null, recurrence: rule };
+    base.items = base.items.map((i) => ({ ...i, done: false }));
+    this.host.checkTaskData(base, base);
+    const g = encodeTaskList(base, this.tz, this.host.colorFor(base));
+    g.extendedProperties!.private!.series = root;
+    if (cur.reminders) g.reminders = cur.reminders;
+    return this.provider.insertEvent(master.calendarId, g);
   }
 
   /** The rule of `part` replaced, every part in `others` deleted and the single lists `drop` names with them; kept ones show the new rhythm. */

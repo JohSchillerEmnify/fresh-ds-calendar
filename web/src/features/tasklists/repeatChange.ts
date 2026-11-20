@@ -1,7 +1,4 @@
-/**
- * The question asked before the repeat rhythm of a repeating list changes (feature tasklist-repeating): which choices
- * Google's recurring events offer here, and how many later lists changed on their own would be dropped.
- */
+/** The question before a repeat rhythm changes (feature tasklist-repeating): the choices Google offers, and the lists lost. */
 import type { Recurrence, TaskList } from '@/api/types';
 
 /** The choices (`following` = this and all following lists, `all`) and the lists lost by each, as this device knows them. */
@@ -19,10 +16,7 @@ function changedOnTheirOwn(shown: TaskList, all: readonly TaskList[], from: stri
     && (l.doneCount > 0 || textOf(l) !== textOf(shown))).length;
 }
 
-/**
- * Like Google, "this and following" is not offered on the first list, and a list that stops repeating cannot change
- * all lists (that would drop the past ones). "This list" is never offered: one list cannot repeat on its own.
- */
+/** As in Google, "this and following" is not offered on the first list; ending offers no "all"; "this list" never. */
 export function ruleQuestion(shown: TaskList, rule: Recurrence | null, all: readonly TaskList[], today: string): RuleQuestion {
   const first = !!shown.seriesSince && shown.date === shown.seriesSince;
   const options: RuleQuestion['options'] = first ? ['all'] : rule === null ? ['following'] : ['following', 'all'];
