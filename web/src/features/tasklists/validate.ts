@@ -16,7 +16,7 @@ export interface TaskListForm {
   reminders?: Reminders;
 }
 
-export function parseItems(text: string): string[] {
+function parseItems(text: string): string[] {
   return text.split('\n').map((l) => l.trim()).filter(Boolean);
 }
 
