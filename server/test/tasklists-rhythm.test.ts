@@ -20,19 +20,19 @@ const remote = async () => (await t.json('GET', '/api/__test/remote/events')).bo
 const change = (id: string, scope: string, recurrence: string | null) => t.json('PATCH', `/api/tasklists/${id}?scope=${scope}`, { recurrence });
 
 describe('this and all following lists', () => {
-  it('splits from week 2: the old series ends with it, a daily series starts after it, earlier lists stay', async () => {
+  it('splits from week 2: the old series ends before it, a daily series starts at it with its data, earlier lists stay', async () => {
     const a = await create();
     const week2 = await on('2026-10-19');
     const r = await change(week2.id, 'following', 'daily');
     expect(r.status).toBe(200);
-    expect(r.body.id).toBe(week2.id);
+    expect(r.body).toMatchObject({ date: '2026-10-19', recurrence: 'daily' });
     expect(await dates('2026-10-23')).toEqual(['2026-10-12', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22']);
     const masters = (await remote()).filter((e: Raw) => e.recurrence);
     const old = masters.find((e: Raw) => e.id === a.seriesId);
-    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261019');
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261018');
     const fresh = masters.find((e: Raw) => e.id !== a.seriesId);
     expect(fresh.recurrence).toEqual(['RRULE:FREQ=DAILY']);
-    expect(fresh.start).toEqual({ date: '2026-10-20' });
+    expect(fresh.start).toEqual({ date: '2026-10-19' });
     expect(fresh.extendedProperties.private.series).toBe(a.seriesId);
     expect(fresh.extendedProperties.private.since).toBe('2026-10-12');
     expect((await lists('2026-10-23')).every((l: Row) => l.seriesKey === a.seriesId)).toBe(true);
@@ -86,7 +86,7 @@ describe('this and all following lists', () => {
     const week3 = await on('2026-10-26');
     expect((await change(week3.id, 'following', 'daily')).status).toBe(200);
     const old = (await remote()).find((e: Raw) => e.id === a.seriesId);
-    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261026');
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261025');
     expect(await dates('2026-10-29')).toEqual(['2026-10-12', '2026-10-19', '2026-10-26', '2026-10-27', '2026-10-28']);
   });
 

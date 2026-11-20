@@ -1,5 +1,5 @@
 import { notFound, preconditionFailed, validation, ApiException } from '../lib/errors.js';
-import { addDays, addMonthsClamp, formatInZone, localDateOf, startOfLocalDay } from '../lib/time.js';
+import { addDays, formatInZone, localDateOf, startOfLocalDay } from '../lib/time.js';
 import { NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent } from '../providers/CalendarProvider.js';
 import type { Recurrence, TaskList } from '../api/types.js';
 import { decodeTaskList, encodeTaskList, encodeTaskListPatch, nextCompletedOn, type TaskListData } from './taskCodec.js';
@@ -133,11 +133,16 @@ export class TaskSeries {
     if (rule === null) return this.endHere(cur, master, shown, firstOfPart, all, laterParts);
     if (scope === 'all') { const today = this.host.today(); return this.replaceRule(id, first, rule, all, parts.filter((p) => p.id !== first.id), (e) => this.ruleStart(e).date >= today); }
     if (firstOfPart) return this.replaceRule(id, master, rule, all, laterParts, (e) => this.ruleStart(e).date > shown.date);
-    const fresh = await this.newRhythmPart(cur, master, parts, root, rule, nextStart(shown.date, rule));
+    const fresh = await this.newRhythmPart(cur, master, parts, root, rule, shown.date);
+    const head = await this.occurrenceOn(fresh, shown.date);
+    if (!head) throw new ApiException('PROVIDER_ERROR', 502, 'The new task list could not be found; nothing was ended');
+    // the shown list's own data (ticks, title, items) goes to the new series' first list
+    const own = decodeTaskList(cur, this.tz);
+    const mine = await this.provider.patchEvent(head.calendarId, head.id, encodeTaskListPatch({ ...own, recurrence: rule }, this.tz, this.host.colorFor(own), head), { ifMatch: head.etag });
     for (const p of laterParts) if (p.id !== fresh.id) await this.deleteOld(p);
-    await this.dropExceptions(all, master, (e) => this.ruleStart(e).date > shown.date);
-    await this.endSeries(master, untilValue(shown));
-    return this.host.getTaskList(id);
+    await this.dropExceptions(all, master, (e) => this.ruleStart(e).date >= shown.date);
+    await this.endSeries(master, untilValue({ date: addDays(shown.date, -1), ms: shown.ms === null ? null : shown.ms - 1000 }));
+    return this.host.getTaskList(mine.id);
   }
 
   /** The series in the new rhythm from `start` (the shown list's data, unticked); one an earlier try made there is used again. */
@@ -354,6 +359,3 @@ const withUntil = (lines: string[], until: string): string[] => lines.map((l) =>
 /** RFC 5545 UNTIL of an occurrence's rule start: a date for an all-day series, the UTC instant for a timed one. */
 const untilValue = (at: { date: string; ms: number | null }): string => (at.ms === null
   ? at.date.replaceAll('-', '') : new Date(at.ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''));
-
-/** The first date of a new series in `rule` after `day`: the next day, week or month. */
-const nextStart = (day: string, rule: Recurrence): string => (rule === 'daily' ? addDays(day, 1) : rule === 'weekly' ? addDays(day, 7) : addMonthsClamp(day, 1).date);

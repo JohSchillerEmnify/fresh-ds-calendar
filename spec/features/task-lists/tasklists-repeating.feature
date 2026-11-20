@@ -171,7 +171,7 @@ Feature: Changing a repeating task list for this one or this and all following o
     Then I am asked whether to change "This and all following task lists" or "All task lists"
     And "This and all following task lists" is chosen
 
-  Scenario: This and all following lists start the new rhythm after this one and leave earlier lists alone
+  Scenario: This and all following lists start the new rhythm with this one and leave earlier lists alone
     When I open the day view for 2026-10-19
     And I expand the task list "Clean bathroom"
     And I edit the task list details
