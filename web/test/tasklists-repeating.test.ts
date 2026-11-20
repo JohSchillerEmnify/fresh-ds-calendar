@@ -53,7 +53,7 @@ async function open(list: TaskList, routes: Record<string, (r: { body: any; url:
 }
 const q = (s: string) => document.querySelector<HTMLElement>(s);
 const asked = () => q(tid('repeat-scope-dialog'));
-async function choose(which: 'this' | 'following' | 'cancel') {
+async function choose(which: 'this' | 'following' | 'all' | 'cancel') {
   if (which === 'cancel') q(tid('repeat-scope-cancel'))!.click();
   else {
     q(`${tid(`repeat-scope-${which}`)} input`)!.click();
@@ -372,5 +372,71 @@ describe('the task list form on a repeating list', () => {
     await flushPromises();
     expect(asked()).toBeNull();
     expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019']);
+  });
+
+  describe('how the list repeats', () => {
+    const pick = async (v: string) => {
+      const sel = q(tid('tasklist-repeat')) as HTMLSelectElement;
+      sel.value = v;
+      sel.dispatchEvent(new Event('change'));
+      await nextTick();
+    };
+    const save = async () => { q(tid('tasklist-save'))!.click(); await flushPromises(); };
+    const labels = () => [...document.querySelectorAll(`${tid('repeat-scope-dialog')} label`)].map((l) => l.textContent!.trim());
+    const answerPatch = { 'PATCH /api/tasklists/W_20261019': ({ body }: { body: object }) => week({ ...body }) };
+
+    it('the Repeat field is enabled on a repeating list', async () => {
+      await form(week(), {});
+      expect((q(tid('tasklist-repeat')) as HTMLSelectElement).disabled).toBe(false);
+    });
+
+    it('a changed rhythm offers This and all following / All lists (never "This task list"); all sends scope=all alone', async () => {
+      const m = await form(week(), answerPatch);
+      await pick('daily');
+      await save();
+      expect(labels()).toEqual(['This and all following task lists', 'All task lists']);
+      await choose('all');
+      expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=all']);
+      expect(m.calls.find((c) => c.method === 'PATCH')!.body).toEqual({ recurrence: 'daily' });
+    });
+
+    it('this and all following sends scope=following after the other changes, title included', async () => {
+      const m = await form(week(), answerPatch);
+      await setField('tasklist-title', 'Bathroom');
+      await pick('monthly');
+      await save();
+      await choose('following');
+      expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=following', 'PATCH /api/tasklists/W_20261019?scope=following']);
+      expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body)).toEqual([{ title: 'Bathroom' }, { recurrence: 'monthly' }]);
+    });
+
+    it('the first list offers only All lists, a list that stops repeating only This and all following', async () => {
+      await form(week({ seriesSince: '2026-10-19' }), answerPatch);
+      await pick('daily');
+      await save();
+      expect(labels()).toEqual(['All task lists']);
+      await choose('cancel');
+      wrapper!.unmount();
+      await form(week(), answerPatch);
+      await pick('');
+      await save();
+      expect(labels()).toEqual(['This and all following task lists']);
+    });
+
+    it('warns when later lists were changed on their own, and not otherwise', async () => {
+      const later = week({ id: 'W_20261026', date: '2026-10-26', doneCount: 1, items: [{ id: 'i0', title: 'Sink', done: true }, { id: 'i1', title: 'Floor', done: false }], seriesKey: 'W' });
+      const earlier = week({ id: 'W_20261012', date: '2026-10-12', doneCount: 1, seriesKey: 'W' });
+      const m = await form(week({ seriesKey: 'W' }), answerPatch);
+      useItemsStore().upsert(earlier);
+      await pick('daily');
+      await save();
+      expect(q(tid('repeat-scope-lost'))).toBeNull();
+      await choose('cancel');
+      useItemsStore().upsert(later);
+      await save();
+      expect(q(tid('repeat-scope-lost'))).not.toBeNull();
+      await choose('cancel');
+      expect(writes(m)).toEqual([]);
+    });
   });
 });

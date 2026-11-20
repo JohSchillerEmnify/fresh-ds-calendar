@@ -240,7 +240,7 @@ function showAnswer(s: OutboxState, c: Change, id: string, result: CalendarItem)
   if (shown) items().upsert(shown);
   const series = result.kind === 'tasklist' ? result.seriesId : undefined;
   if (c.op === 'list.create' && series) items().noteSeries(result.id, series);
-  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && (c.scope === 'following' || c.patch.recurrence))) ports.resync?.();
+  if ((c.op === 'list.create' && series) || (c.op === 'list.update' && (c.scope || c.patch.recurrence))) ports.resync?.();
 }
 
 /** An entry reached the server: it leaves the outbox and the server's version replaces the device copy. */

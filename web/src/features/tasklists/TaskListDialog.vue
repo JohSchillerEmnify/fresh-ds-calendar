@@ -42,6 +42,8 @@ import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sh
 import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
+import { ruleQuestion } from './repeatChange';
+import { useClockStore } from '@/stores/clock';
 import TemplatePill from './TemplatePill.vue';
 import { fillFromTemplate, inkLinesOf, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
@@ -63,6 +65,7 @@ const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const lists = useTaskListsStore();
+const clock = useClockStore();
 
 const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
@@ -205,17 +208,23 @@ async function save() {
   };
   const itemsChanged = !!plan && !!(plan.renames.length || plan.deletes.length || plan.adds.length || inkForm.written.value.length);
   // a renamed repeating list or changed item lines: the change may go to the following lists too, the rest of the form stays with this one
-  const s = current && (body.title !== originalTitle.trim() || itemsChanged) ? await scope.ask(current) : 'this';
+  // a changed rhythm of a repeating list asks once for the whole save: this and all following lists, or all lists
+  const rule = form.repeat || null;
+  const ruleChanged = !!current?.seriesId && rule !== (current.recurrence ?? null);
+  const s = ruleChanged ? await scope.ask(current, ruleQuestion(current!, rule, items.all.filter((i): i is TaskList => i.kind === 'tasklist'), clock.today))
+    : current && (body.title !== originalTitle.trim() || itemsChanged) ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
-  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, s === 'following' ? s : undefined); };
+  // the title and the item lines have no "all lists": they follow the later lists
+  const later = s === 'following' || s === 'all' ? 'following' : undefined;
+  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); };
   // a list that starts to repeat gets its item changes first, so every later week has them
   const itemsFirst = !!body.recurrence && editing.value;
   try {
     if (itemsFirst) sendItems();
-    if (editing.value && s === 'following') {
+    if (editing.value && later) {
       const { title, ...rest } = body;
       // the item lines are sent separately, they are no change of the list's own fields
-      const othersChanged = JSON.stringify({ ...form, title: '', items: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '', items: '' });
+      const othersChanged = JSON.stringify({ ...form, title: '', items: '', repeat: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '', items: '', repeat: '' });
       if (othersChanged) {
         outbox.updateList(props.id!, rest, undefined, etag);
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
@@ -223,7 +232,7 @@ async function save() {
       if (title !== originalTitle.trim()) outbox.updateList(props.id!, { title }, 'following');
     } else if (editing.value) {
       const changed = changedFields(body, current);
-      if (Object.keys(changed).length || !itemsChanged) outbox.updateList(props.id!, changed, undefined, etag);
+      if (Object.keys(changed).length || (!itemsChanged && !ruleChanged)) outbox.updateList(props.id!, changed, undefined, etag);
     } else {
       outbox.createList({
         ...body, items: [...lines.map(({ title, level }) => ({ title, ...levelProp(level) })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
@@ -231,6 +240,8 @@ async function save() {
     }
     // the items follow the list's own change, in order, through the same outbox path as the expanded list's "+"
     if (!itemsFirst) sendItems();
+    // last: it may take this list's place, so the other changes address it first
+    if (ruleChanged) outbox.updateList(props.id!, { recurrence: rule }, s);
     // the list is saved; a template that fails now is only reported, the list stays
     if (alsoTemplate.value) {
       await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
@@ -310,7 +321,7 @@ function remove() {
       <div v-else class="textlines" :class="{ ruled: inkMode.ruled.value || (toolsShown && inkStore.mode === 'text') }" data-testid="tasklist-text-lines" data-field="items">
         <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="itemRows" data-testid="tasklist-items" />
       </div>
-      <Select v-if="form.date && !current?.shared" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" :disabled="!!current?.recurrence" data-testid="tasklist-repeat" data-field="repeat" />
+      <Select v-if="form.date && !current?.shared" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" data-field="repeat" />
       <div class="tplrow">
         <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
         <Switch v-model="alsoTemplate" :label="t('tasks.templates.alsoSave')" data-testid="tasklist-save-as-template" />
@@ -325,7 +336,7 @@ function remove() {
     </form>
     <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
     <Teleport to="body">
-      <RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" />
+      <RepeatScopeDialog :open="scope.asking.value" :question="scope.question.value" @answer="scope.answer" />
       <ConfirmDialog :open="!!replacing" :title="t('tasks.templates.replaceTitle')" :message="t('tasks.templates.replaceHint')" :ok-label="t('tasks.templates.replaceOk')" @ok="confirmReplace" @cancel="replacing = null" />
     </Teleport>
   </AdaptiveSheet>

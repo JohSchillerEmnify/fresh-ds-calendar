@@ -463,7 +463,7 @@ function enc(s: string): string {
 
 /** A change for this and all following occurrences of a repeating list carries `?scope=following` (API.md, feature tasklist-repeating). */
 function scoped(path: string, scope?: ChangeScope): string {
-  return scope === 'following' ? `${path}?scope=following` : path;
+  return scope === 'following' || scope === 'all' ? `${path}?scope=${scope}` : path;
 }
 
 /** App-wide client instance. Tests construct their own `ApiClient` with a mocked `fetch`, or call `setApi`. */

@@ -24,8 +24,8 @@ export interface Me {
   name: string | null;
 }
 
-/** Which occurrences of a repeating task list a change is for (feature tasklist-repeating): the shown one, or it and all later ones. */
-export type ChangeScope = 'this' | 'following';
+/** Which occurrences of a repeating task list a change is for (feature tasklist-repeating): the shown one, it and all later ones, or (how it repeats only) all of them. */
+export type ChangeScope = 'this' | 'following' | 'all';
 
 export type Health = HealthResponse;
 
