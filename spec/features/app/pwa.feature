@@ -166,3 +166,24 @@ Feature: Installable progressive web app
       And a new version of the app is deployed
       When the app syncs
       Then the event dialog is open
+
+  # A deploy replaces the app's script files; a page opened before it still names the old ones.
+  Scenario: A view whose script a deploy removed opens after the app reloads itself
+    Given I have seen the week view for 2026-10-12
+    And the script of the month view is gone from the server until the page reloads
+    When I switch to the month view
+    Then the month view is shown
+    And the page has reloaded once
+
+  # unit: web/test/stale-chunk.test.ts:does not loop: a second failure right after the reload does not reload again
+  @unit
+  Scenario: A script that stays missing does not reload the app again and again
+    Given I have seen the week view for 2026-10-12
+    When a script file stays missing after the app reloaded
+    Then the app does not reload a second time
+
+  # unit: server/test/static.test.ts:asks again for the page, its fallback and the worker, so a deploy reaches the next load
+  @unit
+  Scenario: The server asks again for the page and the worker on every load
+    When I open the app
+    Then the page and the worker are not kept by the browser without asking

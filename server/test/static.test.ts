@@ -49,3 +49,16 @@ describe('precompressed assets', () => {
     expect(await res.text()).toBe(js);
   });
 });
+
+describe('cache headers', () => {
+  it('asks again for the page, its fallback and the worker, so a deploy reaches the next load', async () => {
+    fs.writeFileSync(path.join(dir, 'sw.js'), 'self');
+    for (const url of ['/index.html', '/', '/some/route', '/sw.js']) {
+      expect((await get(url, 'gzip')).headers.get('cache-control'), url).toBe('no-cache');
+    }
+  });
+
+  it('leaves the hashed assets to the browser cache', async () => {
+    expect((await get('/app.js', 'gzip')).headers.get('cache-control')).toBeNull();
+  });
+});
