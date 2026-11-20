@@ -535,8 +535,13 @@ export class CalendarService {
       if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for the following lists', 'scope');
       return this.series.forFollowing(id, (d) => ({ ...d, title }));
     }
+    if (input.recurrence && isSharedId(id)) throw validation('A shared list cannot repeat', 'recurrence');
     return this.modify(id, (d) => {
       const next = { ...d };
+      if (input.recurrence !== undefined && input.recurrence !== d.recurrence) {
+        if (d.recurrence) throw validation('A repeating list keeps its rhythm', 'recurrence');
+        next.recurrence = input.recurrence;
+      }
       if (input.title !== undefined) next.title = input.title;
       if (input.date !== undefined) next.date = input.date;
       if (input.time !== undefined) next.time = input.time;

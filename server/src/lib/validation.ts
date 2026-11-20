@@ -155,6 +155,8 @@ export const updateTaskListSchema = so({
   categoryId: v.optional(v.nullable(v.string())),
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
+  /** Only a list that does not repeat yet can be given a rhythm. */
+  recurrence: v.optional(recurrence),
   canvas: v.optional(canvasPlace),
   reminders: v.optional(reminders),
 });

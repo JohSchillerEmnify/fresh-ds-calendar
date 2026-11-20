@@ -250,6 +250,28 @@ describe('item operations', () => {
   });
 });
 
+describe('changing how a list repeats', () => {
+  it('a list that does not repeat can start repeating', async () => {
+    const a = await mk({ date: '2026-10-14' });
+    const u = await t.json('PATCH', `/api/tasklists/${a.id}`, { recurrence: 'weekly' });
+    expect(u.status).toBe(200);
+    expect(u.body.recurrence).toBe('weekly');
+    expect((await raw(a.id)).recurrence).toEqual(['RRULE:FREQ=WEEKLY']);
+  });
+
+  it('a list that repeats keeps its rhythm when the same one is sent, and refuses another', async () => {
+    const a = await mk({ date: '2026-10-14', recurrence: 'weekly' });
+    const next = (await t.json('GET', '/api/tasklists/' + a.id)).body;
+    expect((await t.json('PATCH', `/api/tasklists/${next.id}`, { recurrence: 'weekly', title: 'Same' })).status).toBe(200);
+    expect((await t.json('PATCH', `/api/tasklists/${next.id}`, { recurrence: 'daily' })).status).toBe(400);
+  });
+
+  it('an undated list cannot start repeating', async () => {
+    const a = await mk({ date: null });
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}`, { recurrence: 'weekly' })).status).toBe(400);
+  });
+});
+
 describe('chunking, description fallback, recurrence', () => {
   it('chunks items above 1024 chars and reads them back; removes stale chunks when shrinking', async () => {
     const items = Array.from({ length: 40 }, (_, i) => ({ title: `Item number ${i} with padding text`.padEnd(60, '.') }));

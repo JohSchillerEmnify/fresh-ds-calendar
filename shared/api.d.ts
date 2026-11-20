@@ -253,6 +253,8 @@ export interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  /** Gives a list that does not repeat a rhythm; a list that repeats keeps its own. */
+  recurrence?: Recurrence | null;
   /** Integers 0-10000; null clears the place. */
   canvas?: CanvasPlace | null;
   reminders?: Reminders;

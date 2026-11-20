@@ -705,6 +705,7 @@ interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  recurrence?: 'daily' | 'weekly' | 'monthly' | null; // gives a list that does not repeat a rhythm; a list that repeats keeps its own (400, field `recurrence`); never with `?scope=following`; an undated or a shared list cannot repeat
   canvas?: { x: number; y: number } | null; // x, y integers 0-10000 (else 400, field `canvas`); null clears the place
 }
 ```
