@@ -680,7 +680,7 @@ are made on the server, like a calendar birthday:
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
-| `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; index?: number }` | `201` `TaskList` |
+| `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; level?: 0 \| 1 \| 2; index?: number }` | `201` `TaskList` |
 | `PATCH` | `/api/tasklists/:id/items/:itemId` | `{ title?: string; done?: boolean }` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id/items/:itemId` | – | `200` `TaskList` |
 | `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[], levels?: (0 \| 1 \| 2)[] }` | `200` `TaskList` |
@@ -749,7 +749,7 @@ that item id. The answer is the given list (same `id`) after the change. The doo
 a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not repeat →
 400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400 (field
 `scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
-given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
+given id changes, as above. `index` inserts at a position (default: append); `level` sets the new item's level, made valid by the item above it. `itemIds` must be a
 permutation of the current ids, else 400. **Subtasks** (feature tasklist-subtasks): an item has `level` 1 or 2 (absent = a task); `levels` (one per id, 0 for a task) sets the levels with the new order, else they stay; a level is made valid (the first item is a task, an item is at most one level deeper than the one above, at most 2). A create takes `level` (0..2) on its items. Ticking an item sets `done` on its subtasks too (unticking, the same; ticking a subtask never changes its task), and deleting an item deletes its subtasks (the items right after it that have a higher level). Google's description indents a subtask by two spaces per level; the items JSON stores `l`. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
@@ -977,11 +977,11 @@ The person's task list **templates** (feature tasklist-templates), one JSON docu
 interface TaskTemplate {
   id: string;
   name: string;                    // trimmed, 1-80 characters, unique per person ignoring case and accents
-  items: { title: string }[];      // trimmed titles in order, never a done state; empty titles are dropped
+  items: { title: string; level?: 1 | 2 }[]; // trimmed titles in order, never a done state; empty titles are dropped; `level` as on a list item (absent = a task), made valid the same way
   estimateMinutes: number | null;  // 5-720
   categoryId: string | null;
 }
-interface TaskTemplateInput { name: string; items: { title: string }[]; estimateMinutes?: number | null; categoryId?: string | null }
+interface TaskTemplateInput { name: string; items: { title: string; level?: 0 | 1 | 2 }[]; estimateMinutes?: number | null; categoryId?: string | null }
 ```
 At most 200 items (each up to 200 characters) and 100 templates per person. A taken name is `400 VALIDATION_ERROR`
 with `key: "tasks.templates.nameTaken"` (field `name`), a name over 80 characters `key: "tasks.templates.nameTooLong"`, one

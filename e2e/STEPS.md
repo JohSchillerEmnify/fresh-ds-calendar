@@ -2746,6 +2746,7 @@ the open task list {string} has no date and {int} open item(s)
 
 ```
 I have the template {string} with the items {string}
+I have the template {string} with the items:
 I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
 {string} has the template {string} with the items {string}
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
@@ -2784,6 +2785,8 @@ the template form has no date, time, repeat or reminder fields
 the template dialog shows the error {string}
 my templates are {string}
 the template {string} has the items {string}
+the template {string} keeps the item {string} under {string}
+the template {string} keeps the item {string} as a task
 I have no templates
 ```
 
@@ -2793,6 +2796,7 @@ I have no templates
   session, which must be signed in as P (checked with `GET /api/auth/me`).
 - "I have the template T with the items "A, B"[, the estimate N minutes and the category C]": `POST /api/templates`
   before the page opens (items split on `", "`, C resolved by name from `GET /api/settings`).
+- "I have the template T with the items:" (text block): the same `POST /api/templates`; a line's level is its leading spaces divided by two. "the template T keeps the item X under Y" / "as a task": the stored `level` of X is one more than Y's / absent.
 - "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
   with `categoryId`, `time`, `estimateMinutes` and the items table (ticks included).
 - "I save the task list as a template": in the open list sheet (`tasklist-expanded`; "I expand the task list" opens

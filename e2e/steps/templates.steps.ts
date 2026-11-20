@@ -9,7 +9,7 @@ import { Api } from './support/api.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 import { settingControl } from './support/settings.js';
 
-interface Template { id: string; name: string; items: { title: string }[] }
+interface Template { id: string; name: string; items: { title: string; level?: number }[] }
 
 const TEMPLATE_FIELDS: Record<string, string> = {
   name: 'template-name',
@@ -48,6 +48,12 @@ const splitList = (s: string) => s.split(', ').filter(Boolean).map((title) => ({
 
 Given('I have the template {string} with the items {string}', async function (this: World, name: string, items: string) {
   await this.api.post('/api/templates', { name, items: splitList(items) });
+});
+
+/** Template items from indented lines: two spaces a level (the fixture's own simple form of the app's rule). */
+Given('I have the template {string} with the items:', async function (this: World, name: string, text: string) {
+  const items = text.split('\n').filter((l) => l.trim()).map((l) => ({ title: l.trim(), level: Math.floor((l.length - l.trimStart().length) / 2) }));
+  await this.api.post('/api/templates', { name, items });
 });
 
 Given('{string} has the template {string} with the items {string}', async function (this: World, email: string, name: string, items: string) {
@@ -298,6 +304,19 @@ Then('my templates are {string}', async function (this: World, names: string) {
 
 Then('the template {string} has the items {string}', async function (this: World, name: string, items: string) {
   await expect.poll(async () => (await templates(this)).find((x) => x.name === name)?.items.map((i) => i.title).join(', ') ?? null).toBe(items);
+});
+
+const levelsOf = async (w: World, name: string) => {
+  const items = (await templates(w)).find((x) => x.name === name)?.items ?? [];
+  return new Map(items.map((i) => [i.title, i.level ?? 0]));
+};
+
+Then('the template {string} keeps the item {string} under {string}', async function (this: World, name: string, item: string, parent: string) {
+  await expect.poll(async () => { const l = await levelsOf(this, name); return (l.get(item) ?? -1) - (l.get(parent) ?? 0) === 1 && l.has(parent); }).toBe(true);
+});
+
+Then('the template {string} keeps the item {string} as a task', async function (this: World, name: string, item: string) {
+  await expect.poll(async () => (await levelsOf(this, name)).get(item)).toBe(0);
 });
 
 Then('I have no templates', async function (this: World) {

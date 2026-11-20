@@ -22,6 +22,9 @@ Feature: Task list templates
   "Everything should be stored on device and only synced from the server"): they show at once from the device and
   are refreshed from the server; without a connection they can be used but not changed.
   Changing or deleting a template never changes lists already made from it.
+  A template also keeps the levels of its items (task, subtask, sub-subtask), and a list made from it has the same
+  levels. In a template's lines and in the lines typed while creating or editing a list, spaces before a line make it
+  a subtask by the rule of tasklists-subtasks.feature. A template saved before levels existed has flat items.
 
   Background:
     Given the calendar is empty
@@ -47,6 +50,59 @@ Feature: Task list templates
       And my templates are "Packing"
       And the template "Packing" has the items "Passport, Charger, Toothbrush"
       And the task list "Packing" shows the done count "1/3"
+
+    Scenario: A template keeps the levels of the list's items
+      Given the calendar contains a task list "Packing" on 2026-10-14 with items:
+        | item  | done |
+        | Tent  | no   |
+        | Pegs  | no   |
+        | Poles | no   |
+        | Food  | no   |
+      When I open the day view for 2026-10-14
+      And I expand the task list "Packing"
+      And the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      And I save the task list as a template
+      And I confirm the template
+      Then the template "Packing" keeps the item "Pegs" under "Tent"
+      And the template "Packing" keeps the item "Poles" under "Pegs"
+      And the template "Packing" keeps the item "Food" as a task
+
+    Scenario: A new list saved as a template while it is created keeps its levels
+      When I open the week view for 2026-10-12
+      And I start creating a task list
+      And I fill in the task list form with:
+        | title | Camping |
+      And I type the items:
+        """
+        Tent
+          Pegs
+        Food
+        """
+      And I turn on "Also save as template" in the task list form
+      And I save the task list
+      Then the template "Camping" keeps the item "Pegs" under "Tent"
+      And the template "Camping" keeps the item "Food" as a task
+
+    Scenario: A list made from a template has its levels
+      Given I have the template "Camping" with the items:
+        """
+        Tent
+          Pegs
+            Poles
+        Food
+        """
+      When I create a task list from the template "Camping" on 2026-10-14
+      And I expand the task list "Camping"
+      Then the item "Pegs" is a subtask of "Tent"
+      And the item "Poles" is a subtask of "Pegs"
+      And the item "Food" is not a subtask
+
+    Scenario: A template saved before levels existed has flat items
+      Given I have the template "Packing" with the items "Passport, Charger"
+      When I create a task list from the template "Packing" on 2026-10-14
+      And I expand the task list "Packing"
+      Then the item "Charger" is not a subtask
 
     Scenario: Save a finished task list from the Archive as a template, next to its one-off copy
       Given the calendar contains a task list "Packing" finished on 2026-10-10 with the item "Passport"
