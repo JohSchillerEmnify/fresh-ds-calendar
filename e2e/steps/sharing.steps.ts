@@ -43,7 +43,12 @@ async function find(world: World, email: string, title: string): Promise<Listed>
 
 /** The Tasks view of the signed-in person. */
 async function openTasksView(world: World) {
-  if (new URL(world.page.url()).pathname !== '/tasks') await world.page.getByTestId('view-switch-tasks').click();
+  if (new URL(world.page.url()).pathname !== '/tasks') {
+    // the settings pages have no view switcher
+    const nav = world.page.getByTestId('view-switch-tasks');
+    if (await nav.isVisible()) await nav.click();
+    else await world.page.goto('/tasks');
+  }
   await expect(world.page.getByTestId('tasks-view')).toBeVisible();
 }
 
