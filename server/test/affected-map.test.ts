@@ -3,9 +3,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain .mjs script without types
-import { globRegex, loadMap, ruleFor, unmappedFiles } from '../../scripts/affected-map.mjs';
+import { globRegex, loadMap, ruleFor, stepRanges, touchesDef, unmappedFiles } from '../../scripts/affected-map.mjs';
 
 const root = resolve(__dirname, '../..');
+const affected = (...changed: string[]) =>
+  execFileSync('node', ['scripts/e2e-affected.mjs'], { cwd: root, encoding: 'utf8', env: { ...process.env, E2E_AFFECTED_FILES: changed.join('\n') } });
 const rules = loadMap(root);
 const files = execFileSync('git', ['ls-files', '-c', '-o', '--exclude-standard', 'web/src', 'server/src', 'shared'], { cwd: root, encoding: 'utf8' })
   .split('\n')
@@ -48,5 +50,27 @@ describe('e2e affected map', () => {
 
   it('finds the rule of a file', () => {
     expect(ruleFor(rules, 'server/src/services/templateStore.ts').select).toEqual(['@id:tasklist-templates']);
+  });
+
+  it.concurrent.each([
+    'server/src/lib/secretBox.ts',
+    'web/src/native/apkHint.ts',
+    'web/index.html',
+    'Dockerfile',
+  ])('a change to %s selects at least one runnable scenario', (file) => {
+    expect(affected(file)).toMatch(/^--grep .*\(\d+ of \d+ runnable scenarios/);
+  });
+
+  it('selects nothing for a file no scenario can show', () => {
+    expect(affected('web/test/tasklists.test.ts').trim()).toBe('none');
+  });
+
+  it('credits a helper between step definitions to every definition of the file', () => {
+    const lines = readFileSync(resolve(root, 'e2e/steps/tasklists.steps.ts'), 'utf8').split('\n');
+    const ranges = stepRanges(lines);
+    const helper = lines.findIndex((l) => l.startsWith('const itemLine'));
+    expect(ranges.every((r: { start: number; end: number }) => helper < r.start || helper >= r.end)).toBe(true);
+    expect(ranges.every((_: unknown, k: number) => touchesDef([[helper, helper + 1]], ranges, k))).toBe(true);
+    expect(touchesDef([[ranges[1].start, ranges[1].start + 1]], ranges, 0)).toBe(false);
   });
 });

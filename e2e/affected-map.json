@@ -110,7 +110,7 @@
     { "paths": ["shared/weekHours.*", "shared/zone.*"], "select": ["@area:views", "@area:events"] },
     { "paths": ["shared/widgetInstaller.*"], "select": ["@id:iphone-widget", "@id:phone-widget"] },
     { "paths": ["shared/theme.schema.json"], "select": ["@area:themes"] },
-    { "paths": ["shared/index.*", "shared/api.d.ts"], "select": ["@smoke", "@ci"] },
+    { "paths": ["shared/index.*"], "select": ["@smoke", "@ci"] },
 
     { "paths": ["server/src/api/taskListRoutes.ts", "server/src/services/taskCodec.ts", "server/src/services/taskSeries.ts", "server/src/services/tasksCalendar.ts", "server/src/services/canvasStore.ts", "server/src/services/inkService.ts", "server/src/services/inkStore.ts"], "select": ["@area:tasklists"] },
     { "paths": ["server/src/services/templateStore.ts"], "select": ["@id:tasklist-templates"] },

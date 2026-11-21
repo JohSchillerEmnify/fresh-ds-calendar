@@ -21,3 +21,21 @@ export function loadMap(root) {
 export const ruleFor = (rules, path) => rules.find((r) => r.res.some((re) => re.test(path)));
 
 export const unmappedFiles = (rules, files) => files.filter((f) => GATED.test(f) && !ruleFor(rules, f));
+
+/** Line ranges [start, end) of the step definitions in a steps file; a definition ends at its closing `});`. */
+export function stepRanges(lines) {
+  const starts = lines.flatMap((l, i) => (/^(?:Given|When|Then|Step)\(/.test(l) ? [i] : []));
+  return starts.map((start, k) => {
+    const limit = starts[k + 1] ?? lines.length;
+    if (!/[{(]\s*$|=>\s*$/.test(lines[start])) return { start, end: start + 1 };
+    let end = start + 1;
+    while (end < limit && !/^\}\);?\s*$/.test(lines[end - 1])) end++;
+    return { start, end };
+  });
+}
+
+/** A definition counts as changed when a hunk overlaps it; a hunk outside every definition (imports, helpers) touches all. */
+export function touchesDef(hunks, ranges, k) {
+  const inDef = (h) => ranges.some((r) => h[0] < r.end && h[1] > r.start);
+  return hunks.some((h) => !inDef(h) || (h[0] < ranges[k].end && h[1] > ranges[k].start));
+}
