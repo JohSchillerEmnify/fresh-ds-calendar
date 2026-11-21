@@ -59,6 +59,8 @@ Feature: Sharing task lists with another person
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
     And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I reload the page
+    And the task list "Groceries" in the Tasks view is shared with "A"
     When "anna@example.com" renames the shared task list "Groceries" to "Weekly shop"
     And I edit the task list "Groceries" in the Tasks view
     And I fill in the task list form with:
@@ -298,3 +300,47 @@ Feature: Sharing task lists with another person
     Given the device holds the invitation to the task list "Groceries" from "jo@example.com"
     When the device is offline
     Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+
+  @visual @mobile
+  Scenario Outline: The invitation card and its snackbar look right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the "invitation snackbar" still looks like "invitation-snackbar-<scheme>"
+    And the "invitation card" still looks like "invitation-card-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The sender's pending invitation looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the "list form" still looks like "invitation-pending-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The invitation card sits above the lists of the Tasks view in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "anna@example.com" has an undated task list "Errands" with the items "Post"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the "tasks view" still looks like "invitation-tasks-view-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
