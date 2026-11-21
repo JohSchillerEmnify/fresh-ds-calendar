@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-// `pnpm e2e:affected [base]`: prints the Playwright --grep for the features touched since `base` (default origin/main,
-// falling back to main when there is no remote). Heuristic, see CONTRIBUTING.md "Tooling":
+// `pnpm e2e:affected [base]`: prints the Playwright --grep and --project for the scenarios touched since `base` (default
+// origin/main, falling back to main). Mapping, see docs/DEVELOPER-GUIDE.md "e2e affected map":
 //   .feature changed          -> that feature
 //   e2e step/support changed  -> features whose steps match the step definitions in (or using helpers of) that file
-//   web/src file changed      -> features whose step definitions reference a data-testid literal found in that file
-// Web/server/shared files that share no testid with any step are listed on a second line as "unmapped".
+//   web/src, server/src, shared file -> the selectors of its rule in e2e/affected-map.json ("heuristic": features whose
+//                                steps reference a data-testid literal found in the file); `pnpm verify` fails on unmapped files
+// Counts leave out @unit and @backlog scenarios. A code change never selects nothing: it falls back to @smoke|@ci.
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GATED, loadMap, ruleFor } from './affected-map.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' }).trim();
@@ -23,18 +25,21 @@ let base = process.argv[2] ?? 'origin/main';
 const ok = (r) => { try { git('rev-parse', '--verify', '-q', r); return true; } catch { return false; } };
 if (!ok(base) && !process.argv[2]) base = 'main';
 if (!ok(base)) { console.error(`e2e:affected: unknown base ${base}`); process.exit(2); }
+const mergeBase = git('merge-base', base, 'HEAD');
+const changedFromBase = new Set(git('diff', '--name-only', mergeBase).split('\n'));
 const changed = new Set([
-  ...git('diff', '--name-only', git('merge-base', base, 'HEAD')).split('\n'),
+  ...changedFromBase,
   ...git('ls-files', '-o', '--exclude-standard').split('\n'),
 ].filter(Boolean));
 
-// --- features: tags, scenario count, step texts (Background included, Outline placeholders filled from Examples row 1)
+// --- features: tags, scenarios (own tags + feature tags, one per Examples row), step texts (Background included,
+// Outline placeholders filled from Examples row 1)
 const featureFiles = readdirSync(resolve(root, 'spec/features'), { recursive: true }).filter((f) => f.endsWith('.feature')).sort();
 const features = featureFiles.map((f) => {
   const lines = read(`spec/features/${f}`).split('\n').map((l) => l.trim());
   const name = (lines.find((l) => l.startsWith('Feature:')) ?? '').slice(8).trim();
-  const tags = new Set(), steps = [];
-  let scenarios = 0, outline = null, inExamples = false, header = null, firstRow = null, docstring = false;
+  const featureTags = new Set(), steps = [], scenarios = [];
+  let outline = null, inExamples = false, header = null, firstRow = null, docstring = false, pending = [], own = [], block = [], seenScenario = false;
   const flush = () => {
     if (outline) {
       for (const s of outline) steps.push(firstRow ? s.replace(/<([^>]+)>/g, (m, k) => firstRow[header.indexOf(k)] ?? m) : s);
@@ -44,13 +49,14 @@ const features = featureFiles.map((f) => {
   for (const l of lines) {
     if (l.startsWith('"""')) { docstring = !docstring; continue; }
     if (docstring) continue;
-    if (l.startsWith('@')) { for (const t of l.split(/\s+/)) tags.add(t); continue; }
-    if (/^(Scenario Outline|Scenario Template):/.test(l)) { flush(); outline = []; inExamples = false; header = null; firstRow = null; continue; }
-    if (/^Scenario:/.test(l)) { flush(); scenarios++; continue; }
-    if (/^Examples:/.test(l)) { inExamples = true; header = null; firstRow = null; continue; }
+    if (l.startsWith('@')) { pending.push(...l.split(/\s+/)); continue; }
+    if (/^(Scenario Outline|Scenario Template):/.test(l)) { flush(); outline = []; inExamples = false; header = null; firstRow = null; own = pending; pending = []; seenScenario = true; continue; }
+    if (/^Scenario:/.test(l)) { flush(); own = pending; scenarios.push({ tags: own }); pending = []; seenScenario = true; continue; }
+    if (/^Examples:/.test(l)) { inExamples = true; header = null; firstRow = null; block = pending; pending = []; continue; }
+    if (!seenScenario && pending.length) { pending.forEach((t) => featureTags.add(t)); pending = []; }
     if (inExamples && l.startsWith('|')) {
       const cells = l.split('|').slice(1, -1).map((c) => c.trim());
-      if (!header) header = cells; else { scenarios += 1; firstRow ??= cells; }
+      if (!header) header = cells; else { scenarios.push({ tags: [...own, ...block] }); firstRow ??= cells; }
       continue;
     }
     if (/^(Given|When|Then|And|But)\s/.test(l)) {
@@ -59,9 +65,10 @@ const features = featureFiles.map((f) => {
     }
   }
   flush();
-  return { file: f, name, tags: [...tags], steps, scenarios };
+  const tags = [...featureTags];
+  const all = scenarios.length ? scenarios : [{ tags: [] }];
+  return { file: f, name, tags, steps, scenarios: all.map((s) => ({ tags: [...new Set([...tags, ...s.tags])] })) };
 });
-for (const f of features) f.scenarios = Math.max(f.scenarios, 1);
 
 // --- Cucumber expression -> RegExp
 const EXPR = { string: '"[^"]*"', int: '-?\\d+', float: '-?\\d+(?:\\.\\d+)?', word: '\\S+' };
@@ -89,7 +96,7 @@ const defs = stepFiles.flatMap((p) => {
     const m = l.match(/^(?:Given|When|Then|Step)\(\s*(['"`])((?:\\.|(?!\1).)*)\1/);
     if (m) out.push({ file: rel(p), re: exprRegex(m[2].replace(/\\(['"`])/g, '$1')), start: i });
   });
-  out.forEach((d, k) => { d.body = lines.slice(d.start, out[k + 1]?.start ?? lines.length).join('\n'); });
+  out.forEach((d, k) => { d.end = out[k + 1]?.start ?? lines.length; d.body = lines.slice(d.start, d.end).join('\n'); });
   return out;
 });
 // support helpers: name -> literals inside it
@@ -104,38 +111,70 @@ const helpers = supportFiles.flatMap((p) => {
 const featuresUsing = (pred) => features.filter((f) => defs.some((d) => pred(d) && f.steps.some((s) => d.re.test(s))));
 const callers = (names) => (d) => [...names].some((n) => new RegExp(`\\b${n}\\b`).test(d.body));
 
-// --- map changed files to features
-const hit = new Set();
-const unmapped = [];
+// --- map changed files to features and tag selectors
+const hit = new Set(), selectors = new Set();
+let code = false;
 const add = (fs) => fs.forEach((f) => hit.add(f));
+const byTestId = (p) => {
+  let src = ''; try { src = read(p); } catch { return; } // deleted file
+  const ids = kebabs(src);
+  const viaHelpers = new Set(helpers.filter((h) => [...h.lits].some((l) => ids.has(l))).map((h) => h.name));
+  add(featuresUsing((d) => [...stepIds(d.body)].some((l) => ids.has(l)) || callers(viaHelpers)(d)));
+};
+const rules = loadMap(root);
+// A step definition counts as changed when a diff hunk overlaps it; a hunk outside any definition (imports, helpers) touches all.
+function hunks(p) {
+  if (!changedFromBase.has(p)) return null;
+  const lines = git('diff', '-U0', mergeBase, '--', p).split('\n').filter((l) => l.startsWith('@@'));
+  return lines.map((l) => { const [, a, b = '1'] = l.match(/\+(\d+)(?:,(\d+))?/); return [Number(a) - 1, Number(a) - 1 + Math.max(Number(b), 1)]; });
+}
+const stepHunks = new Map();
+const touched = (d) => {
+  if (!stepHunks.has(d.file)) stepHunks.set(d.file, hunks(d.file));
+  const hs = stepHunks.get(d.file);
+  if (!hs) return true;
+  const inDef = (h) => defs.some((x) => x.file === d.file && h[0] < x.end && h[1] > x.start);
+  return hs.some((h) => !inDef(h)) || hs.some((h) => h[0] < d.end && h[1] > d.start);
+};
 for (const p of changed) {
   if (p.startsWith('spec/features/') && p.endsWith('.feature')) add(features.filter((f) => `spec/features/${f.file}` === p));
-  else if (p.endsWith('.steps.ts') && p.startsWith('e2e/steps/')) add(featuresUsing((d) => d.file === p));
+  else if (p.endsWith('.steps.ts') && p.startsWith('e2e/steps/')) add(featuresUsing((d) => d.file === p && touched(d)));
   else if (p.startsWith('e2e/steps/')) {
     const names = new Set(helpers.filter((h) => h.file === p).map((h) => h.name));
     add(featuresUsing(callers(names)));
-  } else if (/^web\/src\/.*\.(vue|ts)$/.test(p)) {
-    let src = ''; try { src = read(p); } catch { continue; } // deleted file
-    const ids = kebabs(src);
-    const viaHelpers = new Set(helpers.filter((h) => [...h.lits].some((l) => ids.has(l))).map((h) => h.name));
-    const before = hit.size;
-    add(featuresUsing((d) => [...stepIds(d.body)].some((l) => ids.has(l)) || callers(viaHelpers)(d)));
-    if (hit.size === before && !featuresUsing((d) => [...stepIds(d.body)].some((l) => ids.has(l))).length) unmapped.push(p);
-  } else if (/^(web|server|shared)\/(src|index)/.test(p)) unmapped.push(p);
+  } else if (/^(pnpm-lock\.yaml|(web|server)\/package\.json)$/.test(p)) code = true; // dependency change: smoke set
+  else if (GATED.test(p)) {
+    const r = ruleFor(rules, p);
+    if (r?.noE2e) continue;
+    code = true;
+    if (!r) { selectors.add('@smoke'); selectors.add('@ci'); continue; }
+    for (const sel of r.select) if (sel === 'heuristic') { if (/\.(vue|ts)$/.test(p)) byTestId(p); } else selectors.add(sel);
+  }
 }
+const idOf = (f) => f.tags.find((t) => t.startsWith('@id:'));
+for (const f of features) if (hit.has(f)) selectors.add(idOf(f));
+if (code && !selectors.size) { selectors.add('@smoke'); selectors.add('@ci'); }
 
-// --- grep term per feature: @id, else a tag no other feature shares (prefix-safe), else the feature title
-function term(f) {
-  const others = features.filter((o) => o !== f).flatMap((o) => o.tags);
-  const unique = (t) => !others.some((u) => u.startsWith(t));
-  const id = f.tags.find((t) => t.startsWith('@id:'));
-  const t = (id && unique(id) && id) || f.tags.find(unique);
-  return t ?? f.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-if (hit.size === 0) console.log('none');
+// --- selected scenarios, without @unit/@backlog (no project runs them)
+const runnable = (sc) => !sc.tags.includes('@unit') && !sc.tags.includes('@backlog');
+const picked = features.flatMap((f) => f.scenarios.filter((sc) => runnable(sc) && sc.tags.some((t) => selectors.has(t))).map((sc) => ({ f, sc })));
+const total = features.reduce((n, f) => n + f.scenarios.filter(runnable).length, 0);
+const nFeatures = new Set(picked.map((x) => x.f)).size;
+
+// --- grep term: the tag, made prefix-safe when another tag starts with it (@id:a vs @id:a-b)
+const allTags = new Set(features.flatMap((f) => f.scenarios.flatMap((sc) => sc.tags)));
+const term = (t) => ([...allTags].some((o) => o !== t && o.startsWith(t)) ? `${t}(\\s|$)` : t);
+
+// --- projects as projects/*.config: mobile skips @desktop/@tablet, desktop skips @mobile/@tablet/@perf, tablet and iphone only theirs
+const needs = (tags) => [
+  ...(tags.includes('@tablet') ? ['tablet'] : tags.includes('@desktop') ? ['desktop'] : ['mobile']),
+  ...(tags.includes('@iphone') ? ['iphone'] : []),
+];
+const projects = new Set(picked.flatMap((x) => needs(x.sc.tags)));
+
+if (picked.length === 0) console.log('none');
 else {
-  const list = features.filter((f) => hit.has(f));
-  const n = list.reduce((s, f) => s + f.scenarios, 0);
-  console.log(list.length === features.length ? `all  (${list.length} features, ~${n} scenarios)` : `--grep "${list.map(term).join('|')}"  (${list.length} features, ~${n} scenarios)`);
+  const counts = `${picked.length} of ${total} runnable scenarios, ${nFeatures} features`;
+  console.log(picked.length === total ? `all  (${counts})` : `--grep "${[...selectors].filter((t) => allTags.has(t)).map(term).join('|')}"  (${counts})`);
+  console.log(`projects: ${['mobile', 'desktop', 'iphone', 'tablet'].filter((p) => projects.has(p)).map((p) => `--project=${p}`).join(' ')}`);
 }
-if (unmapped.length) console.log(`unmapped (no testid shared with e2e steps): ${unmapped.length} files, e.g. ${unmapped.slice(0, 3).join(', ')}`);
