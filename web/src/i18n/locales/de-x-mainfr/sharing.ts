@@ -14,6 +14,7 @@ export default {
   stopFailed: 'Des Deiln hat sich ned beendn lassn.',
   leaveFailed: 'Die Lisdn hat sich ned verlassn lassn.',
   invite: {
+    acceptLater: 'Die Eiladung hat sich grad ned annehma lassn. Probier s später nuamal.',
     cardList: 'Eiladung zu ner Lisdn',
     cardCategory: 'Eiladung zu ner Kategorie',
     textList: '{address} ladd dich ei, „{title}“ zu deiln.',
@@ -29,6 +30,7 @@ export default {
     declineFailed: 'Die Eiladung hat sich ned ablehna lassn.',
     withdrawFailed: 'Die Eiladung hat sich ned zurückziehn lassn.',
   },
+  tooMany: 'Du hast zu viele offene Eiladunga. Zieh erschd oine zurück.',
   ownerOnlyCategory: 'Nur der Besitzer kann die Kategorie vo ner geteildn Lisdn ändern.',
   category: {
     hint: 'Die Person werd eingladn. Wenn sie zusacht, wern alle Lisdn vo dera Kategorie un neue geteilt.',

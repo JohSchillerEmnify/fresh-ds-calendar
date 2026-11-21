@@ -51,9 +51,9 @@ export async function sessionCookie(t: TestApp, email: string): Promise<string> 
   return cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
 }
 
-/** One person's API caller (own session). */
 /** The API's JSON answer, untyped as `TestApp.json` is. */
 type Json = ReturnType<typeof JSON.parse>;
+/** One person's API caller (own session). */
 export type Caller = (method: string, url: string, body?: unknown) => Promise<{ status: number; body: Json }>;
 
 /** Shares a list the way people do: the owner invites, the other person accepts. Returns the shared list as the owner sees it. */

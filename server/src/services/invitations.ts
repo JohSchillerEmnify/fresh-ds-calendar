@@ -67,9 +67,14 @@ export class Invitations {
   /** Sends an invitation; the same one sent again changes nothing (a declined one stays declined, its time keeps running). */
   send(d: Draft): void {
     const all = this.live();
-    if (all.some((i) => i.owner === d.owner && i.kind === d.kind && i.target === d.target && i.address === d.address)) return;
+    if (this.has(d)) return;
     this.save([...all, { ...d, id: nanoid(16), expires: this.clock.nowMs() + INVITATION_DAYS * DAY_MS }]);
     logEvent('invitation_sent', { kind: d.kind });
+  }
+
+  /** Whether this very invitation (same sender, kind, target and address) is open. */
+  has(d: Draft): boolean {
+    return this.live().some((i) => i.owner === d.owner && i.kind === d.kind && i.target === d.target && i.address === d.address);
   }
 
   /** What waits for this address: invitations not declined. */

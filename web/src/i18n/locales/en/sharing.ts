@@ -16,6 +16,7 @@ export default {
   stopFailed: "Couldn't stop sharing.",
   leaveFailed: "Couldn't leave the list.",
   invite: {
+    acceptLater: "Couldn't accept the invitation right now. Try again later.",
     cardList: 'Invitation to a task list',
     cardCategory: 'Invitation to a category',
     textList: '{address} invites you to share “{title}”.',
@@ -31,6 +32,7 @@ export default {
     declineFailed: "Couldn't decline the invitation.",
     withdrawFailed: "Couldn't withdraw the invitation.",
   },
+  tooMany: 'You have too many open invitations. Withdraw one first.',
   ownerOnlyCategory: 'Only the owner can change the category of a shared list.',
   category: {
     hint: 'The person is invited. Once they accept, all lists of this category, and new ones, are shared.',

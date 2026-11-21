@@ -668,6 +668,7 @@ export class CalendarService {
 
   // ---------- sharing (see TaskSharing) ----------
   inviteToList(id: string, email: string): Promise<TaskList> { return this.sharing!.inviteToList(id, email); }
+  revokeList(id: string, memberSub: string): void { this.sharing!.revokeList(id, memberSub); }
   grantList(id: string, memberSub: string): Promise<string> { return this.sharing!.grantList(id, memberSub); }
   grantCategory(categoryId: string, memberSub: string): Promise<void> { return this.sharing!.grantCategory(categoryId, memberSub); }
   unshareTaskList(id: string): Promise<TaskList> { return this.sharing!.unshareTaskList(id); }

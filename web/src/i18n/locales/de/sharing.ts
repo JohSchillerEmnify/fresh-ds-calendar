@@ -14,6 +14,7 @@ export default {
   stopFailed: 'Das Teilen konnte nicht beendet werden.',
   leaveFailed: 'Die Liste konnte nicht verlassen werden.',
   invite: {
+    acceptLater: 'Die Einladung konnte gerade nicht angenommen werden. Versuch es später noch einmal.',
     cardList: 'Einladung zu einer Aufgabenliste',
     cardCategory: 'Einladung zu einer Kategorie',
     textList: '{address} lädt dich ein, „{title}“ zu teilen.',
@@ -29,6 +30,7 @@ export default {
     declineFailed: 'Die Einladung konnte nicht abgelehnt werden.',
     withdrawFailed: 'Die Einladung konnte nicht zurückgezogen werden.',
   },
+  tooMany: 'Du hast zu viele offene Einladungen. Ziehe zuerst eine zurück.',
   ownerOnlyCategory: 'Nur die Besitzerin oder der Besitzer kann die Kategorie einer geteilten Liste ändern.',
   category: {
     hint: 'Die Person wird eingeladen. Sobald sie annimmt, werden alle Listen dieser Kategorie und neue Listen geteilt.',

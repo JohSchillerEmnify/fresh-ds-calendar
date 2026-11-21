@@ -26,6 +26,11 @@ their say.
 - The device keeps the invitations like every file of the change feed, so cards and the pending line show offline;
   answering needs the server.
 
+- At most 50 invitations stay open per person (the same refusal whatever the address). `invitations.json` is deliberately
+  not backed up: an invitation lapses after 7 days and can be sent again.
+- If the sharer's Google cannot be reached when accepting, the invited person gets a neutral "try again later" and the
+  invitation stays; a sharer who may no longer use the calendar has no invitations shown.
+
 ## Alternatives
 
 - **Share at once and hide the reveal:** the list would still appear unasked, and the sharer's list would change

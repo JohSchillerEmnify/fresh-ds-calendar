@@ -17,6 +17,7 @@ export default {
   stopFailed: 'Das Teilen geht nicht aus, wie Voldemorts Ego.',
   leaveFailed: 'Du kommst nicht raus, Digga. Wie Dobby aus dem Kamin, nur schlimmer.',
   invite: {
+    acceptLater: 'Annehmen klappt gerade nicht, wie Apparieren in Hogwarts. Versuch es später nochmal.',
     cardList: 'Einladung zu ner Liste, yo',
     cardCategory: 'Einladung zu ner Kategorie, fresh',
     textList: '{address} lädt dich ein, „{title}“ zu teilen, wie Hagrid zum Tee.',
@@ -32,6 +33,7 @@ export default {
     declineFailed: 'Das Ablehnen ging schief, Digga.',
     withdrawFailed: 'Die Eule lässt sich nicht zurückrufen, yo.',
   },
+  tooMany: 'Zu viele Eulen unterwegs, Digga. Ruf erst eine zurück.',
   ownerOnlyCategory: 'Nur der Boss der Liste darf die Kategorie ändern, du Oberpflaume.',
   category: {
     hint: 'Die Person kriegt eine Einladung. Sagt sie ja, werden alle Listen dieser Kategorie und die neuen geteilt, fresh.',

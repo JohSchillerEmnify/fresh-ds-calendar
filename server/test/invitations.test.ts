@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 import { setDiagSink } from '../src/lib/diag.js';
 import { mockSub } from '../src/auth/people.js';
 import { makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept } from './helpers.js';
@@ -278,6 +279,105 @@ describe('an address that has not signed in yet', () => {
       const r = await anna('GET', '/api/invitations');
       expect(r.status).toBeGreaterThanOrEqual(400);
       expect(r.body?.invitations).toBeUndefined();
+    } finally { t.cleanup(); }
+  });
+});
+
+describe('when something goes wrong while accepting', () => {
+  it('a sharer whose Google access is gone does not sign the invited person out, and the invitation stays', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      await invite(jo, (await list(jo)).id, ANNA);
+      await t.json('POST', '/api/__test/oauth/revoke', { email: JO });
+      const r = await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/accept`);
+      expect([401, 403]).not.toContain(r.status);
+      expect(r).toMatchObject({ status: 503, body: { error: { key: 'sharing.invite.acceptLater' } } });
+      expect(await incoming(anna)).toHaveLength(1);
+      // the invited person's own Google is untouched
+      expect((await anna('GET', '/api/items?from=2026-10-12&to=2026-10-19')).status).toBe(200);
+    } finally { t.cleanup(); }
+  });
+
+  it('a failed move leaves the invitations of the list pointing at the list that still exists', async () => {
+    const { t, jo, anna, bob } = await setup();
+    try {
+      const own = await list(jo);
+      await invite(jo, own.id, ANNA);
+      await invite(jo, own.id, BOB);
+      const spy = vi.spyOn(MockGoogleProvider.prototype, 'deleteEvent').mockRejectedValueOnce(new Error('Google is down'));
+      const failed = await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/accept`);
+      spy.mockRestore();
+      expect(failed.status).toBeGreaterThanOrEqual(400);
+      expect((await sent(jo)).map((i) => i.target)).toEqual([own.id, own.id]);
+      // a retry works, and so does the other invitation
+      expect((await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/accept`)).status).toBe(200);
+      expect((await bob('POST', `/api/invitations/${(await incoming(bob))[0].id}/accept`)).status).toBe(200);
+      expect(await titles(bob)).toEqual(['Groceries']);
+    } finally { t.cleanup(); }
+  });
+
+  it('an invitation of a sharer who may no longer use the calendar is not shown and cannot be accepted', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      await invite(jo, (await list(jo)).id, ANNA);
+      const [inv] = await incoming(anna);
+      await t.json('POST', '/api/__test/auth', { allowedEmails: [ANNA, BOB] });
+      expect(await incoming(anna)).toEqual([]);
+      expect((await anna('POST', `/api/invitations/${inv.id}/accept`)).status).toBe(404);
+    } finally { t.cleanup(); }
+  });
+
+  it('accepting while the sharer withdraws leaves nothing shared with the invited person and answers 404', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = await list(jo);
+      await invite(jo, own.id, ANNA);
+      const [mine] = await sent(jo);
+      const real = MockGoogleProvider.prototype.deleteEvent;
+      const spy = vi.spyOn(MockGoogleProvider.prototype, 'deleteEvent').mockImplementationOnce(async function (this: MockGoogleProvider, ...a: Parameters<typeof real>) {
+        t.app.ctx.shared.invitations.remove(mine.id);
+        return real.apply(this, a);
+      });
+      const r = await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/accept`);
+      spy.mockRestore();
+      expect(r.status).toBe(404);
+      expect(await titles(anna)).toEqual([]);
+      expect(await titles(jo)).toEqual(['Groceries']);
+    } finally { t.cleanup(); }
+  });
+
+  it('a list that began to repeat after the invitation answers 404 and drops it', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = (await jo('POST', '/api/tasklists', { title: 'Dated', date: '2026-10-14', items: [{ title: 'x' }] })).body;
+      await invite(jo, own.id, ANNA);
+      expect((await jo('PATCH', `/api/tasklists/${own.id}`, { recurrence: 'weekly' }, { 'If-Match': own.etag })).status).toBe(200);
+      const [inv] = await incoming(anna);
+      expect((await anna('POST', `/api/invitations/${inv.id}/accept`)).status).toBe(404);
+      expect(await incoming(anna)).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+});
+
+describe('limits', () => {
+  it('a person keeps at most 50 invitations open, the same answer for every address', async () => {
+    const { t, jo } = await setup();
+    try {
+      const own = await list(jo);
+      for (let n = 0; n < 50; n++) expect((await invite(jo, own.id, `p${n}@example.com`)).status).toBe(200);
+      expect((await invite(jo, own.id, 'p50@example.com')).status).toBe(400);
+      expect((await invite(jo, own.id, 'p0@example.com')).status).toBe(200); // already open: nothing new
+      expect(await sent(jo)).toHaveLength(50);
+    } finally { t.cleanup(); }
+  });
+
+  it('does not invite the person a category is already shared with', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      await jo('POST', '/api/categories', { id: 'shopping', name: 'Shopping', color: '#112233' });
+      await shareCategoryAndAccept(jo, anna, 'shopping', ANNA);
+      expect((await jo('PUT', '/api/categories/shopping/share', { email: ANNA })).status).toBe(200);
+      expect(await sent(jo)).toEqual([]);
     } finally { t.cleanup(); }
   });
 });
