@@ -132,7 +132,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.064
+   "duplicated-percent": 0.063
   },
   "types": {
    "AppConfig": 1,
@@ -163,7 +163,7 @@
    "@typescript-eslint/no-explicit-any|server/test/settings.test.ts": 4,
    "@typescript-eslint/no-explicit-any|server/test/shared-lists.test.ts": 8,
    "@typescript-eslint/no-explicit-any|server/test/sync-tokens.test.ts": 2,
-   "@typescript-eslint/no-explicit-any|server/test/tasklists.test.ts": 73,
+   "@typescript-eslint/no-explicit-any|server/test/tasklists.test.ts": 72,
    "@typescript-eslint/no-explicit-any|server/test/tasksCalendar.test.ts": 4,
    "@typescript-eslint/no-explicit-any|server/test/templates.test.ts": 2,
    "@typescript-eslint/no-explicit-any|server/test/testmode.test.ts": 10,
@@ -558,7 +558,6 @@
    "owner|server/src/services/taskSharing.ts": 1,
    "owner|web/src/api/client.ts": 1,
    "owner|web/src/components/calendar/TimeGrid.vue": 1,
-   "owner|web/src/features/tasklists/sharing.ts": 1,
    "owner|web/src/i18n/locales/de-x-coldmirror/sharing.ts": 1,
    "owner|web/src/lib/items.ts": 1,
    "owner|web/src/motion/drag.ts": 1
