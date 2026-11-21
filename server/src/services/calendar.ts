@@ -368,10 +368,11 @@ export class CalendarService {
     const d = doc.data;
     const live = doc.owner === this.sub ? this.settings.categories(this.sub).find((c) => c.id === d.categoryId) : undefined;
     const info: CategoryInfo | null = live ? { name: live.name, color: live.color, icon: live.icon } : doc.category;
-    const done = d.items.filter((i) => i.done).length;
+    const items = reopenParents(d.items);
+    const done = items.filter((i) => i.done).length;
     return {
-      kind: 'tasklist', id: SHARED_PREFIX + doc.id, calendarId: SHARED_CALENDAR, title: d.title, date: d.date, time: d.time, items: d.items,
-      doneCount: done, totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: null, categoryId: d.categoryId, tags: d.tags,
+      kind: 'tasklist', id: SHARED_PREFIX + doc.id, calendarId: SHARED_CALENDAR, title: d.title, date: d.date, time: d.time, items,
+      doneCount: done, totalCount: items.length, estimateMinutes: d.estimateMinutes, recurrence: null, categoryId: d.categoryId, tags: d.tags,
       color: info?.color ?? fallbackColor, calendarColor: fallbackColor, completedOn: d.completedOn, ...(d.createdOn ? { createdOn: d.createdOn } : {}), canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
       shared: this.shared!.info(doc, this.sub), categoryInfo: info,
     };
