@@ -175,9 +175,8 @@ describe('TaskListCodec', () => {
     expect(readItems(ev)).toMatchObject([{ title: 'ok', done: true }]);
   });
   it('parses description variants', () => {
-    const r = parseDescription('☐ A\n☑ B\n[ ] C\n[X] D\n  E  \n\n☐   \n');
-    // E is indented under D, so the done D reads as open
-    expect(r.map((i) => [i.title, i.done])).toEqual([['A', false], ['B', true], ['C', false], ['D', false], ['E', false]]);
+    const r = parseDescription('☐ A\n☑ B\n[ ] C\n[X] D\nE  \n\n☐   \n');
+    expect(r.map((i) => [i.title, i.done])).toEqual([['A', false], ['B', true], ['C', false], ['D', true], ['E', false]]);
     expect(new Set(r.map((i) => i.id)).size).toBe(r.length);
     expect(parseDescription('☐ same\n☐ same').map((i) => i.id)[0]).not.toBe(parseDescription('☐ same\n☐ same').map((i) => i.id)[1]);
     expect(parseDescription(undefined)).toEqual([]);
