@@ -110,7 +110,7 @@ describe('the snackbar on arrival', () => {
   });
 
   it('does not announce again after a reload of the app', async () => {
-    const { d, ui } = await host();
+    const { d } = await host();
     d.putFile('invitations', invitations(LIST));
     await flushPromises();
     const kept = d.file('invitationsAnnounced');
