@@ -275,7 +275,8 @@ export class SharedListService {
 
   /** Whether the rule's person was taken off this list by hand. */
   isExcepted(owner: string, categoryId: string | null, listId: string): boolean {
-    return categoryId !== null && (this.exceptions[owner]?.[categoryId] ?? []).includes(listId);
+    const mine = Object.hasOwn(this.exceptions, owner) ? this.exceptions[owner] : undefined;
+    return categoryId !== null && !!mine && Object.hasOwn(mine, categoryId) && mine[categoryId]!.includes(listId);
   }
 
   addException(owner: string, categoryId: string, listId: string): void {
@@ -283,9 +284,9 @@ export class SharedListService {
     if (!mine.includes(listId)) this.saveExceptions(owner, categoryId, [...mine, listId]);
   }
 
-  /** The person was added to this list by hand: the rule applies to it again. */
-  clearException(owner: string, listId: string): void {
-    for (const [c, ids] of Object.entries(this.exceptions[owner] ?? {})) if (ids.includes(listId)) this.saveExceptions(owner, c, ids.filter((i) => i !== listId));
+  /** The rule's person was added to this list by hand (or, without `member`, the list is gone): the rule applies to it again. */
+  clearException(owner: string, listId: string, member?: string): void {
+    for (const [c, ids] of Object.entries(this.exceptions[owner] ?? {})) if (ids.includes(listId) && (member === undefined || this.ruleFor(owner, c) === member)) this.saveExceptions(owner, c, ids.filter((i) => i !== listId));
   }
 
   /** A list moved between the tasks calendar and the shared store and got a new id. */

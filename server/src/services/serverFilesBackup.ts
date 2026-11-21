@@ -31,4 +31,8 @@ export function registerServerFilesBackup(
     rel: 'shared/category-shares.json', pristine: (c) => Object.keys(parse(c) ?? {}).length === 0, reload: () => stores.shared.reload(),
     collect: (c, sub) => ownEntry(c, sub),
   });
+  backup.registerServerFile({
+    rel: 'shared/category-exceptions.json', pristine: (c) => Object.keys(parse(c) ?? {}).length === 0, reload: () => stores.shared.reload(),
+    collect: (c, sub) => ownEntry(c, sub),
+  });
 }

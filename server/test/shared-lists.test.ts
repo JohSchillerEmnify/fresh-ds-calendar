@@ -398,4 +398,19 @@ describe('removing a person from one list of a shared category', () => {
       expect(await titles(anna)).toEqual(['Groceries', 'Party snacks']);
     } finally { t.cleanup(); }
   });
+
+  it('stays when somebody else is added to that list; deleting the list forgets it', async () => {
+    const { t, jo, anna, bob } = await removed();
+    try {
+      const own = (await allOpen(jo)).find((l) => l.title === 'Groceries');
+      const s = await shareAndAccept(jo, bob, own.id, BOB);
+      await t.app.ctx.calendarFor(mockSub(JO)).grantCategory(shopping, mockSub(ANNA));
+      expect(await titles(anna)).toEqual(['Party snacks']);
+      expect(await titles(bob)).toEqual(['Groceries']);
+      const file = path.join(t.dir, 'shared', 'category-exceptions.json');
+      expect(fs.readFileSync(file, 'utf8')).toContain(s.id);
+      await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}`);
+      expect(fs.readFileSync(file, 'utf8')).not.toContain(s.id);
+    } finally { t.cleanup(); }
+  });
 });

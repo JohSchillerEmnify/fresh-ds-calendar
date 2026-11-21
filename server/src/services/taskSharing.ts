@@ -69,7 +69,7 @@ export class TaskSharing {
 
   /** The invited person accepted (runs on the sharer's service): the list moves into the shared store, or the person joins the shared list. Returns the shared list's id. */
   async grantList(id: string, memberSub: string): Promise<string> {
-    this.shared.clearException(this.sub, id);
+    this.shared.clearException(this.sub, id, memberSub);
     let doc = isSharedId(id) ? this.shared.accessOwned(this.sub, id) : null;
     if (doc) this.shared.setMembers(doc, [...doc.members, memberSub]);
     else doc = await this.moveIn(await this.host.locateKind(id, true), [memberSub]);
@@ -104,11 +104,16 @@ export class TaskSharing {
     const doc = this.shared.accessOwned(this.sub, id);
     if (!doc.members.includes(memberSub)) throw notFound('Task list not found');
     const rest = doc.members.filter((m) => m !== memberSub);
-    // the category's share must not bring the person back to this list
     const cat = doc.data.categoryId;
-    if (cat !== null && this.shared.ruleFor(this.sub, cat) === memberSub) this.shared.addException(this.sub, cat, SHARED_PREFIX + doc.id);
-    if (!rest.length) return this.moveOut(doc);
+    const except = cat !== null && this.shared.ruleFor(this.sub, cat) === memberSub;
+    if (!rest.length) {
+      const out = await this.moveOut(doc);
+      // the category's share must not bring the person back to this list
+      if (except) this.shared.addException(this.sub, cat, out.id);
+      return out;
+    }
     this.shared.setMembers(doc, rest);
+    if (except) this.shared.addException(this.sub, cat, SHARED_PREFIX + doc.id);
     return this.host.toSharedTaskList(doc, '#039be5');
   }
 
