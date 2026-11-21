@@ -16,7 +16,7 @@ export function invitationsOf(ctx: Ctx, sub: string): InvitationsAnswer {
   const owners = new Map(waiting.map((i) => [i.owner, ctx.people.get(i.owner)?.email]));
   return {
     invitations: waiting.filter((i) => owners.get(i.owner)).map((i) => ({ id: i.id, kind: i.kind, title: i.title, from: owners.get(i.owner)!, expires: at(i) })),
-    sent: ctx.shared.invitations.sent(sub).map((i) => ({ id: i.id, kind: i.kind, target: i.target, address: i.address, expires: at(i) })),
+    sent: ctx.shared.invitations.sent(sub).map((i) => ({ id: i.handle, kind: i.kind, target: i.target, address: i.address, expires: at(i) })),
   };
 }
 
@@ -77,8 +77,8 @@ export function registerInvitations({ r, ctx, person }: RouteDeps): void {
   });
   r.post('/invitations/:id/withdraw', (c) => {
     const me = person(c);
-    const inv = store.get(c.req.param('id'));
-    if (!inv || inv.owner !== me) throw notFound('Invitation not found');
+    const inv = store.byHandle(me, c.req.param('id'));
+    if (!inv) throw notFound('Invitation not found');
     store.remove(inv.id);
     logEvent('invitation_answered', { action: 'withdrawn', kind: inv.kind });
     ctx.changes.emit([me], 'shares');

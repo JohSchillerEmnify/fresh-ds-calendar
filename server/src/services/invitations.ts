@@ -10,7 +10,10 @@ const DAY_MS = 86_400_000;
 
 /** One invitation to share a task list or a category (feature shared-lists, ADR 0047). It belongs to the address it was sent to, so it waits for a person who has not signed in yet. */
 export interface Invitation {
+  /** The invited person's handle: answering uses it, and it changes when a declined invitation is replaced. */
   id: string;
+  /** The sender's handle: stays the same when the entry is replaced, so the sender cannot tell a decline from silence. */
+  handle: string;
   kind: 'list' | 'category';
   /** The id of the task list (Google event id or `shared:...`) or of the category. */
   target: string;
@@ -26,8 +29,9 @@ export interface Invitation {
 }
 
 type Draft = Pick<Invitation, 'kind' | 'target' | 'owner' | 'title' | 'address'>;
+type Stored = Omit<Invitation, 'handle'> & { handle?: string };
 
-const isInvitation = (v: unknown): v is Invitation => typeof v === 'object' && v !== null
+const isInvitation = (v: unknown): v is Stored => typeof v === 'object' && v !== null
   && typeof (v as Invitation).id === 'string' && ((v as Invitation).kind === 'list' || (v as Invitation).kind === 'category')
   && typeof (v as Invitation).target === 'string' && typeof (v as Invitation).owner === 'string' && typeof (v as Invitation).title === 'string'
   && typeof (v as Invitation).address === 'string' && typeof (v as Invitation).expires === 'number';
@@ -44,7 +48,7 @@ export class Invitations {
 
   private load(): Invitation[] {
     const raw = readJson<unknown>(this.file);
-    return Array.isArray(raw) ? raw.filter(isInvitation) : [];
+    return Array.isArray(raw) ? raw.filter(isInvitation).map((i) => ({ ...i, handle: i.handle ?? i.id })) : [];
   }
 
   private live(): Invitation[] {
@@ -64,13 +68,24 @@ export class Invitations {
     this.items = this.load();
   }
 
-  /** Sends an invitation; one still unanswered sent again changes nothing, a declined one is replaced by a new one (declining answers only that invitation). */
+  /**
+   * Sends an invitation. Sent again, it looks the same to the sender whatever the answer was: same place, same sender
+   * handle, a fresh 7 days. Only a declined entry gets a new id, so the invited person sees a new card.
+   */
   send(d: Draft): void {
     const same = (i: Invitation) => i.owner === d.owner && i.kind === d.kind && i.target === d.target && i.address === d.address;
     const all = this.live();
-    if (all.some((i) => same(i) && !i.declined)) return;
-    this.save([...all.filter((i) => !same(i)), { ...d, id: nanoid(16), expires: this.clock.nowMs() + INVITATION_DAYS * DAY_MS }]);
-    logEvent('invitation_sent', { kind: d.kind });
+    const expires = this.clock.nowMs() + INVITATION_DAYS * DAY_MS;
+    if (!all.some(same)) {
+      this.save([...all, { ...d, id: nanoid(16), handle: nanoid(16), expires }]);
+      logEvent('invitation_sent', { kind: d.kind });
+      return;
+    }
+    this.save(all.map((i) => {
+      if (!same(i)) return i;
+      const { declined, ...rest } = i;
+      return { ...rest, id: declined ? nanoid(16) : i.id, expires };
+    }));
   }
 
   /** Whether this very invitation (same sender, kind, target and address) is open. */
@@ -90,6 +105,11 @@ export class Invitations {
 
   get(id: string): Invitation | undefined {
     return this.live().find((i) => i.id === id);
+  }
+
+  /** The invitation this sender holds under the handle shown to them. */
+  byHandle(owner: string, handle: string): Invitation | undefined {
+    return this.live().find((i) => i.owner === owner && i.handle === handle);
   }
 
   remove(id: string): void {

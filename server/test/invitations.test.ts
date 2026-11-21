@@ -29,16 +29,30 @@ const titles = async (c: Call): Promise<string[]> => ((await c('GET', '/api/task
 const at = (t: { app: { ctx: { clock: { set(ms: number, frozen: boolean): void } } } }, ms: number) => t.app.ctx.clock.set(ms, true);
 
 describe('sending an invitation', () => {
-  it('sent again while nobody answered keeps the same invitation and its time', async () => {
-    const { t, jo, anna } = await setup();
+  it('sent again looks the same to the sender whether the person declined or stayed silent', async () => {
+    const { t, jo, anna, bob } = await setup();
     try {
       const own = await list(jo);
       await invite(jo, own.id, ANNA);
-      const [first] = await incoming(anna);
+      await invite(jo, own.id, BOB);
+      const before = await sent(jo);
+      const [annasCard] = await incoming(anna), [bobsCard] = await incoming(bob);
+      await anna('POST', `/api/invitations/${annasCard.id}/decline`);
+      // what the sender holds does not move on a decline
+      expect(await sent(jo)).toEqual(before);
       at(t, Date.now() + DAY);
-      await invite(jo, own.id, ANNA);
-      expect(await incoming(anna)).toMatchObject([{ id: first.id }]);
-      expect(await sent(jo)).toMatchObject([{ id: first.id, expires: first.expires }]);
+      const answers = [await invite(jo, own.id, ANNA), await invite(jo, own.id, BOB)];
+      expect(answers[0].body).toEqual(answers[1].body);
+      const after = await sent(jo);
+      // same handles, same order, same fields, and the same fresh time for both
+      expect(after.map((i) => i.id)).toEqual(before.map((i) => i.id));
+      expect(after.map((i) => i.address)).toEqual([ANNA, BOB]);
+      expect(after[0].expires).toBe(after[1].expires);
+      expect(after[0].expires).not.toBe(before[0].expires);
+      expect(Object.keys(after[0])).toEqual(Object.keys(after[1]));
+      // only the invited person sees the difference: a new card after a decline, the same card otherwise
+      expect((await incoming(anna))[0].id).not.toBe(annasCard.id);
+      expect((await incoming(bob))[0].id).toBe(bobsCard.id);
     } finally { t.cleanup(); }
   });
 
@@ -185,11 +199,11 @@ describe('answering', () => {
       expect(await titles(anna)).toEqual([]);
       expect(await sent(jo)).toMatchObject([{ address: ANNA }]);
       // sending it again replaces the declined one with a new invitation; the sender still sees one pending line
-      const declinedId = (await sent(jo))[0].id;
+      const handle = (await sent(jo))[0].id;
       expect((await invite(jo, own.id, ANNA)).status).toBe(200);
       const [fresh] = await incoming(anna);
-      expect(fresh.id).not.toBe(declinedId);
-      expect(await sent(jo)).toMatchObject([{ id: fresh.id, address: ANNA }]);
+      expect(fresh.id).not.toBe(inv.id);
+      expect(await sent(jo)).toMatchObject([{ id: handle, address: ANNA }]);
       expect((await anna('POST', `/api/invitations/${inv.id}/accept`)).status).toBe(404);
       // the sender may withdraw it
       await jo('POST', `/api/invitations/${(await sent(jo))[0].id}/withdraw`);
@@ -366,7 +380,7 @@ describe('when something goes wrong while accepting', () => {
       const [mine] = await sent(jo);
       const real = MockGoogleProvider.prototype.deleteEvent;
       const spy = vi.spyOn(MockGoogleProvider.prototype, 'deleteEvent').mockImplementationOnce(async function (this: MockGoogleProvider, ...a: Parameters<typeof real>) {
-        t.app.ctx.shared.invitations.remove(mine.id);
+        t.app.ctx.shared.invitations.remove(t.app.ctx.shared.invitations.byHandle(mockSub(JO), mine.id)!.id);
         return real.apply(this, a);
       });
       const r = await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/accept`);
