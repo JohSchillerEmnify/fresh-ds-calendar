@@ -25,6 +25,12 @@ person who uses the app. An address is personal data that its owner never agreed
   display name and address, and a category share lists them in `shares`. So a sharer can learn that an address uses the
   app, and its display name, for addresses they typed. This is open for the owner to decide.
 
+Removal wins over a category's share (issue 27): taking one person off one list of a category shared with them keeps
+them off that list. The exception is stored with the category rule (`category-exceptions.json`, per sharer, category
+and list id; it follows the list between the tasks calendar and the shared store). The category's other lists stay
+shared, lists created in it later still reach the person, and accepting the category again does not undo it. It ends
+when the category share stops (a new share starts fresh) or when the person is added to that one list by hand.
+
 ## Alternatives
 
 - **Keep the everyone list:** simplest, but shows every address to every user; rejected as the problem itself.

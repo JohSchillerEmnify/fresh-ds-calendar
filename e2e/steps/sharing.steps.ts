@@ -43,7 +43,10 @@ async function find(world: World, email: string, title: string): Promise<Listed>
 
 /** The Tasks view of the signed-in person. */
 async function openTasksView(world: World) {
-  if (new URL(world.page.url()).pathname !== '/tasks') await world.page.getByTestId('view-switch-tasks').click();
+  const path = new URL(world.page.url()).pathname;
+  // the settings pages have no view switcher
+  if (path.startsWith('/settings')) await world.page.goto('/tasks');
+  else if (path !== '/tasks') await world.page.getByTestId('view-switch-tasks').click();
   await expect(world.page.getByTestId('tasks-view')).toBeVisible();
 }
 
@@ -233,6 +236,20 @@ When('I share the category {string} with {string} in the settings', async functi
   const saved = this.page.waitForResponse(isCall('PUT', '/share'));
   await dialog.getByTestId('category-save').click();
   expect((await saved).status(), 'category shared').toBe(200);
+  await expect(dialog).toBeHidden();
+});
+
+When('I stop sharing the category {string} in the settings', async function (this: World, category: string) {
+  await openSettingsPage(this, 'tasklists');
+  await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
+  const dialog = this.page.getByTestId('category-dialog');
+  const field = dialog.locator('input[data-testid="category-share-person"]');
+  // the current address loads asynchronously and would overwrite an early clear
+  await expect(field).toHaveValue(/@/);
+  await field.fill('');
+  const saved = this.page.waitForResponse(isCall('PUT', '/share'));
+  await dialog.getByTestId('category-save').click();
+  expect((await saved).status(), 'category share stopped').toBe(200);
   await expect(dialog).toBeHidden();
 });
 

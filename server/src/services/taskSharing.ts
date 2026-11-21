@@ -69,6 +69,7 @@ export class TaskSharing {
 
   /** The invited person accepted (runs on the sharer's service): the list moves into the shared store, or the person joins the shared list. Returns the shared list's id. */
   async grantList(id: string, memberSub: string): Promise<string> {
+    this.shared.clearException(this.sub, id, memberSub);
     let doc = isSharedId(id) ? this.shared.accessOwned(this.sub, id) : null;
     if (doc) this.shared.setMembers(doc, [...doc.members, memberSub]);
     else doc = await this.moveIn(await this.host.locateKind(id, true), [memberSub]);
@@ -89,6 +90,7 @@ export class TaskSharing {
     }
     // only a move that happened carries the pending invitations along
     this.shared.invitations.retarget(this.sub, ev.id, SHARED_PREFIX + doc.id);
+    this.shared.retargetException(this.sub, ev.id, SHARED_PREFIX + doc.id);
     return doc;
   }
 
@@ -102,8 +104,16 @@ export class TaskSharing {
     const doc = this.shared.accessOwned(this.sub, id);
     if (!doc.members.includes(memberSub)) throw notFound('Task list not found');
     const rest = doc.members.filter((m) => m !== memberSub);
-    if (!rest.length) return this.moveOut(doc);
+    const cat = doc.data.categoryId;
+    const except = cat !== null && this.shared.ruleFor(this.sub, cat) === memberSub;
+    if (!rest.length) {
+      const out = await this.moveOut(doc);
+      // the category's share must not bring the person back to this list
+      if (except) this.shared.addException(this.sub, cat, out.id);
+      return out;
+    }
     this.shared.setMembers(doc, rest);
+    if (except) this.shared.addException(this.sub, cat, SHARED_PREFIX + doc.id);
     return this.host.toSharedTaskList(doc, '#039be5');
   }
 
@@ -123,6 +133,7 @@ export class TaskSharing {
     this.shared.releaseInk(doc);
     this.shared.remove(doc);
     this.shared.invitations.retarget(this.sub, SHARED_PREFIX + doc.id, ev.id);
+    this.shared.retargetException(this.sub, SHARED_PREFIX + doc.id, ev.id);
     return this.host.toTaskList(ev, await this.host.calendarColor(calendarId), this.settings.categories(this.sub));
   }
 
@@ -188,12 +199,12 @@ export class TaskSharing {
         else await this.moveOut(doc);
       }
     } else {
-      for (const doc of shared.ownedInCategory(this.sub, categoryId)) shared.setMembers(doc, [...doc.members.filter((m) => m !== previous), personSub]);
+      for (const doc of shared.ownedInCategory(this.sub, categoryId)) if (!shared.isExcepted(this.sub, categoryId, SHARED_PREFIX + doc.id)) shared.setMembers(doc, [...doc.members.filter((m) => m !== previous), personSub]);
       const calendarId = await this.tasks.id();
       const found = await this.provider.listEvents({ calendarId, privateExtendedProperty: ['kind=tasklist', `categoryId=${categoryId}`] });
       for (const ev of found.items) {
         // repeating lists stay where they are: their rule cannot move into the shared store
-        if (ev.status === 'cancelled' || !isTaskListEvent(ev) || ev.recurrence?.length || ev.recurringEventId) continue;
+        if (ev.status === 'cancelled' || !isTaskListEvent(ev) || ev.recurrence?.length || ev.recurringEventId || shared.isExcepted(this.sub, categoryId, ev.id)) continue;
         await this.moveIn(ev, [personSub]);
       }
     }

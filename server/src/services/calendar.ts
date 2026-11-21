@@ -574,11 +574,13 @@ export class CalendarService {
       const doc = this.shared!.accessOwned(this.sub, id);
       if (ifMatch && !etagEq(ifMatch, `"${doc.rev}"`)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
       this.shared!.remove(doc);
+      this.shared!.clearException(this.sub, id);
       return;
     }
     const cur = await this.locateKind(id, true);
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
+    this.shared?.clearException(this.sub, id);
     // a series split by "this and following" goes with its later parts (same `series`, later start)
     if (cur.recurrence?.length && !cur.recurringEventId) await this.series.deleteLaterParts(cur);
   }

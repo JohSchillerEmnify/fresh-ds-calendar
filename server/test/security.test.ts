@@ -441,9 +441,11 @@ describe('M10 restore and backup hygiene', () => {
       fs.mkdirSync(path.join(t.dir, 'shared'), { recursive: true });
       fs.writeFileSync(path.join(t.dir, 'people.json'), JSON.stringify({ me: { email: 'me@example.com' }, other: { email: 'other@example.com' } }));
       fs.writeFileSync(path.join(t.dir, 'shared', 'category-shares.json'), JSON.stringify({ me: { c1: 'other' }, other: { c2: 'me' } }));
+      fs.writeFileSync(path.join(t.dir, 'shared', 'category-exceptions.json'), JSON.stringify({ me: { c1: ['l1'] }, other: { c2: ['l2'] } }));
       const files = t.app.ctx.backup.collect('me');
       expect(JSON.parse(files['server/people.json']!)).toEqual({ me: { email: 'me@example.com' } });
       expect(JSON.parse(files['server/shared/category-shares.json']!)).toEqual({ me: { c1: 'other' } });
+      expect(JSON.parse(files['server/shared/category-exceptions.json']!)).toEqual({ me: { c1: ['l1'] } });
       expect(JSON.stringify(files)).not.toContain('other@example.com');
       // a person without an entry carries none
       expect(JSON.parse(t.app.ctx.backup.collect('nobody')['server/people.json']!)).toEqual({});

@@ -38,9 +38,10 @@ their say.
 - **A notice only (no card):** gone after a few seconds; the card stays until answered.
 - **A push notification:** left out for now; the snackbar and card cover people with the app open.
 - **Tell the sharer about a decline:** rejected; it would tell the sharer more than "Invitation sent".
+- **Block re-invites after a decline:** rejected; it would tell the sharer that the address declined.
 
 ## Consequences
 
 - Sharing is two steps; the sender cannot tell a missing person from a person who has not answered.
-- A declined invitation stays for the sender until withdrawn or lapsed, and sending it again does not bring it back.
+- A declined invitation stays for the sender until withdrawn or lapsed. Declining answers only that one invitation: sending the same address again replaces the declined entry with a new invitation (a new card for the invited person). The sender cannot tell the two cases apart, in the line or in the API or device copy: the sender holds a stable handle of their own (the incoming invitation's id is never sent to them), every send again gives a fresh 7 days, and the entry keeps its place. Only the invited person's id changes, and only after a decline.
 - Several people per share (issue 27) can reuse the same invitations.

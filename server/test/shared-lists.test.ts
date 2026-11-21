@@ -345,3 +345,72 @@ describe('SharedListService store', () => {
     } finally { t.cleanup(); }
   });
 });
+
+describe('removing a person from one list of a shared category', () => {
+  const shopping = 'shopping';
+  const make = (jo: Call, title: string) => jo('POST', '/api/tasklists', { title, date: null, items: [{ title: 'x' }], categoryId: shopping });
+  const removeAnna = async (jo: Call, id: string) => jo('DELETE', `/api/tasklists/${encodeURIComponent(id)}/share/${mockSub(ANNA)}`);
+  /** Groceries and Party snacks in Shopping, shared with Anna, Anna removed from Groceries. */
+  async function removed() {
+    const k = await setup();
+    const groceries = (await make(k.jo, 'Groceries')).body, party = (await make(k.jo, 'Party snacks')).body;
+    await shareCategoryAndAccept(k.jo, k.anna, shopping, ANNA);
+    const shared = (await allOpen(k.jo)).find((l) => l.title === 'Groceries');
+    await removeAnna(k.jo, shared.id);
+    return { ...k, groceries, party };
+  }
+
+  it('keeps the person off that list, the others stay shared and a new list reaches them', async () => {
+    const { t, jo, anna } = await removed();
+    try {
+      expect(await titles(anna)).toEqual(['Party snacks']);
+      expect(await titles(jo)).toEqual(['Groceries', 'Party snacks']);
+      await make(jo, 'Bread');
+      expect(await titles(anna)).toEqual(['Bread', 'Party snacks']);
+    } finally { t.cleanup(); }
+  });
+
+  it('is not undone when the category invitation is accepted again', async () => {
+    const { t, jo, anna } = await removed();
+    try {
+      await t.app.ctx.calendarFor(mockSub(JO)).grantCategory(shopping, mockSub(ANNA));
+      expect(await titles(anna)).toEqual(['Party snacks']);
+      expect(await titles(jo)).toEqual(['Groceries', 'Party snacks']);
+    } finally { t.cleanup(); }
+  });
+
+  it('ends when the category share stops: a new share includes the list again', async () => {
+    const { t, jo, anna } = await removed();
+    try {
+      await jo('PUT', `/api/categories/${shopping}/share`, { email: null });
+      await shareCategoryAndAccept(jo, anna, shopping, ANNA);
+      expect(await titles(anna)).toEqual(['Groceries', 'Party snacks']);
+    } finally { t.cleanup(); }
+  });
+
+  it('ends for that list when the person is added to it by hand', async () => {
+    const { t, jo, anna } = await removed();
+    try {
+      const own = (await allOpen(jo)).find((l) => l.title === 'Groceries');
+      await shareAndAccept(jo, anna, own.id, ANNA);
+      expect(await titles(anna)).toEqual(['Groceries', 'Party snacks']);
+      await t.app.ctx.calendarFor(mockSub(JO)).grantCategory(shopping, mockSub(ANNA));
+      expect(await titles(anna)).toEqual(['Groceries', 'Party snacks']);
+    } finally { t.cleanup(); }
+  });
+
+  it('stays when somebody else is added to that list; deleting the list forgets it', async () => {
+    const { t, jo, anna, bob } = await removed();
+    try {
+      const own = (await allOpen(jo)).find((l) => l.title === 'Groceries');
+      const s = await shareAndAccept(jo, bob, own.id, BOB);
+      await t.app.ctx.calendarFor(mockSub(JO)).grantCategory(shopping, mockSub(ANNA));
+      expect(await titles(anna)).toEqual(['Party snacks']);
+      expect(await titles(bob)).toEqual(['Groceries']);
+      const file = path.join(t.dir, 'shared', 'category-exceptions.json');
+      expect(fs.readFileSync(file, 'utf8')).toContain(s.id);
+      await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}`);
+      expect(fs.readFileSync(file, 'utf8')).not.toContain(s.id);
+    } finally { t.cleanup(); }
+  });
+});
