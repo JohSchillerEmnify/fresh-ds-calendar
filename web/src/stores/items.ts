@@ -5,6 +5,7 @@ import type {
   CalendarItem, DaySummary, LocalDate, TaskItem, TaskList,
 } from '@/api/types';
 import { dedupeBirthdays } from '@calendar/shared/birthdays';
+import { reopenParents } from '@calendar/shared/subtasks';
 import { covers, itemsIn, summaryOf } from '@/lib/deviceData';
 import { ports } from '@/lib/outboxPorts';
 import { logUndone } from '@/lib/decisionLog';
@@ -73,8 +74,10 @@ export const useItemsStore = defineStore('items', () => {
   const isDeleted = (id: string) => deleted.has(id);
   /** The item without its deleted/hidden task list items (counts follow). */
   function strip<T extends CalendarItem>(it: T): T {
-    if (it.kind !== 'tasklist' || !it.items.some((i) => deleted.has(i.id))) return it;
-    const rest = it.items.filter((i) => !deleted.has(i.id));
+    if (it.kind !== 'tasklist') return it;
+    // also a copy cached before a task could be reopened shows the repaired state offline
+    const rest = reopenParents(it.items.filter((i) => !deleted.has(i.id)));
+    if (rest.length === it.items.length && rest.every((i, n) => i === it.items[n])) return it;
     return { ...it, items: rest, doneCount: rest.filter((i) => i.done).length, totalCount: rest.length };
   }
 
@@ -288,7 +291,8 @@ export const useItemsStore = defineStore('items', () => {
     if (!tl || tl.kind !== 'tasklist' || back.some((b) => tl.items.some((i) => i.id === b.id))) return;
     const list = [...tl.items];
     list.splice(Math.min(index, list.length), 0, ...back);
-    byId.value = { ...byId.value, [listId]: { ...tl, items: list, doneCount: list.filter((i) => i.done).length, totalCount: list.length } };
+    const shown = reopenParents(list);
+    byId.value = { ...byId.value, [listId]: { ...tl, items: shown, doneCount: shown.filter((i) => i.done).length, totalCount: shown.length } };
   }
 
   /** Reports unavailability to the sync banner, then rethrows so dialogs can show `error.userMessage`. */

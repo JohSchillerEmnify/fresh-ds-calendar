@@ -961,6 +961,32 @@ describe('subtasks', () => {
     expect(none.body.doneCount).toBe(0);
   });
 
+  it('unticking a subtask of a done task opens the task and every task above it', async () => {
+    const a = await mk({ items: four });
+    const [tent, , poles] = a.items.map((i: Item) => i.id);
+    await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: true });
+    const r = await t.json('PATCH', `/api/tasklists/${a.id}/items/${poles}`, { done: false });
+    expect(r.body.items.map((i: Item) => i.done)).toEqual([false, false, false, false]);
+    expect(r.body.doneCount).toBe(0);
+  });
+
+  it('an open item put under a done task opens it, by order and by add', async () => {
+    const a = await mk({ items: four });
+    const [tent, pegs, , food] = a.items.map((i: Item) => i.id);
+    await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: true });
+    const moved = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: a.items.map((i: Item) => i.id), levels: [0, 1, 2, 1] });
+    expect(moved.body.items.map((i: Item) => i.done)).toEqual([false, true, true, false]);
+    // the write itself saves the repair (a read would show it anyway)
+    expect(JSON.parse((await raw(a.id)).extendedProperties.private.items).map((i: { d: number }) => i.d)).toEqual([0, 1, 1, 0]);
+    await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: a.items.map((i: Item) => i.id), levels: [0, 1, 2, 0] });
+    await t.json('PATCH', `/api/tasklists/${a.id}/items/${tent}`, { done: true });
+    await t.json('PATCH', `/api/tasklists/${a.id}/items/${food}`, { done: true });
+    const added = await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Stove', level: 1 });
+    expect(added.body.items.map((i: Item) => i.done)).toEqual([true, true, true, false, false]);
+    const under = await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [tent, pegs, a.items[2].id, food, added.body.items[4].id], levels: [0, 1, 2, 0, 1] });
+    expect(under.body.items.map((i: Item) => i.done)).toEqual([true, true, true, false, false]);
+  });
+
   it('removing a task removes its subtasks', async () => {
     const a = await mk({ items: four });
     const del = await t.json('DELETE', `/api/tasklists/${a.id}/items/${a.items[0].id}`);

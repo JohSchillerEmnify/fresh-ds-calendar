@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockEnd, blockIds, clampLevels, indentOf, parseIndented } from '@calendar/shared/subtasks';
+import { blockEnd, blockIds, clampLevels, indentOf, parseIndented, reopenParents } from '@calendar/shared/subtasks';
 
 const it4 = (levels: number[]) => levels.map((l, n) => ({ id: `i${n}`, title: `T${n}`, ...(l ? { level: l } : {}) }));
 
@@ -33,5 +33,19 @@ describe('subtask rules', () => {
   it('indents two spaces per level in Google', () => {
     expect(indentOf({ level: 2 })).toBe('    ');
     expect(indentOf({})).toBe('');
+  });
+
+  it('a done task over an open subtask opens, up the whole chain; the rest stays', () => {
+    const items = [
+      { id: 'a', title: 'A', done: true }, { id: 'b', title: 'B', done: true, level: 1 }, { id: 'c', title: 'C', done: false, level: 2 },
+      { id: 'd', title: 'D', done: true }, { id: 'e', title: 'E', done: true, level: 1 },
+    ];
+    expect(reopenParents(items).map((i) => i.done)).toEqual([false, false, false, true, true]);
+    const fine = [{ id: 'a', title: 'A', done: false }, { id: 'b', title: 'B', done: true, level: 1 }];
+    expect(reopenParents(fine)).toBe(fine);
+  });
+  it('an open sibling of a done subtask does not open the task', () => {
+    const items = [{ id: 'a', title: 'A', done: true }, { id: 'b', title: 'B', done: true, level: 1 }, { id: 'c', title: 'C', done: false }];
+    expect(reopenParents(items).map((i) => i.done)).toEqual([true, true, false]);
   });
 });

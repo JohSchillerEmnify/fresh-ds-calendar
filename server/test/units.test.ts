@@ -11,6 +11,18 @@ import {
   dateOnCompletion, decodeTaskList, encodeItems, encodePrivate, encodeTaskList, isUndatedEvent, mirror, nextCompletedOn, parseDescription, readItems, UNDATED_ANCHOR,
 } from '../src/services/taskCodec.js';
 
+describe('a done task over an open subtask reads as open', () => {
+  const lines = '☐ Order\n☑ Assemble\n☑ Tidy up\n  ☐ Fold clothes';
+  it('parseDescription opens the task', () => {
+    expect(parseDescription(lines).map((i) => [i.title, i.done])).toEqual([['Order', false], ['Assemble', true], ['Tidy up', false], ['Fold clothes', false]]);
+  });
+  it('readItems opens the task from the stored items too', () => {
+    const items = JSON.stringify([{ id: 'a', t: 'Tidy up', d: 1 }, { id: 'b', t: 'Fold clothes', d: 0, l: 1 }]);
+    const ev = { id: 'x', calendarId: 'p', etag: '', status: 'confirmed', start: {}, end: {}, created: '', updated: '', extendedProperties: { private: { items } } } as never;
+    expect(readItems(ev).map((i) => i.done)).toEqual([false, false]);
+  });
+});
+
 describe('colors', () => {
   it('palette colors map to themselves', () => {
     for (const [id, c] of Object.entries(GOOGLE_COLORS)) expect(nearestGoogleColorId(c.hex)).toBe(id);
@@ -163,7 +175,7 @@ describe('TaskListCodec', () => {
     expect(readItems(ev)).toMatchObject([{ title: 'ok', done: true }]);
   });
   it('parses description variants', () => {
-    const r = parseDescription('☐ A\n☑ B\n[ ] C\n[X] D\n  E  \n\n☐   \n');
+    const r = parseDescription('☐ A\n☑ B\n[ ] C\n[X] D\nE  \n\n☐   \n');
     expect(r.map((i) => [i.title, i.done])).toEqual([['A', false], ['B', true], ['C', false], ['D', true], ['E', false]]);
     expect(new Set(r.map((i) => i.id)).size).toBe(r.length);
     expect(parseDescription('☐ same\n☐ same').map((i) => i.id)[0]).not.toBe(parseDescription('☐ same\n☐ same').map((i) => i.id)[1]);
