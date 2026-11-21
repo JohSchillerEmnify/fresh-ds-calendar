@@ -14,6 +14,7 @@ from PIL import Image, ImageChops, ImageDraw
 NOISE_PIXELS = 24      # fewer changed pixels than this ...
 NOISE_DELTA = 40       # ... and no channel moved more than this -> anti-aliasing noise
 NOISE_RATIO = 0.002     # under the e2e maxDiffPixelRatio (playwright.config.ts) the test passes anyway
+MAX_DELTA = 35215 * 0.2 * 0.2  # Playwright's pixel comparison (pixelmatch, threshold 0.2): a pixel differs above this colour distance
 CELL = 16              # grid used to merge changed pixels into regions
 PAD = 12               # context around a region in the crop
 SCALE = 2
@@ -24,6 +25,21 @@ PAGE_W, PAGE_H = 1600, 1400
 def old_image(path):
     r = subprocess.run(['git', 'show', f'HEAD:{path}'], capture_output=True)
     return Image.open(io.BytesIO(r.stdout)).convert('RGB') if r.returncode == 0 else None
+
+
+def perceptual_count(old, new):
+    """Pixels the e2e test itself counts as different: pixelmatch's YIQ distance, so a faint gradient shift is not one."""
+    n = 0
+    a, b = old.tobytes(), new.tobytes()
+    for k in range(0, len(a), 3):
+        if a[k:k + 3] == b[k:k + 3]:
+            continue
+        r1, g1, b1, r2, g2, b2 = *a[k:k + 3], *b[k:k + 3]
+        y = 0.29889531 * (r1 - r2) + 0.58662247 * (g1 - g2) + 0.11448223 * (b1 - b2)
+        i = 0.59597799 * (r1 - r2) - 0.2741761 * (g1 - g2) - 0.32180189 * (b1 - b2)
+        q = 0.21147017 * (r1 - r2) - 0.52261711 * (g1 - g2) + 0.31114694 * (b1 - b2)
+        n += 0.5053 * y * y + 0.299 * i * i + 0.1957 * q * q > MAX_DELTA
+    return n
 
 
 def regions(mask):
@@ -72,7 +88,7 @@ def main():
         gray = diff.convert('L')
         mask = gray.point(lambda v: 255 if v > 8 else 0)
         count = sum(mask.histogram()[1:])
-        if count == 0 or count < NOISE_RATIO * new.width * new.height or (count < NOISE_PIXELS and max(b[1] for b in diff.getextrema()) < NOISE_DELTA):
+        if count == 0 or perceptual_count(old, new) <= NOISE_RATIO * new.width * new.height or (count < NOISE_PIXELS and max(b[1] for b in diff.getextrema()) < NOISE_DELTA):
             print(f'NOISE {p}')
             continue
         boxes = regions(mask)
