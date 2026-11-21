@@ -7,11 +7,12 @@ export default {
   title: 'Teilen mit',
   person: 'Person',
   share: 'Teilen',
-  stop: 'Nicht mehr teilen',
+  remove: 'Entfernen',
   leave: 'Verlassen',
   sharedWith: 'Geteilt mit {names}',
+  alsoWith: 'Außerdem geteilt mit {names}',
   shareFailed: 'Die Liste konnte nicht geteilt werden.',
-  stopFailed: 'Das Teilen konnte nicht beendet werden.',
+  removeFailed: 'Die Person konnte nicht entfernt werden.',
   leaveFailed: 'Die Liste konnte nicht verlassen werden.',
   invite: {
     acceptLater: 'Die Einladung konnte gerade nicht angenommen werden. Versuch es später noch einmal.',
@@ -40,6 +41,6 @@ export default {
   needsSignIn: 'Zum Teilen ist eine Anmeldung nötig.',
   self: 'Du kannst nicht mit dir selbst teilen.',
   repeating: 'Eine wiederkehrende Aufgabenliste kann nicht geteilt werden.',
-  ownerCannotLeave: 'Als Besitzerin oder Besitzer kannst du die Liste löschen oder das Teilen beenden.',
+  ownerCannotLeave: 'Als Besitzerin oder Besitzer kannst du die Liste löschen oder die Personen entfernen, mit denen sie geteilt ist.',
   categoryOwnerOnly: 'Nur die Besitzerin oder der Besitzer kann die Kategorie einer geteilten Liste ändern.',
 } satisfies Messages['sharing'];

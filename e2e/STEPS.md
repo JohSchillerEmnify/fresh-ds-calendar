@@ -3103,6 +3103,7 @@ there is no button to back up now
 {string} has an undated task list {string} with the items {string} in the category {string}
 I share the task list {string} with {string}
 I stop sharing the task list {string}
+I remove {string} from the task list {string}
 I share the category {string} with {string} in the settings
 {string} creates the undated task list {string} in the category {string}
 {string} opens the Tasks view on another device
@@ -3133,6 +3134,13 @@ the sharing line says {string}
 the task list {string} in the Tasks view is not shared
 the device holds the address {string} for sharing
 I withdraw the invitation to share the task list {string}
+I withdraw the invitation to {string} for the task list {string}
+I choose {string} in the overflow menu of the task list {string}
+the task list form is open at {string}
+the sharing lines say {string}
+{string} is invited to the task list {string}
+{string} has the task list {string} to themselves again
+"Share with" is not offered
 I withdraw the invitation to share the category {string} in the settings
 I open the category {string} in the settings
 {string} accepts the invitation to the task list {string}
@@ -3158,7 +3166,7 @@ the device holds the invitation to the task list {string} from {string}
   endpoint restores the plant state.
 - "I share the task list T with P": the signed-in person opens the Tasks view, opens T's dialog (`tasklist-expanded-title`),
   types the address P into the email field `tasklist-share-person`, presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
-  (200), then closes the dialog. "I try to share the task list T with P": the same, but it only presses the button and waits for the answer (200); the dialog stays open when nothing was shared. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
+  (200), then closes the dialog. "I try to share the task list T with P": the same, but it only presses the button and waits for the answer (200); the dialog stays open when nothing was shared. "I remove N from the task list T": opens T's dialog and presses `tasklist-member-remove` on the `tasklist-member` line that says "Shared with N" (`DELETE /api/tasklists/:id/share/:sub`, 200); the dialog stays open while people remain and closes after the last one. "I stop sharing the task list T": the same dialog, removes every person that way.
 - "I share the category C with P in the settings": opens the settings, edits the category C (`settings-category`),
   types P's address into the email field `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
 - "P creates the undated task list T in the category C": `POST /api/tasklists` as P (a session of its own, see below).
@@ -3181,6 +3189,7 @@ the device holds the invitation to the task list {string} from {string}
 - "P is offered only A to share with" / "P is offered no address to share with": `GET /api/people` with P's own session returns exactly those email addresses (sorted) / none.
 - "the sharing field says T" and "the sharing line says T": the sharing line of the open dialog (`tasklist-share-who` in the task list dialog, `category-share-who` in the category dialog) has exactly T; with a sent invitation it reads "Invitation sent to A". "the task list T in the Tasks view is not shared": the `tasks-item` T has no `tasklist-shared-badge`.
 - Invitations (issue 183): "I share the task list T with P" sends the invitation (see "I try to share" for the typing) and closes the dialog; "I share the task list T with P who accepts" is the same followed by "P accepts the invitation to the task list T". "I withdraw the invitation to share the task list T": opens T's dialog and presses `tasklist-invite-withdraw`; the category step does the same with `category-invite-withdraw` in the category's dialog. "I open the category C in the settings": opens the settings category C (`settings-category`) and waits for `category-dialog`. "P accepts / declines the invitation to the task list T" and "... to the category C": P acts through the API with a session of their own, answering the invitation found in `GET /api/invitations` (`POST /api/invitations/:id/accept` or `/decline`, 200). "P cannot accept the invitation to the task list T": the same call with P's session answers `404`. "P sees no invitations": `GET /api/invitations` of P's session holds no incoming invitation. "the Tasks view shows the invitation to the task list T from A": the Open tab holds an `invitation-card` of kind list with `data-title` T whose text names A and which has `invitation-accept` and `invitation-decline`; the category step is the same with kind category. "P may use the calendar but has not signed in yet": `POST /api/__test/auth/newcomer` allows the address without recording it as a person. "I press X in the snackbar": clicks the action button of the visible snackbar whose text is X.
+- Sharing from the opened list (issue 27): "I choose X in the overflow menu of the task list T" opens the `tasklist-overflow` of T's `tasks-item`, presses the menu item named X and waits for `tasklist-dialog`. "the task list form is open at \"Share with\"": `tasklist-share-person` is visible and focused. "the sharing lines say A, B": the texts of all `tasklist-share-who` lines of the open dialog, in order, joined with ", " equal the text. "I withdraw the invitation to P for the task list T": opens T's dialog and presses `tasklist-invite-withdraw` of the line that names P (`POST .../withdraw`, 200). "P has the task list T to themselves again": P's `GET /api/tasklists/all-open` holds exactly one list T and it is not shared (no `shared`; for the member leaving last, the list is back in P's tasks calendar). "P is invited to the task list T": P's `GET /api/invitations` holds an incoming invitation titled T. "\"Share with\" is not offered": the open dialog has no `tasklist-share-person`. The region `overflow menu` of the visual steps is the open `role=menu`.
 - "P shares the task list T with A and with B" (`@unit`, `server/test/invitations.test.ts`): P sends both invitations through `POST /api/tasklists/:id/share`; "both answers have the same status ...": status, body keys and the held time (test config `shareAnswerMs`) are equal.
 - "the device holds the invitation to the task list T from A": `@unit` only (`web/test/invitations.test.ts`), like the offline steps above.
 - "the device holds the address A for sharing": `@unit` only (`web/test/share-people.test.ts`), like the offline steps above; not run in the browser.

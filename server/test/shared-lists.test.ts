@@ -32,6 +32,46 @@ async function groceries(jo: Call, extra: Record<string, unknown> = {}) {
   return r.body;
 }
 
+describe('removing one person from a shared list', () => {
+  it('keeps the others, moves the list back with the last one, and answers a stranger and an unknown person alike', async () => {
+    const { t, jo, anna, bob } = await setup();
+    try {
+      const own = await groceries(jo);
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
+      const id = encodeURIComponent(s.id);
+      const annaSub = mockSub(ANNA), bobSub = mockSub(BOB);
+      // bob is no member yet: a stranger
+      const stranger = await bob('DELETE', `/api/tasklists/${id}/share/${annaSub}`);
+      await shareAndAccept(jo, bob, s.id, BOB);
+      expect((await anna('DELETE', `/api/tasklists/${id}/share/${bobSub}`)).status).toBe(403);
+      const unknown = await jo('DELETE', `/api/tasklists/${id}/share/nobody`);
+      expect([unknown.status, unknown.body.error.code]).toEqual([404, 'NOT_FOUND']);
+      expect([stranger.status, stranger.body.error?.code]).toEqual([unknown.status, unknown.body.error.code]);
+      expect((await jo('DELETE', `/api/tasklists/${id}/share/${annaSub}`)).status).toBe(200);
+      expect(await titles(anna)).toEqual([]);
+      expect(await titles(bob)).toEqual(['Groceries']);
+      const last = await jo('DELETE', `/api/tasklists/${id}/share/${bobSub}`);
+      expect([last.status, last.body.calendarId]).toEqual([200, expect.not.stringMatching(/^shared$/)]);
+      expect(await titles(bob)).toEqual([]);
+      expect(await titles(jo)).toEqual(['Groceries']);
+    } finally { t.cleanup(); }
+  });
+});
+
+describe('a shared list left without people', () => {
+  it('moves back once when the last person is removed twice at the same time', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = await groceries(jo);
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
+      const url = `/api/tasklists/${encodeURIComponent(s.id)}/share/${mockSub(ANNA)}`;
+      const both = await Promise.all([jo('DELETE', url), jo('DELETE', url)]);
+      expect(both.map((r) => r.status).sort()).toEqual([200, 200]);
+      expect((await allOpen(jo)).filter((l) => l.title === 'Groceries')).toHaveLength(1);
+    } finally { t.cleanup(); }
+  });
+});
+
 describe('sharing a list', () => {
   it('moves it out of the owner\'s Google calendar into the shared store and shows it to both', async () => {
     const { t, jo, anna } = await setup();
@@ -202,7 +242,7 @@ describe('stop sharing and leave', () => {
     } finally { t.cleanup(); }
   });
 
-  it('lets a member leave: it disappears for them only, the owner keeps it', async () => {
+  it('lets a member leave: it disappears for them only, and with nobody left the owner has it back in Google', async () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
@@ -210,8 +250,10 @@ describe('stop sharing and leave', () => {
       expect((await anna('POST', `/api/tasklists/${encodeURIComponent(s.id)}/leave`)).status).toBe(204);
       expect(await allOpen(anna)).toEqual([]);
       expect((await anna('GET', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(404);
-      const mine = (await allOpen(jo))[0];
-      expect(mine).toMatchObject({ title: 'Groceries', shared: { owned: true, with: [] } });
+      const mine = (await allOpen(jo)).filter((l) => l.title === 'Groceries');
+      expect(mine).toHaveLength(1);
+      expect(mine[0].calendarId).not.toBe('shared');
+      expect(mine[0].shared).toBeUndefined();
     } finally { t.cleanup(); }
   });
 

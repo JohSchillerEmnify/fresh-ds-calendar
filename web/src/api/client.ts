@@ -374,9 +374,9 @@ export class ApiClient {
   shareTaskList(id: string, email: string, o?: RequestOptions) {
     return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/share`, { email }, o);
   }
-  /** Owner: moves a shared list back into the owner's Google tasks calendar (new id). */
-  unshareTaskList(id: string, o?: RequestOptions) {
-    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/share`, undefined, o);
+  /** The sharer removes one person (`sub`) from a shared list; the list stays shared with the others. */
+  removeListMember(id: string, sub: string, o?: RequestOptions) {
+    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/share/${enc(sub)}`, undefined, o);
   }
   /** Member: removes the list for the requester only. */
   leaveTaskList(id: string, o?: RequestOptions) {

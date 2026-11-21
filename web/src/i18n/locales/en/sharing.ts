@@ -9,11 +9,12 @@ export default {
   title: 'Share with',
   person: 'Person',
   share: 'Share',
-  stop: 'Stop sharing',
+  remove: 'Remove',
   leave: 'Leave',
   sharedWith: 'Shared with {names}',
+  alsoWith: 'Also shared with {names}',
   shareFailed: "Couldn't share the list.",
-  stopFailed: "Couldn't stop sharing.",
+  removeFailed: "Couldn't remove the person.",
   leaveFailed: "Couldn't leave the list.",
   invite: {
     acceptLater: "Couldn't accept the invitation right now. Try again later.",
@@ -42,6 +43,6 @@ export default {
   needsSignIn: 'Sharing needs sign-in.',
   self: 'You cannot share with yourself.',
   repeating: 'A repeating task list cannot be shared.',
-  ownerCannotLeave: 'As the owner, you can delete the list or stop sharing it.',
+  ownerCannotLeave: 'As the owner, you can delete the list or remove the people it is shared with.',
   categoryOwnerOnly: 'Only the owner can change the category of a shared list.',
 };

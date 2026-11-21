@@ -4,7 +4,7 @@ Feature: Sharing task lists with another person
   way. Sharing sends an invitation: nothing is shared, and nothing about the other person is revealed, until that
   person accepts it (ADR 0047). The app never lists everybody who uses it: the field offers only people who accepted
   a share of the person and people who share lists with them (ADR 0046). A shared list lives on the server, not in
-  Google: accepting moves it out of the owner's tasks calendar, "Stop sharing" moves it back. Both people see and edit it everywhere task lists appear and it carries a
+  Google: accepting moves it out of the owner's tasks calendar, taking the last person off it (removing them, or the last one leaving) moves it back. Both people see and edit it everywhere task lists appear and it carries a
   small "shared" badge with the other person's initial. Only the owner can delete it for everyone; the other person
   can leave it, which removes it for them only. Changes of the other person show up on the next automatic sync, and
   an edit based on an outdated version is refused with the usual conflict message.
@@ -30,7 +30,7 @@ Feature: Sharing task lists with another person
     And I wait for the automatic sync
     Then the item "Milk" of the task list "Groceries" in the Tasks view is ticked
 
-  Scenario: Stop sharing moves the list back to the owner only
+  Scenario: Removing the person moves the list back to the owner only
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
     And I share the task list "Groceries" with "anna@example.com" who accepts
@@ -45,6 +45,7 @@ Feature: Sharing task lists with another person
     When "anna@example.com" leaves the shared task list "Groceries"
     Then "anna@example.com" sees no task lists
     And "jo@example.com" sees the task lists "Groceries"
+    And "jo@example.com" has the task list "Groceries" to themselves again
 
   Scenario: A stranger cannot read a shared list
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -339,6 +340,132 @@ Feature: Sharing task lists with another person
     And I share the task list "Groceries" with "anna@example.com"
     When "anna@example.com" opens the Tasks view on another device
     Then the "tasks view" still looks like "invitation-tasks-view-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  # Sharing from the opened list (issue 27). "Share" is an entry of the list's overflow menu (three dots) for the owner;
+  # it opens the list's form at "Share with". The field stays open for another person, every sent invitation and every
+  # accepted person has a line of its own (Withdraw, or Remove, which takes only that person off; the last one stops sharing), and a person the list is shared with only reads who it is shared by. Sharing a
+  # category stays with one person.
+
+  Scenario: The owner finds Share in the overflow menu, a member does not
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I open the overflow menu of the task list "Groceries"
+    Then the overflow menu lists "Edit, Duplicate, Share, Archive, Save as template, Delete"
+    When I share the task list "Groceries" with "anna@example.com" who accepts
+    And "anna@example.com" opens the Tasks view on another device
+    And I open the overflow menu of the task list "Groceries"
+    Then the overflow menu lists "Edit, Duplicate, Archive, Save as template, Leave"
+
+  Scenario: Share opens the list's form at "Share with"
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I choose "Share" in the overflow menu of the task list "Groceries"
+    Then the task list form is open at "Share with"
+
+  Scenario: Another person can be added to a list that is already shared
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    When I share the task list "Groceries" with "bob@example.com"
+    And I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Shared with anna, Invitation sent to bob@example.com"
+    And "Share with" is an email field
+
+  Scenario: Two invitations wait side by side and one can be withdrawn
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "bob@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Invitation sent to anna@example.com, Invitation sent to bob@example.com"
+    When I withdraw the invitation to "bob@example.com" for the task list "Groceries"
+    Then "bob@example.com" sees no invitations
+    And "anna@example.com" is invited to the task list "Groceries"
+
+  Scenario: Two people who accepted both see the list
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    Then "anna@example.com" sees the task lists "Groceries"
+    And "bob@example.com" sees the task lists "Groceries"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Shared with anna, Shared with bob"
+
+  Scenario: A member only reads who the list is shared by and with
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then the sharing lines say "Shared by jo, Also shared with bob"
+    And "Share with" is not offered
+
+  Scenario: Removing one of two people keeps the list shared with the other
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When I remove "anna" from the task list "Groceries"
+    Then the sharing lines say "Shared with bob"
+    And "anna@example.com" sees no task lists
+    And "bob@example.com" sees the task lists "Groceries"
+
+  Scenario: Removing the last person stops sharing
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    When I remove "anna" from the task list "Groceries"
+    Then "anna@example.com" sees no task lists
+    And "jo@example.com" sees the task lists "Groceries"
+    When I open "Share with" for the task list "Groceries"
+    Then "Share with" is an email field
+
+  @visual @mobile
+  Scenario Outline: The overflow menu with Share looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I open the overflow menu of the task list "Groceries"
+    Then the "overflow menu" still looks like "share-menu-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The form of a list shared with one person and invited another looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the "list form" still looks like "share-two-people-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: A member's form shows who the list is shared by in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then the "list form" still looks like "share-member-<scheme>"
 
     Examples:
       | scheme |

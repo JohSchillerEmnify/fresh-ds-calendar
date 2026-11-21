@@ -668,11 +668,13 @@ export class CalendarService {
 
   // ---------- sharing (see TaskSharing) ----------
   inviteToList(id: string, email: string): Promise<TaskList> { return this.sharing!.inviteToList(id, email); }
-  revokeList(id: string, memberSub: string): void { this.sharing!.revokeList(id, memberSub); }
+  revokeList(id: string, memberSub: string): Promise<void> { return this.sharing!.revokeList(id, memberSub); }
+  releaseIfEmpty(id: string): Promise<void> { return this.sharing!.releaseIfEmpty(id); }
   grantList(id: string, memberSub: string): Promise<string> { return this.sharing!.grantList(id, memberSub); }
   grantCategory(categoryId: string, memberSub: string): Promise<void> { return this.sharing!.grantCategory(categoryId, memberSub); }
+  removeListMember(id: string, memberSub: string): Promise<TaskList> { return this.sharing!.removeMember(id, memberSub); }
   unshareTaskList(id: string): Promise<TaskList> { return this.sharing!.unshareTaskList(id); }
-  leaveTaskList(id: string): void { this.sharing!.leaveTaskList(id); }
+  leaveTaskList(id: string): string | null { return this.sharing!.leaveTaskList(id); }
   shareCategory(categoryId: string, email: string | null): Promise<Record<string, Person>> { return this.sharing!.shareCategory(categoryId, email); }
 
   // ---------- changes since (ADR 0025) ----------
