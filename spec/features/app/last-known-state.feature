@@ -264,7 +264,7 @@ Feature: Everything I see is kept on this device and synced with the server
       Given "jo@example.com" and "anna@example.com" may use the calendar
       And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
       And "jo@example.com" is signed in
-      And I share the task list "Groceries" with "anna@example.com"
+      And I share the task list "Groceries" with "anna@example.com" who accepts
       And automatic sync is disabled
       And "anna@example.com" opens the Tasks view on another device
       When "jo@example.com" ticks the item "Milk" of the shared task list "Groceries"
