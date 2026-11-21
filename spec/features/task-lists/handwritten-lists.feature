@@ -472,7 +472,7 @@ Feature: Labs: handwritten lists
       Given the Labs switch "Handwritten lists" is on
       And "jo@example.com" has an undated task list "Groceries" with the ink items "Milk, Eggs"
       And "jo@example.com" is signed in
-      When I share the task list "Groceries" with "anna@example.com"
+      When I share the task list "Groceries" with "anna@example.com" who accepts
       And "anna@example.com" opens the Tasks view on another device
       Then the task list "Groceries" shows 2 ink items, scaled down
 

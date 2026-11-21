@@ -120,10 +120,10 @@ Then('the held card shows the checkbox and the title {string} but no grip and no
 });
 
 Then('the held card is one line tall', async function (this: World) {
-  const card = await box(heldRow(this));
-  const rows = await this.expanded.locator('[data-testid="tasklist-item"]:not([data-dragging="true"])').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-  // the lift scales the card by 1.05
-  expect(card.height, 'the held card is taller than a row: its title wrapped').toBeLessThanOrEqual(Math.min(...rows) * 1.05 + 6);
+  // layout heights: the lifted card's rect is tilted by the finger's speed, which widens it by a timing-dependent amount
+  const card = await heldRow(this).evaluate((e) => (e as HTMLElement).offsetHeight);
+  const rows = await this.expanded.locator('[data-testid="tasklist-item"]:not([data-dragging="true"])').evaluateAll((els) => els.map((e) => (e as HTMLElement).offsetHeight));
+  expect(card, 'the held card is taller than a row: its title wrapped').toBeLessThanOrEqual(Math.min(...rows) + 6);
 });
 
 Then('the held card is under the finger', async function (this: World) {
