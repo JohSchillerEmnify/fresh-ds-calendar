@@ -76,7 +76,7 @@ describe('Share with in the task list dialog', () => {
     await flushPromises();
     expect(calls.find((c) => c.path === '/api/tasklists/G/share')?.body).toEqual({ email: 'Nobody@Example.test' });
     expect(w.get('[data-testid="tasklist-share-who"]').text()).toBe('Invitation sent to nobody@example.test');
-    expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(false);
+    expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(true);
     expect(w.emitted('close')).toBeUndefined();
   });
 
@@ -92,6 +92,16 @@ describe('Share with in the task list dialog', () => {
     await flushPromises();
     expect(calls.some((c) => c.method === 'POST' && c.path === '/api/invitations/i1/withdraw')).toBe(true);
     expect(w.find('[data-testid="tasklist-share-who"]').exists()).toBe(false);
+    expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(true);
+  });
+
+  it('shows a line for every pending invitation and keeps the field for another person', async () => {
+    const { w, device } = await open({ 'GET /api/people': () => ({ people: [] }), 'GET /api/invitations': () => ({ status: 503, body: { error: { code: 'X', message: 'down' } } }) });
+    device.putFile('invitations', { invitations: [], sent: [
+      { id: 'i1', kind: 'list', target: 'G', address: 'bea@example.test', expires: 'x' }, { id: 'i2', kind: 'list', target: 'G', address: 'cy@example.test', expires: 'x' },
+    ] });
+    await flushPromises();
+    expect(w.findAll('[data-testid="tasklist-share-who"]').map((l) => l.text())).toEqual(['Invitation sent to bea@example.test', 'Invitation sent to cy@example.test']);
     expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(true);
   });
 });

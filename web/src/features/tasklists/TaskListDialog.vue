@@ -100,7 +100,7 @@ const pending = computed(() => (props.id ? invitations.sentForAll('list', props.
 const auth = useAuthStore();
 const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => { if (stayOpen) stayOpen = false; else emit('close'); }, error });
 const memberOnly = computed(() => isMemberOnly(current.value));
-/** A member reads the other members too (the owner is named by "Shared by"). */
+/** A member reads the other members too (the sharer is named by "Shared by"). */
 const otherMembers = computed(() => (current.value?.shared ? current.value.shared.with.filter((p) => p.sub !== current.value!.shared!.owner.sub) : []));
 /** "Share" of the overflow menu opens the form at the field; the sheet takes the focus first, so this waits for it. */
 async function focusShare() {

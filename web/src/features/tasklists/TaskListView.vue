@@ -81,8 +81,7 @@ const clock = useClockStore();
 const settings = useSettingsStore();
 const lists = useTaskListsStore();
 const prefs = usePrefsStore();
-const ink = useInkStore();
-const auth = useAuthStore();
+const ink = useInkStore(); const auth = useAuthStore();
 const inkMode = useInkMode();
 
 const root = ref<HTMLElement | null>(null);
@@ -237,7 +236,7 @@ const writing = computed(() => inkMode.enabled.value && (!!props.closable || !!p
 const inkWriting = useInkWriting(() => props.id, writing, () => (tl.value?.items ?? []).filter((i) => i.ink).map((i) => i.id));
 const inkLabel = (item: TaskItem, i: number): string => t(item.done ? 'ink.itemTicked' : 'ink.item', { n: i + 1, total: tl.value?.items.length ?? 0 });
 // --- list actions -----------------------------------------------------------------------------------------------
-function edit(focus?: 'share') { ui.openDialog('tasklist', { mode: 'edit', id: props.id, ...(focus ? { focus } : {}) }); }
+function edit(from?: string) { ui.openDialog('tasklist', { mode: 'edit', id: props.id, ...(from === 'share' ? { focus: 'share' } : {}) }); }
 /** "Save as template" (feature tasklist-templates): a small sheet over this one asks for the name. */
 const savingTemplate = ref(false);
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
@@ -256,7 +255,7 @@ async function leave() {
     ui.notify(e instanceof ApiError ? e.userMessage : t('sharing.leaveFailed'));
   }
 }
-/** The overflow menu: the owner can share (it opens the form at "Share with"), a list with ticks still open can be archived (all ticked at once), and a member can only leave. */
+/** The overflow menu: the sharer can share (it opens the form at "Share with"), a list with ticks still open can be archived (all ticked at once), and a member can only leave. */
 const menuItems = computed(() => {
   const l = tl.value;
   if (!l) return [];
@@ -278,8 +277,7 @@ function archive() {
   lists.markFinished(props.id);
 }
 function onMenu(id: string) {
-  if (id === 'edit') edit();
-  else if (id === 'share') edit('share');
+  if (id === 'edit' || id === 'share') edit(id);
   else if (id === 'duplicate' && tl.value) duplicateList(tl.value, cats.on.value);
   else if (id === 'archive') archive();
   else if (id === 'template') savingTemplate.value = true;
