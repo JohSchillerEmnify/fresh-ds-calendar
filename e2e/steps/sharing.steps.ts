@@ -91,7 +91,7 @@ async function sendInvitation(world: World, title: string, email: string): Promi
   await openDialog(world, title);
   expect(await typeAndShare(world, title, email), 'invitation sent').toBe(200);
   const dialog = world.page.getByTestId('tasklist-dialog');
-  await expect(dialog.getByTestId('tasklist-share-who')).toBeVisible();
+  await expect(dialog.getByTestId('tasklist-share-who').last()).toBeVisible();
   await dialog.getByTestId('tasklist-cancel').click();
   await expect(dialog).toBeHidden();
 }
@@ -367,4 +367,40 @@ Then('the task list {string} in the Tasks view is not shared', async function (t
   await expect(this.page.getByTestId('tasklist-dialog')).toBeHidden();
   await expect(this.byTestId('tasks-item', attr('data-title', title))).toBeVisible();
   await expect(this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-shared-badge')).toHaveCount(0);
+});
+
+When('I choose {string} in the overflow menu of the task list {string}', async function (this: World, label: string, title: string) {
+  await openTasksView(this);
+  await this.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-overflow').click();
+  await this.page.getByRole('menu').getByRole('menuitem', { name: label, exact: true }).click();
+  await expect(this.page.getByTestId('tasklist-dialog')).toBeVisible();
+});
+
+Then('the task list form is open at {string}', async function (this: World, field: string) {
+  expect(field).toBe('Share with');
+  await expect(shareField(this)).toBeVisible();
+  await expect(shareField(this)).toBeFocused();
+});
+
+Then('the sharing lines say {string}', async function (this: World, text: string) {
+  const lines = this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-share-who');
+  await expect.poll(async () => (await lines.allInnerTexts()).map((t) => t.trim()).join(', ')).toBe(text);
+});
+
+When('I withdraw the invitation to {string} for the task list {string}', async function (this: World, address: string, title: string) {
+  await openDialog(this, title);
+  const line = this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-invite').filter({ hasText: address });
+  const withdrawn = this.page.waitForResponse(isCall('POST', '/withdraw'));
+  await line.getByTestId('tasklist-invite-withdraw').click();
+  expect((await withdrawn).status(), 'invitation withdrawn').toBe(200);
+});
+
+Then('{string} is invited to the task list {string}', async function (this: World, email: string, title: string) {
+  const held = (await invitationsOf(this, email)).invitations;
+  expect(held.some((i) => i.kind === 'list' && i.title === title), `${email} holds an invitation to ${title}`).toBe(true);
+});
+
+Then('"Share with" is not offered', async function (this: World) {
+  await expect(this.page.getByTestId('tasklist-dialog')).toBeVisible();
+  await expect(shareField(this)).toHaveCount(0);
 });

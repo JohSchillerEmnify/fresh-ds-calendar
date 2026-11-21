@@ -344,3 +344,109 @@ Feature: Sharing task lists with another person
       | scheme |
       | light  |
       | dark   |
+
+  # Sharing from the opened list (issue 27). "Share" is an entry of the list's overflow menu (three dots) for the owner;
+  # it opens the list's form at "Share with". The field stays open for another person, every sent invitation and every
+  # accepted person has a line of its own, and a person the list is shared with only reads who it is shared by. Sharing a
+  # category stays with one person.
+
+  Scenario: The owner finds Share in the overflow menu, a member does not
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I open the overflow menu of the task list "Groceries"
+    Then the overflow menu lists "Edit, Duplicate, Share, Archive, Save as template, Delete"
+    When I share the task list "Groceries" with "anna@example.com" who accepts
+    And "anna@example.com" opens the Tasks view on another device
+    And I open the overflow menu of the task list "Groceries"
+    Then the overflow menu lists "Edit, Duplicate, Archive, Save as template, Leave"
+
+  Scenario: Share opens the list's form at "Share with"
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I choose "Share" in the overflow menu of the task list "Groceries"
+    Then the task list form is open at "Share with"
+
+  Scenario: Another person can be added to a list that is already shared
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    When I share the task list "Groceries" with "bob@example.com"
+    And I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Shared with anna, Invitation sent to bob@example.com"
+    And "Share with" is an email field
+
+  Scenario: Two invitations wait side by side and one can be withdrawn
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "bob@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Invitation sent to anna@example.com, Invitation sent to bob@example.com"
+    When I withdraw the invitation to "bob@example.com" for the task list "Groceries"
+    Then "bob@example.com" sees no invitations
+    And "anna@example.com" is invited to the task list "Groceries"
+
+  Scenario: Two people who accepted both see the list
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    Then "anna@example.com" sees the task lists "Groceries"
+    And "bob@example.com" sees the task lists "Groceries"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing lines say "Shared with anna, Shared with bob"
+
+  Scenario: A member only reads who the list is shared by and with
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then the sharing lines say "Shared by jo, Also shared with bob"
+    And "Share with" is not offered
+
+  @visual @mobile
+  Scenario Outline: The overflow menu with Share looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open the Tasks view
+    And I open the overflow menu of the task list "Groceries"
+    Then the "overflow menu" still looks like "share-menu-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The form of a list shared with one person and invited another looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the "list form" still looks like "share-two-people-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: A member's form shows who the list is shared by in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then the "list form" still looks like "share-member-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |

@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-11-21
+- New: a task list's "…" menu has Share. It opens the list's form at "Share with", and you can add several people to one list: each invitation and each person has a line of its own.
+- Changed: a person a list is shared with sees who it is shared by and with whom, and no longer gets a Share field.
 - New: sharing a task list or a category now sends an invitation. The other person sees it at the top of the Tasks view, and as a message when it arrives, and chooses Accept or Decline. Nothing is shared until they accept, and you only see "Invitation sent" with a Withdraw button. An invitation lapses after 7 days, and it waits for someone who has not signed in yet.
 - Changed: "Share with" now offers only people who accepted something you shared, and the app no longer tells you whether an email address uses the calendar.
 - Fixed: in a task list that is scrolled, picking up a task with subtasks no longer makes the list jump, so the task lands where the dashed outline showed.

@@ -40,6 +40,10 @@ export const useInvitationsStore = defineStore('invitations', () => {
   const sentFor = (kind: SentInvitation['kind'], target: string): SentInvitation | null =>
     answer.value.sent.find((i) => i.kind === kind && i.target === target) ?? null;
 
+  /** Every invitation this person sent for a list or category that still waits (a list can have several). */
+  const sentForAll = (kind: SentInvitation['kind'], target: string): SentInvitation[] =>
+    answer.value.sent.filter((i) => i.kind === kind && i.target === target);
+
   /** Answers one invitation; the card or pending line goes at once, and what an accept shared arrives with the next sync. */
   async function respond(id: string, verb: 'accept' | 'decline' | 'withdraw'): Promise<boolean> {
     if (answering.value.includes(id)) return false;
@@ -60,5 +64,5 @@ export const useInvitationsStore = defineStore('invitations', () => {
     return true;
   }
 
-  return { answer, answering, announced, refresh, markAnnounced, sentFor, respond };
+  return { answer, answering, announced, refresh, markAnnounced, sentFor, sentForAll, respond };
 });

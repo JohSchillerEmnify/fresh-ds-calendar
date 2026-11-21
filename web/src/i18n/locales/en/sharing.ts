@@ -12,6 +12,7 @@ export default {
   stop: 'Stop sharing',
   leave: 'Leave',
   sharedWith: 'Shared with {names}',
+  alsoWith: 'Also shared with {names}',
   shareFailed: "Couldn't share the list.",
   stopFailed: "Couldn't stop sharing.",
   leaveFailed: "Couldn't leave the list.",

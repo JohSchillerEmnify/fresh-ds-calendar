@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`): one form; the modes differ only in title, kind switch, Delete / Leave and the replace question. */
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
 import type { Reminders, TaskItem, TaskList, TaskTemplate } from '@/api/types';
@@ -49,7 +49,7 @@ import TemplatePill from './TemplatePill.vue';
 import { fillFromTemplate, inkLinesOf, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; title?: string; draftList?: TaskList }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; title?: string; draftList?: TaskList; focus?: 'share' }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 // handwriting (feature handwritten-lists): ink lines for the items to add, in a wider ruled dialog where a pen is used
@@ -94,10 +94,22 @@ const taskDefaults = ref<number[]>([]);
 const address = ref('');
 let stayOpen = false;
 const invitations = useInvitationsStore();
-const pending = computed(() => (props.id ? invitations.sentFor('list', props.id) : null));
+const formEl = ref<HTMLFormElement | null>(null);
+/** Every invitation of this list that waits for an answer: several people can be invited at once. */
+const pending = computed(() => (props.id ? invitations.sentForAll('list', props.id) : []));
 const auth = useAuthStore();
 const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => { if (stayOpen) stayOpen = false; else emit('close'); }, error });
 const memberOnly = computed(() => isMemberOnly(current.value));
+/** A member reads the other members too (the owner is named by "Shared by"). */
+const otherMembers = computed(() => (current.value?.shared ? current.value.shared.with.filter((p) => p.sub !== current.value!.shared!.owner.sub) : []));
+/** "Share" of the overflow menu opens the form at the field; the sheet takes the focus first, so this waits for it. */
+async function focusShare() {
+  await nextTick();
+  await nextTick();
+  const field = formEl.value?.querySelector<HTMLInputElement>('[data-testid="tasklist-share-person"]');
+  field?.scrollIntoView?.({ block: 'center' });
+  field?.focus({ preventScroll: true });
+}
 
 function fill(src: TaskList) {
   etag = src.etag;
@@ -123,6 +135,7 @@ onMounted(async () => {
     return;
   }
   const cur = items.get(props.id!);
+  if (props.focus === 'share') void focusShare();
   if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
   try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; }
@@ -269,8 +282,8 @@ const share = () => sharingAction(async () => {
   await invitations.refresh();
   stayOpen = true;
 }, 'sharing.shareFailed');
-const withdraw = () => sharingAction(async () => {
-  await invitations.respond(pending.value!.id, 'withdraw');
+const withdraw = (id: string) => sharingAction(async () => {
+  await invitations.respond(id, 'withdraw');
   stayOpen = true;
 }, 'sharing.invite.withdrawFailed');
 const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
@@ -286,7 +299,7 @@ function remove() {
 
 <template>
   <AdaptiveSheet open :wide="wide" :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open && !replacing" @close="emit('close')">
-    <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
+    <form ref="formEl" class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" :title="form.title" />
       <div class="headrow">
         <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
@@ -307,17 +320,25 @@ function remove() {
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" data-field="category" />
       </div>
       <div v-if="current && (current.shared || auth.status !== 'off')" class="share" data-testid="tasklist-sharing" data-field="share">
-        <template v-if="current.shared">
-          <p class="who" data-testid="tasklist-share-who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
-          <Button v-if="!memberOnly" variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
-        </template>
-        <template v-else-if="pending">
-          <p class="who" data-testid="tasklist-share-who">{{ t('sharing.invite.sent', { address: pending.address }) }}</p>
-          <Button variant="tonal" :disabled="sharing" data-testid="tasklist-invite-withdraw" @click="withdraw">{{ t('sharing.invite.withdraw') }}</Button>
+        <template v-if="memberOnly && current.shared">
+          <p class="who" data-testid="tasklist-share-who">{{ t('sharing.badgeMember', { name: current.shared.owner.name }) }}</p>
+          <p v-if="otherMembers.length" class="who" data-testid="tasklist-share-who">{{ t('sharing.alsoWith', { names: withNames(otherMembers) }) }}</p>
         </template>
         <template v-else>
-          <ShareAddressField v-model="address" class="grow" data-testid="tasklist-share-person" @keydown.enter.prevent="address.trim() && share()" />
-          <Button variant="tonal" :disabled="!address.trim() || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
+          <div v-if="current.shared" class="line">
+            <div class="whos">
+              <p v-for="p in current.shared.with" :key="p.sub" class="who" data-testid="tasklist-share-who">{{ t('sharing.sharedWith', { names: p.name }) }}</p>
+            </div>
+            <Button variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
+          </div>
+          <div v-for="inv in pending" :key="inv.id" class="line" data-testid="tasklist-invite">
+            <p class="who" data-testid="tasklist-share-who">{{ t('sharing.invite.sent', { address: inv.address }) }}</p>
+            <Button variant="tonal" :disabled="sharing" data-testid="tasklist-invite-withdraw" @click="withdraw(inv.id)">{{ t('sharing.invite.withdraw') }}</Button>
+          </div>
+          <div class="line">
+            <ShareAddressField v-model="address" class="grow" data-testid="tasklist-share-person" @keydown.enter.prevent="address.trim() && share()" />
+            <Button variant="tonal" :disabled="!address.trim() || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
+          </div>
         </template>
       </div>
       <div v-if="form.reminders && !current?.shared" class="remrow" data-field="reminders">
@@ -373,8 +394,10 @@ function remove() {
 .grow { flex: 1; min-width: 0; }
 .remrow { display: flex; flex-direction: column; gap: 2px; }
 .remlab { padding-left: 4px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.share { display: flex; gap: 10px; align-items: center; }
-.who { flex: 1; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
+.share { display: flex; flex-direction: column; gap: 10px; }
+.line { display: flex; gap: 10px; align-items: center; }
+.whos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.who { flex: 1; min-width: 0; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
 /* Left-handed mode (phone): the primary action is at the bottom left. */

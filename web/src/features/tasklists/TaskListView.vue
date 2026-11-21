@@ -9,7 +9,7 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconBookmarkAdd, IconArchiveOutline as IconArchive, IconCheck } from '@/components/icons';
+import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconBookmarkAdd, IconArchiveOutline as IconArchive, IconCheck, IconIosShare as IconShare } from '@/components/icons';
 import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -25,6 +25,7 @@ import { getMotionLevel, ProgressRing, useCelebrate } from '@/motion';
 import Checkbox from '@/components/m3/Checkbox.vue';
 import ListItem from '@/components/m3/ListItem.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
@@ -81,6 +82,7 @@ const settings = useSettingsStore();
 const lists = useTaskListsStore();
 const prefs = usePrefsStore();
 const ink = useInkStore();
+const auth = useAuthStore();
 const inkMode = useInkMode();
 
 const root = ref<HTMLElement | null>(null);
@@ -235,7 +237,7 @@ const writing = computed(() => inkMode.enabled.value && (!!props.closable || !!p
 const inkWriting = useInkWriting(() => props.id, writing, () => (tl.value?.items ?? []).filter((i) => i.ink).map((i) => i.id));
 const inkLabel = (item: TaskItem, i: number): string => t(item.done ? 'ink.itemTicked' : 'ink.item', { n: i + 1, total: tl.value?.items.length ?? 0 });
 // --- list actions -----------------------------------------------------------------------------------------------
-function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
+function edit(focus?: 'share') { ui.openDialog('tasklist', { mode: 'edit', id: props.id, ...(focus ? { focus } : {}) }); }
 /** "Save as template" (feature tasklist-templates): a small sheet over this one asks for the name. */
 const savingTemplate = ref(false);
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
@@ -254,13 +256,14 @@ async function leave() {
     ui.notify(e instanceof ApiError ? e.userMessage : t('sharing.leaveFailed'));
   }
 }
-/** The overflow menu: a list with ticks still open can be archived (all ticked at once), and a member can only leave. */
+/** The overflow menu: the owner can share (it opens the form at "Share with"), a list with ticks still open can be archived (all ticked at once), and a member can only leave. */
 const menuItems = computed(() => {
   const l = tl.value;
   if (!l) return [];
   return [
     { id: 'edit', label: t('tasks.list.edit'), icon: IconEdit, testid: 'tasklist-edit' },
     { id: 'duplicate', label: t('tasks.list.duplicate'), icon: IconCopy, testid: 'tasklist-duplicate' },
+    ...(isMemberOnly(l) || auth.status === 'off' ? [] : [{ id: 'share', label: t('sharing.share'), icon: IconShare, testid: 'tasklist-share-open' }]),
     ...(complete.value || !l.items.length ? [] : [{ id: 'archive', label: t('tasks.list.archive'), icon: IconArchive, testid: 'tasklist-archive' }]),
     ...(noTemplateOffered.value ? [] : [{ id: 'template', label: t('tasks.templates.save'), icon: IconBookmarkAdd, testid: 'tasklist-save-template' }]),
     isMemberOnly(l) ? { id: 'leave', label: t('sharing.leave'), icon: IconDelete, testid: 'tasklist-leave' } : { id: 'delete', label: t('tasks.list.delete'), icon: IconDelete, testid: 'tasklist-delete' },
@@ -276,6 +279,7 @@ function archive() {
 }
 function onMenu(id: string) {
   if (id === 'edit') edit();
+  else if (id === 'share') edit('share');
   else if (id === 'duplicate' && tl.value) duplicateList(tl.value, cats.on.value);
   else if (id === 'archive') archive();
   else if (id === 'template') savingTemplate.value = true;

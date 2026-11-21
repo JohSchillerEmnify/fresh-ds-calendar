@@ -10,6 +10,7 @@ export default {
   stop: 'Nicht mehr teilen',
   leave: 'Verlassen',
   sharedWith: 'Geteilt mit {names}',
+  alsoWith: 'Außerdem geteilt mit {names}',
   shareFailed: 'Die Liste konnte nicht geteilt werden.',
   stopFailed: 'Das Teilen konnte nicht beendet werden.',
   leaveFailed: 'Die Liste konnte nicht verlassen werden.',

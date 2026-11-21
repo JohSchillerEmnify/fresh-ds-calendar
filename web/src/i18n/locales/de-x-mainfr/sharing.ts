@@ -10,6 +10,7 @@ export default {
   stop: 'Ned mehr deiln',
   leave: 'Verlassn',
   sharedWith: 'Geteilt mit {names}',
+  alsoWith: 'Außerdem geteilt mit {names}',
   shareFailed: 'Die Lisdn hat sich ned deiln lassn.',
   stopFailed: 'Des Deiln hat sich ned beendn lassn.',
   leaveFailed: 'Die Lisdn hat sich ned verlassn lassn.',

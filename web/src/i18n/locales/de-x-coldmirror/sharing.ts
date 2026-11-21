@@ -13,6 +13,7 @@ export default {
   stop: 'Schluss mit Teilen, wie Snape mit Sympathie',
   leave: 'Apparieren, yo',
   sharedWith: 'Geteilt mit {names}, krass',
+  alsoWith: 'Außerdem geteilt mit {names}, yo',
   shareFailed: 'Das Teilen ist gescheitert. Schinken!',
   stopFailed: 'Das Teilen geht nicht aus, wie Voldemorts Ego.',
   leaveFailed: 'Du kommst nicht raus, Digga. Wie Dobby aus dem Kamin, nur schlimmer.',
