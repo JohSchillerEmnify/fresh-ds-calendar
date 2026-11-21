@@ -29,6 +29,35 @@ const titles = async (c: Call): Promise<string[]> => ((await c('GET', '/api/task
 const at = (t: { app: { ctx: { clock: { set(ms: number, frozen: boolean): void } } } }, ms: number) => t.app.ctx.clock.set(ms, true);
 
 describe('sending an invitation', () => {
+  it('sent again while nobody answered keeps the same invitation and its time', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = await list(jo);
+      await invite(jo, own.id, ANNA);
+      const [first] = await incoming(anna);
+      at(t, Date.now() + DAY);
+      await invite(jo, own.id, ANNA);
+      expect(await incoming(anna)).toMatchObject([{ id: first.id }]);
+      expect(await sent(jo)).toMatchObject([{ id: first.id, expires: first.expires }]);
+    } finally { t.cleanup(); }
+  });
+
+  it('after a decline the invitation can be sent again, accepted, and the sender was told nothing in between', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = await list(jo);
+      await invite(jo, own.id, ANNA);
+      const before = (await sent(jo))[0];
+      await anna('POST', `/api/invitations/${(await incoming(anna))[0].id}/decline`);
+      expect(Object.keys((await sent(jo))[0])).toEqual(Object.keys(before));
+      await invite(jo, own.id, ANNA);
+      const [fresh] = await incoming(anna);
+      expect((await anna('POST', `/api/invitations/${fresh.id}/accept`)).status).toBe(200);
+      expect(await titles(anna)).toEqual(['Groceries']);
+      expect(await sent(jo)).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+
   it('shares nothing: the list stays put, the sender sees a pending invitation, the other person one to answer', async () => {
     const { t, jo, anna } = await setup();
     try {
@@ -155,10 +184,12 @@ describe('answering', () => {
       expect(await incoming(anna)).toEqual([]);
       expect(await titles(anna)).toEqual([]);
       expect(await sent(jo)).toMatchObject([{ address: ANNA }]);
-      // sending it again does not bring it back, and tells the sender nothing
+      // sending it again replaces the declined one with a new invitation; the sender still sees one pending line
+      const declinedId = (await sent(jo))[0].id;
       expect((await invite(jo, own.id, ANNA)).status).toBe(200);
-      expect(await incoming(anna)).toEqual([]);
-      expect(await sent(jo)).toHaveLength(1);
+      const [fresh] = await incoming(anna);
+      expect(fresh.id).not.toBe(declinedId);
+      expect(await sent(jo)).toMatchObject([{ id: fresh.id, address: ANNA }]);
       expect((await anna('POST', `/api/invitations/${inv.id}/accept`)).status).toBe(404);
       // the sender may withdraw it
       await jo('POST', `/api/invitations/${(await sent(jo))[0].id}/withdraw`);

@@ -234,7 +234,6 @@ Feature: Sharing task lists with another person
     When I edit the task list "Groceries" in the Tasks view
     Then the sharing line says "Invitation sent to anna@example.com"
 
-  @backlog
   Scenario: After a decline the sharer can invite the same address again, which shows as a new card
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" is signed in
@@ -247,7 +246,6 @@ Feature: Sharing task lists with another person
     Then "anna@example.com" sees the task lists "Groceries"
     And "jo@example.com" sees the task lists "Groceries"
 
-  @backlog
   Scenario: Inviting again tells the sharer nothing about the decline
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" is signed in
@@ -454,7 +452,6 @@ Feature: Sharing task lists with another person
 
   # Removal wins (issue 27): a person taken off one list of a shared category stays off that list; the category stays
   # shared, its other lists stay shared, and lists created in it later reach the person.
-  @backlog
   Scenario: A person removed from one list of a shared category stays off it, the other lists stay shared
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
     And "jo@example.com" has an undated task list "Party snacks" with the items "Chips" in the category "Shopping"
@@ -465,7 +462,6 @@ Feature: Sharing task lists with another person
     Then "anna@example.com" sees the task lists "Party snacks"
     And "jo@example.com" sees the task lists "Groceries, Party snacks"
 
-  @backlog
   Scenario: A list created in the category after a removal still reaches the person
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
     And "jo@example.com" is signed in
@@ -474,6 +470,42 @@ Feature: Sharing task lists with another person
     And I remove "anna" from the task list "Groceries"
     When "jo@example.com" creates the undated task list "Party snacks" in the category "Shopping"
     Then "anna@example.com" sees the task lists "Party snacks"
+
+  Scenario: Stopping the category share ends the removal, and a new share includes the list again
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" has an undated task list "Party snacks" with the items "Chips" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    And "anna@example.com" accepts the invitation to the category "Shopping"
+    And I remove "anna" from the task list "Groceries"
+    When I stop sharing the category "Shopping" in the settings
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    And "anna@example.com" accepts the invitation to the category "Shopping"
+    Then "anna@example.com" sees the task lists "Groceries, Party snacks"
+
+  # unit: server/test/shared-lists.test.ts:is not undone when the category invitation is accepted again
+  @unit
+  Scenario: Accepting the category invitation again does not bring a removed person back
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" has an undated task list "Party snacks" with the items "Chips" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    And "anna@example.com" accepts the invitation to the category "Shopping"
+    And I remove "anna" from the task list "Groceries"
+    When "anna@example.com" accepts the invitation to the category "Shopping" again
+    Then "anna@example.com" sees the task lists "Party snacks"
+
+  # unit: server/test/shared-lists.test.ts:ends for that list when the person is added to it by hand
+  @unit
+  Scenario: Adding the removed person to that one list by hand brings the category's share back to it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    And "anna@example.com" accepts the invitation to the category "Shopping"
+    And I remove "anna" from the task list "Groceries"
+    When I share the task list "Groceries" with "anna@example.com" who accepts
+    And "anna@example.com" accepts the invitation to the category "Shopping" again
+    Then "anna@example.com" sees the task lists "Groceries"
 
   @visual @mobile
   Scenario Outline: The overflow menu with Share looks right in light and dark

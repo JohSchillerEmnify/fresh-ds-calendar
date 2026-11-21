@@ -236,6 +236,17 @@ When('I share the category {string} with {string} in the settings', async functi
   await expect(dialog).toBeHidden();
 });
 
+When('I stop sharing the category {string} in the settings', async function (this: World, category: string) {
+  await openSettingsPage(this, 'tasklists');
+  await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
+  const dialog = this.page.getByTestId('category-dialog');
+  await dialog.locator('input[data-testid="category-share-person"]').fill('');
+  const saved = this.page.waitForResponse(isCall('PUT', '/share'));
+  await dialog.getByTestId('category-save').click();
+  expect((await saved).status(), 'category share stopped').toBe(200);
+  await expect(dialog).toBeHidden();
+});
+
 When('{string} creates the undated task list {string} in the category {string}', async function (this: World, email: string, title: string, category: string) {
   const { body } = await call<{ categories: { id: string; name: string }[] }>(this, email, 'GET', '/api/settings');
   const id = body.categories.find((c) => c.name === category)?.id;
