@@ -9,6 +9,7 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import ShareAddressField from './ShareAddressField.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useInvitationsStore } from '@/stores/invitations';
 import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
@@ -33,9 +34,11 @@ const confirming = ref(false);
 const auth = useAuthStore();
 const sharedWith = ref('');
 let sharedBefore = '';
-const shareNote = ref('');
+const invitations = useInvitationsStore();
+const pending = computed(() => (props.category ? invitations.sentFor('category', props.category.id) : null));
 onMounted(async () => {
   if (!props.category) return;
+  void invitations.refresh();
   try {
     const s = await device.read('categoryShares', () => api.categoryShares());
     sharedWith.value = sharedBefore = s.shares[props.category.id]?.email ?? '';
@@ -44,7 +47,6 @@ onMounted(async () => {
 const swatches = computed(() => GOOGLE_COLORS.map((c) => ({ value: c.hex, name: googleColorLabel(c), color: c.hex })));
 
 function save() {
-  shareNote.value = '';
   if (!name.value.trim()) { error.value = t('theme.categoryDialog.nameRequired'); return; }
   if (!isHexColor(color.value)) { error.value = t('theme.fine.invalidColor'); return; }
   const body = { name: name.value.trim(), color: color.value.trim().toLowerCase(), icon: icon.value.trim() || null };
@@ -53,14 +55,18 @@ function save() {
     await settings.updateCategory(props.category.id, body);
     const typed = sharedWith.value.trim().toLowerCase();
     if (typed === sharedBefore) return;
-    // the lists of the category move into (out of) the shared store with new ids: the device takes in the move
+    // a typed address sends an invitation; an empty field stops sharing, which moves the lists back with new ids
     const answer = await api.shareCategory(props.category.id, typed || null);
     device.putFile('categoryShares', answer);
+    await invitations.refresh();
     void useSyncStore().resyncAfterWrite();
-    // an address that names nobody changes nothing: say so neutrally and keep the dialog open
-    if (typed && answer.shares[props.category.id]?.email !== typed) { shareNote.value = t('sharing.neutral'); stayOpen = true; }
   });
 }
+
+const withdraw = () => run(async () => {
+  await invitations.respond(pending.value!.id, 'withdraw');
+  stayOpen = true;
+});
 </script>
 
 <template>
@@ -72,9 +78,14 @@ function save() {
       <TextField v-model="color" :label="t('theme.categoryDialog.colorHex')" data-testid="category-color" autocomplete="off" autocapitalize="off" />
       <TextField v-model="icon" :label="t('theme.categoryDialog.icon')" data-testid="category-icon" autocomplete="off" />
       <template v-if="category && auth.status !== 'off'">
-        <ShareAddressField v-model="sharedWith" data-testid="category-share-person" />
-        <p class="hint">{{ t('sharing.category.hint') }}</p>
-        <p v-if="shareNote" class="hint" role="status" data-testid="category-share-note">{{ shareNote }}</p>
+        <div v-if="pending" class="pend">
+          <p class="who" data-testid="category-share-who">{{ t('sharing.invite.sent', { address: pending.address }) }}</p>
+          <Button variant="tonal" :disabled="saving" data-testid="category-invite-withdraw" @click="withdraw">{{ t('sharing.invite.withdraw') }}</Button>
+        </div>
+        <template v-else>
+          <ShareAddressField v-model="sharedWith" data-testid="category-share-person" />
+          <p class="hint">{{ t('sharing.category.hint') }}</p>
+        </template>
       </template>
       <p v-if="error" class="err" role="alert" data-testid="category-error">{{ error }}</p>
       <div class="actions">
@@ -95,6 +106,8 @@ function save() {
 .f { display: flex; flex-direction: column; gap: 12px; }
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-title-large); }
 .hint { margin: -6px 0 0; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); }
+.pend { display: flex; gap: 10px; align-items: center; }
+.who { flex: 1; margin: 0; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-medium); }
 .err { margin: 0; color: var(--md-sys-color-error); font: var(--md-sys-typescale-body-medium); }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .sp { flex: 1; }

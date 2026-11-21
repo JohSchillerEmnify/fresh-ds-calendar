@@ -50,6 +50,12 @@ async function openTasksView(world: World) {
 /** Opens the task list dialog of a list in the Tasks view. */
 async function openDialog(world: World, title: string) {
   await openTasksView(world);
+  // a dialog left open by an earlier step (an invitation was sent from it) is closed first
+  const left = world.page.getByTestId('tasklist-dialog');
+  if (await left.isVisible()) {
+    await left.getByTestId('tasklist-cancel').click();
+    await expect(left).toBeHidden();
+  }
   await world.byTestId('tasks-item', attr('data-title', title)).getByTestId('tasklist-expanded-title').click();
   await expect(world.page.getByTestId('tasklist-dialog')).toBeVisible();
 }
@@ -80,14 +86,112 @@ async function typeAndShare(world: World, title: string, email: string): Promise
   return (await saved).status();
 }
 
+/** Sends the invitation from the task list dialog and closes the dialog once the pending line shows. */
+async function sendInvitation(world: World, title: string, email: string): Promise<void> {
+  await openDialog(world, title);
+  expect(await typeAndShare(world, title, email), 'invitation sent').toBe(200);
+  const dialog = world.page.getByTestId('tasklist-dialog');
+  await expect(dialog.getByTestId('tasklist-share-who')).toBeVisible();
+  await dialog.getByTestId('tasklist-cancel').click();
+  await expect(dialog).toBeHidden();
+}
+
 When('I share the task list {string} with {string}', async function (this: World, title: string, email: string) {
-  await openDialog(this, title);
-  expect(await typeAndShare(this, title, email), 'list shared').toBe(200);
-  await expect(this.page.getByTestId('tasklist-dialog')).toBeHidden();
+  await sendInvitation(this, title, email);
+});
+
+When('I share the task list {string} with {string} who accepts', async function (this: World, title: string, email: string) {
+  await sendInvitation(this, title, email);
+  await answer(this, email, 'list', title, 'accept');
 });
 
 When('I try to share the task list {string} with {string}', async function (this: World, title: string, email: string) {
   expect(await typeAndShare(this, title, email), 'share answered').toBe(200);
+});
+
+interface Invitations {
+  invitations: { id: string; kind: string; title: string; from: string }[];
+  sent: { id: string; kind: string; target: string; address: string }[];
+}
+const invitationsOf = async (world: World, email: string) => (await call<Invitations>(world, email, 'GET', '/api/invitations')).body;
+
+/** The person answers the invitation they hold for this list or category through the API. */
+async function answer(world: World, email: string, kind: 'list' | 'category', title: string, verb: 'accept' | 'decline'): Promise<void> {
+  const inv = (await invitationsOf(world, email)).invitations.find((i) => i.kind === kind && i.title === title);
+  expect(inv, `${email} holds an invitation to the ${kind} ${title}`).toBeTruthy();
+  expect((await call(world, email, 'POST', `/api/invitations/${inv!.id}/${verb}`)).status, `invitation ${verb}ed`).toBe(200);
+}
+
+When('{string} accepts the invitation to the task list {string}', async function (this: World, email: string, title: string) {
+  await answer(this, email, 'list', title, 'accept');
+});
+When('{string} declines the invitation to the task list {string}', async function (this: World, email: string, title: string) {
+  await answer(this, email, 'list', title, 'decline');
+});
+When('{string} accepts the invitation to the category {string}', async function (this: World, email: string, category: string) {
+  await answer(this, email, 'category', category, 'accept');
+});
+
+Then('{string} cannot accept the invitation to the task list {string}', async function (this: World, email: string, title: string) {
+  const owner = this.person!;
+  const list = await find(this, owner, title);
+  const mine = (await invitationsOf(this, owner)).sent.find((i) => i.target === list.id);
+  expect(mine, `${owner} sent an invitation to ${title}`).toBeTruthy();
+  expect((await call(this, email, 'POST', `/api/invitations/${mine!.id}/accept`)).status).toBe(404);
+});
+
+Then('{string} sees no invitations', async function (this: World, email: string) {
+  expect((await invitationsOf(this, email)).invitations).toEqual([]);
+});
+
+/** The invitation card of the Open tab for a list or category. */
+const card = (world: World, kind: 'list' | 'category', title: string) =>
+  world.page.getByTestId('invitation-card').and(world.page.locator(`[data-kind="${kind}"]${attr('data-title', title)}`));
+
+async function cardShown(world: World, kind: 'list' | 'category', title: string, from: string) {
+  const c = card(world, kind, title);
+  await expect(c).toBeVisible();
+  await expect(c).toContainText(from);
+  await expect(c.getByTestId('invitation-accept')).toBeVisible();
+  await expect(c.getByTestId('invitation-decline')).toBeVisible();
+}
+Then('the Tasks view shows the invitation to the task list {string} from {string}', async function (this: World, title: string, from: string) {
+  await cardShown(this, 'list', title, from);
+});
+Then('the Tasks view shows the invitation to the category {string} from {string}', async function (this: World, title: string, from: string) {
+  await cardShown(this, 'category', title, from);
+});
+
+Given('{string} may use the calendar but has not signed in yet', async function (this: World, email: string) {
+  await this.api.post('/api/__test/auth/newcomer', { email });
+});
+
+When('I press {string} in the snackbar', async function (this: World, label: string) {
+  await this.page.locator('.snack').getByRole('button', { name: label, exact: true }).click();
+});
+
+When('I withdraw the invitation to share the task list {string}', async function (this: World, title: string) {
+  await openDialog(this, title);
+  const withdrawn = this.page.waitForResponse(isCall('POST', '/withdraw'));
+  await this.page.getByTestId('tasklist-dialog').getByTestId('tasklist-invite-withdraw').click();
+  expect((await withdrawn).status(), 'invitation withdrawn').toBe(200);
+});
+
+When('I open the category {string} in the settings', async function (this: World, category: string) {
+  await openSettingsPage(this, 'tasklists');
+  await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
+  await expect(this.page.getByTestId('category-dialog')).toBeVisible();
+});
+
+When('I withdraw the invitation to share the category {string} in the settings', async function (this: World, category: string) {
+  const dialog = this.page.getByTestId('category-dialog');
+  if (!(await dialog.isVisible())) {
+    await openSettingsPage(this, 'tasklists');
+    await this.byTestId('settings-category', attr('data-name', category)).locator('.catmain').click();
+  }
+  const withdrawn = this.page.waitForResponse(isCall('POST', '/withdraw'));
+  await dialog.getByTestId('category-invite-withdraw').click();
+  expect((await withdrawn).status(), 'invitation withdrawn').toBe(200);
 });
 
 When('I open "Share with" for the task list {string}', async function (this: World, title: string) {
@@ -247,12 +351,15 @@ Then('"Share with" offers no addresses', async function (this: World) {
   await expect(suggested(this)).toHaveCount(0);
 });
 
+/** The sharing line of whichever dialog is open: the task list's or the category's. */
+const sharingLine = (world: World) => world.page.getByTestId(/^(tasklist|category)-share-who$/);
+
 Then('the sharing field says {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('tasklist-share-note')).toHaveText(exactText(text));
+  await expect(sharingLine(this)).toHaveText(exactText(text));
 });
 
 Then('the sharing line says {string}', async function (this: World, text: string) {
-  await expect(this.page.getByTestId('tasklist-share-who')).toHaveText(exactText(text));
+  await expect(sharingLine(this)).toHaveText(exactText(text));
 });
 
 Then('the task list {string} in the Tasks view is not shared', async function (this: World, title: string) {

@@ -22,6 +22,7 @@ import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import ShareAddressField from '@/components/settings/ShareAddressField.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useInvitationsStore } from '@/stores/invitations';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useDeviceStore } from '@/stores/device';
@@ -89,10 +90,11 @@ const current = computed(() => {
 });
 /** The popup leads of the tasks calendar's default, shown while the list follows it. */
 const taskDefaults = ref<number[]>([]);
-/** The typed address of "Share with"; `shareNote` is the neutral answer for an address that shared nobody (dialog stays open). */
+/** The typed address of "Share with"; the dialog stays open after an invitation was sent or withdrawn. */
 const address = ref('');
-const shareNote = ref('');
 let stayOpen = false;
+const invitations = useInvitationsStore();
+const pending = computed(() => (props.id ? invitations.sentFor('list', props.id) : null));
 const auth = useAuthStore();
 const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => { if (stayOpen) stayOpen = false; else emit('close'); }, error });
 const memberOnly = computed(() => isMemberOnly(current.value));
@@ -112,6 +114,7 @@ function fill(src: TaskList) {
 onMounted(async () => {
   // the names already taken, for "Also save as template"
   templates.load().catch(() => undefined);
+  if (editing.value) void invitations.refresh();
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
     if (props.draftList) fill(props.draftList);
@@ -260,14 +263,16 @@ function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
   if (sharing.value) return;
   return runSharing(fn, failed);
 }
-const share = () => {
-  shareNote.value = '';
-  return sharingAction(async () => {
-    if (await shareList(props.id!, address.value)) return;
-    stayOpen = true;
-    shareNote.value = t('sharing.neutral');
-  }, 'sharing.shareFailed');
-};
+const share = () => sharingAction(async () => {
+  await shareList(props.id!, address.value);
+  address.value = '';
+  await invitations.refresh();
+  stayOpen = true;
+}, 'sharing.shareFailed');
+const withdraw = () => sharingAction(async () => {
+  await invitations.respond(pending.value!.id, 'withdraw');
+  stayOpen = true;
+}, 'sharing.invite.withdrawFailed');
 const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
 const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
@@ -306,12 +311,15 @@ function remove() {
           <p class="who" data-testid="tasklist-share-who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
           <Button v-if="!memberOnly" variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
         </template>
+        <template v-else-if="pending">
+          <p class="who" data-testid="tasklist-share-who">{{ t('sharing.invite.sent', { address: pending.address }) }}</p>
+          <Button variant="tonal" :disabled="sharing" data-testid="tasklist-invite-withdraw" @click="withdraw">{{ t('sharing.invite.withdraw') }}</Button>
+        </template>
         <template v-else>
           <ShareAddressField v-model="address" class="grow" data-testid="tasklist-share-person" @keydown.enter.prevent="address.trim() && share()" />
           <Button variant="tonal" :disabled="!address.trim() || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
         </template>
       </div>
-      <p v-if="shareNote" class="note" role="status" data-testid="tasklist-share-note">{{ shareNote }}</p>
       <div v-if="form.reminders && !current?.shared" class="remrow" data-field="reminders">
         <span class="remlab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
@@ -366,7 +374,6 @@ function remove() {
 .remrow { display: flex; flex-direction: column; gap: 2px; }
 .remlab { padding-left: 4px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .share { display: flex; gap: 10px; align-items: center; }
-.note { margin: -6px 0 0; padding-left: 4px; font: var(--md-sys-typescale-body-small); color: var(--md-sys-color-on-surface-variant); }
 .who { flex: 1; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }

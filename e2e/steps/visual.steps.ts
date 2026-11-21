@@ -33,6 +33,9 @@ function region(w: World, name: string): Locator {
     case 'month picker': return w.byTestId('month-picker');
     case 'plant card': return w.byTestId('plant-card');
     case 'place suggestions': return w.byTestId('place-suggestions');
+    case 'tasks view': return w.byTestId('tasks-view');
+    case 'invitation card': return w.byTestId('invitation-card').first();
+    case 'invitation snackbar': return w.byTestId('invitation-snackbar');
     case 'check-in message': return w.byTestId('streak-message');
     case 'task lists question': return w.byTestId('tasks-consent');
     case 'top bar': return w.byTestId('top-bar');

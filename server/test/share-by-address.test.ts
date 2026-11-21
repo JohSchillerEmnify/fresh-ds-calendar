@@ -1,9 +1,7 @@
-/** Sharing by a typed address (spec feature @id:shared-lists, ADR 0046): who is offered, and what an unknown address answers. */
-import { describe, expect, it, vi } from 'vitest';
-import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
+/** Who is offered in "Share with" (spec feature @id:shared-lists, ADR 0046, ADR 0047): only people who accepted a share, never an address that was only typed. */
+import { describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
-import { SHARE_ANSWER_MS } from '../src/services/taskSharing.js';
-import { makeApp, sessionCookie } from './helpers.js';
+import { makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com', STRANGER = 'stranger@example.com';
 
@@ -28,25 +26,29 @@ describe('who is offered in "Share with"', () => {
       expect(await offered(jo)).toEqual([]);
       expect(await offered(anna)).toEqual([]);
       const groceries = await list(jo, 'Groceries');
-      // the address is typed in a different case, with spaces
+      // the address is typed in a different case, with spaces; an invitation alone offers nobody
       expect((await jo('POST', `/api/tasklists/${groceries.id}/share`, { email: '  Anna@Example.COM ' })).status).toBe(200);
-      expect(await offered(jo)).toEqual([ANNA]);            // typed
+      expect(await offered(jo)).toEqual([]);
+      expect(await offered(anna)).toEqual([]);
+      const [inv] = (await anna('GET', '/api/invitations')).body.invitations;
+      expect((await anna('POST', `/api/invitations/${inv.id}/accept`)).status).toBe(200);
+      expect(await offered(jo)).toEqual([ANNA]);            // accepted
       expect(await offered(anna)).toEqual([JO]);            // shared with them
       expect(await offered(bob)).toEqual([]);               // nobody else's address
-      // an address typed once is offered for the next list
+      // an address that was accepted once is offered for the next list
       const errands = await list(jo, 'Errands');
-      expect((await jo('POST', `/api/tasklists/${errands.id}/share`, { email: BOB })).status).toBe(200);
+      await shareAndAccept(jo, bob, errands.id, BOB);
       expect(await offered(jo)).toEqual([ANNA, BOB]);
       expect(await offered(anna)).toEqual([JO]);
       expect(JSON.parse(JSON.stringify((await jo('GET', '/api/people')).body.people[0]))).toMatchObject({ sub: mockSub(ANNA), email: ANNA, initial: 'A' });
     } finally { t.cleanup(); }
   });
 
-  it('keeps a typed address after the list stops being shared, only for the person who typed it', async () => {
+  it('keeps an accepted address after the list stops being shared, only for the person who shared', async () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await list(jo, 'Groceries');
-      const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const shared = await shareAndAccept(jo, anna, own.id, ANNA);
       await jo('DELETE', `/api/tasklists/${encodeURIComponent(shared.id)}/share`);
       expect(await offered(jo)).toEqual([ANNA]);
       expect(await offered(anna)).toEqual([]);
@@ -54,19 +56,19 @@ describe('who is offered in "Share with"', () => {
   });
 
   it('offers nobody who is no longer on the allow-list', async () => {
-    const { t, jo } = await setup();
+    const { t, jo, anna } = await setup();
     try {
-      await jo('POST', `/api/tasklists/${(await list(jo, 'G')).id}/share`, { email: ANNA });
+      await shareAndAccept(jo, anna, (await list(jo, 'G')).id, ANNA);
       await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, BOB] });
       expect(await offered(jo)).toEqual([]);
     } finally { t.cleanup(); }
   });
 
-  it('shows the people of a category share to the one who shares and the one who receives', async () => {
+  it('shows the people of an accepted category share to the one who shares and the one who receives', async () => {
     const { t, jo, anna, bob } = await setup();
     try {
       await jo('POST', '/api/categories', { id: 'shopping', name: 'Shopping', color: '#112233' });
-      expect((await jo('PUT', '/api/categories/shopping/share', { email: ANNA })).status).toBe(200);
+      await shareCategoryAndAccept(jo, anna, 'shopping', ANNA);
       expect(await offered(jo)).toEqual([ANNA]);
       expect(await offered(bob)).toEqual([]);
       expect(await offered(anna)).toEqual([]); // no list moved yet: nothing connects her to the owner
@@ -76,7 +78,7 @@ describe('who is offered in "Share with"', () => {
   it('carries the same scoped people in the change feed', async () => {
     const { t, jo, anna } = await setup();
     try {
-      await jo('POST', `/api/tasklists/${(await list(jo, 'G')).id}/share`, { email: ANNA });
+      await shareAndAccept(jo, anna, (await list(jo, 'G')).id, ANNA);
       for (const c of [jo, anna]) {
         const feed = (await c('GET', '/api/changes?today=2026-10-12')).body;
         expect(feed.files.people).toEqual((await c('GET', '/api/people')).body);
@@ -84,102 +86,15 @@ describe('who is offered in "Share with"', () => {
       expect((await jo('GET', '/api/changes?today=2026-10-12')).body.files.people.people.map((p: { email: string }) => p.email)).toEqual([ANNA]);
     } finally { t.cleanup(); }
   });
-});
-
-describe('a typed address that names nobody', () => {
-  it('answers an address that is not an allowed person like a success that shared nobody', async () => {
-    const { t, jo, anna } = await setup();
-    try {
-      const own = await list(jo, 'Groceries');
-      const none = await jo('POST', `/api/tasklists/${own.id}/share`, { email: STRANGER });
-      // a person who may use the calendar but has never signed in (removed from the people list)
-      t.app.ctx.people.reset();
-      await sessionCookie(t, JO);
-      const unseen = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
-      for (const r of [none, unseen]) {
-        expect(r.status).toBe(200);
-        expect(r.body).toMatchObject({ id: own.id, title: 'Groceries', totalCount: 1 });
-        expect(r.body.shared).toBeFalsy();
-      }
-      expect(Object.keys(none.body).sort()).toEqual(Object.keys(unseen.body).sort());
-      expect(none.res.headers.get('content-type')).toBe(unseen.res.headers.get('content-type'));
-      // nothing was shared, nothing is offered, nothing is remembered, nothing is stored
-      expect(await offered(jo)).toEqual([]);
-      expect((await anna('GET', '/api/tasklists/all-open?today=2026-10-12')).body.items).toEqual([]);
-      expect(t.app.ctx.shared.candidates(mockSub(JO))).toEqual([]);
-    } finally { t.cleanup(); }
-  });
 
   it('answers a shared list the same way, and keeps the members', async () => {
     const { t, jo, anna } = await setup();
     try {
-      const shared = (await jo('POST', `/api/tasklists/${(await list(jo, 'Groceries')).id}/share`, { email: ANNA })).body;
+      const shared = await shareAndAccept(jo, anna, (await list(jo, 'Groceries')).id, ANNA);
       const r = await jo('POST', `/api/tasklists/${encodeURIComponent(shared.id)}/share`, { email: STRANGER });
       expect(r.status).toBe(200);
       expect(r.body.shared.with.map((p: { email: string }) => p.email)).toEqual([ANNA]);
       expect(await offered(anna)).toEqual([JO]);
-    } finally { t.cleanup(); }
-  });
-
-  it('answers a category share to an unknown address by changing nothing', async () => {
-    const { t, jo } = await setup();
-    try {
-      await jo('POST', '/api/categories', { id: 'shopping', name: 'Shopping', color: '#112233' });
-      const r = await jo('PUT', '/api/categories/shopping/share', { email: STRANGER });
-      expect(r).toMatchObject({ status: 200, body: { shares: {} } });
-      expect((await jo('GET', '/api/categories/shares')).body.shares).toEqual({});
-      expect(await offered(jo)).toEqual([]);
-    } finally { t.cleanup(); }
-  });
-
-  it('is refused only for what says nothing about others: your own address, a malformed one, a stranger to the list', async () => {
-    const { t, jo, bob } = await setup();
-    try {
-      const own = await list(jo, 'Groceries');
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { email: JO })).status).toBe(400);
-      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { email: 'not an address' })).status).toBe(400);
-      expect((await bob('POST', `/api/tasklists/${own.id}/share`, { email: STRANGER })).status).toBe(404);
-    } finally { t.cleanup(); }
-  });
-
-  it('holds every answer, known address or not, for the minimum time (list share and category share)', async () => {
-    const { t, jo } = await setup();
-    try {
-      await t.json('POST', '/api/__test/config', { shareAnswerMs: 300 });
-      await jo('POST', '/api/categories', { id: 'shopping', name: 'Shopping', color: '#112233' });
-      const timed = async (call: () => Promise<{ status: number }>) => { const t0 = Date.now(); const r = await call(); expect(r.status).toBe(200); return Date.now() - t0; };
-      const a = await list(jo, 'A');
-      const b = await list(jo, 'B');
-      expect(await timed(() => jo('POST', `/api/tasklists/${a.id}/share`, { email: STRANGER }))).toBeGreaterThanOrEqual(290);
-      expect(await timed(() => jo('POST', `/api/tasklists/${b.id}/share`, { email: ANNA }))).toBeGreaterThanOrEqual(290);
-      expect(await timed(() => jo('PUT', '/api/categories/shopping/share', { email: STRANGER }))).toBeGreaterThanOrEqual(290);
-      expect(await timed(() => jo('PUT', '/api/categories/shopping/share', { email: BOB }))).toBeGreaterThanOrEqual(290);
-      expect(SHARE_ANSWER_MS).toBeGreaterThanOrEqual(500);
-    } finally { t.cleanup(); }
-  });
-
-  it('answers a person who signed in and was then removed from the allow-list neutrally, shares nothing and remembers nothing', async () => {
-    const { t, jo } = await setup();
-    try {
-      const own = await list(jo, 'Groceries');
-      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, BOB] });
-      const r = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
-      expect(r.status).toBe(200);
-      expect(r.body.shared).toBeFalsy();
-      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA, BOB] });
-      expect(await offered(jo)).toEqual([]);
-    } finally { t.cleanup(); }
-  });
-
-  it('remembers the address only after the share worked', async () => {
-    const { t, jo } = await setup();
-    try {
-      const own = await list(jo, 'Groceries');
-      const spy = vi.spyOn(MockGoogleProvider.prototype, 'deleteEvent').mockRejectedValueOnce(new Error('Google is down'));
-      const failed = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
-      expect(failed.status).toBeGreaterThanOrEqual(400);
-      spy.mockRestore();
-      expect(await offered(jo)).toEqual([]);
     } finally { t.cleanup(); }
   });
 });

@@ -9,6 +9,7 @@ import {
   addItemSchema, categoryShareSchema, createTaskListSchema, inkSchema, orderSchema, parse, patchItemSchema, shareSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import { isSharedId } from '../services/sharedLists.js';
+import { tellInvitee } from './invitationRoutes.js';
 import { body, scopeOf, type RouteDeps } from './routeHelpers.js';
 
 /** How far ahead of the server's clock a device's stroke time may be (ms); beyond it the time is cut back. */
@@ -57,14 +58,24 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
   });
   // ---- sharing (feature shared-lists) ----
   r.get('/people', (c) => c.json({ people: ctx.shared.candidates(person(c)) }));
-  r.post('/tasklists/:id/share', async (c) => c.json(await cal(c).shareTaskList(c.req.param('id'), parse(shareSchema, await body(c)).email)));
+  r.post('/tasklists/:id/share', async (c) => {
+    const { email } = parse(shareSchema, await body(c));
+    const out = await cal(c).inviteToList(c.req.param('id'), email);
+    tellInvitee(ctx, email);
+    return c.json(out);
+  });
   r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));
   r.post('/tasklists/:id/leave', (c) => {
     cal(c).leaveTaskList(c.req.param('id'));
     return c.body(null, 204);
   });
   r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));
-  r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).email) }));
+  r.put('/categories/:id/share', async (c) => {
+    const { email } = parse(categoryShareSchema, await body(c));
+    const shares = await cal(c).shareCategory(c.req.param('id'), email);
+    if (email) tellInvitee(ctx, email);
+    return c.json({ shares });
+  });
   registerInkItems({ r, ctx, person, cal });
 }
 

@@ -295,9 +295,9 @@ Feature: The calendar's states look right
     Then no text in the "list form" is clipped
     And the "list form" still looks like "template-form-filled"
 
-  # Issue 182: "Share with" is an email field; an address that names nobody gets a neutral sentence under it
+  # Issue 182: "Share with" is an email field; a typed address sends an invitation, shown as "Invitation sent to ..." with Withdraw (issue 183)
   @visual @sharing
-  Scenario Outline: The "Share with" field and its neutral answer look right in <scheme>
+  Scenario Outline: The "Share with" field and the sent invitation look right in <scheme>
     Given the device prefers a <scheme> color scheme
     And "jo@example.com" and "anna@example.com" may use the calendar
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -306,7 +306,7 @@ Feature: The calendar's states look right
     Then the "list form" still looks like "tasklist-form-share-<scheme>"
     When I try to share the task list "Groceries" with "stranger@example.com"
     Then no text in the "list form" is clipped
-    And the "list form" still looks like "tasklist-form-share-neutral-<scheme>"
+    And the "list form" still looks like "tasklist-form-share-invited-<scheme>"
 
     Examples:
       | scheme |

@@ -9,6 +9,7 @@ import { forbidden, notFound, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { formatInZone } from '../lib/time.js';
 import type { InkStore } from './inkStore.js';
+import { Invitations } from './invitations.js';
 import { ShareContacts } from './shareContacts.js';
 import type { TaskListData } from './taskCodec.js';
 
@@ -62,6 +63,8 @@ export class SharedListService {
   private readonly dir: string;
   private readonly rulesFile: string;
   private readonly contacts: ShareContacts;
+  /** Pending invitations to share a list or category (ADR 0047). */
+  readonly invitations: Invitations;
   private docs = new Map<string, SharedListDoc>();
   /** `owner sub -> { category id -> member sub }`. */
   private rules: Record<string, Record<string, string>> = {};
@@ -78,12 +81,14 @@ export class SharedListService {
     this.dir = path.join(dataDir, 'shared', 'lists');
     this.rulesFile = path.join(dataDir, 'shared', 'category-shares.json');
     this.contacts = new ShareContacts(dataDir);
+    this.invitations = new Invitations(dataDir, clock);
     this.load();
   }
 
   /** Reads every list and the category rules again (after a backup restore wrote files behind the store's back). */
   reload(): void {
     this.load();
+    this.invitations.reload();
   }
 
   private load(): void {
@@ -170,18 +175,21 @@ export class SharedListService {
     return [...found.values()].filter((p) => p.sub !== sub && allows(p.email)).sort((a, b) => a.email.localeCompare(b.email));
   }
 
-  /** The person a typed address names, or null for nobody who may use the calendar (the caller answers neutrally); own address and no sign-in are a 400. */
-  resolve(owner: string, address: string): Person | null {
-    const allows = this.allow();
-    if (!allows) throw validation('Sharing needs sign-in', 'email', 'sharing.needsSignIn');
+  /** The typed address as an invitation target (trimmed, lower case). It says nothing of who uses the calendar; own address and a server without sign-in are a 400. */
+  invitee(owner: string, address: string): string {
+    if (!this.allow()) throw validation('Sharing needs sign-in', 'email', 'sharing.needsSignIn');
     const email = address.trim().toLowerCase();
-    const mine = this.people.get(owner);
-    if (mine && mine.email === email) throw validation('You cannot share with yourself', 'email', 'sharing.self');
-    const p = this.people.byEmail(email);
-    return p && p.sub !== owner && allows(p.email) ? p : null;
+    if (this.people.get(owner)?.email === email) throw validation('You cannot share with yourself', 'email', 'sharing.self');
+    return email;
   }
 
-  /** Keeps an address that named a person, so the owner's field offers it again. */
+  /** The person with this address who may use the calendar, or null. */
+  personAt(address: string): Person | null {
+    const p = this.people.byEmail(address);
+    return p && this.allow()?.(p.email) ? p : null;
+  }
+
+  /** Keeps the address of a person who accepted, so the owner's field offers it again. */
   remember(owner: string, person: Person): void {
     this.contacts.remember(owner, person.email);
   }
@@ -274,6 +282,7 @@ export class SharedListService {
     this.docs.clear();
     this.rules = {};
     this.contacts.reset();
+    this.invitations.reset();
     fs.rmSync(path.join(path.dirname(this.dir)), { recursive: true, force: true });
   }
 }

@@ -2,12 +2,14 @@ import { forbidden, notFound, validation } from '../lib/errors.js';
 import type { CategoryInfo, Person, TaskList } from '../api/types.js';
 import { type CalendarProvider, type GoogleEvent } from '../providers/CalendarProvider.js';
 import type { SettingsStore } from './settingsStore.js';
-import { isSharedId, type SharedListDoc, type SharedListService } from './sharedLists.js';
+import { isSharedId, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 import { decodeTaskList, encodeTaskList, isTaskListEvent, type TaskListData } from './taskCodec.js';
 import type { TasksCalendar } from './tasksCalendar.js';
 
-/** Every answer to a share request takes at least this long (outside tests), so its duration does not tell whether the address named a person. */
+/** Every answer to a share request takes at least this long (outside tests), so its duration does not tell whether the address names a person. */
 export const SHARE_ANSWER_MS = 1000;
+
+const MAX_OPEN_INVITATIONS = 50;
 
 /** What sharing needs from {@link CalendarService}: lookups and mapping it shares with ordinary list reads. */
 export interface SharingHost {
@@ -35,34 +37,40 @@ export class TaskSharing {
     if (left > 0) await new Promise((r) => setTimeout(r, left));
   }
 
+  /** Stores an invitation; at most {@link MAX_OPEN_INVITATIONS} stay open per person, the same answer whatever the address. */
+  private invite(d: Parameters<SharedListService['invitations']['send']>[0]): void {
+    const mine = this.shared.invitations;
+    if (mine.sent(this.sub).length >= MAX_OPEN_INVITATIONS && !mine.has(d)) throw validation('Too many open invitations. Withdraw one first.', 'email', 'sharing.tooMany');
+    mine.send(d);
+  }
+
   /**
-   * Shares a list with the person a typed address names. A list of the tasks calendar MOVES into the shared store (same
-   * items and state, the Google event is deleted once the shared copy is written); on a list this person already shares,
-   * the person is added. An address that names nobody who may use the calendar answers like a success that shared
-   * nobody: the list as it was, after the same time (ADR 0046).
+   * Invites the person a typed address names to share a list (ADR 0047): nothing moves and nothing is looked up. Every
+   * address, known or not, gets the same answer (the list as it was) after the same time.
    */
-  async shareTaskList(id: string, email: string): Promise<TaskList> {
+  async inviteToList(id: string, email: string): Promise<TaskList> {
     const started = Date.now();
     const shared = this.shared;
     // access first: a stranger learns nothing about the list, not even that the person was refused
     const doc = isSharedId(id) ? shared.accessOwned(this.sub, id) : null;
     const ev = doc ? null : await this.host.locateKind(id, true);
-    if (ev && (decodeTaskList(ev, this.tz).recurrence || ev.recurringEventId)) throw repeating();
-    const person = shared.resolve(this.sub, email);
-    let out: TaskList;
-    if (!person) {
-      out = doc ? this.host.toSharedTaskList(doc, '#039be5') : this.host.toTaskList(ev!, await this.host.calendarColor(ev!.calendarId), this.settings.categories(this.sub));
-    } else {
-      if (doc) {
-        shared.setMembers(doc, [...doc.members, person.sub]);
-        out = this.host.toSharedTaskList(doc, '#039be5');
-      } else {
-        out = this.host.toSharedTaskList(await this.moveIn(ev!, [person.sub]), '#039be5');
-      }
-      shared.remember(this.sub, person);
-    }
+    const data = doc ? doc.data : decodeTaskList(ev!, this.tz);
+    if (!doc && (data.recurrence || ev!.recurringEventId)) throw repeating();
+    const address = shared.invitee(this.sub, email);
+    const member = shared.personAt(address);
+    if (!(doc && member && doc.members.includes(member.sub))) this.invite({ kind: 'list', target: id, owner: this.sub, title: data.title, address });
+    const out = doc ? this.host.toSharedTaskList(doc, '#039be5') : this.host.toTaskList(ev!, await this.host.calendarColor(ev!.calendarId), this.settings.categories(this.sub));
     await this.hold(started);
     return out;
+  }
+
+  /** The invited person accepted (runs on the sharer's service): the list moves into the shared store, or the person joins the shared list. Returns the shared list's id. */
+  async grantList(id: string, memberSub: string): Promise<string> {
+    let doc = isSharedId(id) ? this.shared.accessOwned(this.sub, id) : null;
+    if (doc) this.shared.setMembers(doc, [...doc.members, memberSub]);
+    else doc = await this.moveIn(await this.host.locateKind(id, true), [memberSub]);
+    this.shared.remember(this.sub, this.shared.person(memberSub));
+    return SHARED_PREFIX + doc.id;
   }
 
   /** Moves one task list event into the shared store; the event is deleted only after the shared copy exists. */
@@ -76,6 +84,8 @@ export class TaskSharing {
       this.shared.remove(doc);
       throw e;
     }
+    // only a move that happened carries the pending invitations along
+    this.shared.invitations.retarget(this.sub, ev.id, SHARED_PREFIX + doc.id);
     return doc;
   }
 
@@ -93,6 +103,7 @@ export class TaskSharing {
     const ev = await this.provider.insertEvent(calendarId, encodeTaskList(d, this.tz, this.host.colorFor(d)));
     this.shared.releaseInk(doc);
     this.shared.remove(doc);
+    this.shared.invitations.retarget(this.sub, SHARED_PREFIX + doc.id, ev.id);
     return this.host.toTaskList(ev, await this.host.calendarColor(calendarId), this.settings.categories(this.sub));
   }
 
@@ -104,18 +115,35 @@ export class TaskSharing {
   }
 
   /**
-   * Shares a category with the person a typed address names (or, with `null`, stops): every list of the category moves
-   * into (out of) the shared store, and lists created in it later are created shared (feature shared-lists). An address
-   * that names nobody changes nothing and answers the same way. Returns the person's category rules.
+   * Invites the person a typed address names to share a category (every list of it, and new ones, once accepted), or with
+   * `null` stops sharing it: the lists move back. Like {@link inviteToList} every address gets the same answer. Returns
+   * the person's category rules.
    */
   async shareCategory(categoryId: string, email: string | null): Promise<Record<string, Person>> {
     const started = Date.now();
     const shared = this.shared;
-    if (!this.settings.categories(this.sub).some((c) => c.id === categoryId)) throw notFound('Category not found');
-    const person = email === null ? null : shared.resolve(this.sub, email);
-    if (email === null || person) await this.applyCategoryShare(categoryId, person);
+    const category = this.settings.categories(this.sub).find((c) => c.id === categoryId);
+    if (!category) throw notFound('Category not found');
+    if (email === null) await this.applyCategoryShare(categoryId, null);
+    else {
+      const address = shared.invitee(this.sub, email);
+      const member = shared.personAt(address);
+      if (!(member && shared.ruleFor(this.sub, categoryId) === member.sub)) this.invite({ kind: 'category', target: categoryId, owner: this.sub, title: category.name, address });
+    }
     await this.hold(started);
     return shared.rulesOf(this.sub);
+  }
+
+  /** Takes back a grant of a list whose invitation was withdrawn meanwhile: the person leaves it. */
+  revokeList(id: string, memberSub: string): void {
+    const doc = this.shared.accessOwned(this.sub, id);
+    this.shared.setMembers(doc, doc.members.filter((m) => m !== memberSub));
+  }
+
+  /** The invited person accepted (runs on the sharer's service): the category's lists move into the shared store and new ones are created shared. */
+  async grantCategory(categoryId: string, memberSub: string): Promise<void> {
+    if (!this.settings.categories(this.sub).some((c) => c.id === categoryId)) throw notFound('Category not found');
+    await this.applyCategoryShare(categoryId, this.shared.person(memberSub));
   }
 
   private async applyCategoryShare(categoryId: string, person: Person | null): Promise<void> {

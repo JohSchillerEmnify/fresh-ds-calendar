@@ -50,3 +50,30 @@ export async function sessionCookie(t: TestApp, email: string): Promise<string> 
   const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
   return cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
 }
+
+/** The API's JSON answer, untyped as `TestApp.json` is. */
+type Json = ReturnType<typeof JSON.parse>;
+/** One person's API caller (own session). */
+export type Caller = (method: string, url: string, body?: unknown) => Promise<{ status: number; body: Json }>;
+
+/** Shares a list the way people do: the owner invites, the other person accepts. Returns the shared list as the owner sees it. */
+export async function shareAndAccept(owner: Caller, member: Caller, listId: string, email: string): Promise<Json> {
+  const sent = await owner('POST', `/api/tasklists/${encodeURIComponent(listId)}/share`, { email });
+  if (sent.status !== 200) throw new Error(`invitation refused: ${sent.status}`);
+  const inv = (await member('GET', '/api/invitations')).body.invitations.find((i: { kind: string }) => i.kind === 'list');
+  const accepted = await member('POST', `/api/invitations/${inv.id}/accept`);
+  if (accepted.status !== 200) throw new Error(`accept refused: ${accepted.status}`);
+  return (await owner('GET', `/api/tasklists/${encodeURIComponent(accepted.body.listId)}`)).body;
+}
+
+/** The owner invites to a category and the other person accepts. */
+export async function shareCategoryAndAccept(owner: Caller, member: Caller, categoryId: string, email: string): Promise<void> {
+  const sent = await owner('PUT', `/api/categories/${categoryId}/share`, { email });
+  if (sent.status !== 200) throw new Error(`invitation refused: ${sent.status}`);
+  const inv = (await member('GET', '/api/invitations')).body.invitations.find((i: { kind: string }) => i.kind === 'category');
+  const accepted = await member('POST', `/api/invitations/${inv.id}/accept`);
+  if (accepted.status !== 200) throw new Error(`accept refused: ${accepted.status}`);
+}
+
+/** A caller for a test that holds sessions as `{ cookie }` headers. */
+export const callerOf = (t: TestApp, h: { cookie: string }): Caller => (method, url, body) => t.json(method, url, body, h);

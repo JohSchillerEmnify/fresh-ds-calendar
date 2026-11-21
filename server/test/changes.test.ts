@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeCursor } from '../src/api/changesRoutes.js';
 import { NotFoundError, ProviderError, ProviderForbiddenError, SyncTokenExpiredError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
 import { setDiagSink } from '../src/lib/diag.js';
-import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
+import { freeze, makeApp, sessionCookie, shareAndAccept, type TestApp } from './helpers.js';
 
 let t: TestApp;
 beforeEach(async () => { t = makeApp(); await freeze(t); });
@@ -28,13 +28,14 @@ describe('first call (no cursor)', () => {
     expect(titles(r.events.upserts)).toEqual(['Dentist']);
     expect(r.taskLists.replace).toBe(true);
     expect(titles(r.taskLists.upserts)).toEqual(['Chores', 'Someday']);
-    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendar', 'tasksCalendarColor', 'tasksCalendarReminders', 'templates', 'theme', 'themes', 'widgetKeys']);
+    expect(Object.keys(r.files).sort()).toEqual(['calendarColors', 'canvas', 'categoryShares', 'ink', 'invitations', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendar', 'tasksCalendarColor', 'tasksCalendarReminders', 'templates', 'theme', 'themes', 'widgetKeys']);
   });
 
   it('answers each file in the shape of its own GET', async () => {
     const f = (await changes()).files;
     expect(f.templates).toEqual((await t.json('GET', '/api/templates')).body);
     expect(f.people).toEqual((await t.json('GET', '/api/people')).body);
+    expect(f.invitations).toEqual((await t.json('GET', '/api/invitations')).body);
     expect(f.categoryShares).toEqual((await t.json('GET', '/api/categories/shares')).body);
     expect(f.tasksCalendarReminders).toEqual((await t.json('GET', '/api/reminders/tasks-calendar')).body);
     expect(f.calendarColors).toEqual((await t.json('GET', '/api/calendar-colors')).body);
@@ -216,7 +217,7 @@ describe('shared lists', () => {
     const jo = await as(JO), anna = await as(ANNA);
     const own = (await jo('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] })).body;
     const c0 = (await jo('GET', url())).body.cursor, a0 = (await anna('GET', url())).body.cursor;
-    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+    const shared = await shareAndAccept(jo, anna, own.id, ANNA);
     // Jo's own Google copy is gone, the shared one arrives; Anna gets it too
     const jr = (await jo('GET', url(c0))).body;
     expect(jr.taskLists.removed).toContain(own.id);

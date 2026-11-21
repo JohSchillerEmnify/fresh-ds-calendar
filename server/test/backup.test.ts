@@ -11,7 +11,7 @@ import {
   BACKUP_KEEP, BackupFormatError, backupName, bundle, contentHash, debounceDelay, isRestorable, selectExpired, unbundle,
 } from '../src/services/backup.js';
 import { ALL_KINDS } from '../src/services/changeBus.js';
-import { makeApp, type TestApp } from './helpers.js';
+import { callerOf, makeApp, shareAndAccept, type TestApp } from './helpers.js';
 
 const SUB = 'abc-1';
 const files = { 'users/abc-1/prefs.json': '{"a":1}', 'users/abc-1/themes/t1.json': '{"id":"t1"}' };
@@ -380,7 +380,7 @@ describe('shared lists (real store)', () => {
       await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
       const jo = { cookie: await signIn(t, JO) }, anna = { cookie: await signIn(t, ANNA) };
       const own = (await t.json('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] }, jo)).body;
-      expect((await t.json('POST', `/api/tasklists/${own.id}/share`, { email: ANNA }, jo)).status).toBe(200);
+      await shareAndAccept(callerOf(t, jo), callerOf(t, anna), own.id, ANNA);
       await t.json('POST', '/api/backup', undefined, jo);
       await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, anna);
       await t.json('POST', '/api/backup', undefined, anna);

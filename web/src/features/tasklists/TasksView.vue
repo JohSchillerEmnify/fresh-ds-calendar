@@ -12,6 +12,7 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import SearchField from '@/components/m3/SearchField.vue';
 import { displayTitle } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
+import { useInvitationsStore } from '@/stores/invitations';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
@@ -20,6 +21,7 @@ import { matchesSearch, sortArchive } from './archive';
 import { duplicateList } from './duplicate';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
+import InvitationCards from './InvitationCards.vue';
 import TaskListView from './TaskListView.vue';
 import SaveTemplateDialog from './SaveTemplateDialog.vue';
 import TasksCanvas from './TasksCanvas.vue';
@@ -33,6 +35,7 @@ const prefs = usePrefsStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
 const sync = useSyncStore();
+const invitations = useInvitationsStore();
 
 /** The filter bar's choice (all three tabs, feature tasks-filter). */
 const passes = (l: TaskList): boolean => matchesTasksFilter(l, cats.filter.value, clock.today);
@@ -96,7 +99,8 @@ onBeforeUnmount(() => stop?.());
       </div>
     </div>
     <div v-if="tasks.tab === 'open'" class="scroll" data-scroll-area>
-      <p v-if="!groups.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>
+      <InvitationCards />
+      <p v-if="!groups.length && !invitations.answer.invitations.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>
       <section v-for="g in groups" :key="g.key" class="group" data-testid="tasks-group" :data-group="g.key">
         <h2 v-if="g.title" class="gt" data-testid="tasks-group-title">{{ g.title }}</h2>
         <ul class="list">

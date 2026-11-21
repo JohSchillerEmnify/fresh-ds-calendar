@@ -3132,6 +3132,22 @@ the sharing field says {string}
 the sharing line says {string}
 the task list {string} in the Tasks view is not shared
 the device holds the address {string} for sharing
+I withdraw the invitation to share the task list {string}
+I withdraw the invitation to share the category {string} in the settings
+I open the category {string} in the settings
+{string} accepts the invitation to the task list {string}
+{string} declines the invitation to the task list {string}
+{string} accepts the invitation to the category {string}
+{string} cannot accept the invitation to the task list {string}
+{string} sees no invitations
+the Tasks view shows the invitation to the task list {string} from {string}
+the Tasks view shows the invitation to the category {string} from {string}
+I share the task list {string} with {string} who accepts
+{string} may use the calendar but has not signed in yet
+I press {string} in the snackbar
+{string} shares the task list {string} with {string} and with {string}
+both answers have the same status, the same body shape and the same minimum duration
+the device holds the invitation to the task list {string} from {string}
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
@@ -3163,7 +3179,10 @@ the device holds the address {string} for sharing
 - "I open \"Share with\" in the new task list form": `@backlog` only (issue 27), not implemented. "I open \"Share with\" for the task list T": opens T's dialog and waits for the email field.
 - "\"Share with\" is an email field": `tasklist-share-person` is an `input` of type `email`. "offers only A": the `option` values of the `datalist` named by its `list` attribute (`share-suggestions`) equal A (`, `-separated, sorted); "offers no addresses": that list is empty.
 - "P is offered only A to share with" / "P is offered no address to share with": `GET /api/people` with P's own session returns exactly those email addresses (sorted) / none.
-- "the sharing field says T": `tasklist-share-note` has exactly T (the neutral answer of an address that is not a person who may use the calendar). "the sharing line says T": `tasklist-share-who` has exactly T. "the task list T in the Tasks view is not shared": the `tasks-item` T has no `tasklist-shared-badge`.
+- "the sharing field says T" and "the sharing line says T": the sharing line of the open dialog (`tasklist-share-who` in the task list dialog, `category-share-who` in the category dialog) has exactly T; with a sent invitation it reads "Invitation sent to A". "the task list T in the Tasks view is not shared": the `tasks-item` T has no `tasklist-shared-badge`.
+- Invitations (issue 183): "I share the task list T with P" sends the invitation (see "I try to share" for the typing) and closes the dialog; "I share the task list T with P who accepts" is the same followed by "P accepts the invitation to the task list T". "I withdraw the invitation to share the task list T": opens T's dialog and presses `tasklist-invite-withdraw`; the category step does the same with `category-invite-withdraw` in the category's dialog. "I open the category C in the settings": opens the settings category C (`settings-category`) and waits for `category-dialog`. "P accepts / declines the invitation to the task list T" and "... to the category C": P acts through the API with a session of their own, answering the invitation found in `GET /api/invitations` (`POST /api/invitations/:id/accept` or `/decline`, 200). "P cannot accept the invitation to the task list T": the same call with P's session answers `404`. "P sees no invitations": `GET /api/invitations` of P's session holds no incoming invitation. "the Tasks view shows the invitation to the task list T from A": the Open tab holds an `invitation-card` of kind list with `data-title` T whose text names A and which has `invitation-accept` and `invitation-decline`; the category step is the same with kind category. "P may use the calendar but has not signed in yet": `POST /api/__test/auth/newcomer` allows the address without recording it as a person. "I press X in the snackbar": clicks the action button of the visible snackbar whose text is X.
+- "P shares the task list T with A and with B" (`@unit`, `server/test/invitations.test.ts`): P sends both invitations through `POST /api/tasklists/:id/share`; "both answers have the same status ...": status, body keys and the held time (test config `shareAnswerMs`) are equal.
+- "the device holds the invitation to the task list T from A": `@unit` only (`web/test/invitations.test.ts`), like the offline steps above.
 - "the device holds the address A for sharing": `@unit` only (`web/test/share-people.test.ts`), like the offline steps above; not run in the browser.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
@@ -3453,7 +3472,7 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `month picker` (`month-picker`), `plant card` (`plant-card`), `place suggestions` (`place-suggestions`), `check-in message` (`streak-message`), `top bar` (`top-bar`; the check-in message
+(`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `month picker` (`month-picker`), `plant card` (`plant-card`), `place suggestions` (`place-suggestions`), `check-in message` (`streak-message`), `tasks view` (`tasks-view`), `invitation card` (the first `invitation-card`), `invitation snackbar` (`invitation-snackbar`), `top bar` (`top-bar`; the check-in message
 (`template-save-dialog`), `templates page` (`templates-page`), `settings page` (`settings-view`), `error log page` (`device-log-page`), `theme page` (`theme-view`), `map picker` (`map-picker`), `time picker` (`time-picker`), `event dialog` (`event-dialog`), `side menu` (`side-menu`), `repeat question` (`repeat-scope-dialog`), `top bar` (`top-bar`; the check-in message
 `streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as

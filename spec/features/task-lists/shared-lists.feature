@@ -1,9 +1,10 @@
 @sharing @id:shared-lists
 Feature: Sharing task lists with another person
-  A person shares a task list by typing the email address of another person who may use the calendar, or shares a
-  whole category the same way. The app never lists everybody who uses it: the field offers only addresses the person
-  typed before and people who share lists with them (ADR 0046). A shared list lives on the server, not in Google: sharing moves it out of the owner's tasks
-  calendar, "Stop sharing" moves it back. Both people see and edit it everywhere task lists appear and it carries a
+  A person shares a task list by typing the email address of another person, or shares a whole category the same
+  way. Sharing sends an invitation: nothing is shared, and nothing about the other person is revealed, until that
+  person accepts it (ADR 0047). The app never lists everybody who uses it: the field offers only people who accepted
+  a share of the person and people who share lists with them (ADR 0046). A shared list lives on the server, not in
+  Google: accepting moves it out of the owner's tasks calendar, "Stop sharing" moves it back. Both people see and edit it everywhere task lists appear and it carries a
   small "shared" badge with the other person's initial. Only the owner can delete it for everyone; the other person
   can leave it, which removes it for them only. Changes of the other person show up on the next automatic sync, and
   an edit based on an outdated version is refused with the usual conflict message.
@@ -15,7 +16,7 @@ Feature: Sharing task lists with another person
   Scenario: Sharing a list shows it to the other person
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    When I share the task list "Groceries" with "anna@example.com"
+    When I share the task list "Groceries" with "anna@example.com" who accepts
     And "anna@example.com" opens the Tasks view on another device
     Then the Open tab lists "Groceries"
     And the task list "Groceries" in the Tasks view is shared with "J"
@@ -24,7 +25,7 @@ Feature: Sharing task lists with another person
     Given automatic sync runs every 2 seconds
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When "anna@example.com" ticks the item "Milk" of the shared task list "Groceries"
     And I wait for the automatic sync
     Then the item "Milk" of the task list "Groceries" in the Tasks view is ticked
@@ -32,22 +33,15 @@ Feature: Sharing task lists with another person
   Scenario: Stop sharing moves the list back to the owner only
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When I stop sharing the task list "Groceries"
     Then "anna@example.com" sees no task lists
     And "jo@example.com" sees the task lists "Groceries"
 
-  Scenario: Sharing a category shares its lists and the new ones
-    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
-    And "jo@example.com" is signed in
-    When I share the category "Shopping" with "anna@example.com" in the settings
-    And "jo@example.com" creates the undated task list "Party snacks" in the category "Shopping"
-    Then "anna@example.com" sees the task lists "Groceries, Party snacks"
-
   Scenario: The other person can leave a shared list
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When "anna@example.com" leaves the shared task list "Groceries"
     Then "anna@example.com" sees no task lists
     And "jo@example.com" sees the task lists "Groceries"
@@ -55,7 +49,7 @@ Feature: Sharing task lists with another person
   Scenario: A stranger cannot read a shared list
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     Then "bob@example.com" cannot read the shared task list "Groceries"
 
   @conflict
@@ -64,7 +58,9 @@ Feature: Sharing task lists with another person
     And the live connection is blocked
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I reload the page
+    And the task list "Groceries" in the Tasks view is shared with "A"
     When "anna@example.com" renames the shared task list "Groceries" to "Weekly shop"
     And I edit the task list "Groceries" in the Tasks view
     And I fill in the task list form with:
@@ -77,28 +73,28 @@ Feature: Sharing task lists with another person
   Scenario: Everyone sees the owner's category on a shared list
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When "anna@example.com" opens the Tasks view on another device
     Then the task list "Groceries" in the Tasks view shows the category "Shopping"
 
   Scenario: The other person cannot change a shared list's category
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When "anna@example.com" edits the shared task list "Groceries"
     Then "anna@example.com" is not offered to change the category
 
   Scenario: The owner deletes a shared list for everyone
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When I delete the shared task list "Groceries"
     Then "anna@example.com" sees no task lists
 
   Scenario: The other person can leave a shared list but not delete it
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When "anna@example.com" edits the shared task list "Groceries"
     Then "anna@example.com" is offered to leave the list, not to delete it
 
@@ -109,11 +105,11 @@ Feature: Sharing task lists with another person
     Then "Share with" is an email field
     And "Share with" offers no addresses
 
-  Scenario: An address that was typed before is offered again, to the person who typed it
+  Scenario: An address that was shared with is offered again, to the person who shared it
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" has an undated task list "Errands" with the items "Post"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When I open "Share with" for the task list "Errands"
     Then "Share with" offers only "anna@example.com"
     And "bob@example.com" is offered no address to share with
@@ -121,19 +117,10 @@ Feature: Sharing task lists with another person
   Scenario: A person who shared a list with you is offered to you
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" is signed in
-    When I share the task list "Groceries" with "anna@example.com"
+    When I share the task list "Groceries" with "anna@example.com" who accepts
     Then "anna@example.com" is offered only "jo@example.com" to share with
 
-  Scenario: The address of somebody who does not use the calendar gets a neutral message and shares nothing
-    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
-    And "jo@example.com" is signed in
-    When I try to share the task list "Groceries" with "stranger@example.com"
-    Then the sharing field says "If this person uses the calendar, they'll see the list."
-    And "Share with" offers no addresses
-    And the task list "Groceries" in the Tasks view is not shared
-    And "anna@example.com" sees no task lists
-
-  # unit: server/test/share-by-address.test.ts:answers an address that is not an allowed person like a success that shared nobody
+  # unit: server/test/invitations.test.ts:answers a known, an unknown and a removed address the same way
   # unit: server/test/share-by-address.test.ts:GET /api/people offers only the contacts of the person asking
   # unit: server/test/share-by-address.test.ts:signing in is not announced to anybody
   # unit: server/test/share-by-address.test.ts:carries the same scoped people in the change feed
@@ -152,7 +139,7 @@ Feature: Sharing task lists with another person
   Scenario: A list shared before keeps saying who it is shared with and by
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
     And "jo@example.com" is signed in
-    And I share the task list "Groceries" with "anna@example.com"
+    And I share the task list "Groceries" with "anna@example.com" who accepts
     When I edit the task list "Groceries" in the Tasks view
     Then the sharing line says "Shared with anna"
     When "anna@example.com" edits the shared task list "Groceries"
@@ -189,3 +176,171 @@ Feature: Sharing task lists with another person
     When "jo@example.com" restores from the Drive backup
     Then the shared list "Groceries" is back
     And the damaged shared list is left out and noted in the server log
+
+  # Invitation to accept (issue 183, ADR 0047): sharing only sends an invitation. Nothing is revealed and nothing is
+  # shared until the other person accepts. The note under the field is the same for every address.
+
+  Scenario Outline: Sharing sends an invitation and shares nothing yet
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I try to share the task list "Groceries" with "<address>"
+    Then the sharing field says "Invitation sent to <address>"
+    And the task list "Groceries" in the Tasks view is not shared
+    And "anna@example.com" sees no task lists
+
+    Examples:
+      | address              |
+      | anna@example.com     |
+      | stranger@example.com |
+
+  Scenario: The sharer sees the pending invitation and can withdraw it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I try to share the task list "Groceries" with "anna@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Invitation sent to anna@example.com"
+    When I withdraw the invitation to share the task list "Groceries"
+    Then the task list "Groceries" in the Tasks view is not shared
+    And "anna@example.com" sees no invitations
+
+  Scenario: The invited person sees the invitation in the Tasks view
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+    And the Open tab does not list "Groceries"
+
+  Scenario: Accepting an invitation shares the list both ways
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" accepts the invitation to the task list "Groceries"
+    Then "anna@example.com" sees the task lists "Groceries"
+    And "anna@example.com" sees no invitations
+    And "jo@example.com" sees the task lists "Groceries"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Shared with anna"
+
+  Scenario: Declining an invitation shares nothing and tells the sharer nothing new
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" declines the invitation to the task list "Groceries"
+    Then "anna@example.com" sees no task lists
+    And "anna@example.com" sees no invitations
+    And the task list "Groceries" in the Tasks view is not shared
+    When I edit the task list "Groceries" in the Tasks view
+    Then the sharing line says "Invitation sent to anna@example.com"
+
+  Scenario: Only the invited person can answer an invitation
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    Then "bob@example.com" cannot accept the invitation to the task list "Groceries"
+
+  Scenario: Sharing a category sends one invitation, and accepting shares its lists and the new ones
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    When I share the category "Shopping" with "anna@example.com" in the settings
+    Then "anna@example.com" sees no task lists
+    When "anna@example.com" opens the Tasks view on another device
+    Then the Tasks view shows the invitation to the category "Shopping" from "jo@example.com"
+    When "anna@example.com" accepts the invitation to the category "Shopping"
+    And "jo@example.com" creates the undated task list "Party snacks" in the category "Shopping"
+    Then "anna@example.com" sees the task lists "Groceries, Party snacks"
+
+  Scenario: The sharer sees a pending category invitation and can withdraw it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the category "Shopping" with "anna@example.com" in the settings
+    When I open the category "Shopping" in the settings
+    Then the sharing field says "Invitation sent to anna@example.com"
+    When I withdraw the invitation to share the category "Shopping" in the settings
+    Then "anna@example.com" sees no invitations
+
+  Scenario: The invited person is told of an invitation by a snackbar that shows it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then a snackbar says "jo@example.com invites you to share “Groceries”"
+    When I press "Show" in the snackbar
+    Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+
+  Scenario: An invitation that nobody answers expires after 7 days
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When the time is 2026-10-20 08:00
+    Then "anna@example.com" sees no invitations
+    When I edit the task list "Groceries" in the Tasks view
+    Then "Share with" is an email field
+
+  Scenario: An invitation to an address that has not signed in yet is kept until the first sign-in
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "newcomer@example.com" may use the calendar but has not signed in yet
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "newcomer@example.com"
+    When "newcomer@example.com" opens the Tasks view on another device
+    Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+
+  # unit: server/test/invitations.test.ts:answers a known, an unknown and a removed address the same way
+  # unit: server/test/invitations.test.ts:holds every answer, known address or not, for the minimum time
+  # unit: server/test/invitations.test.ts:writes nothing personal to the log
+  @unit
+  Scenario: The server does not tell whether an address uses the calendar
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    When "jo@example.com" shares the task list "Groceries" with "anna@example.com" and with "stranger@example.com"
+    Then both answers have the same status, the same body shape and the same minimum duration
+
+  # unit: web/test/invitations.test.ts:shows the invitations the device copy holds while offline
+  @unit
+  Scenario: The invitations are on the device and shown without a connection
+    Given the device holds the invitation to the task list "Groceries" from "jo@example.com"
+    When the device is offline
+    Then the Tasks view shows the invitation to the task list "Groceries" from "jo@example.com"
+
+  @visual @mobile
+  Scenario Outline: The invitation card and its snackbar look right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the "invitation snackbar" still looks like "invitation-snackbar-<scheme>"
+    And the "invitation card" still looks like "invitation-card-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The sender's pending invitation looks right in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When I edit the task list "Groceries" in the Tasks view
+    Then the "list form" still looks like "invitation-pending-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
+  @visual @mobile
+  Scenario Outline: The invitation card sits above the lists of the Tasks view in light and dark
+    Given the device prefers a <scheme> color scheme
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "anna@example.com" has an undated task list "Errands" with the items "Post"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the "tasks view" still looks like "invitation-tasks-view-<scheme>"
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |

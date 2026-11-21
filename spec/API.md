@@ -491,7 +491,7 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
   (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `widgetKeys` (`{ keys }` as `GET /api/widget-keys`, never a key itself), `canvas`
   (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
-  (`GET /api/people`, the requester's own contacts), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
+  (`GET /api/people`, the requester's own contacts), `invitations` (`GET /api/invitations`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`), `calendarColors` (`GET /api/calendar-colors`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
   repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
@@ -780,29 +780,48 @@ interface SharedInfo { owned: boolean; owner: Person; with: Person[] }          
 
 | Method | Path | Body | Success |
 |---|---|---|---|
-| `GET` | `/api/people` | – | `200` `{ people: Person[] }`: only the requester's own known contacts (ADR 0046), sorted by address: people whose address the requester typed for a successful share, people who share a list with them, people they share with (a category rule counts). Never anybody else, never the requester; someone no longer on the allow-list drops out |
-| `POST` | `/api/tasklists/:id/share` | `{ email: string }` (the typed address; trimmed and lower-cased by the server) | `200` `TaskList`. An address of a person who may use the app and has signed in once: a Google list is moved into the shared store (new id `shared:...`), or on a shared list the owner adds a member, and the address is remembered for the owner. Any other well-formed address: the same `200` with the list unchanged (`shared` stays as it was), nothing stored, after the same minimum time |
+| `GET` | `/api/people` | – | `200` `{ people: Person[] }`: only the requester's own known contacts (ADR 0046, 0047), sorted by address: people who accepted a share of the requester, people who share a list with them, people they share with (a category rule counts). Never anybody else, never the requester, never an address that was only typed; someone no longer on the allow-list drops out |
+| `POST` | `/api/tasklists/:id/share` | `{ email: string }` (the typed address; trimmed and lower-cased by the server) | `200` `TaskList`, the list unchanged. Sends an invitation to that address (see "Invitations"); nothing moves until it is accepted. Every well-formed address, whoever uses the app, gets the same answer after the same minimum time |
 | `DELETE` | `/api/tasklists/:id/share` | – | `200` `TaskList` (owner only: the list moves back into the owner's tasks calendar, new Google id; members lose it) |
 | `POST` | `/api/tasklists/:id/leave` | – | `204` (member only: removes the list for the caller) |
 | `GET` | `/api/categories/shares` | – | `200` `{ shares: Record<categoryId, Person> }` |
-| `PUT` | `/api/categories/:id/share` | `{ email: string \| null }` | `200` `{ shares }`: shares the category (all its lists move, new lists are created shared) with the person the typed address names or, with `null`, unshares it (its lists move back). An address that names nobody changes nothing and answers the same `200` after the same minimum time |
+| `PUT` | `/api/categories/:id/share` | `{ email: string \| null }` | `200` `{ shares }`: with an address, sends an invitation to share the category (see "Invitations"; `shares` is unchanged until it is accepted, then all its lists move and new lists are created shared); with `null` it unshares the category (its lists move back). Every address gets the same `200` after the same minimum time |
 
 Rules:
 - Every shared-list call checks that the caller is the owner or a member: anyone else gets `404` (the list's existence
   is not revealed). Owner-only actions (`DELETE /api/tasklists/:id`, `DELETE .../share`, adding a member) answer `403
   FORBIDDEN` to a member. A member removes a list for themselves with `leave`; `DELETE` deletes it for everyone (owner).
-- A member must be a person who may use the app (the allow-list) and has signed in once. An address that is not such a
-  person is NOT an error: the answer is the `200` of a share that shared nobody, with the same shape and, outside
-  TEST_MODE, after at least one second (ADR 0046). What it does NOT hide: a share that works returns the list as shared,
-  with the other person's Google display name and address, and a category share that works puts them in `shares`, so the
-  sharer can learn that an address uses the app and what name it carries, for addresses they typed. A `400`
-  is only for what tells nothing about others: sharing with your own address, a malformed address (`email`), sharing
-  a repeating list (`recurrence` is not stored on shared lists) and sharing while sign-in is off. What the owner can see on
-  their own list (it now says `shared`) is by design.
+- Sharing sends an invitation (ADR 0047). Only an accepted invitation makes a person a member, and the person must
+  then be on the allow-list. The share calls do not look the address up: a known, an unknown and a removed address
+  all get the same `200`, body shape and minimum time (one second outside TEST_MODE). A `400` is only for what tells
+  nothing about others: sharing with your own address, a malformed address (`email`), sharing a repeating list
+  (`recurrence` is not stored on shared lists) and sharing while sign-in is off.
 - A member may change everything of a shared list except its category (`400`, key `sharing.categoryOwnerOnly`).
 - Writes with a stale `If-Match` (list `PATCH`/`DELETE`) answer `412 PRECONDITION_FAILED` (the existing conflict
   message). Item ops and unpinned writes never conflict: they read the latest version and apply on top of it.
 - Moving in or out keeps title, items, ticks, date/time, tags, estimate, category, `completedOn` and the canvas place.
+
+#### Invitations (issue 183, ADR 0047)
+
+Sharing a list or a category only sends an invitation, stored under the typed address (`DATA_DIR/shared/invitations.json`),
+so one for a person who has not signed in yet waits for the first sign-in. It lapses after 7 days. Nothing is
+shared and nothing about the invited person is revealed to the sender until the invitation is accepted. Nothing
+personal (addresses, titles) is written to the server log.
+
+```ts
+interface IncomingInvitation { id: string; kind: 'list' | 'category'; title: string; from: string; expires: string }
+interface SentInvitation { id: string; kind: 'list' | 'category'; target: string; address: string; expires: string }
+```
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/invitations` | – | `200` `{ invitations: IncomingInvitation[], sent: SentInvitation[] }`: `invitations` wait for the requester's own address (`from` is the sender's address, `title` the list title or category name when it was sent); `sent` are the requester's own, declined ones included, with only the address they typed. Also the change feed file `invitations` |
+| `POST` | `/api/invitations/:id/accept` | – | `200` `{ listId: string \| null }` (invited person only): a Google list moves into the shared store (or the person joins the shared list) and `listId` is its `shared:` id; a category is shared as by `PUT /api/categories/:id/share`. The invitation ends. A list or category that is gone: `404` and the invitation is dropped |
+| `POST` | `/api/invitations/:id/decline` | – | `200` `{ ok: true }` (invited person only): the invitation leaves the invited person's list; the sender's `sent` still holds it until it is withdrawn or lapses |
+| `POST` | `/api/invitations/:id/withdraw` | – | `200` `{ ok: true }` (sender only): the invitation is gone for both |
+
+Anybody else answering, a declined, lapsed or unknown id: `404`. Sending the same invitation again changes nothing (a
+declined one stays declined). An invitation to a list follows it when the list moves into or out of the shared store.
 
 ### Settings and categories
 
@@ -1217,6 +1236,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/calendars?owner` | – | Test-only: the raw calendar list of one account (the shared one without `owner`), hidden entries included. `200 { calendars }` |
 | `GET` | `/api/__test/tasks-calendar?owner` | – | Test-only: the id of that person's tasks calendar, found or created as on first use. `200 { id }` |
 | `POST` | `/api/__test/auth` | `{ allowedEmails: string[] }` | Test-only: turns sign-in on with this allow-list; the addresses count as people who signed in once. `200 { on, allowedEmails }` |
+| `POST` | `/api/__test/auth/newcomer` | `{ email: string }` | Test-only: adds an address to the allow-list without recording it as a person who signed in. `200 { email }` |
 | `GET` | `/api/__test/oauth/consent?state` | – | Test-only: the fake Google consent screen; 302 to the callback with a code for the account chosen by `/api/__test/oauth/account`. |
 | `POST` | `/api/__test/oauth/calendar-access` | `{ granted: boolean }` | Test-only: the fake consent leaves the "Google Calendar" checkbox unticked (`false`) or ticked. `200 { granted }` |
 | `POST` | `/api/__test/oauth/revoke` | `{ email: string }` | Test-only: Google answers that person's token refresh with `invalid_grant` from now on. `200 { revoked }` |

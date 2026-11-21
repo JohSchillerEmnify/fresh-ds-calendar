@@ -6,7 +6,7 @@ import { mockSub } from '../src/auth/people.js';
 import { PeopleStore } from '../src/auth/peopleStore.js';
 import { Clock } from '../src/lib/clock.js';
 import { SharedListService } from '../src/services/sharedLists.js';
-import { makeApp, sessionCookie } from './helpers.js';
+import { makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com';
 
@@ -37,8 +37,13 @@ describe('sharing a list', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const shared = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
-      expect(shared.status).toBe(200);
+      // an invitation alone moves nothing
+      expect((await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).status).toBe(200);
+      expect(await titles(anna)).toEqual([]);
+      const inv = (await anna('GET', '/api/invitations')).body.invitations[0];
+      const accepted = await anna('POST', `/api/invitations/${inv.id}/accept`);
+      expect(accepted.status).toBe(200);
+      const shared = await jo('GET', `/api/tasklists/${encodeURIComponent(accepted.body.listId)}`);
       expect(shared.body.id).toMatch(/^shared:/);
       expect(shared.body).toMatchObject({ calendarId: 'shared', title: 'Groceries', totalCount: 2 });
       expect(shared.body.shared).toMatchObject({ owned: true, owner: { initial: 'J' }, with: [{ sub: mockSub(ANNA), initial: 'A' }] });
@@ -61,8 +66,8 @@ describe('sharing a list', () => {
     try {
       const own = await groceries(jo, { date: '2026-10-14', time: '10:00', tags: ['home'], estimateMinutes: 30, items: [{ title: 'Milk', done: true }, { title: 'Eggs' }] });
       await jo('PATCH', `/api/tasklists/${own.id}`, { canvas: { x: 100, y: 200 } });
-      const s = await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA });
-      expect(s.body).toMatchObject({ date: '2026-10-14', time: '10:00', tags: ['home'], estimateMinutes: 30, canvas: { x: 100, y: 200 }, doneCount: 1 });
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
+      expect(s).toMatchObject({ date: '2026-10-14', time: '10:00', tags: ['home'], estimateMinutes: 30, canvas: { x: 100, y: 200 }, doneCount: 1 });
       // on its date it shows in the calendar of both people
       for (const c of [jo, anna]) {
         const r = await c('GET', '/api/items?from=2026-10-12&to=2026-10-19');
@@ -91,7 +96,7 @@ describe('security: who may touch a shared list', () => {
     const { t, jo, anna, bob } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       const id = encodeURIComponent(s.id);
       const item = s.items[0].id;
       expect(await allOpen(bob)).toEqual([]);
@@ -119,7 +124,7 @@ describe('security: who may touch a shared list', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       const id = encodeURIComponent(s.id);
       expect((await anna('PATCH', `/api/tasklists/${id}`, { title: 'Weekly shop' })).body.title).toBe('Weekly shop');
       expect((await anna('POST', `/api/tasklists/${id}/items`, { title: 'Bread' })).status).toBe(201);
@@ -135,10 +140,10 @@ describe('security: who may touch a shared list', () => {
 
 describe('editing together', () => {
   it('refuses a repeat rhythm on a shared list', async () => {
-    const { t, jo } = await setup();
+    const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo, { date: '2026-10-14' });
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       const r = await jo('PATCH', `/api/tasklists/${encodeURIComponent(s.id)}`, { recurrence: 'weekly' });
       expect(r.status).toBe(400);
     } finally { t.cleanup(); }
@@ -147,7 +152,7 @@ describe('editing together', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       const id = encodeURIComponent(s.id);
       const milk = s.items.find((i: any) => i.title === 'Milk').id;
       const ticked = await anna('PATCH', `/api/tasklists/${id}/items/${milk}`, { done: true });
@@ -168,7 +173,7 @@ describe('editing together', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await jo('POST', '/api/tasklists', { title: 'One', date: null, items: [{ title: 'a' }] });
-      const s = (await jo('POST', `/api/tasklists/${own.body.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.body.id, ANNA);
       await anna('PATCH', `/api/tasklists/${encodeURIComponent(s.id)}/items/${s.items[0].id}`, { done: true });
       for (const c of [jo, anna]) {
         expect((await c('GET', '/api/tasklists/archive?today=2026-10-12')).body.items.map((l: any) => l.title)).toEqual(['One']);
@@ -183,7 +188,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo, { items: [{ title: 'Milk', done: true }, { title: 'Eggs' }] });
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       const back = await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}/share`);
       expect(back.status).toBe(200);
       expect(back.body.id).not.toMatch(/^shared:/);
@@ -201,7 +206,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       expect((await anna('POST', `/api/tasklists/${encodeURIComponent(s.id)}/leave`)).status).toBe(204);
       expect(await allOpen(anna)).toEqual([]);
       expect((await anna('GET', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(404);
@@ -214,7 +219,7 @@ describe('stop sharing and leave', () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
-      const s = (await jo('POST', `/api/tasklists/${own.id}/share`, { email: ANNA })).body;
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
       expect((await jo('DELETE', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(204);
       expect(await allOpen(jo)).toEqual([]);
       expect(await allOpen(anna)).toEqual([]);
@@ -230,8 +235,8 @@ describe('sharing a category', () => {
     try {
       await groceries(jo, { categoryId: shopping });
       await jo('POST', '/api/tasklists', { title: 'Taxes', date: null, items: [{ title: 'Form' }], categoryId: 'work' });
-      const on = await jo('PUT', `/api/categories/${shopping}/share`, { email: ANNA });
-      expect(on.body.shares[shopping]).toMatchObject({ sub: mockSub(ANNA) });
+      await shareCategoryAndAccept(jo, anna, shopping, ANNA);
+      expect((await jo('GET', '/api/categories/shares')).body.shares[shopping]).toMatchObject({ sub: mockSub(ANNA) });
       expect((await jo('GET', '/api/categories/shares')).body.shares[shopping].initial).toBe('A');
       expect(await titles(anna)).toEqual(['Groceries']);
       // a new Shopping list is created shared, a Work list is not
@@ -253,7 +258,7 @@ describe('sharing a category', () => {
     const { t, jo, anna } = await setup();
     try {
       await groceries(jo, { categoryId: 'shopping' });
-      await jo('PUT', `/api/categories/shopping/share`, { email: ANNA });
+      await shareCategoryAndAccept(jo, anna, 'shopping', ANNA);
       const hers = (await allOpen(anna))[0];
       expect(hers).toMatchObject({ categoryId: 'shopping', categoryInfo: { name: 'Shopping', icon: '🛒' } });
       const id = encodeURIComponent(hers.id);

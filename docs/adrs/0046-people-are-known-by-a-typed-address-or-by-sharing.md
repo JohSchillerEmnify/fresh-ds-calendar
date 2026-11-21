@@ -3,6 +3,7 @@
 - Status: accepted
 - Views shaped: `server`, `web`
 - Refines: [0011](0011-shared-lists-on-the-server.md)
+- Refined by: [0047](0047-sharing-sends-an-invitation-first.md) (sharing sends an invitation; the open point about what a share reveals is settled there)
 
 ## Context
 

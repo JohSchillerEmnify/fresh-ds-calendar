@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
+  InvitationsAnswer, ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
@@ -370,7 +370,7 @@ export class ApiClient {
   people(o?: RequestOptions) {
     return this.request<{ people: Person[] }>('GET', '/api/people', undefined, o);
   }
-  /** Moves a list into the shared store (new id `shared:...`) or adds a member to a shared one. */
+  /** Sends an invitation to share the list; the list itself stays as it is until the other person accepts. */
   shareTaskList(id: string, email: string, o?: RequestOptions) {
     return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/share`, { email }, o);
   }
@@ -388,6 +388,14 @@ export class ApiClient {
   /** `email` null stops sharing the category. */
   shareCategory(id: string, email: string | null, o?: RequestOptions) {
     return this.request<{ shares: Record<string, Person> }>('PUT', `/api/categories/${enc(id)}/share`, { email }, o);
+  }
+  /** The invitations waiting for this person and the ones they sent. */
+  invitations(o?: RequestOptions) {
+    return this.request<InvitationsAnswer>('GET', '/api/invitations', undefined, o);
+  }
+  /** Answers an invitation (`accept` shares the list or category). */
+  answerInvitation(id: string, verb: 'accept' | 'decline' | 'withdraw', o?: RequestOptions) {
+    return this.request<{ listId?: string | null; ok?: true }>('POST', `/api/invitations/${enc(id)}/${verb}`, undefined, o);
   }
   openTaskLists(today: LocalDate, days = 30, o?: RequestOptions) {
     const q = new URLSearchParams({ today, days: String(days) });

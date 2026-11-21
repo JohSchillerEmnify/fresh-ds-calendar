@@ -167,6 +167,34 @@ export interface SharedInfo {
   with: Person[];
 }
 
+/** An invitation to share a task list or a whole category, as the invited person sees it (API.md "Invitations"). */
+export interface IncomingInvitation {
+  id: string;
+  kind: 'list' | 'category';
+  /** The title of the list or the name of the category when it was sent. */
+  title: string;
+  /** The email address of the person who invited. */
+  from: string;
+  /** When the invitation lapses (ISO instant). */
+  expires: string;
+}
+
+/** An invitation the requester sent: only the address they typed, never anything about its person. */
+export interface SentInvitation {
+  id: string;
+  kind: 'list' | 'category';
+  /** The id of the task list or the category the invitation is about. */
+  target: string;
+  address: string;
+  expires: string;
+}
+
+/** `GET /api/invitations`. */
+export interface InvitationsAnswer {
+  invitations: IncomingInvitation[];
+  sent: SentInvitation[];
+}
+
 /** A category's look as carried on a shared list. */
 export interface CategoryInfo {
   name: string;

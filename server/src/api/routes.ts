@@ -14,6 +14,7 @@ import { registerChanges } from './changesRoutes.js';
 import { alsoRange, body, calendarList, range, readItems, type RouteDeps } from './routeHelpers.js';
 import { registerSettings } from './settingsRoutes.js';
 import { registerWidgetKeys } from './widgetRoutes.js';
+import { registerInvitations } from './invitationRoutes.js';
 import { registerTaskLists } from './taskListRoutes.js';
 import { registerThemes, themeReaders } from './themeRoutes.js';
 import { kindsOfPath } from '../services/changeBus.js';
@@ -226,6 +227,7 @@ export function apiRoutes(ctx: Ctx): Hono {
 
 
   registerTaskLists(deps);
+  registerInvitations(deps);
   registerWidgetKeys(deps);
   registerSettings(deps);
 

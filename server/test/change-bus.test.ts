@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
 import { ALL_KINDS, ChangeBus, kindsOfPath, type ChangeEvent } from '../src/services/changeBus.js';
 import { LOCAL_PERSON } from '../src/services/prefsStore.js';
-import { makeApp, sessionCookie, type TestApp } from './helpers.js';
+import { callerOf, makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept, type TestApp } from './helpers.js';
 
 describe('ChangeBus', () => {
   it('hands each report to every listener, once per person, and stops after unsubscribe', () => {
@@ -62,7 +62,7 @@ describe('what the API reports', () => {
     await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
     const jo = { cookie: await sessionCookie(t, JO) }, anna = { cookie: await sessionCookie(t, ANNA) };
     const own = (await t.json('POST', '/api/tasklists', { title: 'G', date: null, items: [] }, jo)).body;
-    const shared = (await t.json('POST', `/api/tasklists/${own.id}/share`, { email: ANNA }, jo)).body;
+    const shared = await shareAndAccept(callerOf(t, jo), callerOf(t, anna), own.id, ANNA);
     const both = [mockSub(JO), mockSub(ANNA)].sort();
     seen.length = 0;
     await t.json('POST', `/api/tasklists/${shared.id}/items`, { title: 'Milk' }, jo);
@@ -78,7 +78,11 @@ describe('what the API reports', () => {
     const jo = { cookie: await sessionCookie(t, JO) };
     seen.length = 0;
     await t.json('PUT', '/api/categories/shopping/share', { email: ANNA }, jo);
-    expect(seen.find((e) => e.kind === 'shares')!.subs.sort()).toEqual([mockSub(JO), mockSub(ANNA)].sort());
+    // an invitation reaches the invited person's devices too
+    expect(seen.find((e) => e.kind === 'shares')!.subs).toContain(mockSub(ANNA));
+    seen.length = 0;
+    await shareCategoryAndAccept(callerOf(t, jo), callerOf(t, { cookie: await sessionCookie(t, ANNA) }), 'shopping', ANNA);
+    expect([...new Set(seen.filter((e) => e.kind === 'shares').flatMap((e) => e.subs))].sort()).toEqual([mockSub(JO), mockSub(ANNA)].sort());
     seen.length = 0;
     await t.json('PUT', '/api/categories/shopping/share', { email: null }, jo);
     expect(seen.find((e) => e.kind === 'shares')!.subs).toContain(mockSub(ANNA));
