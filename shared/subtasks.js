@@ -34,6 +34,17 @@ export function blockEnd(items, from) {
   return end;
 }
 
+/** The items with every done task that has an open subtask (at any depth) opened again; the same array when nothing changes. */
+export function reopenParents(items) {
+  let out = items;
+  items.forEach((item, i) => {
+    if (!item.done || !items.slice(i + 1, blockEnd(items, i)).some((x) => !x.done)) return;
+    if (out === items) out = items.slice();
+    out[i] = { ...item, done: false };
+  });
+  return out;
+}
+
 /** The ids of the item `id` and its subtasks. */
 export function blockIds(items, id) {
   const from = items.findIndex((i) => i.id === id);

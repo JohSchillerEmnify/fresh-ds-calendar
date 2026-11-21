@@ -12,6 +12,8 @@ export declare const levelOf: (item: object) => number;
 export declare function clampLevels<T extends object>(items: readonly T[]): T[];
 /** The index after the item at `from` and all the subtasks that follow it. */
 export declare function blockEnd(items: readonly object[], from: number): number;
+/** The same items with every done task that has an open subtask opened again (the same array when nothing changes). */
+export declare function reopenParents<T extends { done: boolean }>(items: readonly T[]): T[];
 /** The ids of the item `id` and its subtasks. */
 export declare function blockIds(items: readonly { id: string }[], id: string): string[];
 /** Lines of typed text with their level (a line is a subtask of the nearest line above it that is indented less; at most {@link MAX_LEVEL}); empty lines are dropped. */
