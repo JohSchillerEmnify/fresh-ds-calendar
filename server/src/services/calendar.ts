@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { LIST_ITEMS_MAX } from '@calendar/shared/limits';
-import { blockEnd, blockIds, clampLevels, levelProp, withLevel } from '@calendar/shared/subtasks';
+import { blockEnd, blockIds, clampLevels, levelProp, reopenParents, withLevel } from '@calendar/shared/subtasks';
 import type {
   Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
@@ -52,6 +52,8 @@ let paletteFailedAt = 0;
 const MAX_REMINDERS = 5;
 const popups = (list: GoogleReminder[] | undefined): number[] => (list ?? []).filter((r) => r.method === 'popup').map((r) => r.minutes);
 
+/** Valid levels, and a done task over an open subtask open again (feature tasklist-subtasks). */
+const tidyItems = <T extends { done: boolean }>(items: T[]): T[] => reopenParents(clampLevels(items));
 const notOwn = () => forbidden('Only your own events can be changed', 'calendar.event.notOwn');
 
 export class CalendarService {
@@ -440,7 +442,7 @@ export class CalendarService {
     const calendarId = await this.tasks.id();
     const d: TaskListData = {
       title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
-      items: clampLevels((input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...levelProp(i.level), ...(i.strokes ? { ink: true as const } : {}) }))),
+      items: tidyItems((input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...levelProp(i.level), ...(i.strokes ? { ink: true as const } : {}) }))),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       seriesSince: input.recurrence ? input.date : null,
       canvas: null,
@@ -561,7 +563,7 @@ export class CalendarService {
         // an ink item (empty title) sent back with its id stays what it is
         const inked = new Set(d.items.filter((i) => i.ink).map((i) => i.id));
         const levels = new Map(d.items.map((i) => [i.id, i.level]));
-        next.items = clampLevels(input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
+        next.items = tidyItems(input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
           .map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done, ...levelProp(levels.get(i.id ?? '')), ...(i.id && inked.has(i.id) ? { ink: true as const } : {}) })));
       }
       return next;
@@ -594,7 +596,7 @@ export class CalendarService {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
         items.splice(input.index === undefined ? items.length : Math.min(input.index, items.length), 0, item);
-        return { ...d, items: clampLevels(items) };
+        return { ...d, items: tidyItems(items) };
       });
     }
     return this.modify(id, (d) => {
@@ -603,7 +605,7 @@ export class CalendarService {
       const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done, ...levelProp(input.level), ...(input.ink ? { ink: true as const } : {}) };
       const at = input.index === undefined ? items.length : Math.min(input.index, items.length);
       items.splice(at, 0, item);
-      return { ...d, items: clampLevels(items) };
+      return { ...d, items: tidyItems(items) };
     }, undefined, undefined, true);
   }
 
@@ -626,7 +628,7 @@ export class CalendarService {
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
       // a task's tick goes to its subtasks; the last subtask's tick never ticks the task
       if (input.done !== undefined) for (let k = idx + 1; k < blockEnd(items, idx); k++) items[k] = { ...items[k]!, done: input.done };
-      return { ...d, items };
+      return { ...d, items: reopenParents(items) };
     }, undefined, undefined, true);
     if (ticked) this.motivation.award(this.sub, 'tick', itemId);
     return list;
@@ -634,7 +636,7 @@ export class CalendarService {
 
   /** `keepSubtasks`: only the item goes; its subtasks stay (the form removes a task and keeps the lines under it). */
   async deleteItem(id: string, itemId: string, scope?: Scope, keepSubtasks = false): Promise<TaskList> {
-    const without = (d: TaskListData): TaskListData => { const gone = new Set(keepSubtasks ? [itemId] : blockIds(d.items, itemId)); return { ...d, items: clampLevels(d.items.filter((i) => !gone.has(i.id))) }; };
+    const without = (d: TaskListData): TaskListData => { const gone = new Set(keepSubtasks ? [itemId] : blockIds(d.items, itemId)); return { ...d, items: tidyItems(d.items.filter((i) => !gone.has(i.id))) }; };
     // for all lists a list lacking the item is left as it is, so a send that failed half way can be repeated
     if (scope) return this.series.forScope(scope, id, without, scope === 'all' ? undefined : requireItem(itemId));
     return this.modify(id, (d) => {
@@ -655,7 +657,7 @@ export class CalendarService {
         const prev = n > 0 ? result.findIndex((r) => r.id === d.items[n - 1]!.id) : -1;
         result.splice(prev + 1, 0, item);
       });
-      return { ...d, items: clampLevels(result) };
+      return { ...d, items: tidyItems(result) };
     };
     if (scope) return this.series.forScope(scope, id, place);
     return this.modify(id, place, undefined, undefined, true);

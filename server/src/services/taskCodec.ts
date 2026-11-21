@@ -1,5 +1,5 @@
 import { TITLE_MAX } from '@calendar/shared/limits';
-import { clampLevels, indentOf, levelProp, parseIndented } from '@calendar/shared/subtasks';
+import { clampLevels, indentOf, levelProp, parseIndented, reopenParents } from '@calendar/shared/subtasks';
 import { stableId } from '../lib/ids.js';
 import { addDays, formatInZone, localDateOf, localTimeOf, zonedToUtc } from '../lib/time.js';
 import type { CanvasPlace, Category, Recurrence, TaskItem } from '../api/types.js';
@@ -202,7 +202,7 @@ export function parseDescription(desc: string | undefined): TaskItem[] {
     const done = !!m && (m[1] === '☑' || m[1]!.toLowerCase() === '[x]');
     items.push({ id: stableId(`${idx}:${title}`), title, done, ...levelProp(level) });
   });
-  return clampLevels(items).slice(0, 200);
+  return reopenParents(clampLevels(items)).slice(0, 200);
 }
 
 export function readItems(ev: GoogleEvent): TaskItem[] {
@@ -214,7 +214,7 @@ export function readItems(ev: GoogleEvent): TaskItem[] {
   try {
     const arr = JSON.parse(json) as { id: string; t: string; d: number; l?: number; k?: number }[];
     if (!Array.isArray(arr)) throw new Error('bad');
-    return clampLevels(arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1, ...levelProp(x.l), ...(x.k === 1 ? { ink: true as const } : {}) })));
+    return reopenParents(clampLevels(arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1, ...levelProp(x.l), ...(x.k === 1 ? { ink: true as const } : {}) }))));
   } catch {
     return parseDescription(ev.description);
   }
