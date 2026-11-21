@@ -62,12 +62,15 @@ export type AllowCheck = () => ((email: string) => boolean) | null;
 export class SharedListService {
   private readonly dir: string;
   private readonly rulesFile: string;
+  private readonly exceptionsFile: string;
   private readonly contacts: ShareContacts;
   /** Pending invitations to share a list or category (ADR 0047). */
   readonly invitations: Invitations;
   private docs = new Map<string, SharedListDoc>();
   /** `owner sub -> { category id -> member sub }`. */
   private rules: Record<string, Record<string, string>> = {};
+  /** `owner sub -> { category id -> list ids }`: lists the rule's person was taken off by hand; the rule does not put them back. */
+  private exceptions: Record<string, Record<string, string[]>> = {};
 
   constructor(
     dataDir: string,
@@ -80,6 +83,7 @@ export class SharedListService {
   ) {
     this.dir = path.join(dataDir, 'shared', 'lists');
     this.rulesFile = path.join(dataDir, 'shared', 'category-shares.json');
+    this.exceptionsFile = path.join(dataDir, 'shared', 'category-exceptions.json');
     this.contacts = new ShareContacts(dataDir);
     this.invitations = new Invitations(dataDir, clock);
     this.load();
@@ -94,6 +98,7 @@ export class SharedListService {
   private load(): void {
     this.docs.clear();
     this.rules = readJson<Record<string, Record<string, string>>>(this.rulesFile) ?? {};
+    this.exceptions = readJson<Record<string, Record<string, string[]>>>(this.exceptionsFile) ?? {};
     if (!fs.existsSync(this.dir)) return;
     for (const f of fs.readdirSync(this.dir)) {
       if (!f.endsWith('.json')) continue;
@@ -268,7 +273,38 @@ export class SharedListService {
     return Object.fromEntries(Object.entries(this.rules[owner] ?? {}).map(([c, s]) => [c, this.person(s)]));
   }
 
+  /** Whether the rule's person was taken off this list by hand. */
+  isExcepted(owner: string, categoryId: string | null, listId: string): boolean {
+    return categoryId !== null && (this.exceptions[owner]?.[categoryId] ?? []).includes(listId);
+  }
+
+  addException(owner: string, categoryId: string, listId: string): void {
+    const mine = this.exceptions[owner]?.[categoryId] ?? [];
+    if (!mine.includes(listId)) this.saveExceptions(owner, categoryId, [...mine, listId]);
+  }
+
+  /** The person was added to this list by hand: the rule applies to it again. */
+  clearException(owner: string, listId: string): void {
+    for (const [c, ids] of Object.entries(this.exceptions[owner] ?? {})) if (ids.includes(listId)) this.saveExceptions(owner, c, ids.filter((i) => i !== listId));
+  }
+
+  /** A list moved between the tasks calendar and the shared store and got a new id. */
+  retargetException(owner: string, from: string, to: string): void {
+    for (const [c, ids] of Object.entries(this.exceptions[owner] ?? {})) if (ids.includes(from)) this.saveExceptions(owner, c, ids.map((i) => (i === from ? to : i)));
+  }
+
+  private saveExceptions(owner: string, categoryId: string, ids: string[]): void {
+    const mine = { ...(this.exceptions[owner] ?? {}) };
+    if (ids.length) mine[categoryId] = ids;
+    else delete mine[categoryId];
+    if (Object.keys(mine).length) this.exceptions[owner] = mine;
+    else delete this.exceptions[owner];
+    writeJsonAtomic(this.exceptionsFile, this.exceptions);
+  }
+
   setRule(owner: string, categoryId: string, member: string | null): void {
+    // a stopped share, or one with somebody else, starts fresh
+    if (this.ruleFor(owner, categoryId) !== member) this.saveExceptions(owner, categoryId, []);
     const mine = { ...(this.rules[owner] ?? {}) };
     if (member) mine[categoryId] = member;
     else delete mine[categoryId];
@@ -281,6 +317,7 @@ export class SharedListService {
   reset(): void {
     this.docs.clear();
     this.rules = {};
+    this.exceptions = {};
     this.contacts.reset();
     this.invitations.reset();
     fs.rmSync(path.join(path.dirname(this.dir)), { recursive: true, force: true });

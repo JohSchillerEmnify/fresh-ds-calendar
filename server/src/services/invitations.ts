@@ -21,7 +21,7 @@ export interface Invitation {
   /** The typed address, trimmed and lower case. */
   address: string;
   expires: number;
-  /** The invited person said no: it stays for the sender (who is told nothing) until it is withdrawn or lapses. */
+  /** The invited person said no: it stays for the sender (who is told nothing) until it is withdrawn, lapses or is sent again. */
   declined?: true;
 }
 
@@ -64,11 +64,12 @@ export class Invitations {
     this.items = this.load();
   }
 
-  /** Sends an invitation; the same one sent again changes nothing (a declined one stays declined, its time keeps running). */
+  /** Sends an invitation; one still unanswered sent again changes nothing, a declined one is replaced by a new one (declining answers only that invitation). */
   send(d: Draft): void {
+    const same = (i: Invitation) => i.owner === d.owner && i.kind === d.kind && i.target === d.target && i.address === d.address;
     const all = this.live();
-    if (this.has(d)) return;
-    this.save([...all, { ...d, id: nanoid(16), expires: this.clock.nowMs() + INVITATION_DAYS * DAY_MS }]);
+    if (all.some((i) => same(i) && !i.declined)) return;
+    this.save([...all.filter((i) => !same(i)), { ...d, id: nanoid(16), expires: this.clock.nowMs() + INVITATION_DAYS * DAY_MS }]);
     logEvent('invitation_sent', { kind: d.kind });
   }
 
