@@ -173,9 +173,14 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
     const at = items.findIndex((i) => i.id === held.dataset.itemId);
     if (at < 0) return;
     const rows = rowsOf();
+    // the list keeps its height, or a scrolled sheet clamps its scroll position and every row moves under the finger
+    const ul = o.root.value?.querySelector<HTMLElement>('ul');
+    if (ul) ul.style.minHeight = `${ul.offsetHeight}px`;
     for (let i = at + 1; i < blockEnd(items, at); i++) rows[i]?.setAttribute(HELD_SUB, '');
   }
   function unfoldSubtasks(): void {
+    const ul = o.root.value?.querySelector<HTMLElement>('ul');
+    if (ul) ul.style.minHeight = '';
     o.root.value?.querySelectorAll(`[${HELD_SUB}]`).forEach((r) => r.removeAttribute(HELD_SUB));
   }
   /** Drops every shift at once (the rows are laid out in their final order, or the drag is over). */
