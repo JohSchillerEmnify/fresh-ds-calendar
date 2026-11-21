@@ -1,5 +1,5 @@
 /** Invitations to share (feature shared-lists, ADR 0047): the cards in the Tasks view, answering them, and the snackbar on arrival. */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import { createMemoryHistory } from 'vue-router';
@@ -15,7 +15,6 @@ const CATEGORY = { id: 'i2', kind: 'category', title: 'Shopping', from: 'jo@exam
 const invitations = (...invitations: unknown[]) => ({ invitations, sent: [] });
 
 let wrapper: VueWrapper | null = null;
-beforeEach(() => localStorage.clear());
 afterEach(() => { wrapper?.unmount(); wrapper = null; vi.restoreAllMocks(); });
 
 function device(files: Record<string, unknown>) {
@@ -114,12 +113,14 @@ describe('the snackbar on arrival', () => {
     const { d, ui } = await host();
     d.putFile('invitations', invitations(LIST));
     await flushPromises();
+    const kept = d.file('invitationsAnnounced');
+    expect(kept).toEqual(['i1']);
     wrapper!.unmount();
-    ui.snackbars = [];
     mockFetch({});
     const pinia = freshPinia();
     const router = createAppRouter(createMemoryHistory());
-    device({ invitations: invitations(LIST) });
+    // the device copy comes back from the device's own storage with what it kept
+    device({ invitations: invitations(LIST), invitationsAnnounced: kept });
     wrapper = mount(defineComponent({ setup() { useInvitationAnnouncer(); return () => h('div'); } }), { global: { plugins: [pinia, router] } });
     await flushPromises();
     expect(useUiStore().snackbars).toHaveLength(0);

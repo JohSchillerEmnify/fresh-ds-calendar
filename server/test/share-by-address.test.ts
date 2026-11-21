@@ -1,8 +1,6 @@
 /** Who is offered in "Share with" (spec feature @id:shared-lists, ADR 0046, ADR 0047): only people who accepted a share, never an address that was only typed. */
-import { describe, expect, it, vi } from 'vitest';
-import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
+import { describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
-import { SHARE_ANSWER_MS } from '../src/services/taskSharing.js';
 import { makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com', STRANGER = 'stranger@example.com';

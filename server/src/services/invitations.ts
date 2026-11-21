@@ -5,7 +5,7 @@ import { logEvent } from '../lib/diag.js';
 import { nanoid } from '../lib/ids.js';
 
 /** How long an invitation waits for an answer. */
-export const INVITATION_DAYS = 7;
+const INVITATION_DAYS = 7;
 const DAY_MS = 86_400_000;
 
 /** One invitation to share a task list or a category (feature shared-lists, ADR 0047). It belongs to the address it was sent to, so it waits for a person who has not signed in yet. */

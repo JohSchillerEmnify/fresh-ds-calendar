@@ -2,21 +2,22 @@
 /** The invitations to share a list or a category that wait for an answer (feature shared-lists): a card each, above the groups of the Tasks view. */
 import Button from '@/components/m3/Button.vue';
 import { t } from '@/i18n';
-import { cardText, useInvitations } from './invitations';
+import { useInvitationsStore } from '@/stores/invitations';
+import { cardText } from './invitations';
 
-const { answer, respond } = useInvitations();
+const invitations = useInvitationsStore();
 </script>
 
 <template>
-  <section v-if="answer.invitations.length" class="inv" data-testid="invitations">
+  <section v-if="invitations.answer.invitations.length" class="inv" data-testid="invitations">
     <article
-      v-for="i in answer.invitations" :key="i.id" class="card" data-testid="invitation-card" :data-kind="i.kind" :data-title="i.title"
+      v-for="i in invitations.answer.invitations" :key="i.id" class="card" data-testid="invitation-card" :data-kind="i.kind" :data-title="i.title"
     >
       <h2 class="t">{{ t(i.kind === 'list' ? 'sharing.invite.cardList' : 'sharing.invite.cardCategory') }}</h2>
       <p class="x">{{ cardText(i) }}</p>
       <div class="acts">
-        <Button variant="text" data-testid="invitation-decline" @click="respond(i.id, 'decline')">{{ t('sharing.invite.decline') }}</Button>
-        <Button data-testid="invitation-accept" @click="respond(i.id, 'accept')">{{ t('sharing.invite.accept') }}</Button>
+        <Button variant="text" data-testid="invitation-decline" @click="invitations.respond(i.id, 'decline')">{{ t('sharing.invite.decline') }}</Button>
+        <Button data-testid="invitation-accept" @click="invitations.respond(i.id, 'accept')">{{ t('sharing.invite.accept') }}</Button>
       </div>
     </article>
   </section>

@@ -8,9 +8,9 @@ import type { AppConfig, Calendar, CalendarEvent, CalendarItem, DaySummary, Loca
 import { addDays, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { itemSegments } from '@/lib/items';
 
-/** The per-person files a change set can carry, by name (API.md `GET /api/changes`); each is the answer of its own GET. */
+/** The per-person files a change set can carry, by name (API.md `GET /api/changes`); each is the answer of its own GET. `invitationsAnnounced` is kept by the device only. */
 export type DeviceFileName =
-  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'invitations' | 'tasksCalendar' | 'tasksCalendarReminders' | 'tasksCalendarColor' | 'calendarColors';
+  | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'widgetKeys' | 'canvas' | 'ink' | 'motivation' | 'categoryShares' | 'people' | 'invitations' | 'invitationsAnnounced' | 'tasksCalendar' | 'tasksCalendarReminders' | 'tasksCalendarColor' | 'calendarColors';
 
 /** Events from today minus a year to today plus a year, end exclusive. */
 export interface DeviceWindow { from: LocalDate; to: LocalDate }

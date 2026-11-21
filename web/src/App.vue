@@ -33,7 +33,7 @@ import { api } from '@/api/client';
 import { usePrefsStore } from '@/stores/prefs';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { useContactsOffer } from '@/features/calendar';
-import { useInvitationAnnouncer } from '@/features/tasklists/invitationAnnouncer';
+import { useInvitationAnnouncer } from '@/features/tasklists';
 import { useMotivationStore, useSceneRest } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';

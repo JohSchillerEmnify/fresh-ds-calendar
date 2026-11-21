@@ -52,10 +52,12 @@ export async function sessionCookie(t: TestApp, email: string): Promise<string> 
 }
 
 /** One person's API caller (own session). */
-export type Caller = (method: string, url: string, body?: unknown) => Promise<{ status: number; body: any }>;
+/** The API's JSON answer, untyped as `TestApp.json` is. */
+type Json = ReturnType<typeof JSON.parse>;
+export type Caller = (method: string, url: string, body?: unknown) => Promise<{ status: number; body: Json }>;
 
 /** Shares a list the way people do: the owner invites, the other person accepts. Returns the shared list as the owner sees it. */
-export async function shareAndAccept(owner: Caller, member: Caller, listId: string, email: string): Promise<any> {
+export async function shareAndAccept(owner: Caller, member: Caller, listId: string, email: string): Promise<Json> {
   const sent = await owner('POST', `/api/tasklists/${encodeURIComponent(listId)}/share`, { email });
   if (sent.status !== 200) throw new Error(`invitation refused: ${sent.status}`);
   const inv = (await member('GET', '/api/invitations')).body.invitations.find((i: { kind: string }) => i.kind === 'list');

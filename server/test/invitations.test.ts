@@ -8,6 +8,7 @@ import { makeApp, sessionCookie, shareAndAccept, shareCategoryAndAccept } from '
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com', STRANGER = 'stranger@example.com';
 const DAY = 86_400_000;
+type Json = ReturnType<typeof JSON.parse>;
 
 async function setup() {
   const t = makeApp();
@@ -21,9 +22,9 @@ async function setup() {
 type Call = Awaited<ReturnType<typeof setup>>['jo'];
 const list = async (c: Call, title = 'Groceries') => (await c('POST', '/api/tasklists', { title, date: null, items: [{ title: 'Milk' }] })).body;
 const invite = (c: Call, id: string, email: string) => c('POST', `/api/tasklists/${encodeURIComponent(id)}/share`, { email });
-const incoming = async (c: Call) => (await c('GET', '/api/invitations')).body.invitations as any[];
-const sent = async (c: Call) => (await c('GET', '/api/invitations')).body.sent as any[];
-const titles = async (c: Call) => ((await c('GET', '/api/tasklists/all-open?today=2026-10-12')).body.items as any[]).map((l) => l.title).sort();
+const incoming = async (c: Call): Promise<Json[]> => (await c('GET', '/api/invitations')).body.invitations;
+const sent = async (c: Call): Promise<Json[]> => (await c('GET', '/api/invitations')).body.sent;
+const titles = async (c: Call): Promise<string[]> => ((await c('GET', '/api/tasklists/all-open?today=2026-10-12')).body.items as { title: string }[]).map((l) => l.title).sort();
 const at = (t: { app: { ctx: { clock: { set(ms: number, frozen: boolean): void } } } }, ms: number) => t.app.ctx.clock.set(ms, true);
 
 describe('sending an invitation', () => {

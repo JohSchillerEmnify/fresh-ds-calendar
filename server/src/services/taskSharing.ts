@@ -55,7 +55,7 @@ export class TaskSharing {
     return out;
   }
 
-  /** The invited person accepted (called on the owner's service): the list moves into the shared store, or the person joins the shared list. Returns the shared list's id. */
+  /** The invited person accepted (runs on the sharer's service): the list moves into the shared store, or the person joins the shared list. Returns the shared list's id. */
   async grantList(id: string, memberSub: string): Promise<string> {
     let doc = isSharedId(id) ? this.shared.accessOwned(this.sub, id) : null;
     if (doc) this.shared.setMembers(doc, [...doc.members, memberSub]);
@@ -120,7 +120,7 @@ export class TaskSharing {
     return shared.rulesOf(this.sub);
   }
 
-  /** The invited person accepted (called on the owner's service): the category's lists move into the shared store and new ones are created shared. */
+  /** The invited person accepted (runs on the sharer's service): the category's lists move into the shared store and new ones are created shared. */
   async grantCategory(categoryId: string, memberSub: string): Promise<void> {
     if (!this.settings.categories(this.sub).some((c) => c.id === categoryId)) throw notFound('Category not found');
     await this.applyCategoryShare(categoryId, this.shared.person(memberSub));

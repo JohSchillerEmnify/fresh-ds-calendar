@@ -9,6 +9,7 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import ShareAddressField from './ShareAddressField.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useInvitationsStore } from '@/stores/invitations';
 import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
@@ -16,7 +17,6 @@ import { useDeviceStore } from '@/stores/device';
 import { useSyncStore } from '@/stores/sync';
 import { useSettingsStore } from '@/stores/settings';
 import { googleColorLabel } from '@/theme/labels';
-import { useInvitations } from '@/features/tasklists/invitations';
 
 const props = defineProps<{ category?: Category }>();
 const emit = defineEmits<{ close: [] }>();
@@ -34,7 +34,7 @@ const confirming = ref(false);
 const auth = useAuthStore();
 const sharedWith = ref('');
 let sharedBefore = '';
-const invitations = useInvitations();
+const invitations = useInvitationsStore();
 const pending = computed(() => (props.category ? invitations.sentFor('category', props.category.id) : null));
 onMounted(async () => {
   if (!props.category) return;
