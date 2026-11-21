@@ -10,6 +10,7 @@
 - Fixed: templates now keep the subtask levels of a list, also with "Also save as template", and a list made from a template has the same levels.
 - Fixed: lines that start with spaces, typed under "Add items" while editing a list, now become subtasks, as in a new list.
 - Changed: an item you hold in a task list is now a small card with its checkbox and title that follows your finger anywhere. A dashed outline in the list shows exactly where it will land, checkbox included, and the line of the task it goes under lights up; move sideways to change the level. The grips and bins stay where they are.
+- Fixed: holding a task that has subtasks no longer moves the list under your finger, and the outline shows the height the item will really have, also when its title wraps one line more at the deeper level.
 - Fixed: pressing an item again right after you dropped one now picks it up on the first long press instead of doing nothing.
 - Fixed: security updates for the server.
 - Fixed: the check-in message is back at the top as a small note and no longer covers buttons.

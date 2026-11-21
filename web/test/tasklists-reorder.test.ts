@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropIndex, lineStart, moveTo, rowShifts, slotOffset } from '@/features/tasklists/reorder';
+import { dropIndex, moveTo, rowShifts, slotBox, slotOffset } from '@/features/tasklists/reorder';
 
 const rows = [
   { top: 0, bottom: 40 },
@@ -65,11 +65,28 @@ describe('rowShifts', () => {
   });
 });
 
-describe('lineStart', () => {
-  it('moves one step per level from the title column of any row, also when the rows are mirrored', () => {
-    expect(lineStart(56, 0, 2, 28)).toBe(112);
-    expect(lineStart(84, 1, 0, 28)).toBe(56);
-    // a mirrored row has its title column elsewhere: the reference row decides, not a constant
-    expect(lineStart(120, 0, 1, 28)).toBe(148);
+describe('rowShifts with a gap of another height', () => {
+  const even = [{ top: 0, bottom: 40 }, { top: 40, bottom: 80 }, { top: 80, bottom: 120 }, { top: 120, bottom: 160 }];
+  it('opens the taller place and lets the rows after it follow', () => {
+    expect(rowShifts(even, 0, 2, 60)).toEqual([0, -40, -40, 20]);
+    expect(rowShifts(even, 3, 1, 60)).toEqual([0, 60, 60, 0]);
+    expect(rowShifts(even, 1, 1, 60)).toEqual([0, 0, 20, 20]);
+  });
+});
+
+describe('slotBox', () => {
+  it('starts at the checkbox of the level and ends at the grip', () => {
+    // a task: checkbox target 4..52, grip 260..308 in a list 340 wide
+    const row = { cb: { left: 4, right: 52 }, grip: { left: 260, right: 308 } };
+    expect(slotBox(row, 0, 0, 28, 340, 52)).toEqual({ left: 11, right: 308, cbLeft: 4 });
+    expect(slotBox(row, 0, 2, 28, 340, 52)).toEqual({ left: 67, right: 308, cbLeft: 60 });
+    expect(slotBox({ cb: { left: 60, right: 108 }, grip: row.grip }, 2, 0, 28, 340, 52).cbLeft).toBe(4);
+  });
+  it('ends before the bin when no row shows a grip', () => {
+    expect(slotBox({ cb: { left: 4, right: 52 }, grip: null }, 0, 1, 28, 340, 52)).toEqual({ left: 39, right: 288, cbLeft: 32 });
+  });
+  it('is right for a mirrored row: the checkbox at the end, the indent on the grip side', () => {
+    const mirrored = { cb: { left: 288, right: 336 }, grip: { left: 4, right: 52 } };
+    expect(slotBox(mirrored, 0, 1, 28, 340, 52)).toEqual({ left: 36, right: 329, cbLeft: 288 });
   });
 });

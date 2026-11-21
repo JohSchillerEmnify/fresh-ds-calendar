@@ -423,10 +423,11 @@ When('I drag the item {string} over the gap between {string} and {string} and ho
 });
 
 Then('the items {string} and {string} do not overlap the slot of the dragged item {string} and it lies between them', async function (this: World, upper: string, lower: string, dragged: string) {
-  void dragged;
   const [u, l] = await Promise.all([upper, lower].map(async (t) => box(await itemById(this, t))));
   // the card follows the finger; the gap the other items open is the dashed slot
-  const d = await box(this.page.getByTestId('tasklist-drop-slot'));
+  const slot = this.page.getByTestId('tasklist-drop-slot');
+  await expect(slot, 'the slot belongs to the dragged item').toHaveAttribute('data-title', dragged);
+  const d = await box(slot);
   expect(u.y + u.height, `"${upper}" ends above the slot`).toBeLessThanOrEqual(d.y + 4);
   expect(d.y + d.height, `the slot ends above "${lower}"`).toBeLessThanOrEqual(l.y + 4);
 });

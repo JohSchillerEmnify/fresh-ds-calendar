@@ -137,6 +137,37 @@ Feature: Subtasks in task lists
         | Food  | one step  | right | 1     |
         | Food  | two steps | right | 2     |
 
+    Scenario: An item dragged up lands exactly in the slot
+      When I hold the item "Food" and move the finger 28 px to the right and 130 px up
+      And I let go of the item
+      Then the item "Food" sits exactly where the slot was
+
+    Scenario: An item dragged down lands exactly in the slot
+      When I hold the item "Tent" and move the finger 0 px to the right and 112 px down
+      And I let go of the item
+      Then the item "Tent" sits exactly where the slot was
+
+    Scenario: A task with a subtask lands exactly in the slot
+      Given the browser window is 560 by 900 pixels wide and high
+      And the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      When I hold the item "Pegs" and move the finger 0 px to the right and 60 px up
+      And I let go of the item
+      Then the item "Pegs" sits exactly where the slot was
+
+    Scenario: The tree line follows a new parent that lies between the pick-up and the slot
+      When I hold the item "Tent" and move the finger 28 px to the right and 112 px down
+      Then the lit tree line starts under the checkbox of "Poles", is primary coloured and 2 px wide
+      And the lit tree line runs down to the slot and stays clear of its checkbox
+
+    @mobile
+    Scenario: The slot is as tall as the row will be when its title wraps one line more one level deeper
+      Given the item "Pegs" gets the title "Pegs and the spare mallet for the big camp"
+      When I hold the item "Pegs and the spare mallet for the big camp" one step to the right
+      And I let go of the item
+      Then the item "Pegs and the spare mallet for the big camp" is taller than it was before it was held
+      And the item "Pegs and the spare mallet for the big camp" sits exactly where the slot was
+
     @visual @mobile
     Scenario Outline: The held card and the slot look right at <level> in the <scheme> scheme
       Given the device prefers a <scheme> color scheme

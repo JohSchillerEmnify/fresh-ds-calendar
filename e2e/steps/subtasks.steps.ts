@@ -53,6 +53,7 @@ async function hold(w: World, title: string, dx: number, dy: number): Promise<vo
   await row.scrollIntoViewIfNeeded();
   const grip = await box(row.getByTestId('tasklist-item-grip'));
   sidesBefore.set(w, await sides(w));
+  heightBefore.set(w, { title, height: (await box(row)).height });
   const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
   if (w.testInfo.project.use.hasTouch) {
     const cdp = await w.context.newCDPSession(w.page);
@@ -191,24 +192,37 @@ Then('no tree line is lit', async function (this: World) {
   await expect(tree(this)).toHaveCount(0);
 });
 
-const slotBoxes = new WeakMap<World, { slot: Awaited<ReturnType<typeof box>>; checkbox: Awaited<ReturnType<typeof box>> }>();
+/** The height of the held item's row before it was held, by world. */
+const heightBefore = new WeakMap<World, { title: string; height: number }>();
+
+/** The list's own top left: a bottom sheet that grows with a taller row moves, so places are compared from it. */
+const listCorner = (w: World) => box(w.expanded.locator('ul').first());
+const slotBoxes = new WeakMap<World, { slot: Awaited<ReturnType<typeof box>>; checkbox: Awaited<ReturnType<typeof box>>; list: Awaited<ReturnType<typeof box>> }>();
 
 When('I let go of the item', async function (this: World) {
-  slotBoxes.set(this, { slot: await box(slot(this)), checkbox: await box(slotCheckbox(this)) });
+  slotBoxes.set(this, { slot: await box(slot(this)), checkbox: await box(slotCheckbox(this)), list: await listCorner(this) });
   if (!this.held) throw new Error('no item is held');
   await this.held();
   finger.delete(this);
   await this.page.waitForTimeout(900);
 });
 
+Then('the item {string} is taller than it was before it was held', async function (this: World, title: string) {
+  const was = heightBefore.get(this);
+  if (!was || was.title !== title) throw new Error(`"${title}" was not the held item`);
+  expect((await box(await itemById(this, title))).height, 'the title wraps one line more at the deeper level').toBeGreaterThan(was.height + 8);
+});
+
 Then('the item {string} sits exactly where the slot was', async function (this: World, title: string) {
   const was = slotBoxes.get(this);
   if (!was) throw new Error('the item was not let go');
   const row = await itemById(this, title);
-  const [r, c] = [await box(row), await box(row.getByTestId('tasklist-item-checkbox'))];
-  expect(Math.abs(r.y - was.slot.y), 'top').toBeLessThanOrEqual(1);
+  const [r, c, list] = [await box(row), await box(row.getByTestId('tasklist-item-checkbox')), await listCorner(this)];
+  const [dx, dy] = [list.x - was.list.x, list.y - was.list.y];
+  expect(Math.abs(r.y - dy - was.slot.y), 'top').toBeLessThanOrEqual(1);
   expect(Math.abs(r.height - was.slot.height), 'height').toBeLessThanOrEqual(1);
-  for (const k of ['x', 'y', 'width', 'height'] as const) expect(Math.abs(c[k] - was.checkbox[k]), `checkbox ${k}`).toBeLessThanOrEqual(1);
+  const mine = { x: c.x - dx, y: c.y - dy, width: c.width, height: c.height };
+  for (const k of ['x', 'y', 'width', 'height'] as const) expect(Math.abs(mine[k] - was.checkbox[k]), `checkbox ${k}`).toBeLessThanOrEqual(1);
 });
 
 Then('the grips and bins of the other items have not moved sideways', async function (this: World) {
