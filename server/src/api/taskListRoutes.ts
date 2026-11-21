@@ -65,6 +65,11 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
     return c.json(out);
   });
   r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));
+  r.delete('/tasklists/:id/share/:sub', async (c) => {
+    const out = await cal(c).removeListMember(c.req.param('id'), c.req.param('sub'));
+    ctx.changes.emit([person(c), c.req.param('sub')], 'taskLists');
+    return c.json(out);
+  });
   r.post('/tasklists/:id/leave', (c) => {
     cal(c).leaveTaskList(c.req.param('id'));
     return c.body(null, 204);

@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { ApiError } from '@/api/client';
 import type { Person, TaskList } from '@/api/types';
 import { useItemsStore } from '@/stores/items';
-import { badgeInitial, isMemberOnly, leaveList, shareList, unshareList, withNames } from '@/features/tasklists/sharing';
+import { badgeInitial, isMemberOnly, leaveList, removeMember, shareList, withNames } from '@/features/tasklists/sharing';
 import { apiError, mockFetch } from './helpers';
 
 const person = (name: string): Person => ({ sub: name.toLowerCase(), name, email: `${name.toLowerCase()}@example.com`, initial: name[0]! });
@@ -40,15 +40,15 @@ describe('share, stop sharing and leave', () => {
     expect(items.get('shared:s1')).toMatchObject({ calendarId: 'shared' });
   });
 
-  it('moves a list back with "Stop sharing" and drops it for a member who leaves', async () => {
+  it('moves a list back when the last person is removed and drops it for a member who leaves', async () => {
     const items = useItemsStore();
     items.upsert(list('shared:s1', { owned: true, owner: person('Jo'), with: [person('Anna')] }));
     mockFetch({
-      'DELETE /api/tasklists/shared%3As1/share': () => list('g2'),
+      'DELETE /api/tasklists/shared%3As1/share/anna': () => list('g2'),
       'POST /api/tasklists/shared%3As2/leave': () => null,
       'GET /api/tasklists/open': () => ({ items: [], finishedToday: [] }),
     });
-    await unshareList('shared:s1');
+    await removeMember('shared:s1', 'anna');
     expect(items.get('shared:s1')).toBeUndefined();
     expect(items.get('g2')).toMatchObject({ calendarId: 'tasks' });
     items.upsert(list('shared:s2', { owned: false, owner: person('Jo'), with: [person('Jo')] }));

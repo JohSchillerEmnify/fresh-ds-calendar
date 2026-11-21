@@ -3103,6 +3103,7 @@ there is no button to back up now
 {string} has an undated task list {string} with the items {string} in the category {string}
 I share the task list {string} with {string}
 I stop sharing the task list {string}
+I remove {string} from the task list {string}
 I share the category {string} with {string} in the settings
 {string} creates the undated task list {string} in the category {string}
 {string} opens the Tasks view on another device
@@ -3164,7 +3165,7 @@ the device holds the invitation to the task list {string} from {string}
   endpoint restores the plant state.
 - "I share the task list T with P": the signed-in person opens the Tasks view, opens T's dialog (`tasklist-expanded-title`),
   types the address P into the email field `tasklist-share-person`, presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
-  (200), then closes the dialog. "I try to share the task list T with P": the same, but it only presses the button and waits for the answer (200); the dialog stays open when nothing was shared. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
+  (200), then closes the dialog. "I try to share the task list T with P": the same, but it only presses the button and waits for the answer (200); the dialog stays open when nothing was shared. "I remove N from the task list T": opens T's dialog and presses `tasklist-member-remove` on the `tasklist-member` line that says "Shared with N" (`DELETE /api/tasklists/:id/share/:sub`, 200); the dialog stays open while people remain and closes after the last one. "I stop sharing the task list T": the same dialog, removes every person that way.
 - "I share the category C with P in the settings": opens the settings, edits the category C (`settings-category`),
   types P's address into the email field `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
 - "P creates the undated task list T in the category C": `POST /api/tasklists` as P (a session of its own, see below).

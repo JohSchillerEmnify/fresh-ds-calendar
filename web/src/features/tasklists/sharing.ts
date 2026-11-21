@@ -31,9 +31,9 @@ export async function shareList(id: string, email: string): Promise<void> {
   swap(id, await api.shareTaskList(id, email.trim()));
 }
 
-/** "Stop sharing" (owner): the list moves back into the owner's Google tasks calendar. */
-export async function unshareList(id: string): Promise<void> {
-  swap(id, await api.unshareTaskList(id));
+/** Owner removes one person from the list; the list stays shared with the others (the last one moves it back). */
+export async function removeMember(id: string, sub: string): Promise<void> {
+  swap(id, await api.removeListMember(id, sub));
 }
 
 /** "Leave" (member): the list disappears for this person only. */

@@ -672,6 +672,7 @@ export class CalendarService {
   grantList(id: string, memberSub: string): Promise<string> { return this.sharing!.grantList(id, memberSub); }
   grantCategory(categoryId: string, memberSub: string): Promise<void> { return this.sharing!.grantCategory(categoryId, memberSub); }
   unshareTaskList(id: string): Promise<TaskList> { return this.sharing!.unshareTaskList(id); }
+  removeListMember(id: string, memberSub: string): Promise<TaskList> { return this.sharing!.removeMember(id, memberSub); }
   leaveTaskList(id: string): void { this.sharing!.leaveTaskList(id); }
   shareCategory(categoryId: string, email: string | null): Promise<Record<string, Person>> { return this.sharing!.shareCategory(categoryId, email); }
 

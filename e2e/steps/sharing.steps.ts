@@ -199,12 +199,29 @@ When('I open "Share with" for the task list {string}', async function (this: Wor
   await expect(this.page.getByTestId('tasklist-dialog').locator('input[data-testid="tasklist-share-person"]')).toBeVisible();
 });
 
+/** Presses "Remove" on the line that names the person (anna: "Shared with anna") and waits for the answer. */
+async function removePerson(world: World, name: string): Promise<void> {
+  const dialog = world.page.getByTestId('tasklist-dialog');
+  const removed = world.page.waitForResponse((r) => r.request().method() === 'DELETE' && /\/share\/[^/]+$/.test(new URL(r.url()).pathname));
+  await dialog.getByTestId('tasklist-member').filter({ hasText: `Shared with ${name}` }).getByTestId('tasklist-member-remove').click();
+  expect((await removed).status(), 'person removed').toBe(200);
+}
+
+When('I remove {string} from the task list {string}', async function (this: World, name: string, title: string) {
+  await openDialog(this, title);
+  await removePerson(this, name);
+});
+
 When('I stop sharing the task list {string}', async function (this: World, title: string) {
   await openDialog(this, title);
   const dialog = this.page.getByTestId('tasklist-dialog');
-  const saved = this.page.waitForResponse(isCall('DELETE', '/share'));
-  await dialog.getByTestId('tasklist-unshare').click();
-  expect((await saved).status(), 'sharing stopped').toBe(200);
+  // every person goes, the last one moves the list back to the owner
+  for (let n = await dialog.getByTestId('tasklist-member').count(); n > 0; n--) {
+    const name = (await dialog.getByTestId('tasklist-member').first().getByTestId('tasklist-share-who').innerText()).replace('Shared with ', '');
+    await removePerson(this, name);
+    if (n > 1) await expect(dialog.getByTestId('tasklist-member')).toHaveCount(n - 1);
+  }
+  // the last person closes the form
   await expect(dialog).toBeHidden();
 });
 

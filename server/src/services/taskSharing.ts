@@ -94,6 +94,16 @@ export class TaskSharing {
     return this.moveOut(this.shared.accessOwned(this.sub, id));
   }
 
+  /** Owner removes one person from the list; the others keep it, and with nobody left it moves back. An unknown person is a plain 404, like a stranger. */
+  async removeMember(id: string, memberSub: string): Promise<TaskList> {
+    const doc = this.shared.accessOwned(this.sub, id);
+    if (!doc.members.includes(memberSub)) throw notFound('Person not found');
+    const rest = doc.members.filter((m) => m !== memberSub);
+    if (!rest.length) return this.moveOut(doc);
+    this.shared.setMembers(doc, rest);
+    return this.host.toSharedTaskList(doc, '#039be5');
+  }
+
   /** Creates the Google event first, then removes the shared copy, so a failure never loses the list. */
   private async moveOut(doc: SharedListDoc): Promise<TaskList> {
     const d: TaskListData = { ...doc.data, recurrence: null };

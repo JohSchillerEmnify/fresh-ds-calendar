@@ -4,7 +4,7 @@ Feature: Sharing task lists with another person
   way. Sharing sends an invitation: nothing is shared, and nothing about the other person is revealed, until that
   person accepts it (ADR 0047). The app never lists everybody who uses it: the field offers only people who accepted
   a share of the person and people who share lists with them (ADR 0046). A shared list lives on the server, not in
-  Google: accepting moves it out of the owner's tasks calendar, "Stop sharing" moves it back. Both people see and edit it everywhere task lists appear and it carries a
+  Google: accepting moves it out of the owner's tasks calendar, removing the last person (or "Stop sharing") moves it back. Both people see and edit it everywhere task lists appear and it carries a
   small "shared" badge with the other person's initial. Only the owner can delete it for everyone; the other person
   can leave it, which removes it for them only. Changes of the other person show up on the next automatic sync, and
   an edit based on an outdated version is refused with the usual conflict message.
@@ -347,7 +347,7 @@ Feature: Sharing task lists with another person
 
   # Sharing from the opened list (issue 27). "Share" is an entry of the list's overflow menu (three dots) for the owner;
   # it opens the list's form at "Share with". The field stays open for another person, every sent invitation and every
-  # accepted person has a line of its own, and a person the list is shared with only reads who it is shared by. Sharing a
+  # accepted person has a line of its own (Withdraw, or Remove, which takes only that person off; the last one stops sharing), and a person the list is shared with only reads who it is shared by. Sharing a
   # category stays with one person.
 
   Scenario: The owner finds Share in the overflow menu, a member does not
@@ -406,6 +406,26 @@ Feature: Sharing task lists with another person
     When "anna@example.com" edits the shared task list "Groceries"
     Then the sharing lines say "Shared by jo, Also shared with bob"
     And "Share with" is not offered
+
+  Scenario: Removing one of two people keeps the list shared with the other
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    And I share the task list "Groceries" with "bob@example.com" who accepts
+    When I remove "anna" from the task list "Groceries"
+    Then the sharing lines say "Shared with bob"
+    And "anna@example.com" sees no task lists
+    And "bob@example.com" sees the task lists "Groceries"
+
+  Scenario: Removing the last person stops sharing
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com" who accepts
+    When I remove "anna" from the task list "Groceries"
+    Then "anna@example.com" sees no task lists
+    And "jo@example.com" sees the task lists "Groceries"
+    When I open "Share with" for the task list "Groceries"
+    Then "Share with" is an email field
 
   @visual @mobile
   Scenario Outline: The overflow menu with Share looks right in light and dark

@@ -378,6 +378,10 @@ export class ApiClient {
   unshareTaskList(id: string, o?: RequestOptions) {
     return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/share`, undefined, o);
   }
+  /** Owner: removes one person (`sub`) from a shared list; the list stays shared with the others. */
+  removeListMember(id: string, sub: string, o?: RequestOptions) {
+    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/share/${enc(sub)}`, undefined, o);
+  }
   /** Member: removes the list for the requester only. */
   leaveTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('POST', `/api/tasklists/${enc(id)}/leave`, undefined, o);

@@ -39,7 +39,7 @@ import { linesOfItems, planItemEdits } from './itemEdits';
 import { saveItemEdits } from './saveItemEdits';
 import { newTaskListForm, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
-import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
+import { isMemberOnly, leaveList, removeMember, shareList, withNames } from './sharing';
 import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
@@ -286,7 +286,12 @@ const withdraw = (id: string) => sharingAction(async () => {
   await invitations.respond(id, 'withdraw');
   stayOpen = true;
 }, 'sharing.invite.withdrawFailed');
-const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
+const removePerson = (sub: string) => sharingAction(async () => {
+  // the last person takes the list back (a new id), so the form closes then
+  const more = (current.value?.shared?.with.length ?? 0) > 1;
+  await removeMember(props.id!, sub);
+  stayOpen = more;
+}, 'sharing.removeFailed');
 const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
@@ -325,11 +330,9 @@ function remove() {
           <p v-if="otherMembers.length" class="who" data-testid="tasklist-share-who">{{ t('sharing.alsoWith', { names: withNames(otherMembers) }) }}</p>
         </template>
         <template v-else>
-          <div v-if="current.shared" class="line">
-            <div class="whos">
-              <p v-for="p in current.shared.with" :key="p.sub" class="who" data-testid="tasklist-share-who">{{ t('sharing.sharedWith', { names: p.name }) }}</p>
-            </div>
-            <Button variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
+          <div v-for="p in current.shared?.with" :key="p.sub" class="line" data-testid="tasklist-member">
+            <p class="who" data-testid="tasklist-share-who">{{ t('sharing.sharedWith', { names: p.name }) }}</p>
+            <Button variant="tonal" :disabled="sharing" data-testid="tasklist-member-remove" @click="removePerson(p.sub)">{{ t('sharing.remove') }}</Button>
           </div>
           <div v-for="inv in pending" :key="inv.id" class="line" data-testid="tasklist-invite">
             <p class="who" data-testid="tasklist-share-who">{{ t('sharing.invite.sent', { address: inv.address }) }}</p>
@@ -396,7 +399,6 @@ function remove() {
 .remlab { padding-left: 4px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .share { display: flex; flex-direction: column; gap: 10px; }
 .line { display: flex; gap: 10px; align-items: center; }
-.whos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .who { flex: 1; min-width: 0; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
