@@ -261,7 +261,7 @@ const menuItems = computed(() => {
   return [
     { id: 'edit', label: t('tasks.list.edit'), icon: IconEdit, testid: 'tasklist-edit' },
     { id: 'duplicate', label: t('tasks.list.duplicate'), icon: IconCopy, testid: 'tasklist-duplicate' },
-    ...(isMemberOnly(l) || auth.status === 'off' ? [] : [{ id: 'share', label: t('sharing.share'), icon: IconShare, testid: 'tasklist-share-open' }]),
+    ...(isMemberOnly(l) || auth.status === 'off' || l.recurrence || l.seriesId ? [] : [{ id: 'share', label: t('sharing.share'), icon: IconShare, testid: 'tasklist-share-open' }]),
     ...(complete.value || !l.items.length ? [] : [{ id: 'archive', label: t('tasks.list.archive'), icon: IconArchive, testid: 'tasklist-archive' }]),
     ...(props.noTemplate ? [] : [{ id: 'template', label: t('tasks.templates.save'), icon: IconBookmarkAdd, testid: 'tasklist-save-template' }]),
     isMemberOnly(l) ? { id: 'leave', label: t('sharing.leave'), icon: IconDelete, testid: 'tasklist-leave' } : { id: 'delete', label: t('tasks.list.delete'), icon: IconDelete, testid: 'tasklist-delete' },

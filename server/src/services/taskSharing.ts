@@ -21,6 +21,9 @@ export interface SharingHost {
   calendarColor(id: string): Promise<string>;
 }
 
+/** Lists whose move back into Google is under way, by shared id: a second call gets the same answer instead of a second Google list. */
+const movingOut = new Map<string, Promise<TaskList>>();
+
 const repeating = () => validation('A repeating task list cannot be shared', 'recurrence', 'sharing.repeating');
 
 /** Sharing of task lists and categories: moves lists between the tasks calendar and the shared store, and handles membership. */
@@ -89,15 +92,15 @@ export class TaskSharing {
     return doc;
   }
 
-  /** "Stop sharing" (owner): the list moves back into the owner's tasks calendar; everybody else loses it. */
+  /** Everybody is removed at once (the app removes people one by one): the list moves back into the sharer's tasks calendar. */
   async unshareTaskList(id: string): Promise<TaskList> {
     return this.moveOut(this.shared.accessOwned(this.sub, id));
   }
 
-  /** Owner removes one person from the list; the others keep it, and with nobody left it moves back. An unknown person is a plain 404, like a stranger. */
+  /** The sharer removes one person from the list; the others keep it, and with nobody left it moves back. An unknown person is the same 404 as a stranger. */
   async removeMember(id: string, memberSub: string): Promise<TaskList> {
     const doc = this.shared.accessOwned(this.sub, id);
-    if (!doc.members.includes(memberSub)) throw notFound('Person not found');
+    if (!doc.members.includes(memberSub)) throw notFound('Task list not found');
     const rest = doc.members.filter((m) => m !== memberSub);
     if (!rest.length) return this.moveOut(doc);
     this.shared.setMembers(doc, rest);
@@ -105,7 +108,13 @@ export class TaskSharing {
   }
 
   /** Creates the Google event first, then removes the shared copy, so a failure never loses the list. */
-  private async moveOut(doc: SharedListDoc): Promise<TaskList> {
+  private moveOut(doc: SharedListDoc): Promise<TaskList> {
+    const running = movingOut.get(doc.id) ?? this.moveOutNow(doc).finally(() => movingOut.delete(doc.id));
+    movingOut.set(doc.id, running);
+    return running;
+  }
+
+  private async moveOutNow(doc: SharedListDoc): Promise<TaskList> {
     const d: TaskListData = { ...doc.data, recurrence: null };
     // a category this person no longer has cannot be kept
     if (d.categoryId !== null && !this.settings.categories(this.sub).some((c) => c.id === d.categoryId)) d.categoryId = null;
@@ -117,11 +126,19 @@ export class TaskSharing {
     return this.host.toTaskList(ev, await this.host.calendarColor(calendarId), this.settings.categories(this.sub));
   }
 
-  /** "Leave" (member): the list disappears for this person only. */
-  leaveTaskList(id: string): void {
+  /** "Leave" (member): the list disappears for this person only. Returns the sharer's sub when nobody is left, who must then take the list back ({@link releaseIfEmpty}). */
+  leaveTaskList(id: string): string | null {
     const doc = this.shared.access(this.sub, id);
-    if (doc.owner === this.sub) throw forbidden('The owner deletes the list or stops sharing it', 'sharing.ownerCannotLeave');
-    this.shared.setMembers(doc, doc.members.filter((m) => m !== this.sub));
+    if (doc.owner === this.sub) throw forbidden('The owner deletes the list or removes the people it is shared with', 'sharing.ownerCannotLeave');
+    const rest = doc.members.filter((m) => m !== this.sub);
+    this.shared.setMembers(doc, rest);
+    return rest.length ? null : doc.owner;
+  }
+
+  /** A shared list nobody is on any more moves back into the sharer's tasks calendar. */
+  async releaseIfEmpty(id: string): Promise<void> {
+    const doc = this.shared.accessOwned(this.sub, id);
+    if (!doc.members.length) await this.moveOut(doc);
   }
 
   /**
@@ -145,9 +162,10 @@ export class TaskSharing {
   }
 
   /** Takes back a grant of a list whose invitation was withdrawn meanwhile: the person leaves it. */
-  revokeList(id: string, memberSub: string): void {
+  async revokeList(id: string, memberSub: string): Promise<void> {
     const doc = this.shared.accessOwned(this.sub, id);
     this.shared.setMembers(doc, doc.members.filter((m) => m !== memberSub));
+    await this.releaseIfEmpty(id);
   }
 
   /** The invited person accepted (runs on the sharer's service): the category's lists move into the shared store and new ones are created shared. */

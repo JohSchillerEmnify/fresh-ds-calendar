@@ -41,6 +41,6 @@ export default {
   needsSignIn: 'Zum Teilen ist eine Anmeldung nötig.',
   self: 'Du kannst nicht mit dir selbst teilen.',
   repeating: 'Eine wiederkehrende Aufgabenliste kann nicht geteilt werden.',
-  ownerCannotLeave: 'Als Besitzerin oder Besitzer kannst du die Liste löschen oder das Teilen beenden.',
+  ownerCannotLeave: 'Als Besitzerin oder Besitzer kannst du die Liste löschen oder die Personen entfernen, mit denen sie geteilt ist.',
   categoryOwnerOnly: 'Nur die Besitzerin oder der Besitzer kann die Kategorie einer geteilten Liste ändern.',
 } satisfies Messages['sharing'];

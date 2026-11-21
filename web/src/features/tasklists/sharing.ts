@@ -32,8 +32,10 @@ export async function shareList(id: string, email: string): Promise<void> {
 }
 
 /** Owner removes one person from the list; the list stays shared with the others (the last one moves it back). */
-export async function removeMember(id: string, sub: string): Promise<void> {
-  swap(id, await api.removeListMember(id, sub));
+export async function removeMember(id: string, sub: string): Promise<TaskList> {
+  const out = await api.removeListMember(id, sub);
+  swap(id, out);
+  return out;
 }
 
 /** "Leave" (member): the list disappears for this person only. */

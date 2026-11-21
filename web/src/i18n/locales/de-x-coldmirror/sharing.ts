@@ -44,6 +44,6 @@ export default {
   needsSignIn: 'Zum Teilen musst du angemeldet sein, wie ein Hauself.',
   self: 'Mit dir selbst teilen? Das ist Narzissmus wie bei Lockhart.',
   repeating: 'Eine wiederkehrende Liste kann man nicht teilen, die kommt wieder wie Peeves.',
-  ownerCannotLeave: 'Als Boss löschst du die Liste oder hörst auf zu teilen, yo.',
+  ownerCannotLeave: 'Als Boss löschst du die Liste oder wirfst die Leute raus, mit denen sie geteilt ist, yo.',
   categoryOwnerOnly: 'Nur der Boss der Liste darf die Kategorie ändern, du Oberpflaume.',
 } satisfies Messages['sharing'];

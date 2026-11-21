@@ -45,7 +45,7 @@ export function registerInvitations({ r, ctx, person }: RouteDeps): void {
       const listId = inv.kind === 'list' ? await owner.grantList(inv.target, me) : (await owner.grantCategory(inv.target, me), null);
       // the sharer withdrew while the move ran: the person leaves again
       if (!store.get(inv.id)) {
-        if (inv.kind === 'list') owner.revokeList(listId!, me);
+        if (inv.kind === 'list') await owner.revokeList(listId!, me);
         else await owner.shareCategory(inv.target, null);
         throw notFound('Invitation not found');
       }

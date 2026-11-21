@@ -58,6 +58,20 @@ describe('removing one person from a shared list', () => {
   });
 });
 
+describe('a shared list left without people', () => {
+  it('moves back once when the last person is removed twice at the same time', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      const own = await groceries(jo);
+      const s = await shareAndAccept(jo, anna, own.id, ANNA);
+      const url = `/api/tasklists/${encodeURIComponent(s.id)}/share/${mockSub(ANNA)}`;
+      const both = await Promise.all([jo('DELETE', url), jo('DELETE', url)]);
+      expect(both.map((r) => r.status).sort()).toEqual([200, 200]);
+      expect((await allOpen(jo)).filter((l) => l.title === 'Groceries')).toHaveLength(1);
+    } finally { t.cleanup(); }
+  });
+});
+
 describe('sharing a list', () => {
   it('moves it out of the owner\'s Google calendar into the shared store and shows it to both', async () => {
     const { t, jo, anna } = await setup();
@@ -228,7 +242,7 @@ describe('stop sharing and leave', () => {
     } finally { t.cleanup(); }
   });
 
-  it('lets a member leave: it disappears for them only, the owner keeps it', async () => {
+  it('lets a member leave: it disappears for them only, and with nobody left the owner has it back in Google', async () => {
     const { t, jo, anna } = await setup();
     try {
       const own = await groceries(jo);
@@ -236,8 +250,10 @@ describe('stop sharing and leave', () => {
       expect((await anna('POST', `/api/tasklists/${encodeURIComponent(s.id)}/leave`)).status).toBe(204);
       expect(await allOpen(anna)).toEqual([]);
       expect((await anna('GET', `/api/tasklists/${encodeURIComponent(s.id)}`)).status).toBe(404);
-      const mine = (await allOpen(jo))[0];
-      expect(mine).toMatchObject({ title: 'Groceries', shared: { owned: true, with: [] } });
+      const mine = (await allOpen(jo)).filter((l) => l.title === 'Groceries');
+      expect(mine).toHaveLength(1);
+      expect(mine[0].calendarId).not.toBe('shared');
+      expect(mine[0].shared).toBeUndefined();
     } finally { t.cleanup(); }
   });
 

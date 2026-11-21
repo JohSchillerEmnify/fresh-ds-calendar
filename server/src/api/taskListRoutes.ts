@@ -66,12 +66,12 @@ export function registerTaskLists({ r, ctx, person, cal }: RouteDeps): void {
   });
   r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));
   r.delete('/tasklists/:id/share/:sub', async (c) => {
-    const out = await cal(c).removeListMember(c.req.param('id'), c.req.param('sub'));
-    ctx.changes.emit([person(c), c.req.param('sub')], 'taskLists');
-    return c.json(out);
+    return c.json(await cal(c).removeListMember(c.req.param('id'), c.req.param('sub')));
   });
-  r.post('/tasklists/:id/leave', (c) => {
-    cal(c).leaveTaskList(c.req.param('id'));
+  r.post('/tasklists/:id/leave', async (c) => {
+    const emptied = cal(c).leaveTaskList(c.req.param('id'));
+    // the last member is gone: the list moves back to its sharer
+    if (emptied) await ctx.calendarFor(emptied).releaseIfEmpty(c.req.param('id'));
     return c.body(null, 204);
   });
   r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));

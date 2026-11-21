@@ -138,7 +138,7 @@ onMounted(async () => {
   if (props.focus === 'share') void focusShare();
   if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; if (props.focus === 'share') void focusShare(); }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });
@@ -287,10 +287,9 @@ const withdraw = (id: string) => sharingAction(async () => {
   stayOpen = true;
 }, 'sharing.invite.withdrawFailed');
 const removePerson = (sub: string) => sharingAction(async () => {
-  // the last person takes the list back (a new id), so the form closes then
-  const more = (current.value?.shared?.with.length ?? 0) > 1;
-  await removeMember(props.id!, sub);
-  stayOpen = more;
+  // the server's answer decides: the last person takes the list back (a new id), so the form closes then
+  const left = await removeMember(props.id!, sub);
+  stayOpen = left.id === props.id && !!left.shared;
 }, 'sharing.removeFailed');
 const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */

@@ -104,4 +104,19 @@ describe('Share with in the task list dialog', () => {
     expect(w.findAll('[data-testid="tasklist-share-who"]').map((l) => l.text())).toEqual(['Invitation sent to bea@example.test', 'Invitation sent to cy@example.test']);
     expect(w.find('input[data-testid="tasklist-share-person"]').exists()).toBe(true);
   });
+
+  it('closes after removing a person when the answer says the list is not shared any more, whatever the cached count', async () => {
+    const CY = { ...BEA, sub: 'sub-cy', name: 'Cy', email: 'cy@example.test' };
+    const { w } = await open({
+      'GET /api/people': () => ({ people: [] }), 'GET /api/invitations': () => ({ invitations: [], sent: [] }),
+      'DELETE /api/tasklists/G/share/sub-bea': () => ({ ...list, id: 'G2' }),
+      'GET /api/tasklists/open': () => ({ items: [], finishedToday: [] }),
+    });
+    // the device still believes two people are on the list; the server has only one left, who is removed now
+    useItemsStore().upsert({ ...list, shared: { owned: true, owner: CY, with: [BEA, CY] } } as TaskList);
+    await flushPromises();
+    await w.get('[data-testid="tasklist-member-remove"]').trigger('click');
+    await flushPromises();
+    expect(w.emitted('close')).toHaveLength(1);
+  });
 });

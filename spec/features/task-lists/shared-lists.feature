@@ -4,7 +4,7 @@ Feature: Sharing task lists with another person
   way. Sharing sends an invitation: nothing is shared, and nothing about the other person is revealed, until that
   person accepts it (ADR 0047). The app never lists everybody who uses it: the field offers only people who accepted
   a share of the person and people who share lists with them (ADR 0046). A shared list lives on the server, not in
-  Google: accepting moves it out of the owner's tasks calendar, removing the last person (or "Stop sharing") moves it back. Both people see and edit it everywhere task lists appear and it carries a
+  Google: accepting moves it out of the owner's tasks calendar, taking the last person off it (removing them, or the last one leaving) moves it back. Both people see and edit it everywhere task lists appear and it carries a
   small "shared" badge with the other person's initial. Only the owner can delete it for everyone; the other person
   can leave it, which removes it for them only. Changes of the other person show up on the next automatic sync, and
   an edit based on an outdated version is refused with the usual conflict message.
@@ -30,7 +30,7 @@ Feature: Sharing task lists with another person
     And I wait for the automatic sync
     Then the item "Milk" of the task list "Groceries" in the Tasks view is ticked
 
-  Scenario: Stop sharing moves the list back to the owner only
+  Scenario: Removing the person moves the list back to the owner only
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
     And I share the task list "Groceries" with "anna@example.com" who accepts
@@ -45,6 +45,7 @@ Feature: Sharing task lists with another person
     When "anna@example.com" leaves the shared task list "Groceries"
     Then "anna@example.com" sees no task lists
     And "jo@example.com" sees the task lists "Groceries"
+    And "jo@example.com" has the task list "Groceries" to themselves again
 
   Scenario: A stranger cannot read a shared list
     Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"

@@ -41,6 +41,6 @@ export default {
   needsSignIn: 'Zum Deiln muss ma angemeldet sei.',
   self: 'Mit dir selber deiln bassd ned.',
   repeating: 'A Lisdn, die sich widdaholt, kann ma ned deiln.',
-  ownerCannotLeave: 'Als Besitzer kannsd die Lisdn löschn oder mitm Deiln aufhörn.',
+  ownerCannotLeave: 'Als Besitzer kannsd die Lisdn löschn oder die Leid entfernen, mit denen sie geteild is.',
   categoryOwnerOnly: 'Nur der Besitzer kann die Kategorie vo ner geteildn Lisdn ändern.',
 } satisfies NonNullable<PartialMessages['sharing']>;

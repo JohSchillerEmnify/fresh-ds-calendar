@@ -412,6 +412,10 @@ When('I withdraw the invitation to {string} for the task list {string}', async f
   expect((await withdrawn).status(), 'invitation withdrawn').toBe(200);
 });
 
+Then('{string} has the task list {string} to themselves again', async function (this: World, email: string, title: string) {
+  await expect.poll(async () => (await listsOf(this, email)).filter((l) => l.title === title).map((l) => 'shared' in l)).toEqual([false]);
+});
+
 Then('{string} is invited to the task list {string}', async function (this: World, email: string, title: string) {
   const held = (await invitationsOf(this, email)).invitations;
   expect(held.some((i) => i.kind === 'list' && i.title === title), `${email} holds an invitation to ${title}`).toBe(true);
