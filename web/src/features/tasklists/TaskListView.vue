@@ -264,11 +264,10 @@ const menuItems = computed(() => {
     { id: 'duplicate', label: t('tasks.list.duplicate'), icon: IconCopy, testid: 'tasklist-duplicate' },
     ...(isMemberOnly(l) || auth.status === 'off' ? [] : [{ id: 'share', label: t('sharing.share'), icon: IconShare, testid: 'tasklist-share-open' }]),
     ...(complete.value || !l.items.length ? [] : [{ id: 'archive', label: t('tasks.list.archive'), icon: IconArchive, testid: 'tasklist-archive' }]),
-    ...(noTemplateOffered.value ? [] : [{ id: 'template', label: t('tasks.templates.save'), icon: IconBookmarkAdd, testid: 'tasklist-save-template' }]),
+    ...(props.noTemplate ? [] : [{ id: 'template', label: t('tasks.templates.save'), icon: IconBookmarkAdd, testid: 'tasklist-save-template' }]),
     isMemberOnly(l) ? { id: 'leave', label: t('sharing.leave'), icon: IconDelete, testid: 'tasklist-leave' } : { id: 'delete', label: t('tasks.list.delete'), icon: IconDelete, testid: 'tasklist-delete' },
   ];
 });
-const noTemplateOffered = computed(() => !!props.noTemplate);
 /** Archiving finishes the list: every open item is ticked, so it moves to the Archive tab. */
 function archive() {
   const l = tl.value;
