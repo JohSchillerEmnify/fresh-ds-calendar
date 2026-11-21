@@ -16,8 +16,8 @@ const invitations = useInvitationsStore();
       <h2 class="t">{{ t(i.kind === 'list' ? 'sharing.invite.cardList' : 'sharing.invite.cardCategory') }}</h2>
       <p class="x">{{ cardText(i) }}</p>
       <div class="acts">
-        <Button variant="text" data-testid="invitation-decline" @click="invitations.respond(i.id, 'decline')">{{ t('sharing.invite.decline') }}</Button>
-        <Button data-testid="invitation-accept" @click="invitations.respond(i.id, 'accept')">{{ t('sharing.invite.accept') }}</Button>
+        <Button variant="text" data-testid="invitation-decline" :disabled="invitations.answering.includes(i.id)" @click="invitations.respond(i.id, 'decline')">{{ t('sharing.invite.decline') }}</Button>
+        <Button data-testid="invitation-accept" :disabled="invitations.answering.includes(i.id)" @click="invitations.respond(i.id, 'accept')">{{ t('sharing.invite.accept') }}</Button>
       </div>
     </article>
   </section>

@@ -193,8 +193,9 @@ export const useDeviceStore = defineStore('device', () => {
     const clock = useClockStore();
     // a full answer starts from nothing, except what a calendar that could not be read this time still holds
     const prev = data.value;
+    // `invitationsAnnounced` is the device's own, never part of an answer: a full answer must not wipe it
     const base = !res.full || !prev ? (prev ?? emptyData(person ?? ''))
-      : { ...emptyData(person ?? ''), window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.sourceCalendarId ?? e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
+      : { ...emptyData(person ?? ''), files: prev.files.invitationsAnnounced ? { invitationsAnnounced: prev.files.invitationsAnnounced } : {}, window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.sourceCalendarId ?? e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
     const quiet = !!data.value && isQuiet(data.value, res);
     // a sync answer that undoes a calendar setting changed here a moment ago is worth a log line

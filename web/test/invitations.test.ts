@@ -83,6 +83,38 @@ describe('the invitation cards', () => {
   });
 });
 
+describe('answers that go wrong', () => {
+  it('a card the server no longer knows goes away at once and the list is read again', async () => {
+    const { calls } = mockFetch({
+      'POST /api/invitations/i1/accept': () => ({ status: 404, body: { error: { code: 'NOT_FOUND', message: 'nf' } } }),
+      'GET /api/invitations': () => invitations(CATEGORY),
+    });
+    const pinia = freshPinia();
+    device({ invitations: invitations(LIST, CATEGORY) });
+    wrapper = mount(InvitationCards, { global: { plugins: [pinia] } });
+    await wrapper.get('[data-testid="invitation-accept"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid="invitation-card"]').map((c) => c.attributes('data-title'))).toEqual(['Shopping']);
+    expect(calls.some((c) => c.method === 'GET' && c.path === '/api/invitations')).toBe(true);
+  });
+
+  it('the buttons of a card wait while its answer is on its way, so it cannot be sent twice', async () => {
+    let release: () => void = () => undefined;
+    const { calls } = mockFetch({ 'POST /api/invitations/i1/accept': () => new Promise((r) => { release = () => r({ listId: null }); }) });
+    const pinia = freshPinia();
+    device({ invitations: invitations(LIST) });
+    wrapper = mount(InvitationCards, { global: { plugins: [pinia] } });
+    await wrapper.get('[data-testid="invitation-accept"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="invitation-accept"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-testid="invitation-decline"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[data-testid="invitation-accept"]').trigger('click');
+    release();
+    await flushPromises();
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+});
+
 describe('the snackbar on arrival', () => {
   async function host() {
     mockFetch({});
@@ -124,6 +156,17 @@ describe('the snackbar on arrival', () => {
     wrapper = mount(defineComponent({ setup() { useInvitationAnnouncer(); return () => h('div'); } }), { global: { plugins: [pinia, router] } });
     await flushPromises();
     expect(useUiStore().snackbars).toHaveLength(0);
+  });
+
+  it('does not announce again after a full sync, which starts the device copy over', async () => {
+    const { d, ui } = await host();
+    d.putFile('invitations', invitations(LIST));
+    await flushPromises();
+    expect(ui.snackbars).toHaveLength(1);
+    d.take(changesFixture({ full: true, files: { invitations: invitations(LIST) } }) as never);
+    await flushPromises();
+    expect(d.file('invitationsAnnounced')).toEqual(['i1']);
+    expect(ui.snackbars).toHaveLength(1);
   });
 
   it('names a category invitation as one', async () => {
