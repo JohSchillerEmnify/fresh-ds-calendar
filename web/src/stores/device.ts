@@ -41,6 +41,9 @@ function mark(state: 'saving' | 'synced', at?: number | null): void {
  * the views read from. `fresh` is true once a complete sync succeeded since the app opened; `failed` while the last
  * sync did not; together they drive the "Last updated" note.
  */
+/** The files the device keeps for itself: no answer carries them, so a full one must not drop them. */
+const deviceOnlyFiles = (d: DeviceData): DeviceData['files'] => (d.files.invitationsAnnounced ? { invitationsAnnounced: d.files.invitationsAnnounced } : {});
+
 export const useDeviceStore = defineStore('device', () => {
   const data = shallowRef<DeviceData | null>(null);
   /** A complete sync succeeded since this page opened. */
@@ -195,7 +198,7 @@ export const useDeviceStore = defineStore('device', () => {
     const prev = data.value;
     // `invitationsAnnounced` is the device's own, never part of an answer: a full answer must not wipe it
     const base = !res.full || !prev ? (prev ?? emptyData(person ?? ''))
-      : { ...emptyData(person ?? ''), files: prev.files.invitationsAnnounced ? { invitationsAnnounced: prev.files.invitationsAnnounced } : {}, window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.sourceCalendarId ?? e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
+      : { ...emptyData(person ?? ''), files: deviceOnlyFiles(prev), window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.sourceCalendarId ?? e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
     const quiet = !!data.value && isQuiet(data.value, res);
     // a sync answer that undoes a calendar setting changed here a moment ago is worth a log line
