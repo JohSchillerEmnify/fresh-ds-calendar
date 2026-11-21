@@ -1,4 +1,4 @@
-@header-expressive @id:header-expressive
+@header-expressive @id:header-expressive @area:views
 Feature: The top bar in Expressive and Compact, a month-only week title and scenes that stay whole
   Owner decision 2026-10-30 (design E, ADR 0032). The two header layouts of feature header-layout become two sizes in
   the E style, kept in the same personal setting: "Expressive" (the former two rows: the full 84 px scene with one row of

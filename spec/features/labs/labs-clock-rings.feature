@@ -1,4 +1,4 @@
-@clock @id:labs-clock-rings
+@clock @id:labs-clock-rings @area:labs
 Feature: The Clock, with names along its rings
   A variant of the plain 24-hour clock (labs-clock), started as an experiment (owner, 2026-10-23) and a main view since
   2026-11-09. It is the same dial with the same gestures and middle text, but the

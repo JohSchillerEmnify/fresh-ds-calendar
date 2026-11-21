@@ -1,4 +1,4 @@
-@events @location @id:event-location
+@events @location @id:event-location @area:events
 Feature: Places for an event's location
   While the location of an event is typed, matching places from OpenStreetMap are suggested (owner, board item g6:
   "Location: address suggestions + small map", Photon for the suggestions, an OpenStreetMap map, no API key). Picking

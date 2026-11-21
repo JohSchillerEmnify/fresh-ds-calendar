@@ -1,4 +1,4 @@
-@reward @cat @id:emotional-support-cat
+@reward @cat @id:emotional-support-cat @area:motivation
 Feature: The emotional support cat
   Now and then (about one in ten finished task lists) a small cat comes by when I finish a list: it swipes a paw
   across the list's title and strikes it through, looks at me, grins and disappears again, in every theme. It never blocks anything. A

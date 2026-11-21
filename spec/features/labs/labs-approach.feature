@@ -1,4 +1,4 @@
-@approach @id:labs-approach-bar
+@approach @id:labs-approach-bar @area:labs
 Feature: The Approaching card and its track
   The card above every calendar view is called Approaching (owner, 2026-10-13). It is always compact (a slim card) and can be
   switched off entirely in the settings. It is only there while something is on or ahead today: with nothing running,

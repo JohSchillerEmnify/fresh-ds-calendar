@@ -1,4 +1,4 @@
-@header-layout @id:header-layout
+@header-layout @id:header-layout @area:views
 Feature: A smaller header: two rows or one row
   The top bar took 96 px on a phone and the day view showed the date twice (owner, 2026-10-26). The person chooses
   one of two header layouts in Settings › Calendar ("Header layout"): "Two rows" (now called Expressive; the default only off phones, see feature header-expressive) keeps the full date

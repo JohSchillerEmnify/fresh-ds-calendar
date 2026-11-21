@@ -1,4 +1,4 @@
-@offline @offline-changes @id:offline-changes
+@offline @offline-changes @id:offline-changes @area:app
 Feature: Changes I make without a connection are kept on this device and sent later
   The device store comes first for writing too (ADR 0025): a change is applied on this device at once, written to
   the outbox, and sent to the server in order as soon as there is a connection. The server writes to Google and

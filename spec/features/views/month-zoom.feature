@@ -1,4 +1,4 @@
-@month @month-zoom @id:month-zoom
+@month @month-zoom @id:month-zoom @area:views
 Feature: Zooming the month view
   Owner, 2026-10-16: "Zooming is broken on the month overview"; owner, 2026-10-23: the month view gets its own zoom
   (not the browser's page zoom, and the Labs zoom month stays a separate view).

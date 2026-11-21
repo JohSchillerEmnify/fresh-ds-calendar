@@ -1,4 +1,4 @@
-@themes @id:theme-menu
+@themes @id:theme-menu @area:themes
 Feature: Choosing and fine-tuning a theme
   A theme menu has four sections, in this order. "Seasons & holidays" is one setting for all seasons and holidays,
   a choice of Off, Header only or Header + colours, with a line saying what applies today. Header + colours is the

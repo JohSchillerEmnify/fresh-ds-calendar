@@ -1,4 +1,4 @@
-@labs @timeline-view @id:labs-timeline
+@labs @timeline-view @id:labs-timeline @area:labs
 Feature: Labs: the timeline view
   The timeline view puts every event and task list on one continuous line across days, spaced by time, with a marker
   for now. It can be zoomed in and out. It spans many days, so the top bar names the view instead of a date and does

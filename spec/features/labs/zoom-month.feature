@@ -1,4 +1,4 @@
-@labs @zoom-month @id:zoom-month
+@labs @zoom-month @id:zoom-month @area:labs
 Feature: Labs: the zoom month
   The zoom month is the month grid on a surface you can zoom without steps. The days get larger as you zoom in and
   show more and more: density dots, then title chips, then start times and task lists with their open items, and in the

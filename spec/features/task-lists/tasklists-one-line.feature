@@ -1,4 +1,4 @@
-@tasklists @one-line @id:tasklists-one-line
+@tasklists @one-line @id:tasklists-one-line @area:tasklists
 Feature: A task list with just one line is one task
   A task list whose only line is a single task is drawn as one task (owner, 2026-11-10): either one item without a title
   (A) or a title without items (B). A and B are drawn and behave exactly the same: the list's own checkbox is the only

@@ -1,4 +1,4 @@
-@picker @navigation @id:month-picker
+@picker @navigation @id:month-picker @area:views
 Feature: Month picker in the top app bar
   Tapping the period title opens an expanding mini-month picker (like the Google Calendar app,
   in Material 3 style). Arrows or a horizontal swipe change the month; days with items carry a dot;

@@ -1,4 +1,4 @@
-@android-app @id:android-app
+@android-app @id:android-app @area:app
 Feature: The Android app
   The Android app shows the calendar's web app; which server it loads is configuration, not behaviour. Inside the app, reminders reach the lock screen as phone notifications, and a morning overview sums up the day.
   The app is native Android: these scenarios are proven by the app's own tests or on a device, not in the browser suite.

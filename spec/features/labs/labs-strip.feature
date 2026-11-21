@@ -1,4 +1,4 @@
-@labs @strip @id:labs-strip
+@labs @strip @id:labs-strip @area:labs
 Feature: Labs: the strip view
   The strip view shows days side by side as columns that scroll sideways without end, snapping to whole days.
 

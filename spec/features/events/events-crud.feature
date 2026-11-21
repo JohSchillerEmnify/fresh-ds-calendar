@@ -1,4 +1,4 @@
-@events @crud @id:event-editing
+@events @crud @id:event-editing @area:events
 Feature: Creating, editing and deleting events
   Events are created with the floating "+" button (or by tapping an empty time slot, or drawing a block on the grid),
   edited by opening them, and deleted from the edit dialog after confirmation.

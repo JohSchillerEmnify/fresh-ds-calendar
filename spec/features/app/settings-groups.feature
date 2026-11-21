@@ -1,4 +1,4 @@
-@settings @settings-groups @id:settings-groups
+@settings @settings-groups @id:settings-groups @area:app
 Feature: Settings in a few groups
   Owner, 2026-11-01: "settings are all over the place; needs a full audit, good grouping and a settings search".
   The Settings screen opens on a short list of groups, each with an icon, its name and a one-line summary, and a

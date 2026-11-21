@@ -1,4 +1,4 @@
-@settings @settings-expressive @mobile @id:settings-expressive
+@settings @settings-expressive @mobile @id:settings-expressive @area:app
 Feature: Settings in Material 3 Expressive
   Owner, 2026-11-09: "The material expressive redesign is incomplete because you did not do it in the settings."
   The approved mockup (owner: "looks good to me with the mockup") has seven decisions: every section is one rounded

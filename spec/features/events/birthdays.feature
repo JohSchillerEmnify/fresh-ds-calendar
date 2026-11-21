@@ -1,4 +1,4 @@
-@birthdays @events @id:birthdays
+@birthdays @events @id:birthdays @area:events
 Feature: Birthdays
   Birthdays are recognisable in every view: an all-day chip with a cake marker (a ring for an anniversary). They come
   from Google's old "Birthdays" calendar (made from the person's contacts; read-only, and it may be hidden in Google's

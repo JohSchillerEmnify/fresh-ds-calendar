@@ -1,4 +1,4 @@
-@reward @adhd @id:rewarding-feedback
+@reward @adhd @id:rewarding-feedback @area:motivation
 Feature: Rewarding feedback and delightful motion
   Ticking an item must feel satisfying: springy checkbox with a drawn check, animated strike-through
   and a small sparkle burst. Completing a whole list earns a bigger celebration: confetti-like burst,

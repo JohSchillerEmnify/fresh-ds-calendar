@@ -1,4 +1,4 @@
-@birthdays @events @id:contact-birthdays
+@birthdays @events @id:contact-birthdays @area:events
 Feature: Birthdays from Google Contacts
   The dates a person keeps in Google Contacts (birthdays, anniversaries and other dates) show in the app's "Birthdays"
   calendar (feature birthdays), in its colour and behind its switch, like the birthdays that come as calendar events.

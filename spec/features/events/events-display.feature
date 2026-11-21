@@ -1,4 +1,4 @@
-@events @display @id:event-display
+@events @display @id:event-display @area:events
 Feature: Displaying events in the calendar views
   Times are local times in Europe/Berlin. Timed events are placed in the time grid of the
   week and day views; all-day events are placed in the all-day area. Multi-day events are

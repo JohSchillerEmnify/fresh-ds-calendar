@@ -1,4 +1,4 @@
-@tasklists @tasks-calendar @id:tasklists-calendar-consent
+@tasklists @tasks-calendar @id:tasklists-calendar-consent @area:tasklists
 Feature: Task lists are turned on once, after the person agrees
   Task lists are kept in an extra calendar that the app adds to the person's Google account (see
   tasklists-own-calendar). It is added only after the person agrees: right after opening the web app or the Android app

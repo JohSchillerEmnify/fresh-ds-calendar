@@ -1,4 +1,4 @@
-@api @security @id:security-hardening
+@api @security @id:security-hardening @area:app
 Feature: The server protects itself and its people from the web
   The calendar is reachable from the public internet, so the server does not trust what a browser or a stranger sends.
   Every answer tells the browser what the page may do, a write must come from the app itself and be plain JSON of a

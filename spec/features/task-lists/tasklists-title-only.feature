@@ -1,4 +1,4 @@
-@tasklists @items @id:tasklist-title-only
+@tasklists @items @id:tasklist-title-only @area:tasklists
 Feature: A task list with only a title can be ticked
   A task list that has a title but no items is a single task: its list view offers a tick box beside the title.
   Ticking it moves the title into the list's first (and only) item, already ticked, and the list has no title any more, so it is done like any list

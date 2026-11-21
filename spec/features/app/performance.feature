@@ -1,4 +1,4 @@
-@perf @id:resource-efficiency
+@perf @id:resource-efficiency @area:app
 Feature: Resource efficiency and no memory leaks
   Hard requirements. Browser memory is measured after a forced garbage collection, and only after every workload
   of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner); the node count settles after the second pass

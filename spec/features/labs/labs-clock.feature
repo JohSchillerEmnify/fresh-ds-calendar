@@ -1,4 +1,4 @@
-@labs @clock @id:labs-clock
+@labs @clock @id:labs-clock @area:labs
 Feature: Labs: experimental views and the plain 24-hour clock
   Experimental views are tried out behind a Labs switch in the settings: when it is on, the view switcher offers them,
   marked as experimental; when it is off, nothing changes. The clock view shows one day as a 24-hour circle: events are

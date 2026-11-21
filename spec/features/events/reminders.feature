@@ -1,4 +1,4 @@
-@reminders @id:reminders
+@reminders @id:reminders @area:events
 Feature: Several reminders per event, read from and written to Google
   The owner wants to be reminded e.g. 1 h 30, 30 min and 15 min before an event (2026-10-14). Google already stores
   reminders: per calendar a default list, per event either "use the default" or its own list. The app reads them, lets

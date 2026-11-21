@@ -1,4 +1,4 @@
-@year @navigation @id:year-overview
+@year @navigation @id:year-overview @area:views
 Feature: Year overview
   A brief year view: 12 mini months with a density mark per day (0 = nothing, 1 = one item,
   2 = two or three items, 3 = four or more). Tapping a month opens it. URL: /year/YYYY.

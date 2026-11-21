@@ -1,4 +1,4 @@
-@nav-expressive @id:nav-expressive
+@nav-expressive @id:nav-expressive @area:views
 Feature: A floating bottom bar in two sizes, and a side menu as the alternative
   Owner decision 2026-10-30 (design E, ADR 0032). On a phone with the view switcher at the bottom, the bar floats above
   the calendar in one of two sizes chosen in Settings: "Expressive" (64 px tall, icon and label on every item) or

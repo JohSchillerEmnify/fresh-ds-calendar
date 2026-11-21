@@ -1,4 +1,4 @@
-@settings @id:device-log
+@settings @id:device-log @area:app
 Feature: An error log on this device that I can send
   Whenever something goes wrong the app writes a short entry into an error log kept on this device: errors nobody caught,
   failed requests and changes the server did not take (method, route, status, error code, what the response looked

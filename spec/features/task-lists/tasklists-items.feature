@@ -1,4 +1,4 @@
-@tasklists @items @id:tasklist-items
+@tasklists @items @id:tasklist-items @area:tasklists
 Feature: Working with task list items
   Items are ticked, unticked, added, renamed, removed and reordered (by dragging) inside an
   expanded task list. Every change is saved to Google immediately (optimistic UI).

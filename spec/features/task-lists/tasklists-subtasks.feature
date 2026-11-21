@@ -1,4 +1,4 @@
-@tasklists @items @id:tasklist-subtasks
+@tasklists @items @id:tasklist-subtasks @area:tasklists
 Feature: Subtasks in task lists
   An item can be nested under the item above it, up to three levels (task, subtask, sub-subtask). Nesting is done by
   dragging: further right makes an item a subtask, further left moves it up a level. On a computer, Tab and Shift+Tab do

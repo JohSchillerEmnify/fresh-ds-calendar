@@ -1,4 +1,4 @@
-@tasklists @tasks-calendar @id:tasklists-own-calendar
+@tasklists @tasks-calendar @id:tasklists-own-calendar @area:tasklists
 Feature: Task lists live in their own calendar
   Task lists are kept out of the person's main Google calendar (owner, 2026-10-13: "I don't want to pollute
   things"). Each person gets one calendar "Calendar app: tasks" in their Google account, created by the app after the person

@@ -1,4 +1,4 @@
-@theme @id:light-dark-theme
+@theme @id:light-dark-theme @area:themes
 Feature: Material 3 look and light/dark theme
   The UI follows Material 3 (Expressive): color roles as design tokens generated from one seed
   color, light and dark schemes that follow the system setting, M3 type scale, top app bar,

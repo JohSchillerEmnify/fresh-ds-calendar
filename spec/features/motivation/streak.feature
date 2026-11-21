@@ -1,4 +1,4 @@
-@streak @reward @id:check-in-streak
+@streak @reward @id:check-in-streak @area:motivation
 Feature: Daily check-in streak
   The first time the app is opened on a calendar day (app clock, Europe/Berlin) counts as a check-in,
   stored on the server so it syncs across devices. A small flame and the number of consecutive days are

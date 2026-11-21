@@ -1,4 +1,4 @@
-@sync @id:background-sync
+@sync @id:background-sync @area:google
 Feature: Background sync with Google Calendar
   All data comes from the calendar provider (mock Google now, real Google later).
   The app re-fetches the visible range periodically (default every 30 s), when the app regains

@@ -1,4 +1,4 @@
-@backup @id:drive-backup
+@backup @id:drive-backup @area:google
 Feature: Backup to Google Drive
   Everything the app keeps on its own server for me (my settings, theme, own themes and their pictures, task canvas)
   is backed up to the hidden app folder of my Google Drive, so a new or wiped server does not lose it. The app sees

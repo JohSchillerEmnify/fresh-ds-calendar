@@ -1,4 +1,4 @@
-@themes @theme-own-labs @id:theme-own-labs
+@themes @theme-own-labs @id:theme-own-labs @area:themes
 Feature: Creating own themes with an AI is an experiment behind a Labs switch
   Importing my own theme is always in the theme menu (owner, 2026-10-18). Making one with an AI is not refined yet, so
   the prompt for an AI is offered only when I turn on "Generate themes with AI" in the Labs part of the settings (under

@@ -1,4 +1,4 @@
-@tasklists @crud @id:tasklist-editing
+@tasklists @crud @id:tasklist-editing @area:tasklists
 Feature: Creating, editing and deleting task lists
   Task lists are created in the same "new" dialog as events (owner): it opens from the floating "+" button or by
   tapping an empty time slot, has a switch "Event | Task list" at the top and keeps the date and time of the slot

@@ -1,4 +1,4 @@
-@mobile @id:mobile-first-layout
+@mobile @id:mobile-first-layout @area:views
 Feature: Mobile-first layout
   Phones (375–430 px portrait) are the primary target. These scenarios run only in the
   phone test configuration (375×812, touch, mobile user agent).

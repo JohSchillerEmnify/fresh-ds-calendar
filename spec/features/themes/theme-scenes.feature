@@ -1,4 +1,4 @@
-@themes @scenes @id:theme-scenes
+@themes @scenes @id:theme-scenes @area:themes
 Feature: Season themes keep my light or dark choice and bring their own scene
   The season themes (Spring, Summer, Fall and Winter) change colours, shapes and the top bar scene but
   never my choice of System, Light or Dark (owner, 2026-10-13); only Neon and Mordor are dark by design. Each season

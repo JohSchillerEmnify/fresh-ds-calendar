@@ -1,4 +1,4 @@
-@timeline @adhd @id:proportional-timeline
+@timeline @adhd @id:proportional-timeline @area:views
 Feature: Seeing time: proportional timeline, now marker and time remaining
   Time blindness is a core ADHD difficulty. The day and week views are time-proportional
   (block height = duration), a "now" line moves live, and a Now card states in words how much time is

@@ -1,4 +1,4 @@
-@month @navigation @id:month-vertical
+@month @navigation @id:month-vertical @area:views
 Feature: Month view that scrolls up and down
   By default the month view moves sideways: a swipe (or the arrows on desktop) replaces the month on screen with the
   next one. The setting "Month view scrolls" (owner request, 2026-10-31) offers three choices: "Sideways" (the

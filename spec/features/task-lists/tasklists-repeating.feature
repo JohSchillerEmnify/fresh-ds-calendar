@@ -1,4 +1,4 @@
-@tasklists @repeating @optional @id:tasklist-repeating
+@tasklists @repeating @optional @id:tasklist-repeating @area:tasklists
 Feature: Changing a repeating task list for this one or this and all following ones
   Renaming a repeating task list, adding an item, changing an item's text or removing an item asks first whether the
   change is for "This task list" or "This and all following task lists", the way Google asks "This event / This and

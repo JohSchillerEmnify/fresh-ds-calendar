@@ -1,4 +1,4 @@
-@plant @sunflowers @reward @id:sunflower-field
+@plant @sunflowers @reward @id:sunflower-field @area:motivation
 Feature: Sunflower field
   The Sunflower field is a scene (a choice of the top app bar background in the theme menu): a small landscape
   (sky, soft rolling hills, a few drifting clouds, a bee now and then) with a row of sunflowers in front. It shows

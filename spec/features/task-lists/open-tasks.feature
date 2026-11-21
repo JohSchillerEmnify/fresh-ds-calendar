@@ -1,4 +1,4 @@
-@adhd @tasklists @opentasks @id:open-tasks-in-sight
+@adhd @tasklists @opentasks @id:open-tasks-in-sight @area:tasklists
 Feature: Open tasks stay in sight
   Out of sight is out of mind. An "open tasks" tray is visible in every view and lists today's
   and overdue task lists that still have unticked items. Open task lists from the past 30 days are

@@ -1,4 +1,4 @@
-@settings @id:settings
+@settings @id:settings @area:app
 Feature: Settings
   A Settings screen (from the settings button in the top app bar, or /settings) lets the owner
   choose the theme mode (System, Light, Dark), the seed color the whole Material 3 color scheme

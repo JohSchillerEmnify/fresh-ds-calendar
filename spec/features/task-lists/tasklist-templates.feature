@@ -1,4 +1,4 @@
-@tasklists @templates @id:tasklist-templates
+@tasklists @templates @id:tasklist-templates @area:tasklists
 Feature: Task list templates
   Some lists are done the same way again and again (packing, cleaning, a weekly shop). Any task list can be saved as a
   template, also a finished one, and a new list can be saved as a template while it is created (owner, 2026-10-25).

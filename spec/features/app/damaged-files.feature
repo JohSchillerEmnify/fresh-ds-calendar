@@ -1,4 +1,4 @@
-@data @id:damaged-files
+@data @id:damaged-files @area:app
 Feature: A damaged data file is kept, not lost
   The server keeps each person's canvas, task list templates, own themes, preferences and reminders for read-only events
   in files of their own. When one of those files is damaged (cut off, edited by hand), the person starts with the

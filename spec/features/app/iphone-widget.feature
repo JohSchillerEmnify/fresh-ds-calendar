@@ -1,4 +1,4 @@
-@iphone-widget @id:iphone-widget
+@iphone-widget @id:iphone-widget @area:app
 Feature: iPhone widgets through Scriptable
   An iPhone has no native calendar app here, so the home-screen and lock-screen widgets are a small script that runs in
   the free Scriptable app. The person creates a widget key for the phone in Settings, pastes a tiny installer (the key and the

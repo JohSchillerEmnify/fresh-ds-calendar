@@ -1,4 +1,4 @@
-@bedtime @id:bedtime
+@bedtime @id:bedtime @area:motivation
 Feature: Bedtime mode
   A person can switch on bedtime mode in the settings (off by default). Then every timeline-type view (the day and week
   time grid, the Timeline, the Strip, the Clock and the Approaching track) shows a dark night band with a moon from
