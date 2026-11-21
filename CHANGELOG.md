@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-11-21
+- Changed: if someone declined an invitation to a shared list or category, you can invite the same address again; they see it as a new invitation, and you still only see "Invitation sent".
+- Fixed: taking a person off one list of a category you share with them now keeps them off it. The category's other lists stay shared and new lists in it still reach them. Stopping the category share and sharing it again starts fresh.
 - New: a task list's "…" menu has Share. It opens the list's form at "Share with", and you can add several people to one list: each invitation and each person has a line of its own.
 - Changed: a person a list is shared with sees who it is shared by and with whom, and no longer gets a Share field.
 - New: sharing a task list or a category now sends an invitation. The other person sees it at the top of the Tasks view, and as a message when it arrives, and chooses Accept or Decline. Nothing is shared until they accept, and you only see "Invitation sent" with a Withdraw button. An invitation lapses after 7 days, and it waits for someone who has not signed in yet.
