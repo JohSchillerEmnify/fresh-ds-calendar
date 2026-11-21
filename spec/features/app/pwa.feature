@@ -1,4 +1,4 @@
-@pwa @id:installable-app
+@pwa @id:installable-app @area:app
 Feature: Installable progressive web app
   The app is installable on Android (Chrome) and iOS (Safari, "Add to Home Screen").
   Service workers and the Android install prompt need a secure context: they work on

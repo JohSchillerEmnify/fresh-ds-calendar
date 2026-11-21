@@ -1,4 +1,4 @@
-@navigation @id:navigation
+@navigation @id:navigation @area:views
 Feature: Navigation and view switching
   The calendar has a month, a week (Monday to Sunday) and a day view.
   Every view has a deep-linkable URL: /month/YYYY-MM, /week/YYYY-MM-DD (Monday), /day/YYYY-MM-DD.

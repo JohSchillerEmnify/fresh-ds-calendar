@@ -1,4 +1,4 @@
-@tasklists @collapse @tasks-view @id:tasklists-collapse
+@tasklists @collapse @tasks-view @id:tasklists-collapse @area:tasklists
 Feature: Task list cards are collapsible and compact
   A task list card (the tray, the Tasks view and the Canvas notes) has a chevron in its header. Collapsed, the card
   shows only its head (category colour, title, progress such as 2/5, and the "From" tag of an overdue list), no items.

@@ -1,4 +1,4 @@
-@timeline @adhd @id:min-event-length
+@timeline @adhd @id:min-event-length @area:views
 Feature: Minimum event length for readability
   By default every entry in the day and week views is drawn exactly as long as it lasts, so a very short one is thin
   and its title may not fit (owner, 2026-10-21). For readability, the owner can set a minimum length in the settings:

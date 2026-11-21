@@ -1,4 +1,4 @@
-@events-readonly @id:events-readonly
+@events-readonly @id:events-readonly @area:events
 Feature: Editing follows Google's permissions
   A calendar I may write in Google (owner or writer) is editable, whoever owns it: my own, a shared family calendar, or
   another person's calendar shared with me with edit rights (owner, 2026-11-09). Calendars I may only read stay

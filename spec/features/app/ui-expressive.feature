@@ -1,4 +1,4 @@
-@ui-expressive @id:ui-expressive
+@ui-expressive @id:ui-expressive @area:app
 Feature: One action vocabulary in Material 3 Expressive (design "E")
   Owner decision 2026-10-30: the whole app speaks one action vocabulary (ADR 0032, design E). Every surface has at most
   one filled primary action (the + button, Save, Today); everything else is tonal or text. Actions in headers and

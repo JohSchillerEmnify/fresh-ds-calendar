@@ -1,4 +1,4 @@
-@themes @theme-save-own @id:theme-save-own
+@themes @theme-save-own @id:theme-save-own @area:themes
 Feature: Saving my fine-tuned look as my own theme
   Whatever look I have put together in the theme menu (a theme, my fine-tuning, the scene) I can keep as my own theme
   (owner, 2026-10-13): "Save as my theme" asks for a name and saves the look as a theme of mine. It becomes the chosen

@@ -1,4 +1,4 @@
-@tasklists @tasks-archive @id:tasks-archive
+@tasklists @tasks-archive @id:tasks-archive @area:tasklists
 Feature: The Archive keeps finished task lists
   The Tasks view has two tabs, Open and Archive. A task list is archived automatically once all its items are
   ticked; there is no archive button. The Archive shows finished lists, newest first (by the day they were finished),

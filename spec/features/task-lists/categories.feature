@@ -1,4 +1,4 @@
-@categories @tasklists @id:task-list-categories
+@categories @tasklists @id:task-list-categories @area:tasklists
 Feature: Task list categories, tags and filters
   Categories are user-defined (name, color, optional emoji icon) and managed in Settings.
   First run ships Shopping 🛒 (#0b8043), To-do ✅ (#3f51b5), Work 💼 (#8e24aa) and Home 🏠 (#f4511e)

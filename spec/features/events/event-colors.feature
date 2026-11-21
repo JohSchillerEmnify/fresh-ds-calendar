@@ -1,4 +1,4 @@
-@events @colors @id:event-colors
+@events @colors @id:event-colors @area:events
 Feature: Event colors
   An event uses its calendar color unless one of the 11 Google event colors is chosen:
   Lavender #7986cb (1), Sage #33b679 (2), Grape #8e24aa (3), Flamingo #e67c73 (4),

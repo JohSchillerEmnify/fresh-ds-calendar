@@ -1,4 +1,4 @@
-@i18n @id:language
+@i18n @id:language @area:app
 Feature: Language
   The app speaks English, German (Deutsch) and two fun variants of German: light Mainfränkisch ("Fränggisch") and
   Coldmirror slang. By default the language follows the device: a German browser shows German, everything else

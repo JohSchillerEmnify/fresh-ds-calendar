@@ -1,4 +1,4 @@
-@views @entry-scale @id:entry-scale
+@views @entry-scale @id:entry-scale @area:views
 Feature: The same kind of entry looks the same in every view
   An entry is drawn with one type scale in the month, the week and the day: the same kind of entry has the same text
   size and weight in all three, an event, a multi-day bar and a task list title alike. Every size follows the density

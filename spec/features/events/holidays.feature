@@ -1,4 +1,4 @@
-@calendars @holidays @id:holiday-regions
+@calendars @holidays @id:holiday-regions @area:events
 Feature: Holiday calendars of a region
   Issue #60: choose regional holiday calendars in the app, like Google's "calendars of interest". They are real public Google
   calendars (`<language>.<region>#holiday@group.v.calendar.google.com`; the `.official` variant holds the public holidays

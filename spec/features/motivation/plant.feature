@@ -1,4 +1,4 @@
-@plant @reward @id:plant-companion
+@plant @reward @id:plant-companion @area:motivation
 Feature: Plant companion
   A small plant in the top app bar grows when the user does things: daily check-in +10 points,
   creating an event or task list +5, ticking an item +2 (each item counts once per day), at most

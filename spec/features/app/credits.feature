@@ -1,4 +1,4 @@
-@settings @credits @id:credits
+@settings @credits @id:credits @area:app
 Feature: Credits
   The App section of Settings (Account & app), next to the version, has one "Credits" row. It opens a list of
   every library, icon set, font or asset the app ships whose licence asks for attribution: name, author,

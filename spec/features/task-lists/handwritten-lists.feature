@@ -1,4 +1,4 @@
-@tasklists @labs @handwriting @id:handwritten-lists
+@tasklists @labs @handwriting @id:handwritten-lists @area:tasklists
 Feature: Labs: handwritten lists
   Experimental (Labs, off by default, its own switch in Settings > Labs). I can write the items of a task list by hand
   with a pen. The mouse never draws (R1). A small switch beside the writing area changes between two ways of writing:

@@ -1,4 +1,4 @@
-@tasklists @display @id:tasklist-display
+@tasklists @display @id:tasklist-display @area:tasklists
 Feature: Task lists in the calendar views
   A task list is placed on a date, optionally at a time. Collapsed it shows its title,
   its open item titles, as many as there is room for (no fixed limit; untimed lists show them all), and a

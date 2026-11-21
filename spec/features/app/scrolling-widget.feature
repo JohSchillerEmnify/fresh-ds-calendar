@@ -1,4 +1,4 @@
-@scrolling-widget @id:scrolling-widget
+@scrolling-widget @id:scrolling-widget @area:app
 Feature: Scrolling phone widgets (List and Multi-day)
   Two Android home-screen widgets that scroll, both in the widget picker. "List" (Agenda) shows today and the coming days
   under day headers, one text row per entry. "Multi-day" (Timeline) shows the next days as columns side by side with the

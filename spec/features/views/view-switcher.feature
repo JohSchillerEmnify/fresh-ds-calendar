@@ -1,4 +1,4 @@
-@view-switcher @id:view-switcher
+@view-switcher @id:view-switcher @area:views
 Feature: Choosing which views the view switcher offers
   The view switcher (bottom bar, side menu, top tabs and side rail all show the same list) offers the main views
   Year, Month, Week, Day, Tasks and Clock, then the Labs views the person switched on, marked as experimental. In

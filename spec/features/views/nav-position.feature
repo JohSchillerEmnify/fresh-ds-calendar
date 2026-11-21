@@ -1,4 +1,4 @@
-@nav-position @id:nav-position
+@nav-position @id:nav-position @area:views
 Feature: Where the view switcher sits
   The view switcher (Year, Month, Week, Day, Tasks, Clock, plus the Labs views when Labs is on) sits in a place the person
   chooses in the settings: at the bottom (a bottom navigation bar), at the top (a tabs row under the top app bar) or

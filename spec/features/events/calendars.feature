@@ -1,4 +1,4 @@
-@calendars @id:all-calendars
+@calendars @id:all-calendars @area:events
 Feature: All of a person's Google calendars
   A person sees every calendar of their Google account, their own and the ones shared with them, each in its Google
   colour. Calendars can be hidden and shown again with one tap in the filter bar; the choice is kept per person and

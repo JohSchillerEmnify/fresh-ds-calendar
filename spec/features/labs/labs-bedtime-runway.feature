@@ -1,4 +1,4 @@
-@labs @runway @id:labs-bedtime-runway
+@labs @runway @id:labs-bedtime-runway @area:labs
 Feature: Labs: the bedtime runway
   Experimental (Labs, off by default). The runway shows the rest of the day as one bar from now to tonight's bedtime
   that always fills the screen, so it shrinks as the evening goes on. Tonight's timed entries are drawn to scale in it

@@ -1,4 +1,4 @@
-@tasklists @tasks-filter @id:tasks-filter
+@tasklists @tasks-filter @id:tasks-filter @area:tasklists
 Feature: One filter for the whole Tasks view
   A filter bar under the tabs applies to Open, Canvas and Archive alike: category chips (several combine with "or",
   plus "No category") and one "When" choice (All, No date, Dated, Overdue, Today, Tomorrow, This week = today through

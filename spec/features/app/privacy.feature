@@ -1,4 +1,4 @@
-@api @privacy @id:privacy
+@api @privacy @id:privacy @area:app
 Feature: The privacy page says who sees what
   The app has a privacy page for the people the operator invites. Anyone can read it, also before signing in (Google
   asks for it when the app is set up), and it is a page of its own, not part of the calendar. It names every outside

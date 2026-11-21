@@ -1,4 +1,4 @@
-@week @two-row @id:two-row-week
+@week @two-row @id:two-row-week @area:views
 Feature: Two-row week overview
   On a narrow screen the week's seven day columns are too thin to read. Turned on, the week
   is laid out in two rows so the whole week — every day and its entries to scale — is visible

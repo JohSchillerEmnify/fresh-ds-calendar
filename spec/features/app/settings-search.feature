@@ -1,4 +1,4 @@
-@settings @settings-search @id:settings-search
+@settings @settings-search @id:settings-search @area:app
 Feature: Search the settings
   Owner, 2026-11-01: "needs ... a settings search".
   A search bar on top of the settings home finds settings while I type. It matches a setting's name, its

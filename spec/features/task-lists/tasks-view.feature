@@ -1,4 +1,4 @@
-@tasklists @tasks-view @id:tasks-view
+@tasklists @tasks-view @id:tasks-view @area:tasklists
 Feature: The Tasks view lists every open task list
   A top-level "Tasks" view (after Day in the navigation) shows all open task lists, with and without a date.
   A task list without a date belongs to no day: it appears only here, never in the calendar views or the open

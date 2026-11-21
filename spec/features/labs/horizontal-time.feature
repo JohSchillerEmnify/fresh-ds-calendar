@@ -1,4 +1,4 @@
-@labs @horizontal @id:horizontal-time
+@labs @horizontal @id:horizontal-time @area:labs
 Feature: Labs: the horizontal view
   In the horizontal view time runs from left to right. The week has one row per day with the hours as columns and lanes for
   overlapping entries. There is no day mode: zooming the days shows a few of them. Dragging or scrolling sideways only pans

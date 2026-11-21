@@ -1,4 +1,4 @@
-@themes @theme-import @id:theme-import
+@themes @theme-import @id:theme-import @area:themes
 Feature: Importing my own theme, optionally made with an AI
   Besides the ready themes I can bring my own (owner, 2026-10-13), always available in the theme menu. Only the AI part
   is an experiment behind a Labs switch: the theme menu then offers "Create with AI", which gives me a short prompt to

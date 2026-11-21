@@ -1,4 +1,4 @@
-@offline @last-known-state @id:last-known-state
+@offline @last-known-state @id:last-known-state @area:app
 Feature: Everything I see is kept on this device and synced with the server
   The app keeps all of my data on this device and always shows it from there; the screen never waits for the server
   (owner, 2026-10-23: "the app sometimes takes quite long to load things if internet is bad"; 2026-10-25, ADR 0025:

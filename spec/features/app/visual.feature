@@ -1,4 +1,4 @@
-@mobile @id:visual-states
+@mobile @id:visual-states @area:app
 Feature: The calendar's states look right
   Every state that is drawn (not just measured) has rules that need no reference picture — nothing is clipped, nothing
   overlaps, the pill covers the card it grew from — and a picture that guards against regressions once the state is

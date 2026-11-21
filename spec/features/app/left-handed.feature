@@ -1,4 +1,4 @@
-@left-hand @id:left-handed-mode
+@left-hand @id:left-handed-mode @area:app
 Feature: Left-handed mode
   A person who holds the phone in the left hand reaches the main controls with the left thumb, so a switch in the
   settings ("Left-handed mode", off by default, kept per person, so it follows them to every device) mirrors the

@@ -1,4 +1,4 @@
-@dnd @id:drag-to-reschedule
+@dnd @id:drag-to-reschedule @area:events
 Feature: Drag and drop to reschedule
   Events and task lists can be dragged to another time and day (week and day views, snapped to
   15-minute slots) or to another day (month view). Touch: long-press to pick up (with a haptic tick where

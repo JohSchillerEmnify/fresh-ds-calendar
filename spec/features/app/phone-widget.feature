@@ -1,4 +1,4 @@
-@phone-widget @id:phone-widget
+@phone-widget @id:phone-widget @area:app
 Feature: Phone widgets
   The Android app brings home-screen widgets: the week like the app's week view in miniature, today like the day view,
   and today as the 24-hour clock. They read the week themselves with the app's sign-in, so they stay current while the

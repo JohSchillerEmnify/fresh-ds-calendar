@@ -1,4 +1,4 @@
-@tasklists @expand-card @id:tasklists-expand-card
+@tasklists @expand-card @id:tasklists-expand-card @area:tasklists
 Feature: A task list card grows in place over the calendar
   A task list card is only as tall as its time block, so a long list was cut off (owner, 2026-10-14). Tapping the card
   makes the card itself grow in the same view: same left, top and width (its column), same colour, border and font, the

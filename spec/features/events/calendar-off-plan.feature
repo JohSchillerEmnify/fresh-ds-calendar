@@ -1,4 +1,4 @@
-@calendars @calendar-off-plan @id:calendar-off-plan
+@calendars @calendar-off-plan @id:calendar-off-plan @area:events
 Feature: A calendar that switches off by itself
   Owner, 2026-11-01: "from Friday 17:00 to Sunday 16:00 I don't want to see ANY work events in the calendar, meaning
   all are hidden, also the ones in the week."

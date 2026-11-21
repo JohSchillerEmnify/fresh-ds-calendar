@@ -1,4 +1,4 @@
-@calendars @calendar-colours @id:calendar-colours
+@calendars @calendar-colours @id:calendar-colours @area:events
 Feature: A colour for every calendar
   Owner, 2026-11-09: "The calendar colors are no longer adjustable in the calendar menu. You should be able to adjust
   all the calendar colors." Then: the colour belongs on the calendar's own settings page, not in its plan; it shows the

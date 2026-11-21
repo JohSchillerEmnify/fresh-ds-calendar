@@ -1,4 +1,4 @@
-@labs @now-next @id:labs-now-next
+@labs @now-next @id:labs-now-next @area:labs
 Feature: Labs: Now and Next
   Experimental (Labs, off by default): today as a stack of big cards instead of a grid. The Now card says what is
   running and how much of it is left, in words and as a shrinking bar; with nothing running it shows the first open

@@ -1,4 +1,4 @@
-@adhd @id:adhd-support
+@adhd @id:adhd-support @area:motivation
 Feature: ADHD support: estimates, transition warnings, calm mode
   Evidence-based helpers (see docs/ADHD-RESEARCH.md): duration estimates make time visible,
   transition warnings ease switching, and calm mode reduces visual clutter. A task list can

@@ -1,4 +1,4 @@
-@backup @settings @settings-expressive @mobile @id:drive-backup-settings
+@backup @settings @settings-expressive @mobile @id:drive-backup-settings @area:google
 Feature: The backup actions in Settings are expressive buttons
   Owner, 2026-11-09 (feature settings-expressive): row actions are tonal buttons, and paired actions are one connected
   button group.

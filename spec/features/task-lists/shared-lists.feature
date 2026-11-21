@@ -1,4 +1,4 @@
-@sharing @id:shared-lists
+@sharing @id:shared-lists @area:tasklists
 Feature: Sharing task lists with another person
   A person shares a task list by typing the email address of another person, or shares a whole category the same
   way. Sharing sends an invitation: nothing is shared, and nothing about the other person is revealed, until that

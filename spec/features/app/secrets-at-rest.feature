@@ -1,4 +1,4 @@
-@secrets @id:secrets-at-rest
+@secrets @id:secrets-at-rest @area:app
 Feature: Secrets kept on the server are not readable from its files
   Whoever gets a copy of the server's data folder must not get a way into anybody's Google account or calendar.
   The Google connection of each person is stored encrypted with a key the operator keeps outside the data folder, and

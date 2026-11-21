@@ -1,4 +1,4 @@
-@release-notes @id:release-notes
+@release-notes @id:release-notes @area:app
 Feature: Release notes in the app
   Every merge to main writes one or two plain sentences into CHANGELOG.md (owner, 2026-10-14). The app shows them under
   Settings → What's new, and after an update it says once what is new.

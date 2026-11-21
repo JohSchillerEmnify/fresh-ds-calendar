@@ -1,4 +1,4 @@
-@tasklists @tasks-canvas @id:tasks-canvas
+@tasklists @tasks-canvas @id:tasks-canvas @area:tasklists
 Feature: The Canvas places task lists as sticky notes
   The Tasks view has three tabs, Open, Canvas and Archive. The Canvas shows every open task list, dated or not, as a
   sticky note on a large board you can pan and zoom. A note shows the title, the category colour, the date (when it has

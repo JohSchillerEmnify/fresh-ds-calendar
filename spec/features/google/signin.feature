@@ -1,4 +1,4 @@
-@signin @id:google-sign-in
+@signin @id:google-sign-in @area:google
 Feature: Signing in with Google
   The calendar is reachable from the internet, so only the people the owner allows can use it. Each person signs in
   with their own Google account; signing in also connects their Google calendar, so they see their own events.
