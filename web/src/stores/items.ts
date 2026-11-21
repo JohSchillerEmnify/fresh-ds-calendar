@@ -74,8 +74,10 @@ export const useItemsStore = defineStore('items', () => {
   const isDeleted = (id: string) => deleted.has(id);
   /** The item without its deleted/hidden task list items (counts follow). */
   function strip<T extends CalendarItem>(it: T): T {
-    if (it.kind !== 'tasklist' || !it.items.some((i) => deleted.has(i.id))) return it;
+    if (it.kind !== 'tasklist') return it;
+    // also a copy cached before a task could be reopened shows the repaired state offline
     const rest = reopenParents(it.items.filter((i) => !deleted.has(i.id)));
+    if (rest.length === it.items.length && rest.every((i, n) => i === it.items[n])) return it;
     return { ...it, items: rest, doneCount: rest.filter((i) => i.done).length, totalCount: rest.length };
   }
 

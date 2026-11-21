@@ -2,6 +2,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '@/api/client';
 import type { TaskList } from '@/api/types';
+import { createPinia, setActivePinia } from 'pinia';
+import { useItemsStore } from '@/stores/items';
 import { localTaskList, withPending, type Change, type OutboxEntry } from '@/lib/outbox';
 import { perform } from '@/lib/outboxSend';
 
@@ -55,5 +57,17 @@ describe('subtasks on the device before the server answers', () => {
     await perform(entry(add));
     expect(send).toHaveBeenCalledWith('L', expect.objectContaining({ title: 'Rope', level: 2 }), expect.anything(), undefined);
     send.mockRestore();
+  });
+});
+
+describe('a list cached before the repair', () => {
+  it('shows a done task over an open subtask open, with the counts that follow', () => {
+    setActivePinia(createPinia());
+    const items = useItemsStore();
+    const old = list();
+    items.upsert({ ...old, items: [{ id: 'a', title: 'Tidy up', done: true }, { id: 'b', title: 'Fold clothes', done: false, level: 1 }], doneCount: 1, totalCount: 2 });
+    const shown = items.get('L') as TaskList;
+    expect(shown.items.map((i) => i.done)).toEqual([false, false]);
+    expect(shown.doneCount).toBe(0);
   });
 });
