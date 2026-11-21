@@ -155,6 +155,21 @@ Feature: Subtasks in task lists
       And I let go of the item
       Then the item "Pegs" sits exactly where the slot was
 
+    Scenario Outline: A task with a subtask lands exactly in the slot in a list that is scrolled
+      Given the browser window is 560 by 300 pixels wide and high
+      And the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      And the task list is scrolled to its end
+      When I hold the item "Tent" and move the finger <x> px to the right and <y> px down
+      Then the list has not moved since the item was picked up
+      When I let go of the item
+      Then the item "Tent" sits exactly where the slot was
+
+      Examples:
+        | x | y  |
+        | 0 | 0  |
+        | 0 | 56 |
+
     Scenario: The tree line follows a new parent that lies between the pick-up and the slot
       When I hold the item "Tent" and move the finger 28 px to the right and 112 px down
       Then the lit tree line starts under the checkbox of "Poles", is primary coloured and 2 px wide

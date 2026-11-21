@@ -47,12 +47,16 @@ const sides = (w: World) => w.expanded.getByTestId('tasklist-item').evaluateAll(
   { grip: e.querySelector('[data-testid="tasklist-item-grip"]')?.getBoundingClientRect().left ?? NaN, bin: e.querySelector('[data-testid="tasklist-item-delete"]')?.getBoundingClientRect().left ?? NaN },
 ])));
 
+/** The list's own place before the item was held, by world. */
+const cornerBefore = new WeakMap<World, { x: number; y: number }>();
+
 /** Presses the grip of the item and holds it, then moves by (dx, dy) px; the card is at rest when the step ends. */
 async function hold(w: World, title: string, dx: number, dy: number): Promise<void> {
   const row = await itemById(w, title);
   await row.scrollIntoViewIfNeeded();
   const grip = await box(row.getByTestId('tasklist-item-grip'));
   sidesBefore.set(w, await sides(w));
+  cornerBefore.set(w, await listCorner(w));
   heightBefore.set(w, { title, height: (await box(row)).height });
   const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
   if (w.testInfo.project.use.hasTouch) {
@@ -205,6 +209,21 @@ When('I let go of the item', async function (this: World) {
   await this.held();
   finger.delete(this);
   await this.page.waitForTimeout(900);
+});
+
+Given('the task list is scrolled to its end', async function (this: World) {
+  await this.expanded.locator('ul').first().evaluate(async (ul) => {
+    let n: HTMLElement | null = ul.parentElement;
+    while (n && !(getComputedStyle(n).overflowY.match(/auto|scroll/) && n.scrollHeight > n.clientHeight)) n = n.parentElement;
+    if (n) n.scrollTop = n.scrollHeight;
+    await new Promise((r) => setTimeout(r, 200));
+  });
+});
+
+Then('the list has not moved since the item was picked up', async function (this: World) {
+  const [was, now] = [cornerBefore.get(this), await listCorner(this)];
+  if (!was) throw new Error('no item was held');
+  expect(Math.abs(now.y - was.y), 'the list moved under the finger').toBeLessThanOrEqual(1);
 });
 
 Then('the item {string} is taller than it was before it was held', async function (this: World, title: string) {
