@@ -68,10 +68,7 @@ export class Invitations {
     this.items = this.load();
   }
 
-  /**
-   * Sends an invitation. Sent again, it looks the same to the sender whatever the answer was: same place, same sender
-   * handle, a fresh 7 days. Only a declined entry gets a new id, so the invited person sees a new card.
-   */
+  /** Sends an invitation; sent again it looks the same to the sender (place, handle, fresh 7 days), and only a declined entry gets a new id. */
   send(d: Draft): void {
     const same = (i: Invitation) => i.owner === d.owner && i.kind === d.kind && i.target === d.target && i.address === d.address;
     const all = this.live();
