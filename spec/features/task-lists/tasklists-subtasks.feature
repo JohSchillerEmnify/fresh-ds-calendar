@@ -4,7 +4,7 @@ Feature: Subtasks in task lists
   dragging: further right makes an item a subtask, further left moves it up a level. On a computer, Tab and Shift+Tab do
   the same while an item is being edited. There is no extra button for it. Subtasks are always shown, indented one
   checkbox width per level, with faint lines that show the levels: straight guides by default, tree branches if chosen in
-  the settings; while dragging, a drop line shows the level the item will get.
+  the settings; while dragging, a dashed slot in the list shows exactly where the item will land.
 
   Background:
     Given the calendar is empty
@@ -66,12 +66,14 @@ Feature: Subtasks in task lists
       Then the item "Pegs" is not a subtask
       And the item "Poles" is a subtask of "Pegs"
 
-  Rule: A held item is a compact card that follows the finger, and a drop line shows where it lands
+  Rule: A held item is a compact card that follows the finger, and a dashed slot shows exactly where it lands
 
     The picked-up task becomes a compact card (checkbox and title, no grip, no bin) that follows the finger freely in
-    every direction. A drop line in the list marks where it will land: it starts at the indent of the level the item
-    will get and stops short of every checkbox. Moving sideways changes the level in steps of 28 px. The grips and bins
-    of the rows never move.
+    every direction. In the list a dashed outline marks where it will land: it has the size of a row at the level the
+    item will get, starts at that level's checkbox (the checkbox is drawn inside it, where the real one will sit) and
+    ends before the bin; the grip is inside it. The tree line of the new parent runs down to the top of the
+    slot, lit (primary colour, 2 px); at the first level none is. Moving sideways changes the level in steps of 28 px.
+    The grips and bins of the rows never move.
 
     Scenario: The held item is a compact card with the checkbox and the title only
       When I hold the item "Pegs" one step to the right
@@ -89,31 +91,85 @@ Feature: Subtasks in task lists
       When I hold the item "Pegs for the big tent, the long ones with the hooks and the ones that bend easily when the ground is stony" and move the finger 20 px to the right and 0 px down
       Then the held card is one line tall
 
-    Scenario: The drop line starts at the indent of the level the item will get
+    Scenario: The slot starts at the checkbox of the level the item will get
       When I hold the item "Pegs" one step to the right
-      Then the drop line is at the indent of level 1
+      Then the slot is at level 1
 
-    Scenario: Two levels in, the drop line starts two indents in
+    Scenario: Two levels in, the slot is two indents in
       Given the item "Pegs" was made a subtask of "Tent"
       When I hold the item "Poles" two steps to the right
-      Then the drop line is at the indent of level 2
+      Then the slot is at level 2
 
     Scenario: A task keeps its level until the finger has moved half a step sideways
       When I hold the item "Pegs" and move the finger 13 px to the right and 0 px down
-      Then the drop line is at the indent of level 0
+      Then the slot is at level 0
       When I move the finger 2 px to the right and 0 px down
-      Then the drop line is at the indent of level 1
+      Then the slot is at level 1
 
-    Scenario: The drop line stays clear of every checkbox
+    Scenario: The slot holds the checkbox, the title and the grip and stays clear of the bin
       When I hold the item "Pegs" one step to the right
-      Then the drop line touches no checkbox
+      Then the slot has the size of a row, holds its checkbox and the grips, and no part of it is under a bin
+
+    Scenario: The tree line of the new parent is lit and runs down to the slot
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I hold the item "Poles" two steps to the right
+      Then the lit tree line starts under the checkbox of "Pegs", is primary coloured and 2 px wide
+      And the lit tree line runs down to the slot and stays clear of its checkbox
+
+    Scenario: At the first level no tree line is lit
+      When I hold the item "Pegs" and move the finger 0 px to the right and 0 px down
+      Then no tree line is lit
 
     Scenario: The grips and bins of all rows stay where they are while an item is held
       When I hold the item "Pegs" one step to the right
       Then the grips and bins of the other items have not moved sideways
 
+    Scenario Outline: The item lands exactly in the slot at level <level>
+      Given the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      When I hold the item "<item>" <steps> to the <way>
+      And I let go of the item
+      Then the item "<item>" sits exactly where the slot was
+
+      Examples:
+        | item  | steps     | way   | level |
+        | Poles | two steps | left  | 0     |
+        | Food  | one step  | right | 1     |
+        | Food  | two steps | right | 2     |
+
+    Scenario: An item dragged up lands exactly in the slot
+      When I hold the item "Food" and move the finger 28 px to the right and 130 px up
+      And I let go of the item
+      Then the item "Food" sits exactly where the slot was
+
+    Scenario: An item dragged down lands exactly in the slot
+      When I hold the item "Tent" and move the finger 0 px to the right and 112 px down
+      And I let go of the item
+      Then the item "Tent" sits exactly where the slot was
+
+    Scenario: A task with a subtask lands exactly in the slot
+      Given the browser window is 560 by 900 pixels wide and high
+      And the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      When I hold the item "Pegs" and move the finger 0 px to the right and 60 px up
+      And I let go of the item
+      Then the item "Pegs" sits exactly where the slot was
+
+    Scenario: The tree line follows a new parent that lies between the pick-up and the slot
+      When I hold the item "Tent" and move the finger 28 px to the right and 112 px down
+      Then the lit tree line starts under the checkbox of "Poles", is primary coloured and 2 px wide
+      And the lit tree line runs down to the slot and stays clear of its checkbox
+
+    @mobile
+    Scenario: The slot is as tall as the row will be when its title wraps one line more one level deeper
+      Given the item "Pegs" gets the title "Pegs and the spare mallet for the big camp"
+      When I hold the item "Pegs and the spare mallet for the big camp" one step to the right
+      And I let go of the item
+      Then the item "Pegs and the spare mallet for the big camp" is taller than it was before it was held
+      And the item "Pegs and the spare mallet for the big camp" sits exactly where the slot was
+
     @visual @mobile
-    Scenario Outline: The held card and the drop line look right at <level> in the <scheme> scheme
+    Scenario Outline: The held card and the slot look right at <level> in the <scheme> scheme
       Given the device prefers a <scheme> color scheme
       And the item "Pegs" was made a subtask of "Tent"
       When I hold the item "Poles" <steps> to the right
@@ -125,6 +181,11 @@ Feature: Subtasks in task lists
         | dark   | one step  | one-level  |
         | light  | two steps | two-levels |
         | dark   | two steps | two-levels |
+
+    @visual @mobile
+    Scenario: The slot of a task at the first level looks right
+      When I hold the item "Poles" and move the finger 0 px to the right and 0 px down
+      Then the expanded task list "Packing" looks like the picture "subtasks-held-level-0-light"
 
   Rule: When a list is created, spaces before a line make it a subtask
 

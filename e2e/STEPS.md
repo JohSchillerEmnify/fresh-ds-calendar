@@ -344,7 +344,7 @@ I drag the item {string} above the item {string}
 I long-press the item {string} and drag it above the item {string}
 I drag the item {string} and drop it where it was
 I drag the item {string} over the gap between {string} and {string} and hold
-the items {string} and {string} do not overlap the dragged item {string} and it lies between them
+the items {string} and {string} do not overlap the slot of the dragged item {string} and it lies between them
 I tap the item {string}
 I pick up the item {string}
 I press the item {string} while it still wobbles from the drop and hold
@@ -3412,8 +3412,14 @@ the held card shows the checkbox and the title {string} but no grip and no bin
 the held card is under the finger
 the held card is one line tall
 the item {string} gets the title {string}
-the drop line is at the indent of level {int}
-the drop line touches no checkbox
+the slot is at level {int}
+the slot has the size of a row, holds its checkbox and the grips, and no part of it is under a bin
+the lit tree line starts under the checkbox of {string}, is primary coloured and 2 px wide
+the lit tree line runs down to the slot and stays clear of its checkbox
+no tree line is lit
+I let go of the item
+the item {string} sits exactly where the slot was
+the item {string} is taller than it was before it was held
 the grips and bins of the other items have not moved sideways
 the item {string} was made a subtask of {string}
 the item {string} is a subtask of {string}
@@ -3431,7 +3437,8 @@ the collapsed task list {string} shows the item {string} indented under {string}
 - Every `tasklist-item` row has `data-level` (0 task, 1 subtask, 2 sub-subtask); "X is a subtask of Y" = the nearest row above X with a lower level is Y, "is not a subtask" = no such row (level 0); both only read the rows. "X was made a subtask of Y" (set-up) sets X one level deeper than Y through `PUT /api/tasklists/:id/items/order` (with `levels`), reloads the page and opens the list again.
 - "I hold the item X N step(s) to the right / left": the same grab (X's grip) and sideways move (N x 28 px) as the drag, but the pointer stays down (released by the world's cleanup); it first remembers the left edge of every row's grip and bin, and waits 900 ms for the card to be at rest. "I hold the item X and move the finger A px to the right / left and B px up / down" is the same with a free move; "I move the finger ..." moves the held pointer on from where it is.
 - "the item X gets the title T" renames X through `PATCH /api/tasklists/:id/items/:itemId`, reloads the page and opens the list again. "the held card is one line tall": the held row is at most 1.05 x the height of the shortest other row + 6 px (the lift tilts it).
-- "the held card ...": exactly one `tasklist-item` has `data-dragging="true"`; its checkbox and title (text = the given title) are visible, its grip and bin are hidden. "the held card is under the finger": the pointer's place lies in the card's box (2 px tolerance). "the drop line is at the indent of level N": `tasklist-drop-line` has `data-level` N and its left edge is N x 28 px (2 px tolerance) right of the title column of the first level-0 row that is not held. "the drop line touches no checkbox": its box overlaps no checkbox of the other rows. "the grips and bins of the other items have not moved sideways": the left edge of every other row's grip and bin is within 1 px of before.
+- "the held card ...": exactly one `tasklist-item` has `data-dragging="true"`; its checkbox and title (text = the given title) are visible, its grip and bin are hidden. "the held card is under the finger": the pointer's place lies in the card's box (2 px tolerance).
+- The slot is `tasklist-drop-slot` (`data-level`) with the drawn checkbox `tasklist-drop-checkbox` inside and the new parent's tree line `tasklist-drop-tree` beside it. "the slot is at level N": `data-level` is N and the drawn checkbox is N x 28 px (1 px tolerance) right of the checkbox of a level-0 row. "the slot has the size of a row, ...": its height is a row's (1 px), the drawn checkbox lies inside it, its right edge is at least at every other row's grip right edge and at most at every other row's bin left edge (1 px). "the lit tree line starts under the checkbox of X ...": `tasklist-drop-tree` is 2 px wide and primary coloured, runs under the middle of X's checkbox (2 px) and starts between its middle and 8 px below it. "the lit tree line runs down to the slot ...": its bottom is at the slot's top (2 px), and its right edge is left of the slot and of the drawn checkbox. "no tree line is lit": the slot is shown and there is no `tasklist-drop-tree`. "I let go of the item" records the boxes of the slot and its checkbox, releases the pointer and waits 900 ms; "the item X sits exactly where the slot was": X's row top and height and its checkbox's box equal the recorded ones within 1 px. "the item X is taller than it was before it was held": X's row is more than 8 px taller than before "I hold ..." (its title wraps one more line at the deeper level). "the grips and bins of the other items have not moved sideways": the left edge of every other row's grip and bin is within 1 px of before.
 - "I drag the item X N step(s) to the right / left": the pointer takes the item's drag handle (a finger long-presses the row, as in "I drag the item X above the item Y") and moves N x 28 px sideways on the same row, then lets go; it waits for the saved order (`PUT .../items/order`, 200) unless the level cannot change (the first item, or already as deep as the item above allows). N is one, two or three. "below the item Y" = the same drag to the lower edge of Y's row.
 - "I start renaming the item X and press Tab": taps the title, waits for the focused field and presses Tab (the field stays open); "I press Shift+Tab" presses it in that field.
 - "I type the items:" fills `tasklist-items` of the task list dialog with the text block as it is (leading spaces kept).

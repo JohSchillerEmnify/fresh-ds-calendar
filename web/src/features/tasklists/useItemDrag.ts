@@ -8,7 +8,7 @@ import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 import { blockEnd, levelOf } from '@calendar/shared/subtasks';
 import { createDragController, type DragContext, type DragController } from '@/motion/drag';
 import { getMotionLevel } from '@/motion/level';
-import { dropIndex, lineStart, placeBlock, rowShifts, slotOffset } from './reorder';
+import { dropIndex, placeBlock, rowShifts, slotBox, slotOffset, type RowParts } from './reorder';
 
 /** Selector of the drag handle (`data-item-grip` in `TaskListView`); the Canvas leaves a press on it to the item. */
 const ITEM_GRIP = '[data-item-grip]';
@@ -24,14 +24,19 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-/** Pins the list's sheet (nearest fixed ancestor) in place while a row is held: a closing keyboard never slides it. */
+/** Pins the list's sheet in place while a row is held: a closing keyboard never slides it, and folding the held task's subtasks does not shrink a bottom sheet (which would move every row under the finger). */
 function freezeSheet(row: HTMLElement): () => void {
+  let panel: HTMLElement | null = null;
   for (let n = row.parentElement; n && n !== document.body; n = n.parentElement) {
-    if (getComputedStyle(n).position !== 'fixed') continue;
+    if (getComputedStyle(n).position !== 'fixed') { panel = n; continue; }
     const r = n.getBoundingClientRect();
     const { top, bottom, height } = n.style;
     Object.assign(n.style, { top: `${r.top}px`, bottom: 'auto', height: `${r.height}px` });
-    return () => Object.assign(n.style, { top, bottom, height });
+    // the panel is the layer's child that holds the list: it keeps its height (its own height was set by its content)
+    const kept = panel?.style.height ?? '';
+    if (panel) panel.style.height = `${panel.getBoundingClientRect().height}px`;
+    const pinned = panel;
+    return () => { Object.assign(n.style, { top, bottom, height }); if (pinned) pinned.style.height = kept; };
   }
   return () => {};
 }
@@ -46,8 +51,15 @@ const CARD_TAIL = 24;
 /** The row of a task's subtasks that travel with it while it is held: folded to nothing. */
 const HELD_SUB = 'data-sub-held';
 
-/** Where the dragged item will land: the slot (top and height in px from the top of the list), the level it will get and where its drop line starts (px from the left of the list). */
-export interface DropAim { top: number; height: number; level: number; left: number }
+/** A box in px from the top left of the list. */
+interface Box { top: number; height: number; left: number; width: number }
+/** Where the dragged item will land: the slot (a box in the list) of the dragged item `title` with the level it will get, the left edge of its checkbox relative to the slot (`ghostX`), and the lit tree line of its new parent (none at the first level). */
+export interface DropAim extends Box { level: number; title: string; ghostX: number; tree: Box | null }
+/** The tree line starts this far (px) below the middle of the parent's checkbox, under the drawn box. */
+const STEM_GAP = 12;
+/** The width of the bin (px) and the room between the grip's right edge and the list's, for a row that shows no grip to measure. */
+const BIN_WIDTH = 48;
+const ROW_END = 4;
 
 /** Duration of the other rows' move out of the way (ms); none under reduced motion. */
 const MAKE_ROOM_MS = 150;
@@ -73,7 +85,7 @@ export interface ItemDragOptions {
 export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
   const aim = ref<DropAim | null>(null);
   /** What the last hit test chose: the hovered row and the level the finger wanted (a drop replays both, so it lands in the shown gap) and the level the block gets. */
-  let chosen = { to: 0, wanted: 0, level: 0 };
+  let chosen = { to: 0, wanted: 0, level: 0, after: -1 };
   const bound = new Map<HTMLElement, { ctl: DragController; unlisten: () => void }>();
 
   const rowsOf = (): HTMLElement[] => Array.from(o.root.value?.querySelectorAll<HTMLElement>(ROW) ?? []);
@@ -89,15 +101,19 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
   const layoutSpans = (rows: HTMLElement[]) => rows.map((r) => { const b = r.getBoundingClientRect(), s = shiftOf(r); return { top: b.top - s, bottom: b.bottom - s }; });
 
   /** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
-  let held: { row: HTMLElement; to: number; own: () => { top: number; bottom: number } } | null = null;
+  let held: { row: HTMLElement; to: number; own: () => { top: number; bottom: number }; gap?: number } | null = null;
+
+  /** The shifts that open a gap of `gap` px (default: the lifted row's height) at place `to`; the lifted card's live rect is scaled and tilted, so its own place is its pick-up rect. */
+  function roomShifts(rows: HTMLElement[], from: number, to: number, own?: () => { top: number; bottom: number }, gap?: number): number[] {
+    const spans = layoutSpans(rows).map((r, i) => (i === from && own ? own() : r));
+    return rowShifts(spans, from, to, gap);
+  }
 
   /** Moves the rows other than `lifted` so that a gap opens at place `to` (null: everything back). */
-  function makeRoom(lifted: HTMLElement, to: number | null, own?: () => { top: number; bottom: number }): void {
+  function makeRoom(lifted: HTMLElement, to: number | null, own?: () => { top: number; bottom: number }, gap?: number): void {
     const rows = rowsOf();
     const from = rows.indexOf(lifted);
-    // the lifted card's live rect is scaled and tilted: its own place is its pick-up rect
-    const spans = layoutSpans(rows).map((r, i) => (i === from && own ? own() : r));
-    const shifts = to === null ? rows.map(() => 0) : rowShifts(spans, from, to);
+    const shifts = to === null ? rows.map(() => 0) : roomShifts(rows, from, to, own, gap);
     const animated = getMotionLevel() === 'full';
     rows.forEach((r, i) => {
       if (i === from) return;
@@ -105,17 +121,51 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       r.style.transform = shifts[i] ? `translateY(${shifts[i] / scaleOf(r)}px)` : '';
     });
   }
-  /** Where the drop line of level `level` starts: the title column of a row that stays in the list (the held card itself, level 0, when it is alone), so a mirrored row follows. */
-  function lineLeft(held: HTMLElement, ul: HTMLElement, level: number): number {
-    const ref = rowsOf().find((r) => r !== held && !r.hasAttribute(HELD_SUB)) ?? held;
-    const title = ref.querySelector<HTMLElement>('.ititle');
-    // the list's scale: the held card's own is lifted by 5 %
+
+  /** Height (screen px) the held row will have at `level`: a hidden copy laid out at that indent, so a title that wraps differently there is counted. */
+  function heightAt(row: HTMLElement, ul: HTMLElement, level: number): number {
+    const copy = row.cloneNode(true) as HTMLElement;
+    for (const n of [copy, ...copy.querySelectorAll('[data-testid],[id],[data-item-id]')]) for (const a of ['data-testid', 'id', 'data-item-id']) n.removeAttribute(a);
+    copy.removeAttribute('data-dragging');
+    copy.dataset.level = String(level);
+    copy.style.cssText = 'position:absolute;left:0;right:0;top:0;visibility:hidden;pointer-events:none;';
+    copy.style.setProperty('--lvl', String(level));
+    ul.appendChild(copy);
+    const h = copy.getBoundingClientRect().height;
+    copy.remove();
+    return h;
+  }
+
+  const partsOf = (r: DOMRect, shifted: number, base: DOMRect, s: number) => ({ left: (r.left - shifted - base.left) / s, right: (r.right - shifted - base.left) / s });
+  /** The slot of the block that lands at `chosen.level`: its box is measured from a row that stays (the held card itself, level 0, when it is alone), both ends, so a mirrored row works too. */
+  function slotBoxes(held: HTMLElement, ul: HTMLElement, rows: HTMLElement[], shifts: number[], top: number): Pick<DropAim, 'left' | 'width' | 'ghostX' | 'tree'> {
+    const ref = rows.find((r) => r !== held && !r.hasAttribute(HELD_SUB)) ?? held;
+    const cb = ref.querySelector<HTMLElement>('[data-testid="tasklist-item-checkbox"]');
     const s = scaleOf(ul);
-    if (!title) return 0;
+    const base = ul.getBoundingClientRect();
+    if (!cb) return { left: 0, width: 0, ghostX: 0, tree: null };
     // the held card is shifted under the finger: its own place is the row's
     const shifted = ref === held ? (parseFloat(held.style.translate) || 0) * s : 0;
-    const refLevel = ref === held ? 0 : Number(ref.dataset.level) || 0;
-    return lineStart(title.getBoundingClientRect().left - shifted - ul.getBoundingClientRect().left, refLevel, level, LEVEL_PX * s) / s;
+    const grip = ref === held ? null : ref.querySelector<HTMLElement>('.grip')?.getBoundingClientRect();
+    const parts: RowParts = { cb: partsOf(cb.getBoundingClientRect(), shifted, base, s), grip: grip?.width ? partsOf(grip, 0, base, s) : null };
+    const box = slotBox(parts, ref === held ? 0 : Number(ref.dataset.level) || 0, chosen.level, LEVEL_PX, base.width / s, o.gripOnly() ? ROW_END : ROW_END + BIN_WIDTH);
+    return { left: box.left, width: box.right - box.left, ghostX: box.cbLeft - box.left, tree: treeLine(held, rows, shifts, base, s, top) };
+  }
+  /** The lit line of the new parent: from under the middle of its checkbox down to the top of the slot. */
+  function treeLine(held: HTMLElement, rows: HTMLElement[], shifts: number[], base: DOMRect, s: number, slotTop: number): Box | null {
+    const items = o.items();
+    const from = items.findIndex((i) => i.id === held.dataset.itemId);
+    if (from < 0 || chosen.level < 1) return null;
+    const end = blockEnd(items, from);
+    let parent = chosen.after;
+    while (parent >= 0 && ((parent >= from && parent < end) || levelOf(items[parent]!) >= chosen.level)) parent--;
+    const cb = parent < 0 ? null : rows[parent]?.querySelector<HTMLElement>('[data-testid="tasklist-item-checkbox"]')?.getBoundingClientRect();
+    if (!cb || parent < 0) return null;
+    // the rows move to make room: the line follows the place the parent is moving to (the same shifts as the rows get)
+    const y = (cb.top + cb.bottom) / 2 - shiftOf(rows[parent]!) + (shifts[parent] ?? 0);
+    const start = (y - base.top) / s + STEM_GAP;
+    const x = ((cb.left + cb.right) / 2 - base.left) / s;
+    return { top: start, height: slotTop - start, left: x - 1, width: 2 };
   }
   /** The subtasks of the held task travel with it: their rows fold away for the drag. */
   function foldSubtasks(held: HTMLElement): void {
@@ -167,7 +217,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
         const wanted = own + Math.round((x - ctx.originRect.left - ctx.grab.x) / step);
         const p = placeBlock(o.items(), id, hovered, wanted);
         if (!p) return null;
-        chosen = { to: hovered, wanted, level: p.level };
+        chosen = { to: hovered, wanted, level: p.level, after: p.after };
         // the slot opens where the block lands: after row `p.after`; the card itself follows the finger freely
         const to = p.after < from ? p.after + 1 : p.after;
         // the controller adds the list's move itself: offsets are from the pick-up rect
@@ -184,10 +234,18 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       cardBox: () => ({ left: (parseFloat(row.style.translate) || 0) * scaleOf(row), width: row.offsetWidth * scaleOf(row) }),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
-        held = t ? { row, to: Math.floor(t.key / KEY_LEVELS), own: ownSpan } : null;
-        if (t) makeRoom(row, held!.to, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
         const ul = o.root.value?.querySelector<HTMLElement>('ul');
-        aim.value = t && pickup && ul ? { top: pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top, height: pickup.originRect.height, level: chosen.level, left: lineLeft(row, ul, chosen.level) } : null;
+        // the gap is as tall as the row will be at the target level
+        const gap = t && ul ? heightAt(row, ul, chosen.level) : undefined;
+        held = t ? { row, to: Math.floor(t.key / KEY_LEVELS), own: ownSpan, gap } : null;
+        if (t) makeRoom(row, held!.to, ownSpan, gap); else if (ctl.state === 'dragging') makeRoom(row, null);
+        if (t && pickup && ul && gap !== undefined) {
+          const s = scaleOf(ul);
+          const top = (pickup.originRect.top + pickup.moved().y + (t.dy ?? 0) - ul.getBoundingClientRect().top) / s;
+          const rows = rowsOf();
+          const shifts = roomShifts(rows, rows.indexOf(row), held!.to, ownSpan, gap);
+          aim.value = { top, height: gap / s, level: chosen.level, title: row.dataset.title ?? '', ...slotBoxes(row, ul, rows, shifts, top) };
+        } else aim.value = null;
       },
       onStateChange: (st) => {
         if (st === 'dragging') {
@@ -216,7 +274,7 @@ export function useItemDrag(o: ItemDragOptions): Ref<DropAim | null> {
       if (!rows.has(row)) { b.ctl.destroy(); b.unlisten(); bound.delete(row); clearRoom(); }
     }
     // a row that went mid-drag cleared every shift: open the gap again for the current target
-    if (held && rows.has(held.row)) makeRoom(held.row, held.to, held.own);
+    if (held && rows.has(held.row)) makeRoom(held.row, held.to, held.own, held.gap);
     for (const row of rows) if (!bound.has(row)) bind(row);
   }
 

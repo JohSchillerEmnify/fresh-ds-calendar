@@ -53,6 +53,7 @@ async function hold(w: World, title: string, dx: number, dy: number): Promise<vo
   await row.scrollIntoViewIfNeeded();
   const grip = await box(row.getByTestId('tasklist-item-grip'));
   sidesBefore.set(w, await sides(w));
+  heightBefore.set(w, { title, height: (await box(row)).height });
   const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
   if (w.testInfo.project.use.hasTouch) {
     const cdp = await w.context.newCDPSession(w.page);
@@ -131,23 +132,97 @@ Then('the held card is under the finger', async function (this: World) {
   expect(f.at.y).toBeLessThanOrEqual(b.y + b.height + 2);
 });
 
-Then('the drop line is at the indent of level {int}', async function (this: World, level: number) {
-  const line = this.page.getByTestId('tasklist-drop-line');
-  await expect(line).toHaveAttribute('data-level', String(level));
-  // the title column of a task (level 0) plus one indent per level
+const slot = (w: World) => w.page.getByTestId('tasklist-drop-slot');
+const slotCheckbox = (w: World) => w.page.getByTestId('tasklist-drop-checkbox');
+const otherRows = (w: World) => w.expanded.locator('[data-testid="tasklist-item"]:not([data-dragging="true"])');
+
+Then('the slot is at level {int}', async function (this: World, level: number) {
+  await expect(slot(this)).toHaveAttribute('data-level', String(level));
+  // the checkbox of a task (level 0) plus one indent per level
   const task = this.expanded.locator('[data-testid="tasklist-item"][data-level="0"]:not([data-dragging="true"])').first();
-  const [l, t] = [await box(line), await box(task.getByTestId('tasklist-item-title'))];
-  expect(Math.abs(l.x - (t.x + level * 28)), 'the line starts at the title column of the level').toBeLessThanOrEqual(2);
+  const [g, c] = [await box(slotCheckbox(this)), await box(task.getByTestId('tasklist-item-checkbox'))];
+  expect(Math.abs(g.x - (c.x + level * 28)), 'the slot checkbox sits where the checkbox of the level sits').toBeLessThanOrEqual(1);
 });
 
-Then('the drop line touches no checkbox', async function (this: World) {
-  const l = await box(this.page.getByTestId('tasklist-drop-line'));
-  const boxes = await this.expanded.getByTestId('tasklist-item-checkbox').evaluateAll((els) => els.filter((e) => !e.closest('[data-dragging="true"]')).map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }));
-  expect(boxes.length).toBeGreaterThan(1);
-  for (const c of boxes) {
-    const overlap = l.x < c.x + c.width && l.x + l.width > c.x && l.y < c.y + c.height && l.y + l.height > c.y;
-    expect(overlap, 'the drop line crosses a checkbox').toBe(false);
+Then('the slot has the size of a row, holds its checkbox and the grips, and no part of it is under a bin', async function (this: World) {
+  const [s, g, row] = [await box(slot(this)), await box(slotCheckbox(this)), await box(otherRows(this).first())];
+  expect(Math.abs(s.height - row.height), 'the slot is as tall as a row').toBeLessThanOrEqual(1);
+  // the checkbox's 48 px target reaches past the slot's edge: its middle (the drawn box) is inside
+  expect(g.x + g.width / 2, 'checkbox inside, at the left').toBeGreaterThanOrEqual(s.x + 8);
+  expect(g.x + g.width / 2).toBeLessThanOrEqual(s.x + s.width);
+  const edges = await this.expanded.locator('[data-testid="tasklist-item"]:not([data-dragging="true"])').evaluateAll((els) => els.map((e) => ({
+    grip: e.querySelector('[data-testid="tasklist-item-grip"]')!.getBoundingClientRect().right,
+    bin: e.querySelector('[data-testid="tasklist-item-delete"]')!.getBoundingClientRect().left,
+  })));
+  for (const e of edges) {
+    expect(s.x + s.width, 'the grip is inside the slot').toBeGreaterThanOrEqual(e.grip - 1);
+    expect(s.x + s.width, 'the slot ends before the bin').toBeLessThanOrEqual(e.bin + 1);
   }
+});
+
+const tree = (w: World) => w.page.getByTestId('tasklist-drop-tree');
+
+Then('the lit tree line starts under the checkbox of {string}, is primary coloured and 2 px wide', async function (this: World, parent: string) {
+  const [t, c] = [await box(tree(this)), await box((await itemById(this, parent)).getByTestId('tasklist-item-checkbox'))];
+  expect(Math.abs(t.x + 1 - (c.x + c.width / 2)), 'the line runs under the middle of the parent checkbox').toBeLessThanOrEqual(2);
+  expect(t.y, 'the line starts under the parent checkbox').toBeGreaterThanOrEqual(c.y + c.height / 2);
+  expect(t.y).toBeLessThanOrEqual(c.y + c.height + 8);
+  const [css, primary] = await tree(this).evaluate((el) => {
+    const probe = document.createElement('i');
+    probe.style.color = 'var(--md-sys-color-primary)';
+    document.body.append(probe);
+    const want = getComputedStyle(probe).color;
+    probe.remove();
+    const cs = getComputedStyle(el);
+    return [{ width: cs.width, color: cs.backgroundColor }, want];
+  });
+  expect(css.width).toBe('2px');
+  expect(css.color).toBe(primary);
+});
+
+Then('the lit tree line runs down to the slot and stays clear of its checkbox', async function (this: World) {
+  const [s, g, t] = [await box(slot(this)), await box(slotCheckbox(this)), await box(tree(this))];
+  expect(Math.abs(t.y + t.height - s.y), 'the line ends at the top of the slot').toBeLessThanOrEqual(2);
+  expect(t.x + t.width, 'the line is left of the slot').toBeLessThanOrEqual(s.x + 1);
+  expect(t.x + t.width, 'the line stops before the checkbox').toBeLessThanOrEqual(g.x + 1);
+});
+
+Then('no tree line is lit', async function (this: World) {
+  await expect(slot(this)).toBeVisible();
+  await expect(tree(this)).toHaveCount(0);
+});
+
+/** The height of the held item's row before it was held, by world. */
+const heightBefore = new WeakMap<World, { title: string; height: number }>();
+
+/** The list's own top left: a bottom sheet that grows with a taller row moves, so places are compared from it. */
+const listCorner = (w: World) => box(w.expanded.locator('ul').first());
+const slotBoxes = new WeakMap<World, { slot: Awaited<ReturnType<typeof box>>; checkbox: Awaited<ReturnType<typeof box>>; list: Awaited<ReturnType<typeof box>> }>();
+
+When('I let go of the item', async function (this: World) {
+  slotBoxes.set(this, { slot: await box(slot(this)), checkbox: await box(slotCheckbox(this)), list: await listCorner(this) });
+  if (!this.held) throw new Error('no item is held');
+  await this.held();
+  finger.delete(this);
+  await this.page.waitForTimeout(900);
+});
+
+Then('the item {string} is taller than it was before it was held', async function (this: World, title: string) {
+  const was = heightBefore.get(this);
+  if (!was || was.title !== title) throw new Error(`"${title}" was not the held item`);
+  expect((await box(await itemById(this, title))).height, 'the title wraps one line more at the deeper level').toBeGreaterThan(was.height + 8);
+});
+
+Then('the item {string} sits exactly where the slot was', async function (this: World, title: string) {
+  const was = slotBoxes.get(this);
+  if (!was) throw new Error('the item was not let go');
+  const row = await itemById(this, title);
+  const [r, c, list] = [await box(row), await box(row.getByTestId('tasklist-item-checkbox')), await listCorner(this)];
+  const [dx, dy] = [list.x - was.list.x, list.y - was.list.y];
+  expect(Math.abs(r.y - dy - was.slot.y), 'top').toBeLessThanOrEqual(1);
+  expect(Math.abs(r.height - was.slot.height), 'height').toBeLessThanOrEqual(1);
+  const mine = { x: c.x - dx, y: c.y - dy, width: c.width, height: c.height };
+  for (const k of ['x', 'y', 'width', 'height'] as const) expect(Math.abs(mine[k] - was.checkbox[k]), `checkbox ${k}`).toBeLessThanOrEqual(1);
 });
 
 Then('the grips and bins of the other items have not moved sideways', async function (this: World) {

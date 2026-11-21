@@ -44,14 +44,18 @@ export function slotOffset(spans: readonly RowSpan[], from: number, to: number):
  * the rows from `to` before `from` move down. `spans` are the rows' layout places (no shift applied); the lifted row's
  * own entry is 0 (it follows the pointer).
  */
-export function rowShifts(spans: readonly RowSpan[], from: number, to: number): number[] {
+export function rowShifts(spans: readonly RowSpan[], from: number, to: number, gap?: number): number[] {
   const out = spans.map(() => 0);
-  if (from < 0 || from >= spans.length || to === from) return out;
+  if (from < 0 || from >= spans.length) return out;
   const own = spans[from];
   const spacing = from > 0 ? own.top - spans[from - 1].bottom : from + 1 < spans.length ? spans[from + 1].top - own.bottom : 0;
   const step = own.bottom - own.top + spacing;
-  if (to > from) for (let i = from + 1; i <= to && i < spans.length; i++) out[i] = -step;
-  else for (let i = Math.max(to, 0); i < from; i++) out[i] = step;
+  // the gap is as tall as the row will be at its new level (a title may wrap differently); the rows after it follow
+  const grow = gap === undefined ? 0 : gap - (own.bottom - own.top);
+  const [first, last] = to > from ? [from + 1, to] : [Math.max(to, 0), from - 1];
+  const moved = to > from ? -step : step + grow;
+  for (let i = from + 1; i < spans.length; i++) out[i] = grow;
+  if (to !== from) for (let i = first; i <= last && i < spans.length; i++) out[i] = moved;
   return out;
 }
 
@@ -98,7 +102,18 @@ export function applyPlacement(items: readonly { id: string; level?: number }[],
   return { ids: out.map((i) => i.id), levels: out.map((i) => i.level) };
 }
 
-/** Where the drop line of a block that will get `level` starts: the title column of a row at `refLevel` (at `refLeft`), moved one `step` per level. */
-export function lineStart(refLeft: number, refLevel: number, level: number, step: number): number {
-  return refLeft + (level - refLevel) * step;
+/** The places of a reference row's checkbox and grip (px from the left of the list; each a 48 px target). */
+export interface RowParts { cb: { left: number; right: number }; grip: { left: number; right: number } | null }
+/** The slot of a row at its target level: its left and right edge, and the left edge of its checkbox (all px from the left of the list). */
+export interface SlotBox { left: number; right: number; cbLeft: number }
+/** Room (px) between a 48 px target's edge and the drawn box or icon inside it, as the slot's inset: the slot encloses it with 8 px to spare. */
+const INSET = { cb: 7, grip: 4 };
+
+/** The dashed slot of a row at `level` from a reference row at `refLevel`: the indent moves the row's start (checkbox, or grip when mirrored); `binRoom` stops it before the bin. */
+export function slotBox(ref: RowParts, refLevel: number, level: number, step: number, listWidth: number, binRoom: number): SlotBox {
+  const shift = (level - refLevel) * step;
+  const cbFirst = !ref.grip || ref.cb.left <= ref.grip.left;
+  const cbLeft = ref.cb.left + (cbFirst ? shift : 0);
+  if (cbFirst) return { left: cbLeft + INSET.cb, right: ref.grip ? ref.grip.right : listWidth - binRoom, cbLeft };
+  return { left: ref.grip!.left + shift + INSET.grip, right: ref.cb.right - INSET.cb, cbLeft };
 }

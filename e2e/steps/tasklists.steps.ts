@@ -422,11 +422,14 @@ When('I drag the item {string} over the gap between {string} and {string} and ho
   await this.page.waitForTimeout(900);
 });
 
-Then('the items {string} and {string} do not overlap the dragged item {string} and it lies between them', async function (this: World, upper: string, lower: string, dragged: string) {
-  const [u, l, d] = await Promise.all([upper, lower, dragged].map(async (t) => box(await itemById(this, t))));
-  // the lifted card is drawn 5% larger (scale 1.05): a few px of tolerance for that
-  expect(u.y + u.height, `"${upper}" ends above "${dragged}"`).toBeLessThanOrEqual(d.y + 4);
-  expect(d.y + d.height, `"${dragged}" ends above "${lower}"`).toBeLessThanOrEqual(l.y + 4);
+Then('the items {string} and {string} do not overlap the slot of the dragged item {string} and it lies between them', async function (this: World, upper: string, lower: string, dragged: string) {
+  const [u, l] = await Promise.all([upper, lower].map(async (t) => box(await itemById(this, t))));
+  // the card follows the finger; the gap the other items open is the dashed slot
+  const slot = this.page.getByTestId('tasklist-drop-slot');
+  await expect(slot, 'the slot belongs to the dragged item').toHaveAttribute('data-title', dragged);
+  const d = await box(slot);
+  expect(u.y + u.height, `"${upper}" ends above the slot`).toBeLessThanOrEqual(d.y + 4);
+  expect(d.y + d.height, `the slot ends above "${lower}"`).toBeLessThanOrEqual(l.y + 4);
 });
 
 When('I tap the item {string}', async function (this: World, title: string) {

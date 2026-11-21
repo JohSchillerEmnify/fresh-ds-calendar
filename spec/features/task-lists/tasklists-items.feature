@@ -158,7 +158,7 @@ Feature: Working with task list items
 
     Scenario: While an item is dragged, the other items make room
       When I drag the item "Bread" over the gap between "Milk" and "Eggs" and hold
-      Then the items "Milk" and "Eggs" do not overlap the dragged item "Bread" and it lies between them
+      Then the items "Milk" and "Eggs" do not overlap the slot of the dragged item "Bread" and it lies between them
 
     Scenario: Every item has a labelled drag handle
       Then the item "Eggs" has the drag handle "Drag Eggs to reorder"
