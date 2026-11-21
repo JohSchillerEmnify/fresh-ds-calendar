@@ -323,6 +323,86 @@ Feature: Subtasks in task lists
       Then the expanded task list items are "Tent, Pegs, Poles, Food"
       And the item "Poles" is a subtask of "Pegs"
 
+  Rule: A task is never done while one of its subtasks is open
+
+    Whatever puts an open item under a done task opens that task again, and every task above it, so the open work
+    stays visible. Ticking a task still ticks its subtasks, and ticking the last open subtask still leaves its task as
+    it is.
+
+    @backlog
+    Scenario: Unticking a subtask of a done task opens the task
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I tick the item "Food"
+      And I tick the item "Tent"
+      Then the items "Tent, Pegs, Food" are ticked
+      When I untick the item "Pegs"
+      Then the items "Tent, Pegs" are not ticked
+      And the item "Food" is ticked
+      And the task list "Packing" shows the done count "1/4"
+
+    @backlog
+    Scenario: Dragging an open item under a done task opens the task
+      When I tick the item "Tent"
+      And I drag the item "Pegs" one step to the right
+      Then the item "Pegs" is a subtask of "Tent"
+      And the item "Tent" is not ticked
+
+    @backlog
+    Scenario: Tab under a done task opens the task
+      When I tick the item "Tent"
+      And I start renaming the item "Pegs" and press Tab
+      Then the item "Pegs" is a subtask of "Tent"
+      And the item "Tent" is not ticked
+
+    @backlog
+    Scenario: An open sub-subtask opens both the subtask and the task above it
+      Given the item "Pegs" was made a subtask of "Tent"
+      And the item "Poles" was made a subtask of "Pegs"
+      When I tick the item "Tent"
+      Then the items "Tent, Pegs, Poles" are ticked
+      When I untick the item "Poles"
+      Then the items "Tent, Pegs, Poles" are not ticked
+
+    @backlog
+    Scenario: A new open line under a done task in the form opens the task
+      When I tick the item "Food"
+      And I edit the task list details
+      And I type the items:
+        """
+        Tent
+        Pegs
+        Poles
+        Food
+          Stove
+        """
+      And I save the task list
+      And I expand the task list "Packing"
+      Then the item "Stove" is a subtask of "Food"
+      And the item "Food" is not ticked
+
+    @backlog
+    Scenario: A list that already has a done task over an open subtask shows the task open
+      Given Google contains a raw task list event "Camping" on 2026-10-14 with the description:
+        """
+        ☐ Order
+        ☑ Assemble
+        ☑ Tidy up
+          ☐ Fold clothes
+        """
+      When I reload the page
+      And I expand the task list "Camping"
+      Then the item "Tidy up" is not ticked
+      And the item "Fold clothes" is a subtask of "Tidy up"
+      And the task list "Camping" shows the done count "1/4"
+
+    @backlog
+    Scenario: On the calendar card the open subtask stays under its open task
+      Given the item "Pegs" was made a subtask of "Tent"
+      When I tick the item "Tent"
+      And I untick the item "Pegs"
+      And I collapse the task list
+      Then the collapsed task list "Packing" shows the item "Pegs" indented under "Tent"
+
   Rule: The subtask lines are straight guides or tree branches, as set under Task lists in the settings
 
     Straight guides (the default) are one thin vertical line per level, as in a code editor. Tree branches hang each
