@@ -25,6 +25,16 @@ describe('subtasks on the device before the server answers', () => {
     expect(sub.items.map((i) => i.done)).toEqual([false, true, true, false]);
     expect(sub.doneCount).toBe(2);
   });
+  it('unticking a subtask of a done task opens the task; a reorder under a done task opens it', () => {
+    const open = apply({ op: 'item.patch', id: 'L', itemId: 'tent', patch: { done: true } }, { op: 'item.patch', id: 'L', itemId: 'poles', patch: { done: false } });
+    expect(open.items.map((i) => i.done)).toEqual([false, false, false, false]);
+    expect(open.doneCount).toBe(0);
+    const moved = apply({ op: 'item.patch', id: 'L', itemId: 'tent', patch: { done: true } }, { op: 'item.order', id: 'L', itemIds: ['tent', 'food', 'pegs', 'poles'], levels: [0, 1, 1, 2] });
+    expect(moved.items.map((i) => i.done)).toEqual([false, false, true, true]);
+    expect(moved.doneCount).toBe(2);
+    const under = apply({ op: 'item.patch', id: 'L', itemId: 'food', patch: { done: true } }, { op: 'item.order', id: 'L', itemIds: ['tent', 'pegs', 'poles', 'food'], levels: [0, 1, 2, 0] }, { op: 'item.add', id: 'L', itemId: 'new', title: 'Stove', level: 1 });
+    expect(under.items.map((i) => i.done)).toEqual([false, false, false, false, false]);
+  });
   it('a rename ticks nothing', () => {
     expect(apply({ op: 'item.patch', id: 'L', itemId: 'tent', patch: { title: 'Big tent' } }).items.map((i) => i.done)).toEqual([false, false, false, false]);
   });

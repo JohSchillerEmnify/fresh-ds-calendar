@@ -2,7 +2,7 @@
 import type {
   CalendarEvent, CalendarItem, ChangeScope, InkStroke, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
-import { blockIds, clampLevels, levelOf, levelProp, withLevel } from '@calendar/shared/subtasks';
+import { blockIds, clampLevels, levelOf, levelProp, reopenParents, withLevel } from '@calendar/shared/subtasks';
 
 /** One change of an event, a task list or one of its items; `id` is the event or the list (a device id until its create was sent). */
 export type Change =
@@ -60,7 +60,11 @@ export function keptItems<T extends { title: string; strokes?: unknown }>(items:
   return (items ?? []).filter((i) => i.title.trim() || i.strokes);
 }
 
-const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, doneCount: items.filter((i) => i.done).length, totalCount: items.length });
+/** The list with these items (a done task over an open subtask shown open, as the server saves it) and counts that follow. */
+const recount = (tl: TaskList, items: TaskItem[]): TaskList => {
+  const shown = reopenParents(items);
+  return { ...tl, items: shown, doneCount: shown.filter((i) => i.done).length, totalCount: shown.length };
+};
 
 /** A new task list as the device shows it before the server has answered. */
 export function localTaskList(id: string, input: CreateTaskListInput): TaskList {
@@ -103,8 +107,8 @@ function applyItemOp(cur: TaskList, c: Change): TaskList {
     case 'item.order': {
       const at = (i: TaskItem) => { const n = c.itemIds.indexOf(i.id); return n < 0 ? Infinity : n; };
       const sorted = [...cur.items].sort((a, b) => at(a) - at(b));
-      if (!c.levels) return { ...cur, items: sorted };
-      return { ...cur, items: clampLevels(sorted.map((i) => withLevel(i, c.levels![c.itemIds.indexOf(i.id)] ?? levelOf(i)))) };
+      if (!c.levels) return recount(cur, sorted);
+      return recount(cur, clampLevels(sorted.map((i) => withLevel(i, c.levels![c.itemIds.indexOf(i.id)] ?? levelOf(i)))));
     }
     default: return cur;
   }
