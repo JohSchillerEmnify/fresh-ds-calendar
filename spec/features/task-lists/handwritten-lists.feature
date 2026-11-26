@@ -267,6 +267,13 @@ Feature: Labs: handwritten lists
       And the stroke at pressure 0.5 is at most 0.05 of a line height
       And the stroke at pressure 1.0 is at least 2.5 times as thick as the stroke at pressure 0.1
 
+    # unit: web/test/ink-lib.test.ts:draws handwriting as smooth curves, not corners
+    @unit
+    Scenario: Handwriting is drawn as smooth curves, not corners
+      When I draw a curved stroke with the pen
+      Then the line the stroke is drawn along turns by at most 20 degrees between two neighbouring points
+      And strokes saved before still show
+
     Scenario: A downward pen stroke draws and does not scroll the list
       When I draw a stroke 40 pixels downwards with the pen on the ink item number 3
       Then the ink item number 3 has one more stroke

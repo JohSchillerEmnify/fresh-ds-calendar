@@ -4608,6 +4608,9 @@ I press the eraser button
 the task list {string} holds about 1 MB of ink
 I write {int} words of {int} strokes with a pen that reports {int} points per stroke
 the list is not full
+I draw a curved stroke with the pen
+the line the stroke is drawn along turns by at most {int} degrees between two neighbouring points
+strokes saved before still show
 the app says the list is full and suggests starting a new list
 the stroke has the theme's text colour
 I choose the ink colour preset {string}
