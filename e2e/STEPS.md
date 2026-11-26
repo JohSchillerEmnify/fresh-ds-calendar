@@ -4601,6 +4601,7 @@ the device passes the pen double tap on
 I double tap the pen
 I touch the first stroke with the eraser end of the pen
 I touch the first stroke with the pen
+I draw a stroke with the pen on the first writing line
 I press the eraser button
 the task list {string} holds about 1 MB of ink
 I write {int} words of {int} strokes with a pen that reports {int} points per stroke

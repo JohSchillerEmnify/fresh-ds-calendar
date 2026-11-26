@@ -236,7 +236,7 @@ async function save() {
   if (!s) { saving.value = false; return; }
   // the title and the item lines follow the answer: the later lists, or all of them
   const later = s === 'this' ? undefined : s;
-  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); if (!replaced) inkForm.edited.value.forEach((e) => outbox.setInk(current.id, e.id, e.strokes, e.before)); };
+  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); const listId = current?.id; if (listId && !replaced && inkForm.edited.value.length) { inkForm.edited.value.forEach((e) => outbox.setInk(listId, e.id, e.strokes, e.before)); outbox.sendInk(listId); } };
   // a list that starts to repeat gets its item changes first, so every later week has them
   const itemsFirst = !!body.recurrence && editing.value;
   try {

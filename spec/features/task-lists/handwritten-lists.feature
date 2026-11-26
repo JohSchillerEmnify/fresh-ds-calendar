@@ -400,6 +400,18 @@ Feature: Labs: handwritten lists
       Then the expanded task list has 3 items
       And the ink item number 3 has 1 stroke
 
+    Scenario: A stroke drawn on a handwritten item in the form is saved on that item
+      Given the calendar contains a task list "Notes" on 2026-10-15 with the ink items "Milk, Eggs"
+      When I open the day view for 2026-10-15
+      And I expand the task list "Notes"
+      And I edit the task list details
+      And I draw a stroke with the pen on the first writing line
+      And I save the task list
+      And I expand the task list "Notes"
+      Then the expanded task list has 2 items
+      And the ink item number 1 has 2 strokes
+      And the ink item number 2 has 1 stroke
+
   Rule: Ink is shown read-only and small outside the places where I write
 
     Background:
