@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2026-11-26
-- Fixed: when the all-day band already shows every list in full, tapping a task list there opens the list instead of growing it.
+- Fixed: when the all-day band is switched to show the lists' items, tapping a task list there opens the list instead of growing it.
 - Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.
 - Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
 
