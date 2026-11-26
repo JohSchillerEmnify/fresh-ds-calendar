@@ -371,6 +371,35 @@ Feature: Labs: handwritten lists
       Then the new list form shows the writing mode switch with the pen icon
       And the dialog shows ruled lines to write on
 
+    Scenario: The form of a list with handwritten items shows them in its writing lines (issue 177)
+      Given the calendar contains a task list "Notes" on 2026-10-15 with the ink items "Milk, Eggs"
+      When I open the day view for 2026-10-15
+      And I expand the task list "Notes"
+      And I edit the task list details
+      Then the writing area shows 2 strokes
+
+    Scenario: Saving the form of a list with handwritten items unchanged keeps them unchanged
+      Given the calendar contains a task list "Notes" on 2026-10-15 with the ink items "Milk, Eggs"
+      When I open the day view for 2026-10-15
+      And I expand the task list "Notes"
+      And I edit the task list details
+      And I save the task list
+      And I expand the task list "Notes"
+      Then the expanded task list has 2 items
+      And the ink item number 1 has 1 stroke
+      And the ink item number 2 has 1 stroke
+
+    Scenario: A line written in the form of a list with handwritten items comes after them
+      Given the calendar contains a task list "Notes" on 2026-10-15 with the ink items "Milk, Eggs"
+      When I open the day view for 2026-10-15
+      And I expand the task list "Notes"
+      And I edit the task list details
+      And I draw a stroke with the pen
+      And I save the task list
+      And I expand the task list "Notes"
+      Then the expanded task list has 3 items
+      And the ink item number 3 has 1 stroke
+
   Rule: Ink is shown read-only and small outside the places where I write
 
     Background:
