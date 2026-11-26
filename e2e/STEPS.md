@@ -4588,6 +4588,9 @@ the note {string} shows {int} ink items
 the dialog is larger than without the feature
 the dialog is as large as without the feature
 the dialog shows ruled lines to write on
+the dialog is centred up and down on the screen
+I note where the last writing line is
+the writing line I wrote on is where it was
 the item fields are ruled, ordinary text fields
 the form has no button that turns ink into text
 the device's handwriting recognition enters the text {string} in the item field
