@@ -257,6 +257,7 @@ When('I double tap the pen', async function (this: World) {
 When('I touch the first stroke with the eraser end of the pen', async function (this: World) {
   await stroke(formLines(this).first(), 'pen', { buttons: 32 });
 });
+When('I draw a stroke with the pen on the first writing line', async function (this: World) { await stroke(formLines(this).first(), 'pen'); });
 When('I touch the first stroke with the pen', async function (this: World) { await stroke(formLines(this).first(), 'pen'); });
 When('I press the eraser button', async function (this: World) { await this.page.getByTestId('ink-eraser').click(); });
 Given('the task list {string} holds about 1 MB of ink', async function (this: World, title: string) {

@@ -123,6 +123,10 @@ function fill(src: TaskList) {
   original = JSON.stringify(form);
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
+/** The handwritten items of the list show in their writing lines, as lines written in the form do. */
+function loadInk(src: TaskList) {
+  inkForm.load(src.items.filter((i) => i.ink).map((i) => ({ id: i.id, strokes: inkStore.strokes(i.id) })));
+}
 onMounted(async () => {
   // the names already taken, for "Also save as template"
   templates.load().catch(() => undefined);
@@ -136,9 +140,9 @@ onMounted(async () => {
   }
   const cur = items.get(props.id!);
   if (props.focus === 'share') void focusShare();
-  if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
+  if (cur?.kind === 'tasklist') { fill(cur); loadInk(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; if (props.focus === 'share') void focusShare(); }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); loadInk(fresh); seen = fresh.items; if (props.focus === 'share') void focusShare(); }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });
@@ -232,7 +236,7 @@ async function save() {
   if (!s) { saving.value = false; return; }
   // the title and the item lines follow the answer: the later lists, or all of them
   const later = s === 'this' ? undefined : s;
-  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); };
+  const sendItems = () => { if (current && plan) saveItemEdits(current, seen, lines, plan, inkForm.written.value, later); const listId = current?.id; if (listId && !replaced && inkForm.edited.value.length) { inkForm.edited.value.forEach((e) => outbox.setInk(listId, e.id, e.strokes, e.before)); outbox.sendInk(listId); } };
   // a list that starts to repeat gets its item changes first, so every later week has them
   const itemsFirst = !!body.recurrence && editing.value;
   try {
@@ -262,7 +266,7 @@ async function save() {
     if (ruleChanged && s !== 'all') outbox.updateList(props.id!, { recurrence: rule }, s);
     // the list is saved; a template that fails now is only reported, the list stays
     if (alsoTemplate.value) {
-      await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
+      await templates.add(templateFromForm(form, cats.on.value, inkForm.all.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
     }
     void lists.refresh().catch(() => undefined);
     emit('close');
