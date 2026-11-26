@@ -30,10 +30,12 @@ function onDown(e: PointerEvent) {
   grab = props.dates[props.bar.startCol + i];
 }
 // a preview copy (swipe neighbour) is inert: no drag handlers
-if (!inPreview()) useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday', () => !!ev.value.special || !!ev.value.readOnly);
+const preview = inPreview();
+if (!preview) useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday', () => !!ev.value.special || !!ev.value.readOnly);
 const marker = computed(() => specialMarker(ev.value));
 let dragged = false;
 function onClick(e: MouseEvent) {
+  if (preview) return;
   e.stopPropagation();
   if (!dragged) openItem(ev.value);
 }

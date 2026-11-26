@@ -40,7 +40,9 @@ const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
 // birthdays and events that are not the person's own (invitations, other people's calendars) are read-only: they do not drag
 const marker = computed(() => specialMarker(ev.value));
-if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special || !!ev.value.readOnly);
+// a preview pill opens nothing; the tap reaches the tile around it
+const preview = inPreview();
+if (!preview) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special || !!ev.value.readOnly);
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => showsHandles(ui.resizing, props.segment, props.variant));
 
@@ -88,7 +90,7 @@ const showChipTime = computed(() => props.variant === 'chip' && (!isPhone.value 
     ref="rootRef" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, narrow }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-calendar-id="ev.calendarId" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-one-line="(variant === 'block' && lines === 1) || undefined" :data-current="current || undefined"
-    :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
+    :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="preview || cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">

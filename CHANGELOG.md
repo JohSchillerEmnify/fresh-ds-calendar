@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-26
+- Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
+
 ## 2026-11-21
 - Changed: if someone declined an invitation to a shared list or category, you can invite the same address again; they see it as a new invitation, and you still only see "Invitation sent".
 - Fixed: a task in a task list is never done while one of its subtasks is open. Unticking a subtask, or moving or adding an open item under a done task, opens the task again, and a list that already had this shows the task open.
