@@ -125,6 +125,17 @@ Feature: Labs: handwritten lists
     When I open the new task list form
     Then the add button covers no control of the "writing area"
 
+  @mobile
+  Scenario: With the all-day band showing full lists, a tap on a handwritten list there opens it and does not grow it
+    Given the Labs switch "Handwritten lists" is on
+    And the calendar contains a task list "Notes" on 2026-10-14 with the ink items "Milk, Eggs"
+    When I open the week of 2026-10-12 on a phone
+    And I tap the band's section switch
+    Then the band's lists show their items
+    When I tap the task list "Notes"
+    Then the task list "Notes" opens as the list sheet
+    And no task list is expanded
+
   Rule: In ink mode each item is a line of ink instead of a title (assumption A1)
 
     Background:

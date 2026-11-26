@@ -161,6 +161,19 @@ Feature: A task list card grows in place over the calendar
     And I tap the task list "Groceries"
     Then the task list "Groceries" is expanded over the calendar
 
+  @mobile
+  Scenario: With the all-day band showing full lists, a tap on a list there opens it and does not grow it
+    Given the calendar contains a task list "Weekend" on 2026-10-14 with items:
+      | item    | done |
+      | Laundry | no   |
+      | Bike    | no   |
+    When I open the week of 2026-10-12 on a phone
+    And I tap the band's section switch
+    Then the band's lists show their items
+    When I tap the task list "Weekend"
+    Then the task list "Weekend" opens as the list sheet
+    And no task list is expanded
+
   Scenario: With the setting "drawer" a tap opens the list sheet directly
     Given the task list tap setting is "drawer"
     When I open the day view for 2026-10-14

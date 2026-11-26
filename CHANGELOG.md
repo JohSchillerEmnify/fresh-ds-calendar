@@ -2,6 +2,7 @@
 
 ## 2026-11-26
 - Changed: on a tablet, the task list dialog keeps its writing lines in place while you write on its last line (still to be checked on iPad).
+- Fixed: when the all-day band is switched to show the lists' items, tapping a task list there opens the list instead of growing it.
 - Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.
 - Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
 
