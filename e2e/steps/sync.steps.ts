@@ -7,15 +7,28 @@ import type { World } from './support/world.js';
 /** The app's focus debounce (feature background-sync). */
 const FOCUS_DEBOUNCE_MS = 500;
 
+/** The service worker has precached the build and controls the page: only then do the lazy chunks of a dialog load offline (a worker still installing is no offline copy yet). */
+async function offlineCopyReady(w: World): Promise<void> {
+  if (!w.page.url().startsWith('http')) return;
+  await w.page.waitForLoadState('networkidle').catch(() => undefined);
+  // bounded: a worker that never registers must not hang the step, and the page may reload when the worker takes control
+  const ready = async () => w.page.evaluate(async () => {
+    if (!navigator.serviceWorker) return;
+    await Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(r, 5_000))]);
+    for (let i = 0; i < 100 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 50));
+  });
+  await ready().catch(async () => { await w.page.waitForLoadState('networkidle').catch(() => undefined); await ready().catch(() => undefined); });
+}
+
 When('the network connection is lost', async function (this: World) {
   // The connection drops after the open page has loaded (its lazy chunks and first fetches), not in the middle of it.
-  if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
+  await offlineCopyReady(this);
   await this.context.setOffline(true);
 });
 
 /** The same drop of the connection, as a Given of the contact-birthdays offline scenario. */
 Given('the device is offline', async function (this: World) {
-  if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
+  await offlineCopyReady(this);
   await this.context.setOffline(true);
 });
 

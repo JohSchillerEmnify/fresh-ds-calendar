@@ -150,6 +150,14 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json({ retryAfterSec });
   });
 
+  // "Google refuses text searches (events.list with q) because of its rate limit"; reads without q are not refused.
+  t.post('/search-rate-limit', async (c) => {
+    const b = (await body(c)) as { on?: unknown } | undefined;
+    if (typeof b?.on !== 'boolean') throw validation('on must be a boolean', 'on');
+    mock.setSearchRateLimited(b.on);
+    return c.json({ on: b.on });
+  });
+
   // `owner` (a Google address) selects that person's mock calendar; without it the shared one is used.
   const store = (owner: string | undefined) => (owner ? ctx.mockFor(mockSub(owner)) : mock);
   const calendarOf = (owner: string | undefined) => (owner ? ctx.calendarFor(mockSub(owner)) : ctx.calendar);
@@ -303,6 +311,14 @@ export function testRoutes(ctx: Ctx): Hono {
     if (!b || typeof b !== 'object' || !b.start || !b.end) throw validation('start and end are required');
     const { calendarId, owner, ...ev } = b;
     return c.json(store(owner).remote.insert(calendarId ?? 'primary', ev), 201);
+  });
+
+  // Many events at once (a heavy year): every `events` entry as for `POST /remote/events`, in the calendar `calendarId` (default primary).
+  t.post('/remote/events/bulk', async (c) => {
+    const b = (await body(c)) as { calendarId?: string; owner?: string; events?: GoogleEventInput[] } | undefined;
+    if (!Array.isArray(b?.events)) throw validation('events must be an array', 'events');
+    for (const ev of b.events) store(b.owner).remote.insert(b.calendarId ?? 'primary', ev);
+    return c.json({ count: b.events.length }, 201);
   });
 
   t.patch('/remote/events/:id', async (c) => {

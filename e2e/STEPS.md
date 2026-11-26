@@ -4237,6 +4237,7 @@ the top bar's widgets are in reverse order
   are ordered right to left as they were left to right.
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
   `expressive-<scene>-<size>-<scheme>` (feature header-expressive).
+- The `@visual` region `item search` is `item-search` (feature item-search; baselines `item-search-<state>-<scheme>`).
 - Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
   `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
   `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are decoration and are not judged (owner 2026-10-30:
@@ -4888,3 +4889,100 @@ in the {view} view of {date} the marker of {string} is {float} px
 
 - "I tap the text T in the event form": clicks the text T inside the event dialog's label row (not the control itself), e.g. "All day".
 - "I tap the name of the calendar C in the side menu": clicks the text of C's `side-menu-calendar` row (not its checkbox).
+
+## Item search (`@id:item-search`)
+
+```
+the top bar shows the search button
+the top bar shows no search button
+the side menu has the search row at its top
+I choose the search row in the side menu
+the search button is right after the date and before the Today button
+I open the item search
+the item search is open
+the item search is closed
+the item search is shown as a bottom sheet
+the item search is shown as a dialog
+I search the items for {string}
+I clear the item search
+the item search shows the event {string} on {date}
+the item search shows the task list {string} on {date}
+the item search shows the undated task list {string}
+the item search shows the shared task list {string}
+the item search shows the item {string} of the task list {string}
+the item search shows {int} result(s)
+the item search lists {string}
+the item search says nothing matches {string}
+the item search says it covers {date} to {date}
+I choose the item search result {string}
+the calendar contains a heavy year around {date}
+I search the items for {string} and the results appear within {int} ms
+I open and close the item search {int} times
+the item search marks the result {string} as hidden
+the item search does not mark the result {string} as hidden
+the item search shows at most {int} results
+the item search shows more than {int} results
+I scroll the item search to the end
+the item search has {int} results in all
+the item search has not looked beyond the device yet
+the item search says it searched all dates
+the item search says the nearest {int} are shown and more load while scrolling
+the item search says searching all dates did not finish
+the item search says the rest needs a connection
+Google refuses searches because of its rate limit
+Google accepts searches again
+the calendar contains {int} events {string} one a day from {date}
+```
+
+- The search field takes at most 100 characters (the server's limit); without a device copy the search beyond the device is not asked.
+- With the side menu (view switcher "side menu") the top bar has no `search-button`; the menu has the row `side-menu-search` before the view entries, which closes the menu and opens the search. "the side menu is closed" is the existing step.
+- Hooks: the top bar button is `search-button` (in `top-bar`); the sheet is `item-search`
+  (an `AdaptiveSheet`, `data-presentation="sheet|modal"`) with the `m3` `SearchField` input `item-search-input` and
+  `search-clear`; each result is `item-search-result` with `data-kind` (`event|tasklist`), `data-title`, `data-date`
+  (absent for an undated list), `data-shared` and, when the match is a task item, `data-item` (its title); the
+  empty note is `item-search-empty` (contains the query); the reach note is `item-search-reach` with `data-from` and
+  `data-to`.
+- "the search button is right after the date ...": in `top-bar` the left edge order is `period-title`, `search-button`, `nav-today` with no other control between them.
+- "heavy year around D" (feature item-search, `@perf`): the events through the bulk test route `POST /api/__test/remote/events/bulk` (500 per call), the task lists
+  as single `POST /api/tasklists` calls (8 at a time), the same every run (seeded random), over the device window D-365 up to, not including, D+366: 8 000 timed events (about 11 a day, a little below the
+  busy month of resource-efficiency: 500 entries in 42 days, about 12 a day), each with a title, a description of about 10 words and a
+  location, and 700 task lists (one every day or so) with 3 to 8 items (about 3 800 items); words from fixed lists.
+- "I search the items for T and the results appear within N ms": as "I search the items for T", and the first
+  `item-search-result` (or `item-search-empty`) is visible within N ms of the last key, measured with `performance.now()`.
+- "marks the result T as hidden": the `item-search-result` with `data-title` T has `data-hidden` (its calendar is switched off in the
+  filter bar); "does not mark ...": it has none. The shared mark is `data-shared` (steps above).
+- "shows at most|more than N results": counts the `item-search-result` rows in the DOM (the list renders the first screenful,
+  about 20 rows, and appends the next block when the scroller nears its end); "I scroll the item search to the end"
+  scrolls `item-search-list` to its bottom and waits for the next block.
+- Reach lines (owner: "but not silently, we need to tell user"; no button, decisions 18 and 19): `item-search-reach` (device
+  copy, `data-from`/`data-to`, the last day shown) and `item-search-beyond` below the device results with `data-state`
+  `idle|loading|done|more|limited|offline`: `idle` = not asked (the device results fill the screen, or the end was not
+  reached), `loading` = "Searching all dates", `done` = "Searched all dates", `more` = the page of 100 is full and more
+  load on the next scroll to the end (`data-limit` 100), `limited` = an ask failed for a reason other than having no connection (the scenario uses Google's rate limit); after a failed ask the next scroll to the end waits 3 s before asking again, `offline` = the rest
+  needs a connection. The steps read `data-state`: "has not looked beyond the device yet" = `idle`; "says it searched all
+  dates" = `done`; "says the nearest N are shown and more load while scrolling" = `more` with `data-limit` N; "says
+  searching all dates did not finish" = `limited`; "says the rest needs a connection" = `offline`. "has N results in all"
+  reads `data-total` of `item-search-list` (all matches so far, also the rows not yet rendered); `data-loads` counts the asks of
+  Google that finished (failed ones too). "I scroll the item search to the end" scrolls `item-search-list` to its bottom with the
+  mouse wheel too (a short list has nothing to scroll), again and again until the rows known so far are drawn and Google has
+  been asked once more (`data-loads` grew) or nothing more can be asked (`done`, `offline`). The beyond-the-device block follows the device block in the list (nearest to today first).
+- "Google refuses searches because of its rate limit" / "Google accepts searches again": `POST /api/__test/search-rate-limit`
+  `{ on: true|false }`: while on, the mock provider raises the rate guard's rate-limited error (cooldown 1 s) for `events.list` calls that carry `q`, so the request answers 503 `RATE_LIMITED` with `Retry-After`; it does not answer a Google 403 `rateLimitExceeded` itself. Reads without `q` are not refused (a design choice of the mock).
+- "the calendar contains N events T one a day from D": N all-day-free one-hour events titled T at 10:00, one on each day from D
+  (bulk seeding through `POST /api/__test/remote/events/bulk`, as the heavy year).
+- "I open and close the item search N times": `search-button` then Escape, waiting for `item-search` to leave the DOM.
+- "the network connection is lost" waits for the page to be idle and, for the service worker to be ready (up to about 5 s) and then to control the page (up to about 5 s more), immediately when there is none, then goes offline.
+- "I search the items for T": fills `item-search-input` and waits for the results (no debounce: they follow each keystroke).
+  "I clear the item search" clicks `search-clear`.
+- "shows the event E on D" / "the task list L on D": a result with that kind, `data-title` and `data-date`; "the undated
+  task list L": `data-kind="tasklist"` with no `data-date`; "the shared task list L": `data-shared` is set;
+  "the item I of the task list L": a result with `data-title` L and `data-item` I. "shows N result(s)" counts `item-search-result`.
+- "the item search lists X": the results' labels in DOM order equal X split on `, `; a label is the `data-title`, with
+  ` on <data-date>` appended only when the expected entry itself ends in ` on YYYY-MM-DD` and the result has a date.
+- "says nothing matches Q": no result and `item-search-empty` contains Q. "says it covers A to B": `data-from`/`data-to`.
+- "I choose the item search result T": clicks the first `item-search-result` with `data-title` T.
+- "is shown as a bottom sheet|dialog": `data-presentation` of `item-search` is `sheet` / `modal`.
+- Steps reused: `I open the day view for {date}`, `today is {date}`, the seeding steps of events, task lists, handwritten
+  lists and shared lists, `I show the filters`, `I hide the calendar C in the filter bar`, `the network connection is
+  lost`, `I press Escape`, `the URL path is`, `the event dialog is open`, `the task list {string} is expanded`, `the Tasks view
+  lists`.

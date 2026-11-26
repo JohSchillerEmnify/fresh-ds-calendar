@@ -3,6 +3,7 @@ import type { Ctx } from '../context.js';
 import { validation } from '../lib/errors.js';
 import { dayNumber, isLocalDate } from '../lib/time.js';
 import type { Scope } from '../services/calendar.js';
+import type { SearchKey } from '../services/itemQueries.js';
 
 /** What every route group gets: the router, the app context, and who and which calendar a request is for. */
 export interface RouteDeps {
@@ -71,4 +72,26 @@ export function alsoRange(c: Context, maxDays: number): { from: string; to: stri
     throw validation('also must be a range (YYYY-MM-DD..YYYY-MM-DD)', 'also');
   }
   return checkRange(from, to, maxDays, 'also');
+}
+
+/** `outside=YYYY-MM-DD..YYYY-MM-DD` of `GET /api/search`: the days the device holds (`to` exclusive), which the search leaves out. */
+export function searchOutside(c: Context): { from: string; to: string } {
+  const [from, to, ...rest] = (c.req.query('outside') ?? '').split('..');
+  if (rest.length || !from || !to || !isLocalDate(from) || !isLocalDate(to) || to <= from) throw validation('outside must be a range (YYYY-MM-DD..YYYY-MM-DD)', 'outside');
+  return { from, to };
+}
+
+export const searchToday = (c: Context): string => dateParam(c, 'today');
+
+/** The opaque `cursor` of `GET /api/search`: the last position sent, as base64url JSON. */
+export const encodeCursor = (k: SearchKey): string => Buffer.from(JSON.stringify(k)).toString('base64url');
+
+export function searchCursor(c: Context): SearchKey | undefined {
+  const raw = c.req.query('cursor');
+  if (raw === undefined) return undefined;
+  try {
+    const k: unknown = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+    if (Array.isArray(k) && k.length === 3 && Number.isInteger(k[0]) && Number.isInteger(k[1]) && typeof k[2] === 'string') return k as SearchKey;
+  } catch { /* falls through to the error */ }
+  throw validation('cursor is not valid', 'cursor');
 }

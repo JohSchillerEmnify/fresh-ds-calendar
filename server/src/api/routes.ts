@@ -11,7 +11,7 @@ import { parsePrefsPatch } from '@calendar/shared/prefs';
 import { canvasDocSchema, defaultRemindersSchema, calendarColorPickSchema, createBirthdaySchema, createEventSchema, parse, parseTemplate, updateEventSchema } from '../lib/validation.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { registerChanges } from './changesRoutes.js';
-import { alsoRange, body, calendarList, range, readItems, type RouteDeps } from './routeHelpers.js';
+import { alsoRange, body, calendarList, encodeCursor, range, readItems, searchCursor, searchOutside, searchToday, type RouteDeps } from './routeHelpers.js';
 import { registerSettings } from './settingsRoutes.js';
 import { registerWidgetKeys } from './widgetRoutes.js';
 import { registerInvitations } from './invitationRoutes.js';
@@ -203,6 +203,13 @@ export function apiRoutes(ctx: Ctx): Hono {
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
     // the widget cannot filter by the person's hidden calendars itself, so it asks the server to
     return c.json(await readItems(ctx, person(c), cal(c), from, to, { ids, also, excludeHidden: c.req.query('excludeHidden') === '1' }));
+  });
+
+  r.get('/search', async (c) => {
+    const q = (c.req.query('q') ?? '').trim();
+    if (!q || q.length > 100) throw validation('q must be 1 to 100 characters', 'q');
+    const res = await cal(c).searchOutside(q, searchOutside(c), searchToday(c), searchCursor(c));
+    return c.json({ items: res.items, ...(res.nextCursor ? { nextCursor: encodeCursor(res.nextCursor) } : {}) });
   });
 
   r.get('/summary', async (c) => {

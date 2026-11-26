@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-26
+- New: a search button in the top bar finds events and task lists by title, notes, place or task item, even with a typo and without a connection; at the end of the list it goes on over all dates for events when you are online, 100 at a time.
 - New: in Settings › Views you can show the week in two rows separately on phones and on tablets and desktops; anyone who had the two-row week turned on keeps it on both.
 - Changed: handwriting is drawn with smoother curves (still to be checked with a pen on iPad and Windows).
 - Changed: on a tablet, the task list dialog keeps its writing lines in place while you write on its last line (still to be checked on iPad).

@@ -65,6 +65,7 @@ const DATE_FORMATS = {
   dayMonthShort: { en: 'd MMM', intl: { day: 'numeric', month: 'short' } },
   weekdayDayMonth: { en: 'EEE d MMM', intl: { weekday: 'short', day: 'numeric', month: 'short' } },
   weekdayDayMonthLong: { en: 'EEEE d MMMM', intl: { weekday: 'long', day: 'numeric', month: 'long' } },
+  dayMonthYear: { en: 'd MMM yyyy', intl: { day: '2-digit', month: '2-digit', year: 'numeric' } },
   monthYear: { en: 'MMMM yyyy', intl: { month: 'long', year: 'numeric' } },
   full: { en: 'EEEE d MMMM yyyy', intl: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } },
 } as const satisfies Record<string, { en: string; intl: Intl.DateTimeFormatOptions }>;

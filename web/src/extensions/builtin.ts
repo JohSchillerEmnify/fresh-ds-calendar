@@ -1,6 +1,7 @@
 import { registerTaskListFeature } from '@/features/tasklists';
 import { registerCalendarFeature } from '@/features/calendar';
 import { registerBedtimeFeature } from '@/features/bedtime';
+import { registerSearchFeature } from '@/features/search';
 import { registerDialog } from '@/extensions/registry';
 
 /**
@@ -11,5 +12,6 @@ export function registerBuiltinExtensions(): void {
   registerTaskListFeature();
   registerCalendarFeature();
   registerBedtimeFeature();
+  registerSearchFeature();
   registerDialog('whats-new', () => import('@/components/settings/WhatsNewSheet.vue'));
 }

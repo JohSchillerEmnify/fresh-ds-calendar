@@ -502,6 +502,31 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   and shows no banner.
 - Errors: `400` for a bad `today`.
 
+### `GET /api/search?q=<text>&outside=YYYY-MM-DD..YYYY-MM-DD&today=YYYY-MM-DD[&cursor=<opaque>]` → 200 (feature item-search)
+
+The search beyond the device (owner decisions 18 and 19): when the person scrolls to the end of the device results while
+online, the device asks for the events outside its own window (`outside` = `windowOf(today)` (`[from, to)`, end exclusive), which
+the server leaves out: an event that touches any day of it is not returned) that match `q`. All dates, no upper bound on the range; events only (the device holds every task
+list). Per person: only the session's calendars are read (the ones Google's calendar list shows; hidden ones in the app's filter bar
+included, the device marks them by `calendarId`). Matching is Google's own `events.list` `q` (docs, read 2026-11-26: "summary, description,
+location, attendee's displayName, attendee's email, organizer's displayName, organizer's email" and the working-location
+fields; `maxResults` default 250, never above 2500; a page may hold fewer events or none, so the server follows `nextPageToken`;
+`timeMin` is a lower bound for an event's end, `timeMax` an upper bound for its start). Every calendar is read twice, once before
+`outside` (`timeMax` = its start) and once after it (`timeMin` = its end), with `singleEvents=true`. Unverified until tested against Google: whether
+`q` needs all words or any, whether it forgives typos (the text does not say; assume exact words), and how far Google expands an unbounded repeating event.
+Contact dates (feature contact-birthdays) are not searched beyond the device. Answer
+`{ items: CalendarEvent[]; nextCursor?: string }`: at most 100 items per request (the page cap), ordered by distance in days from
+`today`, nearest first (a tie: the later date first); `nextCursor` is present when more matches exist; the next
+request sends it back. The cursor holds the last position sent (distance, day, calendar and id). A request without a cursor asks Google for every calendar (at most 3 reads at once), merges and sorts;
+a request with a cursor reuses that read for up to 60 s (the server keeps the last 20 searches in memory, per person) and cuts after the cursor; after that it reads anew.
+Errors: 400 (`q` empty or over 100 characters, `outside` or `today` invalid, bad cursor) and, as for `GET /api/items`, `503 RATE_LIMITED` with
+`Retry-After`, 503 `PROVIDER_UNAVAILABLE` and 502 `PROVIDER_ERROR`. Quota (guide
+https://developers.google.com/workspace/calendar/api/guides/quota, read 2026-11-26: 600 requests per minute per user,
+10,000 per minute per project, sliding window): a 403 `rateLimitExceeded` or `userRateLimitExceeded` or a 429 from Google (errors guide,
+https://developers.google.com/workspace/calendar/api/guides/errors) starts the person's cooldown of the server's rate guard (ADR 0007; `isRateLimit` and `noteRateLimited` in `server/src/providers/google/RateGuard.ts`: truncated
+exponential backoff, 5 s doubling up to 120 s, or Google's `Retry-After` up to 600 s; the guard backs off by cooldown, it does not retry inside the request), during which no new call to Google is made, and the request answers `503 RATE_LIMITED` unless the guard can still serve a cached answer for a read;
+the device says so and asks again at a later scroll to the end, at least 3 s after the failure. The device does not keep the answers; a result the person chooses is added to the items store so that it opens.
+
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
 Returns every event and task list overlapping `[from 00:00, to 00:00)` local time (`to` exclusive), from all calendars
@@ -1204,6 +1229,8 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number; googlePollMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling) and the interval of the server's Google change lookup for live sync (default 20000). `200` config |
 | `GET` | `/api/__test/remote/lookups` | – | How many change lookups the server has made against the mock Google since reset (live sync). `200 { count }` |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
+| `POST` | `/api/__test/search-rate-limit` | `{ on: boolean }` | While `on`, the mock raises the rate guard's rate-limited error (cooldown 1 s) for text searches (`events.list` with `q`), so they answer `503 RATE_LIMITED` with `Retry-After`; it does not answer a Google 403 itself. Reads without `q` are answered as usual. Switching off also ends the cooldown the refusals started. Cleared by reset. `200 { on }` |
+| `POST` | `/api/__test/remote/events/bulk` | `{ calendarId?: string, owner?: string, events: GoogleEventInput[] }` | Inserts many events into the mock calendar as `POST /api/__test/remote/events` does one (a heavy year for the performance scenarios). `201 { count }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
 | `POST` | `/api/__test/refuse-next-write` | `{ status?: 400 \| 404 }` (default 400) | The next event, task list or calendar write request (`POST`, `PATCH`, `DELETE` on `/api/events`, `/api/tasklists` or `/api/calendars`, incl. items), answers that status (`400 VALIDATION_ERROR` or `404 NOT_FOUND`) without changing anything; later writes are normal ("the server refuses the next change as invalid", feature offline-changes). Cleared by reset. `200 { status }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |

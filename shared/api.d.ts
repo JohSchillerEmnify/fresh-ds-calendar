@@ -400,6 +400,12 @@ export interface ItemsResponse {
   failed?: string[];
 }
 
+/** `GET /api/search`: events Google's text search finds outside the device's dates, nearest to today first; `nextCursor` asks for the next ones. */
+export interface SearchResponse {
+  items: CalendarEvent[];
+  nextCursor?: string;
+}
+
 export interface SummaryDay {
   events: number;
   tasklists: number;

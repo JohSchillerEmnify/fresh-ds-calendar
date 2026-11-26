@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** M3 modal navigation drawer: the view destinations on top, a `default` slot for more content, a `footer` slot at the bottom. */
+/** M3 modal navigation drawer: the view destinations on top, a `top` slot above the views, a `default` slot for more content, a `footer` slot at the bottom. */
 import type { NavItem } from './types';
 import { vRipple } from '@/lib/ripple';
 import AdaptiveSheet from './AdaptiveSheet.vue';
@@ -10,6 +10,7 @@ defineEmits<{ close: []; 'update:modelValue': [id: string] }>();
 
 <template>
   <AdaptiveSheet :open="open" :label="label" :side="side" testid="side-menu" :panel-attrs="{ 'data-open': 'true' }" @close="$emit('close')">
+    <slot name="top" />
     <nav class="views" :aria-label="label">
       <button
         v-for="it in items" :key="it.id" v-ripple class="dest" type="button" :class="{ active: it.id === modelValue }" :aria-current="it.id === modelValue ? 'page' : undefined"

@@ -2,6 +2,7 @@
 import { LABS_VIEWS } from '@/features/labs';
 import { STABLE_VIEWS } from '@/features/views';
 import { t, type MessageKey } from '@/i18n';
+import { normalize } from '@/lib/normalize';
 
 /** The groups of the settings home, in their order. */
 export const GROUP_IDS = ['calendars', 'views', 'tasklists', 'reminders', 'appearance', 'focus', 'widgets', 'labs', 'account'] as const;
@@ -112,10 +113,6 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('account', 'app', 'version', 'settingsNav.labels.version', { synonyms: 'settingsNav.synonyms.version' }),
 ];
 
-/** Lower case, no accents, dashes as spaces, single spaces: what both the query and the texts are compared as. */
-export function normalize(s: string): string {
-  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/[-‐–—_]/g, ' ').replace(/\s+/g, ' ').trim();
-}
 
 /** A row of the search: a setting or a calendar. */
 export interface SearchHit { id: string; group: GroupId; label: string; path: string; page?: SubPage }

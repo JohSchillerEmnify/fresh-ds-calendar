@@ -26,7 +26,7 @@ import {
 import { tasksAreOn } from '@calendar/shared/tasks-state';
 import { TASKS_CALENDAR_SUMMARY, TasksCalendar } from './tasksCalendar.js';
 import { EventWrites } from './eventWrites.js';
-import { ItemQueries } from './itemQueries.js';
+import { ItemQueries, type SearchKey } from './itemQueries.js';
 import { BIRTHDAYS_COLOR, BIRTHDAYS_ID, etagEq, inContactsCalendar, isContactsCalendarId, specialOf } from './eventRules.js';
 import { logCalendarShape } from './calendarShape.js';
 import { HolidayCalendars } from './holidays.js';
@@ -669,6 +669,7 @@ export class CalendarService {
   openTaskLists(today: string, days: number): ReturnType<ItemQueries['openTaskLists']> { return this.queries.openTaskLists(today, days); }
   allOpenTaskLists(today: string): ReturnType<ItemQueries['allOpenTaskLists']> { return this.queries.allOpenTaskLists(today); }
   archivedTaskLists(today: string): ReturnType<ItemQueries['archivedTaskLists']> { return this.queries.archivedTaskLists(today); }
+  searchOutside(q: string, outside: { from: string; to: string }, today: string, cursor?: SearchKey): ReturnType<ItemQueries['searchOutside']> { return this.queries.searchOutside(q, outside, today, cursor); }
   summary(from: string, to: string): ReturnType<ItemQueries['summary']> { return this.queries.summary(from, to); }
 
   // ---------- sharing (see TaskSharing) ----------

@@ -1,7 +1,8 @@
 /** Settings search over the catalogue (feature settings-search). */
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyLanguage, hasKey } from '@/i18n';
-import { normalize, resolveTarget, searchSettings, searchSources, settingRoute, SETTINGS } from '@/components/settings/catalog';
+import { resolveTarget, searchSettings, searchSources, settingRoute, SETTINGS } from '@/components/settings/catalog';
+import { normalize } from '@/lib/normalize';
 
 const find = (q: string, cals: { id: string; name: string }[] = []) => searchSettings(q, searchSources(cals)).map((h) => `${h.label} | ${h.path}`);
 

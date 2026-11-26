@@ -1,7 +1,7 @@
 import type { CalendarEvent, CalendarItem, Category, SummaryDay, TaskList } from '../api/types.js';
 import { dedupeBirthdays } from '@calendar/shared/birthdays';
 import type { Clock } from '../lib/clock.js';
-import { addDays, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
+import { addDays, dayNumber, formatInZone, localDateOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import type { CalendarProvider, GoogleEvent, GoogleReminder, ProviderCalendar } from '../providers/CalendarProvider.js';
 import type { SettingsStore } from './settingsStore.js';
 import { BIRTHDAYS_ID } from './eventRules.js';
@@ -23,8 +23,28 @@ export interface QueryHost {
   contactEvents(from: string, to: string): Promise<CalendarEvent[]>;
 }
 
+/** How many search results one `GET /api/search` answers. */
+const SEARCH_PAGE = 100;
+/** Position in the search order: distance in days from today, negated day (later first), then the event's key. */
+export type SearchKey = [distance: number, negatedDay: number, key: string];
+interface SearchHit { ev: CalendarEvent; key: SearchKey }
+/** Later pages of one search reuse its first read this long; at most this many searches are kept. */
+const SEARCH_CACHE_MS = 60_000;
+const SEARCH_CACHE_MAX = 20;
+/** Calendar reads of one search that run at once (Google's per-person quota). */
+const SEARCH_READS = 3;
+
+/** Runs the jobs `n` at a time, in order. */
+async function inBatches<T>(jobs: Array<() => Promise<T>>, n: number): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < jobs.length; i += n) out.push(...await Promise.all(jobs.slice(i, i + n).map((j) => j())));
+  return out;
+}
+
 /** Read side of the calendar: item ranges, the open and archived task lists, and the per-day summary. */
 export class ItemQueries {
+  private readonly searchCache = new Map<string, { at: number; read: Promise<SearchHit[]> }>();
+
   constructor(
     private readonly provider: CalendarProvider, private readonly settings: SettingsStore, private readonly tasks: TasksCalendar,
     private readonly clock: Clock, private readonly sub: string, private readonly tz: string, private readonly host: QueryHost,
@@ -76,6 +96,54 @@ export class ItemQueries {
     if (errors.length && errors.length >= reads) throw errors[0];
     const contacts = readAll && !tasklistsOnly ? await this.host.contactEvents(from, to) : [];
     return [...dedupeBirthdays([...events.flat() as CalendarEvent[], ...contacts]), ...rest.flat(), ...sharedLists()];
+  }
+
+  /** Events Google's `q` finds outside `[outside.from, outside.to)`, nearest to `today` first, one page after `cursor` (API.md `GET /api/search`). */
+  async searchOutside(q: string, outside: { from: string; to: string }, today: string, cursor?: SearchKey): Promise<{ items: CalendarEvent[]; nextCursor?: SearchKey }> {
+    const sorted = await this.searchSorted(q, outside, today, cursor !== undefined);
+    const rest = cursor ? sorted.filter((x) => x.key[0] > cursor[0] || x.key[0] === cursor[0] && (x.key[1] > cursor[1] || x.key[1] === cursor[1] && x.key[2] > cursor[2])) : sorted;
+    const page = rest.slice(0, SEARCH_PAGE);
+    return { items: page.map((x) => x.ev), ...(rest.length > SEARCH_PAGE ? { nextCursor: page[page.length - 1]!.key } : {}) };
+  }
+
+  /** All matches in order; a request with a cursor reuses the read of the search's first page for a short time, a first page always reads anew (a failed read is not kept). */
+  private searchSorted(q: string, outside: { from: string; to: string }, today: string, paging: boolean): Promise<SearchHit[]> {
+    const key = `${q}\n${outside.from}..${outside.to}\n${today}`;
+    const now = this.clock.now();
+    const hit = this.searchCache.get(key);
+    if (paging && hit && now - hit.at < SEARCH_CACHE_MS) return hit.read;
+    const read = this.readSearch(q, outside, today);
+    this.searchCache.delete(key);
+    this.searchCache.set(key, { at: now, read });
+    while (this.searchCache.size > SEARCH_CACHE_MAX) this.searchCache.delete(this.searchCache.keys().next().value as string);
+    read.catch(() => { if (this.searchCache.get(key)?.read === read) this.searchCache.delete(key); });
+    return read;
+  }
+
+  private async readSearch(q: string, outside: { from: string; to: string }, today: string): Promise<SearchHit[]> {
+    const cals = await this.host.eventCalendars();
+    const before = formatInZone(startOfLocalDay(outside.from, this.tz), this.tz);
+    const after = formatInZone(startOfLocalDay(outside.to, this.tz), this.tz);
+    const jobs = cals.flatMap((c) => [{ timeMax: before }, { timeMin: after }].map((bound) => async () => {
+      const r = await this.provider.listEvents({ calendarId: c.id, q, ...bound });
+      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e) => this.host.toEvent(e, c.backgroundColor, c.defaultReminders));
+    }));
+    const found = new Map<string, SearchHit>();
+    for (const ev of (await inBatches(jobs, SEARCH_READS)).flat()) {
+      const [first, last] = this.span(ev);
+      if (first < outside.to && last >= outside.from) continue; // on the device
+      const id = `${ev.calendarId}\n${ev.id}`;
+      found.set(id, { ev, key: [Math.abs(dayNumber(first) - dayNumber(today)), -dayNumber(first), id] });
+    }
+    return [...found.values()].sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2].localeCompare(b.key[2]));
+  }
+
+  /** The first and last local day an event touches. */
+  private span(ev: CalendarEvent): [string, string] {
+    if (ev.allDay) return [ev.start, addDays(ev.end, -1)];
+    const first = localDateOf(Date.parse(ev.start), this.tz);
+    const last = localDateOf(Date.parse(ev.end) - 1, this.tz);
+    return [first, last < first ? first : last];
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {

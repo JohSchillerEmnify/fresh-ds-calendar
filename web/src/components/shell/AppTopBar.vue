@@ -2,7 +2,7 @@
 import Pressable from '@/components/m3/Pressable.vue';
 import { computed, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday, IconMenu } from '@/components/icons';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSearch, IconSettingsOutline as IconSettings, IconToday, IconMenu } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Badge from '@/components/m3/Badge.vue';
@@ -71,13 +71,14 @@ function toggleFilters() {
   <TopAppBar :data-layout="layout" :data-size="barSize.top.value">
     <template #background><TopBarScene :scene="scene" :field-mode="sample ? 'full' : settings.settings.sunflowers" /></template>
     <div class="grid">
-      <div class="lead">
+      <div class="lead" :class="{ withSearch: !drawer }">
       <IconButton v-if="drawer" class="menu" :label="t('nav.menu')" data-testid="menu-button" aria-haspopup="dialog" @click="ui.sideMenuOpen = true"><IconMenu /></IconButton>
       <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
       <h1 v-else-if="dateless" class="title" data-testid="view-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
       <Pressable v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ oneRow ? cal.shortTitle : cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </Pressable>
+      <IconButton v-if="!drawer" class="search" :label="t('calendar.topBar.search')" data-testid="search-button" aria-haspopup="dialog" @click="ui.openDialog('item-search')"><IconSearch /></IconButton>
       </div>
       <div v-if="!route.meta.tasks && (!dateless || dateless.today)" class="nav">
         <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
@@ -116,6 +117,7 @@ function toggleFilters() {
 }
 .lead { grid-area: title; min-width: 0; display: flex; align-items: center; }
 .lead .title { flex: 1; }
+.lead.withSearch .title { flex: 0 1 auto; }
 .title { margin: 0; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
 .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
@@ -136,7 +138,9 @@ function toggleFilters() {
   [data-size='expressive'] .grid { min-height: 84px; padding-top: 4px; }
   /* Expressive's plant keeps the full 44 px tap area; Compact's is 32 wide so the row stays one row */
   [data-size='expressive'] .widgets :deep(.lw-btn) { min-width: 44px; width: 44px; }
-  .title { padding: 0 2px 0 8px; gap: 2px; }
+  .title { padding: 0 2px 0 6px; gap: 2px; }
+  /* the search button's transparent tap border may overlap its neighbours, so the date keeps its full width next to a streak and a sync problem */
+  .search { margin-inline: -2px; }
   .chev { width: 20px; height: 20px; }
   .widgets { gap: 0; }
   .widgets :deep(.lw) { gap: 0; }
@@ -157,7 +161,7 @@ html[data-hand='left'][data-touch] .widgets { justify-content: flex-start; }
   html[data-hand='left'][data-touch] .widgets :deep(.lw) { flex-direction: row-reverse; }
   html[data-hand='left'][data-touch] .badge { right: auto; left: 2px; }
   html[data-hand='left'][data-touch] .grid { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: 'actions widgets nav title'; padding-left: 2px; padding-right: 0; }
-  html[data-hand='left'][data-touch] .title { padding: 0 8px 0 2px; }
+  html[data-hand='left'][data-touch] .title { padding: 0 6px 0 2px; }
 }
 @media (min-width: 768px) { html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'actions widgets nav title'; } }
 </style>

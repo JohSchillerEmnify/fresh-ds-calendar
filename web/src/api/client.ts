@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkDoc, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  InvitationsAnswer, ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
+  InvitationsAnswer, ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, SearchResponse, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
@@ -315,6 +315,12 @@ export class ApiClient {
     if (calendarIds?.length) q.set('calendarIds', calendarIds.join(','));
     if (also) q.set('also', `${also.from}..${also.to}`);
     return this.request<ItemsResponse>('GET', `/api/items?${q}`, undefined, o);
+  }
+  /** Google's text search over the events outside `outside` (the dates the device holds, `to` exclusive), 100 per call (API.md `GET /api/search`). */
+  searchEvents(q: string, outside: { from: LocalDate; to: LocalDate }, today: LocalDate, cursor?: string, o?: RequestOptions) {
+    const p = new URLSearchParams({ q, outside: `${outside.from}..${outside.to}`, today });
+    if (cursor) p.set('cursor', cursor);
+    return this.request<SearchResponse>('GET', `/api/search?${p}`, undefined, o);
   }
   summary(from: LocalDate, to: LocalDate, o?: RequestOptions) {
     return this.request<SummaryResponse>('GET', `/api/summary?${new URLSearchParams({ from, to })}`, undefined, o);

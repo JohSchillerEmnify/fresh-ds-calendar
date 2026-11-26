@@ -40,6 +40,7 @@ function region(w: World, name: string): Locator {
     case 'check-in message': return w.byTestId('streak-message');
     case 'task lists question': return w.byTestId('tasks-consent');
     case 'top bar': return w.byTestId('top-bar');
+    case 'item search': return w.byTestId('item-search');
     default: throw new Error(`unknown region "${name}"`);
   }
 }

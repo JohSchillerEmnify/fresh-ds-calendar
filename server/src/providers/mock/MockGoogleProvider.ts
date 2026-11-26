@@ -57,6 +57,8 @@ export class MockGoogleProvider implements CalendarProvider {
   private guard = newGuard();
   /** `Retry-After` (seconds) of the "rate limited" answer the next call gets; null = none queued. */
   private rateLimitNext: number | null = null;
+  /** Calls that carry `q` (Google's text search) are answered "rate limited" while set. */
+  private searchLimited = false;
   private revoked = false;
   private calendarMissing = false;
   /** Public (holiday) calendars Google answers 404 for. */
@@ -105,6 +107,11 @@ export class MockGoogleProvider implements CalendarProvider {
   setRateLimitNext(retryAfterSec: number): void {
     this.rateLimitNext = retryAfterSec;
   }
+  /** Switches the "rate limited" answer of text searches on or off; off also ends the cooldown it started (time has passed). */
+  setSearchRateLimited(on: boolean): void {
+    this.searchLimited = on;
+    if (!on) this.guard = newGuard();
+  }
   cooldownMs(): number {
     return this.guard.cooldownMs();
   }
@@ -145,6 +152,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.guard = newGuard();
     this.lookups = 0;
     this.rateLimitNext = null;
+    this.searchLimited = false;
     this.contacts.reset();
     this.scheduleFlush();
   }
@@ -251,13 +259,15 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
-    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}|${(p.eventTypes ?? []).join(',')}`;
+    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}|${(p.eventTypes ?? []).join(',')}|${p.q ?? ''}`;
     return this.guard.cached(key, async () => this.readEvents(p));
   }
 
   private readEvents(p: ListEventsParams): ListEventsResult {
     this.check();
     if (this.unreadable.has(p.calendarId) || this.unreadable.has('*')) throw new ProviderError('Simulated provider error');
+    // Google's quota answer (403 rateLimitExceeded) to a text search: the guard's cooldown starts as in GoogleProvider.call
+    if (p.q !== undefined && this.searchLimited) throw this.guard.noteRateLimited('events.list', 1);
     return this.collect(p);
   }
 
@@ -270,12 +280,14 @@ export class MockGoogleProvider implements CalendarProvider {
       return [s.slice(0, i), s.slice(i + 1)] as const;
     });
     const out: GoogleEvent[] = [];
+    const terms = (p.q ?? '').toLowerCase().split(/\s+/).filter(Boolean);
     const exceptions = new Set<string>();
     for (const e of this.events.values()) if (e.recurringEventId && e.calendarId === p.calendarId) exceptions.add(`${e.recurringEventId}|${e.id}`);
     for (const e of this.events.values()) {
       if (e.calendarId !== p.calendarId) continue;
       if (e.status === 'cancelled' && !p.showDeleted) continue;
       if (p.eventTypes && !p.eventTypes.includes(e.eventType ?? 'default')) continue;
+      if (terms.length && !matchesText(e, terms)) continue;
       // recurring masters are expanded only inside a bounded range (and not at all without `singleEvents`: Google lists the master)
       const cands = p.singleEvents !== false && e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
       // an exception past its series' UNTIL is no longer an occurrence (Google only shows what the rule makes)
@@ -676,6 +688,12 @@ function applyPatch(cur: GoogleEvent, patch: GoogleEventPatch): void {
       (cur as unknown as Record<string, unknown>)[k] = structuredClone(v);
     }
   }
+}
+
+/** Google's `q` over the fields its docs name (summary, description, location, organizer); every term, case-insensitive, as a substring (the docs do not say). */
+function matchesText(e: GoogleEvent, terms: string[]): boolean {
+  const hay = [e.summary, e.description, e.location, e.organizer?.displayName, e.organizer?.email].filter(Boolean).join('\n').toLowerCase();
+  return terms.every((t) => hay.includes(t));
 }
 
 /** A rate guard whose reads are never fresh (ttl 0), so it only answers from its cache while rate limited. */

@@ -1,6 +1,7 @@
 {
   "_doc": "First matching rule wins. select: @id:/@area:/@tag scenario selectors, or \"heuristic\" (data-testid match against the step definitions, for shared UI code). noE2e: files no scenario can show, with the reason.",
   "rules": [
+    { "paths": ["web/src/features/search/**", "web/src/lib/normalize.ts", "web/src/stores/itemSearch.ts"], "select": ["@id:item-search", "@id:settings-search"] },
     { "paths": ["web/src/features/bedtime/**"], "select": ["@id:bedtime", "@id:labs-bedtime-runway"] },
     { "paths": ["web/src/features/labs/approach/**"], "select": ["@id:labs-approach-bar"] },
     { "paths": ["web/src/features/labs/clock/**"], "select": ["@id:labs-clock", "@id:labs-clock-rings"] },

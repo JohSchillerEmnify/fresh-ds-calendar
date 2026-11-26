@@ -72,6 +72,8 @@ export interface ListEventsParams {
   singleEvents?: boolean;
   /** Google `eventTypes` filter (`birthday`, ...); absent lists every type. */
   eventTypes?: string[];
+  /** Google `q`: free text matched against summary, description, location, attendees and organizer (what Google's own search finds). */
+  q?: string;
   /** A read nobody waits for (a diagnostic): a rate-limit answer fails this read only and starts no cooldown for the person's own syncing. */
   background?: boolean;
 }
