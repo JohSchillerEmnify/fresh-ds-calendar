@@ -34,6 +34,21 @@ const popover = computed(() => !props.full && !props.drop && !!props.anchor && (
 const sheet = computed(() => isPhone.value && !popover.value && !props.full && !props.drop);
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
+/** A wide centred panel opens centred, then keeps that top: lines added while writing grow it downward, so the line under the pen never moves. */
+const pinTop = ref<number | null>(null);
+/** The centred modal that is a writing panel; the phone sheet, popover, drawer and page are never pinned. */
+const centred = computed(() => props.open && !!props.wide && !props.side && !props.full && !props.drop && !popover.value && !sheet.value);
+async function pin() {
+  pinTop.value = null;
+  if (!centred.value) return;
+  await nextTick();
+  if (centred.value && panel.value) pinTop.value = panel.value.offsetTop;
+}
+// pinned whenever the panel becomes a centred writing panel (also when `wide` turns on after opening); a resize centres it afresh
+watch(centred, (on, _o, onCleanup) => {
+  void pin();
+  if (on) onCleanup(listen(window, 'resize', () => void pin()));
+}, { immediate: true });
 const release = acquireViewport();
 defineExpose({ panel });
 let stops: Disposer[] = [];
@@ -145,7 +160,7 @@ onBeforeUnmount(() => stopTimer?.());
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
       :data-presentation="side ? 'drawer' : full ? 'page' : drop ? 'drop' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
-      :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, !side && drop && anchor ? { top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
+      :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, !side && drop && anchor ? { top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, centred && pinTop !== null ? { alignSelf: 'flex-start', marginTop: pinTop + 'px', maxHeight: `max(40dvh, calc(100dvh - ${pinTop}px - 16px))` } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
       <div v-if="sheet && !side" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>

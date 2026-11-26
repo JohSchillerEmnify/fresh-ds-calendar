@@ -246,6 +246,23 @@ When('I draw a stroke with the pen', async function (this: World) {
   if (await open.count()) return stroke(open, 'pen');
   await stroke(formLines(this).last(), 'pen');
 });
+Then('the dialog is centred up and down on the screen', async function (this: World) {
+  await this.page.waitForTimeout(600);
+  const d = await box(dialog(this));
+  const h = await this.page.evaluate(() => window.innerHeight);
+  expect(Math.abs(d.y - (h - d.height) / 2)).toBeLessThan(1);
+});
+let lastLineY = 0;
+When('I note where the last writing line is', async function (this: World) {
+  // the dialog has finished opening (it zooms in) before the line is measured
+  await this.page.waitForTimeout(600);
+  lastLineY = (await box(formLines(this).last())).y;
+});
+Then('the writing line I wrote on is where it was', async function (this: World) {
+  // the line written on is the one noted; a new line has been added after it
+  const written = formLines(this).nth((await formLines(this).count()) - 2);
+  expect(Math.abs((await box(written)).y - lastLineY)).toBeLessThan(1);
+});
 Then('the writing area shows {int} stroke(s)', async function (this: World, n: number) {
   await expect(formStrokes(this)).toHaveCount(n);
 });

@@ -309,6 +309,15 @@ Feature: Labs: handwritten lists
       Then the dialog is larger than without the feature
       And the dialog shows ruled lines to write on
 
+    @tablet
+    Scenario: Writing on the last line of the new list form does not move the lines
+      Given the device is an Android tablet that reports pen support
+      When I open the new task list form
+      Then the dialog is centred up and down on the screen
+      When I note where the last writing line is
+      And I draw a stroke with the pen
+      Then the writing line I wrote on is where it was
+
 @tablet
     Scenario: An Android tablet with a stylus gets the larger ruled dialog (decision T1)
       Given the device is an Android tablet that reports pen support
