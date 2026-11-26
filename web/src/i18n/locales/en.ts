@@ -127,6 +127,7 @@ export default {
       approachingCard: { label: 'Approaching card', hint: 'What is on now and next, above the calendar' },
       approachTimeLeft: { label: 'Time left', hint: 'Shows how much time the current event has left in the Approaching card. When off, it shows on the event itself.' },
       minEventLength: { label: 'Minimum event length', hint: 'Shorter events and task lists are shown at least this long, so their titles stay readable', off: 'Off', minutes: '{n} min' },
+      weekTwoRow: { phone: 'Week in two rows on phones', wide: 'Week in two rows on tablets and desktops', hint: 'Shows all seven days on one screen without scrolling', split: 'Days on the top row' },
       sideBySide: { hint: 'How many overlapping events sit side by side. Any more are stacked on the last one.', upTo: 'Up to {n}', only: 'Only {n}' },
       approachBar: { label: 'Approaching track', hint: 'What comes next today as a track in the Approaching card' },
       syncIndicator: { hint: 'Shows the sync icon all the time, not only when syncing fails' },
@@ -167,9 +168,6 @@ export default {
       scroll: { label: 'Hours in view', hint: 'With “Automatic” the range follows your events. With “Fixed” you choose how many hours the Multi-day widget shows at once.', auto: 'Automatic', fixed: 'Fixed', hoursValue: '{n} hours', days: 'Number of days' },
       timeline: { hint: 'How many days Multi-day shows, starting today.' },
       textSize: { label: 'Text size', hint: 'Larger is easier to read; less text fits into narrow columns.' },
-    },
-    labs: {
-      weekTwoRow: { label: 'Two-row week overview', hint: 'Shows the week in two rows so all seven days fit on one screen without scrolling', split: 'Days on the top row' },
     },
     account: {
       signedIn: 'Signed in with Google',

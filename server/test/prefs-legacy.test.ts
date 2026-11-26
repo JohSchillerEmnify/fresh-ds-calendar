@@ -21,7 +21,15 @@ describe('legacy prefs.json values read as the old normalise did', () => {
   it('reads a default-true boolean as true unless it is exactly false, and a default-false one as false unless exactly true', () => {
     expect(load({ approachBar: 'no', approachingCard: 0, showCarriedFrom: null }).prefs).toMatchObject({ approachBar: true, approachingCard: true, showCarriedFrom: true });
     expect(load({ approachBar: false }).prefs.approachBar).toBe(false);
-    expect(load({ labs: 'yes', leftHanded: 1, weekTwoRow: [] }).prefs).toMatchObject({ labs: false, leftHanded: false, weekTwoRow: false });
+    expect(load({ labs: 'yes', leftHanded: 1, weekTwoRowPhone: 'x' }).prefs).toMatchObject({ labs: false, leftHanded: false, weekTwoRowPhone: false });
+  });
+
+  it('turns the old single two-row week switch into both sizes on, only when neither new key is stored', () => {
+    expect(load({ weekTwoRow: true }).prefs).toMatchObject({ weekTwoRowPhone: true, weekTwoRowWide: true });
+    expect(load({ weekTwoRow: true, weekTwoRowWide: false }).prefs).toMatchObject({ weekTwoRowPhone: false, weekTwoRowWide: false });
+    expect(load({ weekTwoRow: false }).prefs).toMatchObject({ weekTwoRowPhone: false, weekTwoRowWide: false });
+    expect(load({ weekTwoRow: 'yes' }).prefs).toMatchObject({ weekTwoRowPhone: false, weekTwoRowWide: false });
+    expect(load({}).prefs).toMatchObject({ weekTwoRowPhone: false, weekTwoRowWide: false });
   });
 
   it('reads weekTwoRowTop as 3 only for the number 3', () => {

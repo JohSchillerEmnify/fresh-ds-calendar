@@ -48,7 +48,7 @@
     { "paths": ["web/src/views/settings/LabsGroup.vue"], "select": ["@area:labs"] },
     { "paths": ["web/src/views/settings/WidgetsGroup.vue"], "select": ["@id:iphone-widget", "@id:phone-widget", "@id:scrolling-widget"] },
     { "paths": ["web/src/views/settings/**", "web/src/views/SettingsView.vue", "web/src/views/SettingsGroupView.vue", "web/src/components/settings/**"], "select": ["@settings"] },
-    { "paths": ["web/src/views/DayView.vue", "web/src/views/WeekView.vue", "web/src/views/MonthPage.vue", "web/src/views/MonthScroller.vue", "web/src/views/MonthView.vue", "web/src/views/YearView.vue"], "select": ["@area:views"] },
+    { "paths": ["web/src/views/DayView.vue", "web/src/views/WeekView.vue", "web/src/composables/useWeekTwoRow.ts", "web/src/views/MonthPage.vue", "web/src/views/MonthScroller.vue", "web/src/views/MonthView.vue", "web/src/views/YearView.vue"], "select": ["@area:views"] },
     { "paths": ["web/src/views/SignInView.vue"], "select": ["@id:google-sign-in"] },
     { "paths": ["web/src/views/ThemeView.vue"], "select": ["@area:themes"] },
     { "paths": ["web/src/views/TemplatesView.vue"], "select": ["@id:tasklist-templates"] },

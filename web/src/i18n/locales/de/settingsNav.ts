@@ -76,6 +76,7 @@ export default {
     theme: 'Dunkelmodus, dunkel, hell, Nachtmodus, Farben, Szene, Hintergrund',
     language: 'Übersetzung, Deutsch, Englisch',
     defaultView: 'Startansicht, öffnet mit',
+    weekTwoRow: 'ganze Woche, Wochenübersicht, ein Bildschirm, zwei Zeilen',
     minEventLength: 'kurze Ereignisse, winzige Ereignisse',
     approachingCard: 'jetzt und gleich, demnächst',
     taskCategories: 'Schlagwörter, Farben',

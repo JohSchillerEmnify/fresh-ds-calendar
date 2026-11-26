@@ -106,13 +106,13 @@ Per calendar: Google's default reminders (one card per calendar). Browser push o
 Task lists: **"Remind about task lists"** switch (= `notify.tasklists` again) and default task-list reminders.
 
 ### Views (main view switches)
-One switch per main view (`stableViews`: Year, Month, Week, Day, Tasks, Clock), all on; the last one on cannot be turned off.
+One switch per main view (`stableViews`: Year, Month, Week, Day, Tasks, Clock), all on; the last one on cannot be turned off. Week and day: "Week in two rows on phones" (`weekTwoRowPhone`, off) and "... on tablets and
+desktops" (`weekTwoRowWide`, off), plus "Days on the top row" (`weekTwoRowTop` 4) while either is on; they were one Labs switch before.
 
 ### Labs
 Master switch "Experimental views" (`labs`, off); per view switches (`labsViews`: Plain clock, Timeline, Strip,
 Zoom, Horizontal, Runway, Now & next); "Generate themes with AI" (`labsOwnThemes`); "Handwritten lists"
-(`labsHandwriting`) + "Draw with a finger" (`labsDrawWithFinger`); "Two-row week overview" (`weekTwoRow`) + "Days on the
-top row" (`weekTwoRowTop` 4).
+(`labsHandwriting`).
 
 ### Account & data
 Signed in + Sign out; Sign out everywhere; Grant calendar access (only when missing); Drive backup status, Back up now,

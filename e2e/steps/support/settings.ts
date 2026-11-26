@@ -54,12 +54,12 @@ const PAGE_OF: Array<[RegExp, string]> = [
   [/^settings-sunflowers/, 'theme'],
  
   [/^settings-bedtime-/, 'focus/bedtime'],
-  [/^settings-(view-switch-|default-view|min-event-length|month-scroll|day-side-by-side|week-side-by-side|approach)/, 'views'],
+  [/^settings-(view-switch-|default-view|week-two-row|min-event-length|month-scroll|day-side-by-side|week-side-by-side|approach)/, 'views'],
   [/^settings-(theme$|theme-name$|language|nav-|top-bar-size|bottom-bar-size|bar-size|left-handed|sync-indicator|version-corner)/, 'appearance'],
   [/^settings-(task-|category|carried-from|undated-done|subtask-|templates)/, 'tasklists'],
   [/^(reminders-|settings-notify-)/, 'reminders'],
   [/^settings-(calm-mode|animation-level|system-reduced-motion|ignore-system-motion|sounds|streak|best-streak|support-cat|bedtime$)/, 'focus'],
-  [/^settings-(labs|week-two-row)/, 'labs'],
+  [/^settings-labs/, 'labs'],
   [/^(iphone-widget|settings-widget-|settings-android-widgets|settings-scrolling-)/, 'widgets'],
   [/^settings-(signout|calendar-access|backup-|install-app|android-app|whats-new|credits|error-log|version|update-|app-cert|reset-demo)/, 'account'],
 ];

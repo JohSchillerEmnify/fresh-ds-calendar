@@ -54,7 +54,7 @@ async function look(w: World, view: string, date: string) {
     case 'day view': return at(`/day/${date}`, w.page.getByTestId('time-grid'));
     case 'week view': return at(`/week/${date}`, w.page.getByTestId('time-grid'));
     case 'two-row week overview':
-      await w.api.patch('/api/prefs', { weekTwoRow: true });
+      await w.api.patch('/api/prefs', { weekTwoRowPhone: true, weekTwoRowWide: true });
       await w.page.setViewportSize({ width: 375, height: 812 });
       return at(`/week/${date}`, w.page.getByTestId('week-overview-row'));
     case 'Labs strip': return at(`/strip/${date}`, w.page.getByTestId('strip-column'));

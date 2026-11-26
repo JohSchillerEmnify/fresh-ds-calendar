@@ -33,7 +33,11 @@ interface StoredPrefs extends Prefs {
 }
 
 /** Fills every field of a stored document with a valid value, so a hand-edited or older file still reads. */
-function normalise(p: Partial<StoredPrefs> | null): StoredPrefs {
+function normalise(raw: Partial<StoredPrefs> | null): StoredPrefs {
+  // read-time migration (feature week-two-row): the retired single switch turns both sizes on
+  const { weekTwoRow, ...kept } = (raw ?? {}) as Partial<StoredPrefs> & { weekTwoRow?: unknown };
+  const p = weekTwoRow === true && kept.weekTwoRowPhone === undefined && kept.weekTwoRowWide === undefined
+    ? { ...kept, weekTwoRowPhone: true, weekTwoRowWide: true } : kept;
   return {
     ...p,
     hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
@@ -173,6 +177,14 @@ export class PrefsStore {
   setLabs(sub: string, patch: Partial<Prefs>): Prefs {
     this.merge(sub, patch);
     return this.labsPrefs(sub);
+  }
+
+  /** Test mode only: stores the retired single two-row week switch as on, without the new keys (feature week-two-row). */
+  seedLegacyWeekTwoRow(sub: string): void {
+    const doc: Record<string, unknown> = { ...this.read(sub), weekTwoRow: true };
+    delete doc.weekTwoRowPhone;
+    delete doc.weekTwoRowWide;
+    this.files.write(sub, doc as unknown as StoredPrefs);
   }
 
   tasksCalendarId(sub: string): string | null {

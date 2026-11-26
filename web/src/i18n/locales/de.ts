@@ -117,6 +117,7 @@ export default {
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
       approachTimeLeft: { label: 'Restzeit', hint: 'Zeigt in der Karte „Gleich“, wie lange das laufende Ereignis noch dauert. Wenn aus, steht das am Ereignis selbst.' },
       minEventLength: { label: 'Mindestlänge für Ereignisse', hint: 'Kürzere Ereignisse und Aufgabenlisten werden mindestens so lang angezeigt, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
+      weekTwoRow: { phone: 'Woche in zwei Zeilen auf Handys', wide: 'Woche in zwei Zeilen auf Tablets und Desktops', hint: 'Zeigt alle sieben Tage ohne Scrollen auf einem Bildschirm', split: 'Tage in der oberen Zeile' },
       sideBySide: { hint: 'Wie viele überlappende Ereignisse nebeneinander stehen. Weitere liegen versetzt auf dem letzten.', upTo: 'Bis zu {n}', only: 'Nur {n}' },
       barSize: { expressive: 'Ausdrucksstark', compact: 'Kompakt' },
       topBarSize: { label: 'Größe der Kopfzeile', hint: 'Auf dem Handy; Ausdrucksstark zeigt die ganze Szene, Kompakt ist eine Zeile' },
@@ -161,9 +162,6 @@ export default {
       scroll: { label: 'Stunden im Blick', hint: 'Bei „Automatisch“ richtet sich der Bereich nach deinen Ereignissen. Mit „Fest“ wählst du, wie viele Stunden das Widget „Mehrere Tage“ auf einmal zeigt.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Anzahl der Tage' },
       timeline: { hint: 'Wie viele Tage „Mehrere Tage“ ab heute zeigt.' },
       textSize: { label: 'Schriftgröße', hint: 'Größer ist leichter zu lesen; dafür passt weniger Text in schmale Spalten.' },
-    },
-    labs: {
-      weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen', hint: 'Zeigt die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf einen Bildschirm passen', split: 'Tage in der oberen Zeile' },
     },
     account: {
       signedIn: 'Mit Google angemeldet',

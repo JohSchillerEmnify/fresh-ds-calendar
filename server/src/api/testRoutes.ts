@@ -258,6 +258,12 @@ export function testRoutes(ctx: Ctx): Hono {
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 
+  // The person's prefs as an old version stored them: the retired two-row week switch on, the per-size keys absent.
+  t.post('/prefs/legacy-week-two-row', (c) => {
+    ctx.prefs.seedLegacyWeekTwoRow(person(c));
+    return c.json({ ok: true });
+  });
+
   // "A person who has not answered the task lists question yet" (ask), who declined (off) or confirmed (on); reset makes every person confirmed again.
   t.post('/tasks-choice', async (c) => {
     const b = (await body(c)) as { choice?: unknown } | undefined;

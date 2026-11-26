@@ -125,6 +125,7 @@ export default {
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       approachTimeLeft: { label: 'Restzeit, yo', hint: 'Zeigt in der Karte, wie lang der Termin noch läuft. Wenn aus, steht das am Termin selbst, Digga' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kurze Termine werden mindestens so lang gezeichnet. Lesbar bleiben, Digga.', off: 'Aus', minutes: '{n} Min.' },
+      weekTwoRow: { phone: 'Woche in zwei Zeilen auf Handys, yo', wide: 'Woche in zwei Zeilen auf Tablets und Desktops, Digga', hint: 'Alle sieben Tage ohne Scrollen auf einem Bildschirm, Digga', split: 'Tage in der oberen Zeile' },
       sideBySide: { hint: 'So viele Termine passen nebeneinander. Der Rest stapelt sich, Digga.', upTo: 'Bis zu {n}', only: 'Nur {n}' },
       approachBar: { label: 'Leiste „Gleich“, yo', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte, Digga' },
       approachWindow: {
@@ -164,9 +165,6 @@ export default {
       scroll: { label: 'Stunden im Blick, yo', hint: 'Bei „Automatisch“ richten sich die Stunden nach den Terminen der angezeigten Tage, für den Rest scrollst du, Digga. Bei „Fest“ legst du selbst fest, wie viele Stunden sichtbar sind.', auto: 'Automatisch', fixed: 'Fest', hoursValue: '{n} Stunden', days: 'Anzahl der Tage, yo' },
       timeline: { hint: 'Wie viele Tage „Mehrere Tage“ ab heute zeigt, Digga.' },
       textSize: { label: 'Schriftgröße', hint: 'Größer ist leichter zu lesen, Digga; dafür passt weniger Text in schmale Spalten.' },
-    },
-    labs: {
-      weekTwoRow: { label: 'Wochenübersicht in zwei Zeilen, yo', hint: 'Die Woche in zwei Zeilen, damit alle sieben Tage ohne Scrollen auf den Screen passen, Digga', split: 'Tage in der oberen Zeile, yo' },
     },
     account: {
       signedIn: 'Mit Google am Start. Post für mich, Post für mich!',

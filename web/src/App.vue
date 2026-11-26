@@ -22,6 +22,7 @@ import Snackbar from '@/components/m3/Snackbar.vue';
 import type { NavItem } from '@/components/m3/types';
 import { applyLanguage, t } from '@/i18n';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
+import { useWeekTwoRow } from '@/composables/useWeekTwoRow';
 import { useNav } from '@/composables/useNav';
 import { useNavPosition } from '@/composables/useNavPosition';
 import { useBarSize } from '@/composables/useBarSize';
@@ -100,7 +101,8 @@ const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefin
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, outside the calendar, and on views that pan sideways themselves. */
 /** Views that do not scroll (month, the fit week, the Labs views but Now) leave room for the bottom bar, which cannot slide away there. */
-const fixedView = computed(() => (cal.view === 'month' && !!route.meta.view && labs.monthScroll === 'sideways') || (cal.view === 'week' && !!route.meta.view && labs.weekTwoRow) || (!!route.meta.lab && route.meta.lab !== 'now'));
+const weekTwoRowOn = useWeekTwoRow();
+const fixedView = computed(() => (cal.view === 'month' && !!route.meta.view && labs.monthScroll === 'sideways') || (cal.view === 'week' && !!route.meta.view && weekTwoRowOn.value) || (!!route.meta.lab && route.meta.lab !== 'now'));
 const swipeDisabled = () => !!route.meta.noSwipe || (cal.view === 'month' && labs.monthScroll !== 'sideways') || isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {

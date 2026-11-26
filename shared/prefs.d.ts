@@ -131,9 +131,11 @@ export interface Prefs {
   bedtime: BedtimePrefs;
   /** Which reminders become system notifications (feature reminders). */
   notify: NotifyPrefs;
-  /** Labs: the week as a two-row overview that fits one screen (feature two-row-week; off by default). */
-  weekTwoRow: boolean;
-  /** Days on the overview's top row: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
+  /** The week as a two-row overview that fits one screen on a phone (features two-row-week, week-two-row; off by default). */
+  weekTwoRowPhone: boolean;
+  /** The same on a tablet or desktop (window wider than a phone). */
+  weekTwoRowWide: boolean;
+  /** Days on the overview's top row, for both sizes: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
   weekTwoRowTop: 3 | 4;
   /** Labs: items of a task list can be written by hand with a pen (feature handwritten-lists); off, existing ink stays visible and tickable. */
   labsHandwriting: boolean;

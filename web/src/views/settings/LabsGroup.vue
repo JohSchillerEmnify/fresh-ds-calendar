@@ -1,6 +1,5 @@
 <script setup lang="ts">
 /** Settings group Labs (docs/settings-tree.md): the Labs switch, then the unfinished views and tools it shows. */
-import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import SettingRow from '@/components/settings/SettingRow.vue';
 import SettingSection from '@/components/settings/SettingSection.vue';
@@ -11,10 +10,6 @@ import { usePrefsStore } from '@/stores/prefs';
 
 const prefs = usePrefsStore();
 const savePrefs = useSavePrefs();
-const weekSplitOptions = [
-  { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
-  { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
-];
 </script>
 
 <template>
@@ -30,12 +25,6 @@ const weekSplitOptions = [
     </SettingRow>
     </SettingSection>
     <SettingSection :title="t('settingsNav.sub.more')">
-    <SettingRow id="weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" :hint="t('settings.labs.weekTwoRow.hint')">
-      <Switch :model-value="prefs.weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" data-testid="settings-week-two-row" @update:model-value="savePrefs({ weekTwoRow: $event })" />
-    </SettingRow>
-    <SettingRow v-if="prefs.weekTwoRow" id="weekTwoRowSplit" wide :label="t('settings.labs.weekTwoRow.split')">
-      <SegmentedButton :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
-    </SettingRow>
     <SettingRow id="handwriting" :label="t('ink.settings.label')" :hint="t('ink.settings.hint')">
       <Switch :model-value="prefs.labsHandwriting" :label="t('ink.settings.label')" data-testid="settings-labs-handwriting" @update:model-value="savePrefs({ labsHandwriting: $event })" />
     </SettingRow>

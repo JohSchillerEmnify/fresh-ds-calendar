@@ -5,6 +5,7 @@ import { toIsoDate, weekDays } from '@/lib/dates';
 import { providePreview } from '@/composables/usePreview';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { useCalendarStore } from '@/stores/calendar';
+import { useWeekTwoRow } from '@/composables/useWeekTwoRow';
 import { usePrefsStore } from '@/stores/prefs';
 
 /** `anchor`/`preview`: a light copy for another period (swipe neighbour), see `usePreview`. */
@@ -16,7 +17,7 @@ const segs = useDaySegments();
 const days = computed(() => weekDays(props.anchor ?? cal.anchor));
 
 /**
- * Two-row week overview (experimental): the whole week in two rows that each fill half the height, so it all fits one
+ * Two-row week overview (per screen size, Settings > Views): the whole week in two rows that each fill half the height, so it all fits one
  * screen. Each row is a normal `TimeGrid` in fit-to-height mode over one shared active window, so blocks, the all-day
  * band and inline task-list expansion are reused as-is — no parallel layout.
  */
@@ -28,6 +29,8 @@ const fit = computed(() => {
   if (end - start < 60) end = Math.min(1440, start + 60);
   return { start, end };
 });
+/** The choice of the current screen size; the window width decides live. */
+const twoRow = useWeekTwoRow();
 const rows = computed(() => {
   const top = prefs.weekTwoRowTop === 3 ? 3 : 4;
   return [days.value.slice(0, top), days.value.slice(top)];
@@ -36,7 +39,7 @@ const rows = computed(() => {
 
 <template>
   <section class="v" data-testid="week-view" :data-week-start="toIsoDate(days[0])">
-    <template v-if="prefs.weekTwoRow">
+    <template v-if="twoRow">
       <TimeGrid
         v-for="(rowDates, i) in rows" :key="i" class="row"
         mode="week" :dates="rowDates" :fit="fit" data-testid="week-overview-row" :data-row="i"

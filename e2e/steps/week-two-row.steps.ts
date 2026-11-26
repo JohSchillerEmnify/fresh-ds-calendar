@@ -25,15 +25,43 @@ async function expectRow(w: World, row: number, from: number, to: number) {
 }
 
 Given('the two-row week overview is on', async function (this: World) {
-  await this.api.patch('/api/prefs', { weekTwoRow: true });
+  await this.api.patch('/api/prefs', { weekTwoRowPhone: true, weekTwoRowWide: true });
+});
+Given('the week is in two rows on phones', async function (this: World) {
+  await this.api.patch('/api/prefs', { weekTwoRowPhone: true });
+});
+Given('the week is in two rows on tablets and desktops', async function (this: World) {
+  await this.api.patch('/api/prefs', { weekTwoRowWide: true });
+});
+Given('the saved preferences still have the old two-row week overview on', async function (this: World) {
+  await this.api.post('/api/__test/prefs/legacy-week-two-row', {});
 });
 Given('the split is set to three days on top', async function (this: World) {
   await this.api.patch('/api/prefs', { weekTwoRowTop: 3 });
 });
+async function openWeekAt(w: World, date: string, width: number, height: number) {
+  await w.page.setViewportSize({ width, height });
+  await w.page.goto(`/week/${date}`);
+  await w.settled();
+}
 When('I open the week of {date} on a phone', async function (this: World, date: string) {
-  await this.page.setViewportSize({ width: 375, height: 812 });
-  await this.page.goto(`/week/${date}`);
-  await this.settled();
+  await openWeekAt(this, date, 375, 812);
+});
+
+When('I open the week of {date} on a tablet', async function (this: World, date: string) {
+  await openWeekAt(this, date, 1024, 768);
+});
+When('I open the week of {date} in a window {int} px wide', async function (this: World, date: string, width: number) {
+  await openWeekAt(this, date, width, 900);
+});
+When('the window becomes {int} px wide', async function (this: World, width: number) {
+  await this.page.setViewportSize({ width, height: viewport(this.page).height });
+});
+Then('the week is shown in two rows', async function (this: World) {
+  await expect(this.byTestId('week-overview-row')).toHaveCount(2);
+});
+Then('the week is shown in one row', async function (this: World) {
+  await expectSingleRow(this);
 });
 
 Then('all seven days are laid out in two rows', async function (this: World) {
@@ -126,13 +154,14 @@ Then('{string} is in the all-day band of {date}, above the timed entries', async
   expect((await box(trip)).y + (await box(trip)).height).toBeLessThanOrEqual((await box(timed.first())).y + 1);
 });
 
-Then('the seven days are side by side in a single row', async function (this: World) {
-  await expect(this.byTestId('week-overview-row')).toHaveCount(0);
-  const heads = this.byTestId('week-header');
+Then('the seven days are side by side in a single row', async function (this: World) { await expectSingleRow(this); });
+async function expectSingleRow(w: World) {
+  await expect(w.byTestId('week-overview-row')).toHaveCount(0);
+  const heads = w.byTestId('week-header');
   await expect(heads).toHaveCount(7);
   const tops = await heads.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
   expect(new Set(tops).size).toBe(1);
-});
+}
 
 Given('tapping a task list grows it in place', async function (this: World) {
   await this.api.patch('/api/prefs', { taskOpen: 'inline' });

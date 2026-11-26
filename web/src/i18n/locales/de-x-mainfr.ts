@@ -93,6 +93,7 @@ export default {
       approachingCard: { label: 'Gleich-Karden', hint: 'Was etz lafft un was als Nächsdes kummt' },
       approachTimeLeft: { label: 'Restzeid', hint: 'Zeichd in der Gleich-Karden, wie lang der Termin noch gehd. Wenn aus, stehd des am Termin selber.' },
       minEventLength: { label: 'Mindesdlänge für Termine', hint: 'Kürzere Termine wern so lang hiigmold, dass mer ihrn Titel noch lesn ko', off: 'Aus', minutes: '{n} Min.' },
+      weekTwoRow: { phone: 'Woch in zwoa Zeiln af Handys', wide: 'Woch in zwoa Zeiln af Tablets und Desktops', hint: 'Zoagt olle siem Tog ohne Scrolln af oam Bildschirm', split: 'Tog in da obern Zeil' },
       sideBySide: { hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}', only: 'Nur {n}' },
     },
     tasklists: {

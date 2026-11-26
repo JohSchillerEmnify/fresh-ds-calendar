@@ -39,7 +39,8 @@ const ON: Record<string, () => boolean> = {
   approachingCard: () => prefs.approachingCard,
   approachBar: () => prefs.approachBar,
   morning: () => prefs.notify.morning,
-  weekTwoRow: () => prefs.weekTwoRow,
+  // the split row shows while either size has two rows
+  weekTwoRowPhone: () => prefs.weekTwoRowPhone || prefs.weekTwoRowWide,
   handwriting: () => prefs.labsHandwriting,
   bedtimeOn: () => prefs.bedtime.enabled,
   bedtimeMode: () => prefs.bedtime.mode === 'dynamic',

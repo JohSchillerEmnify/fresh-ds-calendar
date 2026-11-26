@@ -76,6 +76,7 @@ export default {
     theme: 'dark mode, light mode, night mode, colours, colors, scene, wallpaper',
     language: 'translation, english, german',
     defaultView: 'start view, opens with',
+    weekTwoRow: 'whole week, fit one screen, week overview, two-row week',
     minEventLength: 'short events, tiny events',
     approachingCard: 'now and next, upcoming',
     taskCategories: 'tags, colours, colors',

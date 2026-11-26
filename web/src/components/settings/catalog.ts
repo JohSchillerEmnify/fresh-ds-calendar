@@ -42,6 +42,9 @@ export const SETTINGS: readonly SettingEntry[] = [
   e('views', 'month', 'monthScroll', 'settings.calendar.monthScroll.label'),
   e('views', 'weekDay', 'daySideBySide', 'settingsNav.labels.sideBySideDay', { hint: 'settings.calendar.sideBySide.hint' }),
   e('views', 'weekDay', 'weekSideBySide', 'settingsNav.labels.sideBySideWeek', { hint: 'settings.calendar.sideBySide.hint' }),
+  e('views', 'weekDay', 'weekTwoRowPhone', 'settings.calendar.weekTwoRow.phone', { hint: 'settings.calendar.weekTwoRow.hint', synonyms: 'settingsNav.synonyms.weekTwoRow' }),
+  e('views', 'weekDay', 'weekTwoRowWide', 'settings.calendar.weekTwoRow.wide', { hint: 'settings.calendar.weekTwoRow.hint', synonyms: 'settingsNav.synonyms.weekTwoRow' }),
+  e('views', 'weekDay', 'weekTwoRowSplit', 'settings.calendar.weekTwoRow.split', { parent: 'weekTwoRowPhone' }),
   e('views', 'approaching', 'approachingCard', 'settings.calendar.approachingCard.label', { hint: 'settings.calendar.approachingCard.hint', synonyms: 'settingsNav.synonyms.approachingCard' }),
   e('views', 'approaching', 'approachTimeLeft', 'settings.calendar.approachTimeLeft.label', { hint: 'settings.calendar.approachTimeLeft.hint', parent: 'approachingCard' }),
   e('views', 'approaching', 'approachBar', 'settings.calendar.approachBar.label', { hint: 'settings.calendar.approachBar.hint', parent: 'approachingCard' }),
@@ -91,8 +94,6 @@ export const SETTINGS: readonly SettingEntry[] = [
 
   e('labs', undefined, 'labs', 'settingsNav.labels.showLabs', { hint: 'settingsNav.labels.showLabsHint', synonyms: 'settingsNav.synonyms.labs' }),
   ...LABS_VIEWS.filter((v) => !v.stable).map((v) => e('labs', 'views', `labsView-${v.id}`, v.labelKey, { labs: true })),
-  e('labs', 'more', 'weekTwoRow', 'settings.labs.weekTwoRow.label', { hint: 'settings.labs.weekTwoRow.hint', labs: true }),
-  e('labs', 'more', 'weekTwoRowSplit', 'settings.labs.weekTwoRow.split', { parent: 'weekTwoRow', labs: true }),
   e('labs', 'more', 'handwriting', 'ink.settings.label', { hint: 'ink.settings.hint', labs: true }),
   e('labs', 'more', 'ownThemes', 'settings.ownThemes.label', { hint: 'settings.ownThemes.hint', labs: true }),
 

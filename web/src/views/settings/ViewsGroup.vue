@@ -31,6 +31,10 @@ const monthScrollOptions = computed(() => ([['sideways', 'sideways'], ['vertical
 const sideBySide = (view: 'day' | 'week', ns: readonly number[]) => computed(() => ns.map((n) => ({
   value: String(n), label: t(n === 1 ? 'settings.calendar.sideBySide.only' : 'settings.calendar.sideBySide.upTo', { n }), testid: `settings-${view}-side-by-side-${n}`,
 })));
+const weekSplitOptions = [
+  { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
+  { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
+];
 const dayOptions = sideBySide('day', [1, 2, 3, 4]);
 const weekOptions = sideBySide('week', [1, 2, 3]);
 /** The track length while the slider moves; saved when the move ends. */
@@ -67,6 +71,15 @@ const hoursText = (h: number) => t('settingsNav.labels.trackHours', { count: h }
     <p class="note">{{ t('settings.calendar.sideBySide.hint') }}</p>
     <SettingRow id="daySideBySide" wide :label="t('settingsNav.labels.sideBySideDay')">
       <SegmentedButton :model-value="String(prefs.daySideBySide)" :options="dayOptions" :label="t('settingsNav.labels.sideBySideDay')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" />
+    </SettingRow>
+    <SettingRow id="weekTwoRowPhone" :label="t('settings.calendar.weekTwoRow.phone')" :hint="t('settings.calendar.weekTwoRow.hint')">
+      <Switch :model-value="prefs.weekTwoRowPhone" :label="t('settings.calendar.weekTwoRow.phone')" data-testid="settings-week-two-row-phone" @update:model-value="savePrefs({ weekTwoRowPhone: $event })" />
+    </SettingRow>
+    <SettingRow id="weekTwoRowWide" :label="t('settings.calendar.weekTwoRow.wide')">
+      <Switch :model-value="prefs.weekTwoRowWide" :label="t('settings.calendar.weekTwoRow.wide')" data-testid="settings-week-two-row-wide" @update:model-value="savePrefs({ weekTwoRowWide: $event })" />
+    </SettingRow>
+    <SettingRow v-if="prefs.weekTwoRowPhone || prefs.weekTwoRowWide" id="weekTwoRowSplit" wide :label="t('settings.calendar.weekTwoRow.split')">
+      <SegmentedButton :model-value="String(prefs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.calendar.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" />
     </SettingRow>
     <SettingRow id="weekSideBySide" wide :label="t('settingsNav.labels.sideBySideWeek')">
       <SegmentedButton :model-value="String(prefs.weekSideBySide)" :options="weekOptions" :label="t('settingsNav.labels.sideBySideWeek')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" />

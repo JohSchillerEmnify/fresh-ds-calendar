@@ -555,8 +555,6 @@
    "owner|server/src/services/ownership.ts": 1,
    "owner|server/src/services/sharedLists.ts": 10,
    "owner|server/src/services/sharedListsBackup.ts": 2,
-   "owner|server/src/services/taskSharing.ts": 1,
-   "owner|web/src/api/client.ts": 1,
    "owner|web/src/components/calendar/TimeGrid.vue": 1,
    "owner|web/src/i18n/locales/de-x-coldmirror/sharing.ts": 1,
    "owner|web/src/lib/items.ts": 1,

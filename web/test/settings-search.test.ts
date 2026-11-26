@@ -59,11 +59,11 @@ describe('where a result leads', () => {
     expect(resolveTarget('morningTime', on([]))?.id).toBe('morning');
     expect(resolveTarget('approachWindow', on([]))?.id).toBe('approachingCard');
     expect(resolveTarget('sleep', on([]))?.id).toBe('bedtimeOn');
+    expect(resolveTarget('weekTwoRowSplit', on([]))?.id).toBe('weekTwoRowPhone');
   });
 
   it('a Labs feature leads to the Labs switch while Labs is off', () => {
     expect(resolveTarget('handwriting', on([]))?.id).toBe('labs');
-    expect(resolveTarget('weekTwoRowSplit', on(['labs']))?.id).toBe('weekTwoRow');
   });
 
   it('routes to the group page or its sub-page with the setting to highlight', () => {
