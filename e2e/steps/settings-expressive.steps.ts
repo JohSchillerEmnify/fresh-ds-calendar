@@ -256,6 +256,10 @@ Then('the sync error banner is below the settings bar and its retry button can b
   const b = (await banner.boundingBox())!;
   const bar = (await this.page.getByTestId('settings-bar').boundingBox())!;
   expect(b.y).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+  // choosing the default view scrolls the page; the content starts below the stack only at scroll position 0
+  await this.page.getByTestId('settings-view').evaluate((e) => {
+    for (let n: Element | null = e; n; n = n.parentElement) n.scrollTop = 0;
+  });
   const first = (await this.page.getByTestId('settings-view').getByTestId('settings-row').first().boundingBox())!;
   expect(first.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
   const hit = await this.page.getByTestId('sync-retry').evaluate((e) => {
