@@ -87,6 +87,11 @@ if (!route.meta.public) { useContactsOffer(); useInvitationAnnouncer(); }
 const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
 /** Calendar views and the Tasks view share the shell: top bar, navigation, create button. */
 const hasShell = computed(() => isCalendar.value || !!route.meta.tasks);
+/** Once the shell has shown, its top bar stays mounted (hidden) while Settings is open, so the same element returns. */
+const topBarKept = ref(false);
+watch([hasShell, () => route.meta.public], ([shell, pub]) => { if (shell) topBarKept.value = true; else if (pub) topBarKept.value = false; }, { immediate: true });
+/** The settings pages show the banners themselves, below their fixed bar (never under the status bar). */
+const bannersInBar = computed(() => !!route.meta.settings && route.name !== 'lab');
 const activeView = computed(() => (route.meta.tasks ? 'tasks' : (route.meta.lab as string | undefined) ?? cal.view));
 // The main views the person has on, then the Labs views (only with the Labs switch on and the view's own switch on), marked as experimental.
 const items = computed<NavItem[]>(() => [
@@ -140,14 +145,16 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
 
 <template>
   <div class="shell" data-testid="app-shell" :data-view="cal.view">
+    <AppTopBar v-if="topBarKept" v-show="hasShell" />
     <template v-if="hasShell">
-      <AppTopBar />
       <NavigationTabs v-if="navPosition === 'top'" :items="items" :model-value="activeView" @update:model-value="switchTo" />
       <InstallPrompts part="hint" />
     </template>
-    <ReauthBanner />
-    <SyncErrorBanner />
-    <LastUpdatedNote />
+    <template v-if="!bannersInBar">
+      <ReauthBanner />
+      <SyncErrorBanner />
+      <LastUpdatedNote />
+    </template>
     <FilterBar v-if="filterShown" />
     <div class="body" :class="{ 'edge-pad': edgePad }" data-content-edge>
       <NavigationRail v-if="hasShell && navPosition === 'rail'" :items="items" :model-value="activeView" :phone="isPhone" :side="railSide" @update:model-value="switchTo" />

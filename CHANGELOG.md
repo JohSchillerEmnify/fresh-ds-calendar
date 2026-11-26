@@ -4,6 +4,7 @@
 - New: a search button in the top bar finds events and task lists by title, notes, place or task item, even with a typo and without a connection; at the end of the list it goes on over all dates for events when you are online, 100 at a time.
 - New: in Settings › Views you can show the week in two rows separately on phones and on tablets and desktops; anyone who had the two-row week turned on keeps it on both.
 - Changed: handwriting is drawn with smoother curves (still to be checked with a pen on iPad and Windows).
+- Changed: the Settings bar stays fixed at the top of the screen with any notices below it, and the calendar's top bar, once shown, is kept while Settings is open (a try against a blurry top edge on iPad, not checked there yet).
 - Changed: on a tablet, the task list dialog keeps its writing lines in place while you write on its last line (still to be checked on iPad).
 - Fixed: when the all-day band is switched to show the lists' items, tapping a task list there opens the list instead of growing it.
 - Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.

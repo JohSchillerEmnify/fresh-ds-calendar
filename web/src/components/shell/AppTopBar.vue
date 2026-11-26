@@ -44,6 +44,8 @@ const drawer = computed(() => navPosition.value === 'drawer');
 const clock = useClockStore();
 const router = useRouter();
 const route = useRoute();
+/** The bar stays mounted but hidden in Settings: its scene (and the visitors' frame loop) rests there. */
+const shown = computed(() => !!sample || !!route.meta.view || !!route.meta.lab || !!route.meta.tasks);
 const filters = useFilters();
 /** The header layout in force: the person's choice on a phone; desktop and tablets keep their own one row (feature header-layout). */
 const barSize = useBarSize();
@@ -69,7 +71,7 @@ function toggleFilters() {
 
 <template>
   <TopAppBar :data-layout="layout" :data-size="barSize.top.value">
-    <template #background><TopBarScene :scene="scene" :field-mode="sample ? 'full' : settings.settings.sunflowers" /></template>
+    <template #background><TopBarScene v-if="shown" :scene="scene" :field-mode="sample ? 'full' : settings.settings.sunflowers" /></template>
     <div class="grid">
       <div class="lead" :class="{ withSearch: !drawer }">
       <IconButton v-if="drawer" class="menu" :label="t('nav.menu')" data-testid="menu-button" aria-haspopup="dialog" @click="ui.sideMenuOpen = true"><IconMenu /></IconButton>
