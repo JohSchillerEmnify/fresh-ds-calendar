@@ -174,6 +174,8 @@ Then('the task list {string} is expanded over the calendar', async function (thi
   await expect(exp).toBeVisible();
   await expect(exp).toHaveAttribute('data-presentation', 'overlay');
   await expect(this.taskCard(title)).toHaveAttribute('aria-expanded', 'true');
+  // growing another card moves focus there and the browser scrolls the calendar to it: bring this card back into view first
+  await exp.scrollIntoViewIfNeeded();
   // it is the top element at its own centre: it covers what lies below (an open list sheet lies over it by design)
   await expect.poll(() => exp.evaluate((e) => {
     if (document.querySelector('[data-testid="tasklist-expanded"]:not([data-presentation="overlay"])')) return true;

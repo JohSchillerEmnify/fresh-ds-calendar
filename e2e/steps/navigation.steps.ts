@@ -87,7 +87,18 @@ When('I tap the day {date} in the month view', async function (this: World, date
   if (this.testInfo.project.use.hasTouch) {
     // Chrome drops the click of a tap that lands within a moment of a swipe; a person's next tap comes later
     await this.page.waitForTimeout(1200);
-    await cell.tap();
+    // Chrome now and then delivers the touch events of a tap without the click that follows (down and up hit the same
+    // connected cell, no DOM change, so the app is not involved); the person then taps again. Only a missing click is repeated, never a click that did nothing.
+    for (let attempt = 1; ; attempt++) {
+      await this.page.evaluate(() => {
+        const w = window as unknown as { __clicked?: boolean };
+        w.__clicked = false;
+        window.addEventListener('click', () => { w.__clicked = true; }, { capture: true, once: true });
+      });
+      await cell.tap();
+      const arrived = await expect.poll(() => this.page.evaluate(() => (window as unknown as { __clicked?: boolean }).__clicked), { timeout: 1500 }).toBe(true).then(() => true, () => false);
+      if (arrived || attempt === 3) break;
+    }
   } else await cell.getByTestId('month-cell-day-number').click(); // desktop: a cell body does not open the day
 });
 

@@ -178,16 +178,16 @@ Then('the location has no address line', async function (this: World) {
 Then('the map is shown without scrolling the event dialog', async function (this: World) {
   const map = dialog(this).getByTestId('event-map');
   await expect(map).toBeVisible();
-  // the dialog's own scroller stays at the top; the map lies fully inside its visible part
-  const fits = await map.evaluate((el) => {
+  // the dialog's own scroller stays at the top; the map lies fully inside its visible part, once the sheet has slid in
+  const fits = () => map.evaluate((el) => {
     let s: HTMLElement | null = el.parentElement;
     while (s && !(s.scrollHeight > s.clientHeight && /(auto|scroll)/.test(getComputedStyle(s).overflowY))) s = s.parentElement;
     const view = (s ?? document.documentElement).getBoundingClientRect();
     const r = el.getBoundingClientRect();
     return { top: s?.scrollTop ?? 0, inside: r.top >= view.top - 0.5 && r.bottom <= Math.min(view.bottom, innerHeight) + 0.5 };
   });
-  expect(fits.top, 'dialog scrolled').toBe(0);
-  expect(fits.inside, 'map inside the visible part of the dialog').toBe(true);
+  await expect.poll(async () => (await fits()).inside, { message: 'map inside the visible part of the dialog' }).toBe(true);
+  expect((await fits()).top, 'dialog scrolled').toBe(0);
 });
 
 /** Per scenario: the page a tap on the map opened. */
