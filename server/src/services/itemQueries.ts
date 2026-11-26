@@ -109,7 +109,7 @@ export class ItemQueries {
   /** All matches in order; a request with a cursor reuses the read of the search's first page for a short time, a first page always reads anew (a failed read is not kept). */
   private searchSorted(q: string, outside: { from: string; to: string }, today: string, paging: boolean): Promise<SearchHit[]> {
     const key = `${q}\n${outside.from}..${outside.to}\n${today}`;
-    const now = this.clock.now();
+    const now = this.clock.real();
     const hit = this.searchCache.get(key);
     if (paging && hit && now - hit.at < SEARCH_CACHE_MS) return hit.read;
     const read = this.readSearch(q, outside, today);

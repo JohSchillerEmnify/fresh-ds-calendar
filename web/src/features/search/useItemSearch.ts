@@ -3,11 +3,11 @@ import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue';
 import type { CalendarEvent, LocalDate } from '@/api/types';
 import { dedupeBirthdays } from '@calendar/shared/birthdays';
 import { windowOf } from '@/lib/deviceData';
-import { onDeviceWipe } from '@/lib/deviceDb';
 import { logUndone } from '@/lib/decisionLog';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useDeviceStore } from '@/stores/device';
+import { onSearchWipe } from '@/stores/itemSearch';
 import { ItemIndex, matchedItemTitle, type IndexHit, type Searchable } from './searchIndex';
 import { dayOf, orderHits } from './searchOrder';
 import { eventKey, useBeyondSearch } from './useBeyondSearch';
@@ -30,7 +30,7 @@ export interface ResultRow {
 
 const index = new ItemIndex();
 // the index belongs to the person whose copy it was built from
-onDeviceWipe(() => index.clear());
+onSearchWipe(() => index.clear());
 const keyOf = (it: Searchable): string => (it.kind === 'event' ? eventKey(it) : `l:${it.id}`);
 
 /** The events and lists the device holds, birthdays seen twice shown once. */
