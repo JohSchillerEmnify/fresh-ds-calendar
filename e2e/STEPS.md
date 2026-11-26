@@ -1033,6 +1033,20 @@ the menu stays inside the screen
   or stacked; "whole lines" = no label wider than its button and no word per line.
 - "the settings bar is N px high" measures `settings-bar` (the test device has no safe area).
 
+### Top bar tint (`@top-bar-tint`)
+
+```
+the settings bar is fixed to the top of the screen with a solid background
+I remember the calendar top bar
+the sync error banner is below the settings bar and its retry button can be tapped
+no calendar top bar is shown
+the calendar top bar is the one I remembered
+```
+
+- "fixed to the top ... solid": `settings-bar` or an ancestor holding it (the banner stack) has computed `position: fixed` with its top edge at 0, and the bar's own top edge is at 0 and its computed background colour is in `rgb(...)` form (no alpha). "the sync error banner is below the settings bar ...": the banner's top edge is at or below the bar's bottom edge, the first `settings-row` starts at or below the banner's bottom edge, and `sync-retry` is the topmost element at its centre.
+  "I remember the calendar top bar" keeps the `top-bar` DOM node on `window`; "the calendar top bar is the one I remembered"
+  checks that node is still attached and is the current `top-bar`; "no calendar top bar is shown" = `top-bar` is not visible.
+
 ### Settings groups and search (`@settings-groups`, `@settings-search`)
 
 ```

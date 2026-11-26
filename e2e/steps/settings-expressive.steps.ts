@@ -215,3 +215,52 @@ Then('the menu stays inside the screen', async function (this: World) {
   expect(b.x + b.width).toBeLessThanOrEqual(vp.width);
   expect(b.y + b.height).toBeLessThanOrEqual(vp.height);
 });
+
+Then('the settings bar is fixed to the top of the screen with a solid background', async function (this: World) {
+  const bar = this.page.getByTestId('settings-bar');
+  await expect(bar).toBeVisible();
+  // the bar or the stack it sits in (with the banners below it) is fixed to the screen
+  const fixedTop = await bar.evaluate((e) => {
+    for (let n: Element | null = e; n; n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return n.getBoundingClientRect().top;
+    return null;
+  });
+  expect(fixedTop).toBe(0);
+  expect((await bar.boundingBox())!.y).toBe(0);
+  const bg = await style(bar, 'background-color');
+  // computed colours print as rgb(...) when fully opaque and as rgba(..., a) otherwise
+  expect(bg).toMatch(/^rgb\(/);
+});
+
+When('I remember the calendar top bar', async function (this: World) {
+  if (!this.page.url().startsWith('http')) await this.page.goto('/');
+  await this.calendarShown();
+  await this.page.evaluate(() => { (window as unknown as { __topBar?: Element | null }).__topBar = document.querySelector('[data-testid="top-bar"]'); });
+});
+
+Then('no calendar top bar is shown', async function (this: World) {
+  await expect(this.page.getByTestId('top-bar')).toBeHidden();
+});
+
+Then('the calendar top bar is the one I remembered', async function (this: World) {
+  await expect(this.page.getByTestId('top-bar')).toBeVisible();
+  const same = await this.page.evaluate(() => {
+    const kept = (window as unknown as { __topBar?: Element | null }).__topBar;
+    return !!kept && kept.isConnected && kept === document.querySelector('[data-testid="top-bar"]');
+  });
+  expect(same).toBe(true);
+});
+
+Then('the sync error banner is below the settings bar and its retry button can be tapped', async function (this: World) {
+  const banner = this.page.getByTestId('sync-error-banner');
+  await expect(banner).toBeVisible();
+  const b = (await banner.boundingBox())!;
+  const bar = (await this.page.getByTestId('settings-bar').boundingBox())!;
+  expect(b.y).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+  const first = (await this.page.getByTestId('settings-view').getByTestId('settings-row').first().boundingBox())!;
+  expect(first.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
+  const hit = await this.page.getByTestId('sync-retry').evaluate((e) => {
+    const r = e.getBoundingClientRect();
+    return e.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  });
+  expect(hit).toBe(true);
+});
