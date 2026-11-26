@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-26
+- Fixed: when the all-day band is switched to show the lists' items, tapping a task list there opens the list instead of growing it.
+- Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.
+- Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
+
 ## 2026-11-21
 - Changed: if someone declined an invitation to a shared list or category, you can invite the same address again; they see it as a new invitation, and you still only see "Invitation sent".
 - Fixed: a task in a task list is never done while one of its subtasks is open. Unticking a subtask, or moving or adding an open item under a done task, opens the task again, and a list that already had this shows the task open.

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, h } from 'vue';
+import { providePreview } from '@/composables/usePreview';
 import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import EventItem from '@/features/calendar/EventItem.vue';
@@ -94,5 +96,18 @@ describe('ThemeLivePreview', () => {
     setAnimationSetting('reduced');
     await w.vm.$nextTick();
     expect(w.get('.frame').classes()).toContain('still');
+  });
+});
+
+describe('a pill inside a preview', () => {
+  it('opens nothing and lets the tap reach the surrounding tile', async () => {
+    freshPinia();
+    const seg = sampleSegmentsOf(SAMPLE_DAYS[0], (k) => k).find((x) => x.item.id === 'p1')!;
+    const tile = vi.fn();
+    const Host = defineComponent({ setup() { providePreview(true); return () => h('div', { onClick: tile }, [h(EventItem, { segment: seg, variant: 'chip' })]); } });
+    const w = mount(Host);
+    await w.get('[data-testid=event-chip]').trigger('click');
+    expect(tile).toHaveBeenCalledTimes(1);
+    expect(w.findComponent(EventItem).emitted('open')).toBeUndefined();
   });
 });

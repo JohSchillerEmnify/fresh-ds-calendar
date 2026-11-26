@@ -27,6 +27,29 @@ describe('useInkForm', () => {
   });
 });
 
+describe('useInkForm of an existing list', () => {
+  it('shows the list\'s ink items first and reports only changed ones and new lines', () => {
+    const f = useInkForm();
+    const a = [s(1)];
+    f.load([{ id: 'a', strokes: a }, { id: 'b', strokes: [s(2)] }]);
+    expect(f.shown.value.slice(0, 2)).toEqual([a, [s(2)]]);
+    expect(f.written.value).toEqual([]);
+    expect(f.edited.value).toEqual([]);
+    f.change(0, [s(1), s(3)]);
+    f.change(2, [s(4)]);
+    expect(f.edited.value).toEqual([{ id: 'a', strokes: [s(1), s(3)], before: a }]);
+    expect(f.written.value).toEqual([[s(4)]]);
+    expect(f.all.value).toHaveLength(3);
+  });
+  it('drops the list\'s own lines when a template replaces them', () => {
+    const f = useInkForm();
+    f.load([{ id: 'a', strokes: [s(1)] }]);
+    f.set([[s(9)]]);
+    expect(f.edited.value).toEqual([]);
+    expect(f.written.value).toEqual([[s(9)]]);
+  });
+});
+
 describe('templates with ink', () => {
   it('keeps the ink items of a list and brings them back as lines', async () => {
     const { templateFromList, inkLinesOf } = await import('../src/features/tasklists/templates');

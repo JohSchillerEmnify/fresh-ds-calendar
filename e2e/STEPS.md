@@ -2264,6 +2264,7 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
+I tap the sample event of the option {string} for {string}
 the theme menu sections are {string}, {string}, {string} and {string}
 the scene choices are {string}
 the theme menu has no Mordor button
@@ -2342,6 +2343,7 @@ every option of the {string} setting shows a sample icon
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X (with Header + colours, the calendar's theme for today).
+- "I tap the sample event of the option V for Y": clicks the sample event chip (`theme-sample-event`) inside that option, not the option itself.
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
   menu is opened first when it is not open. Scene options, in order: "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
   "None" (`data-value` `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
@@ -4615,6 +4617,7 @@ the device passes the pen double tap on
 I double tap the pen
 I touch the first stroke with the eraser end of the pen
 I touch the first stroke with the pen
+I draw a stroke with the pen on the first writing line
 I press the eraser button
 the task list {string} holds about 1 MB of ink
 I write {int} words of {int} strokes with a pen that reports {int} points per stroke

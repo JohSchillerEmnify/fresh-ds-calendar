@@ -85,8 +85,8 @@ function toggle() {
     ui.revealTask(tl.value.id);
     return;
   }
-  // The setting "Tapping a task list" alone decides: drawer opens the list sheet, inline grows the card.
-  if (prefs.taskOpen === 'drawer') {
+  // The setting "Tapping a task list" decides: drawer opens the list sheet, inline grows the card; the band in full mode already shows everything, so it opens too.
+  if (prefs.taskOpen === 'drawer' || (props.variant === 'allday' && section() === 'full')) {
     el.value?.focus({ preventScroll: true });
     ui.revealTask(tl.value.id);
     return;
