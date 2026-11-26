@@ -2,6 +2,7 @@
 
 ## 2026-11-26
 - Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.
+- Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
 
 ## 2026-11-21
 - Changed: if someone declined an invitation to a shared list or category, you can invite the same address again; they see it as a new invitation, and you still only see "Invitation sent".

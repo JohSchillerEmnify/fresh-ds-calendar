@@ -257,6 +257,11 @@ When('I pick {string} for {string}', async function (this: World, value: string,
   await saved;
 });
 
+When('I tap the sample event of the option {string} for {string}', async function (this: World, value: string, label: string) {
+  await ensureMenu(this);
+  await option(this, label, value).getByTestId('theme-sample-event').click();
+});
+
 /** True when a computed shadow list has a coloured (alpha > 0) shadow with a blur. */
 function hasGlow(shadow: string, filter: string): boolean {
   const parts = (shadow + ',' + filter).split(/,(?![^(]*\))/);
