@@ -69,6 +69,7 @@ export default {
   list: {
     fallbackLabel: 'Aufgabnlisdn',
     gone: 'Die Aufgabnlisdn gibts nemmer.',
+    inkMissing: 'Die Handschrifd konnd ned gladn wern. Machs die Lisdn nommal auf, wenn ihr online seid.',
     renameFailed: 'Die Aufgabnlisdn konnd ned umbenannt wern.',
     moveFailed: 'Die Aufgabnlisdn konnd ned verschobn wern.',
     rollback: 'Die Änderung konnd ned gspeichert wern. Sie is widda rückgängig gmachd worn.',

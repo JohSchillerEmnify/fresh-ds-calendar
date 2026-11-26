@@ -4611,6 +4611,10 @@ I press the eraser button
 the task list {string} holds about 1 MB of ink
 I write {int} words of {int} strokes with a pen that reports {int} points per stroke
 the list is not full
+I edit the list {string}, whose handwriting is not on the device yet
+I edit the list {string}, whose handwriting is not on the device yet and cannot be fetched
+its handwritten lines show the strokes the server holds
+a notice says the handwriting could not be loaded
 the app says the list is full and suggests starting a new list
 the stroke has the theme's text colour
 I choose the ink colour preset {string}

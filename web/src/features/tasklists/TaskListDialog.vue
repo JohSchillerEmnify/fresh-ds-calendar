@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`): one form; the modes differ only in title, kind switch, Delete / Leave and the replace question. */
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
 import type { Reminders, TaskItem, TaskList, TaskTemplate } from '@/api/types';
@@ -124,7 +124,16 @@ function fill(src: TaskList) {
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
 /** The handwritten items of the list show in their writing lines, as lines written in the form do. */
-function loadInk(src: TaskList) {
+let unmounted = false;
+onBeforeUnmount(() => { unmounted = true; });
+async function loadInk(src: TaskList) {
+  // ink the device has not synced yet (a list just fetched) comes from the server; offline the lines stay empty and the person is told
+  const missing = src.items.some((i) => i.ink && !inkStore.has(i.id));
+  if (missing) {
+    loading.value = true;
+    try { inkStore.adoptDoc(await api.getInk()); } catch { if (!unmounted) ui.notify(t('tasks.list.inkMissing')); } finally { loading.value = false; }
+    if (unmounted) return;
+  }
   inkForm.load(src.items.filter((i) => i.ink).map((i) => ({ id: i.id, strokes: inkStore.strokes(i.id) })));
 }
 onMounted(async () => {
@@ -140,9 +149,9 @@ onMounted(async () => {
   }
   const cur = items.get(props.id!);
   if (props.focus === 'share') void focusShare();
-  if (cur?.kind === 'tasklist') { fill(cur); loadInk(cur); seen = cur.items; if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
+  if (cur?.kind === 'tasklist') { fill(cur); seen = cur.items; await loadInk(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); loadInk(fresh); seen = fresh.items; if (props.focus === 'share') void focusShare(); }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); seen = fresh.items; await loadInk(fresh); if (props.focus === 'share') void focusShare(); }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });

@@ -823,6 +823,12 @@ When('I draw a stroke with the pen at the pressure {float}', async function (thi
 When('I write {int} words of {int} strokes with a pen that reports {int} points per stroke', async () => { throw new Error('unit test only'); });
 Then('the list is not full', async () => { throw new Error('unit test only'); });
 
+// proven by web/test/tasklist-ink-fetch.test.ts (@unit scenarios)
+When('I edit the list {string}, whose handwriting is not on the device yet', async () => { throw new Error('unit test only'); });
+When('I edit the list {string}, whose handwriting is not on the device yet and cannot be fetched', async () => { throw new Error('unit test only'); });
+Then('its handwritten lines show the strokes the server holds', async () => { throw new Error('unit test only'); });
+Then('a notice says the handwriting could not be loaded', async () => { throw new Error('unit test only'); });
+
 /** A trusted pen pointer (pointerType "pen") through the browser's own input: hover, press and move. */
 async function penInput(w: World, steps: { type: 'mouseMoved' | 'mousePressed' | 'mouseReleased'; x: number; y: number }[]) {
   const cdp = await w.context.newCDPSession(w.page);

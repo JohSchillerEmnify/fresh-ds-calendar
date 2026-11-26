@@ -607,6 +607,18 @@ Feature: Labs: handwritten lists
       When I write 50 words of 8 strokes with a pen that reports 150 points per stroke
       Then the list is not full
 
+    # unit: web/test/tasklist-ink-fetch.test.ts:fetches the ink from the server and shows it in the lines
+    @unit
+    Scenario: A list whose handwriting the device has not synced yet shows it once it is fetched
+      When I edit the list "Groceries", whose handwriting is not on the device yet
+      Then its handwritten lines show the strokes the server holds
+
+    # unit: web/test/tasklist-ink-fetch.test.ts:says so when the ink cannot be fetched, and the form stays usable
+    @unit
+    Scenario: When the handwriting cannot be fetched, the form says so
+      When I edit the list "Groceries", whose handwriting is not on the device yet and cannot be fetched
+      Then a notice says the handwriting could not be loaded
+
   Rule: Ink colour and width (decision Q4, assumption A7)
 
     Background:

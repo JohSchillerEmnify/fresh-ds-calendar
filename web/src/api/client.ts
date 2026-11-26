@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkDoc, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   InvitationsAnswer, ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -341,6 +341,8 @@ export class ApiClient {
   createTaskList(input: CreateTaskListInput, o?: RequestOptions) {
     return this.request<TaskList>('POST', '/api/tasklists', input, o);
   }
+  /** The person's whole ink (their own and that of the shared lists they are on). */
+  getInk(o?: RequestOptions) { return this.request<InkDoc>('GET', '/api/ink', undefined, o); }
   getTaskList(id: string, o?: RequestOptions) {
     return this.request<TaskList>('GET', `/api/tasklists/${enc(id)}`, undefined, o);
   }
