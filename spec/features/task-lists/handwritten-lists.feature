@@ -267,6 +267,13 @@ Feature: Labs: handwritten lists
       And the stroke at pressure 0.5 is at most 0.05 of a line height
       And the stroke at pressure 1.0 is at least 2.5 times as thick as the stroke at pressure 0.1
 
+    # unit: web/test/ink-lib.test.ts:draws handwriting as smooth curves, not corners
+    @unit
+    Scenario: Handwriting is drawn as smooth curves, not corners
+      When I draw a curved stroke with the pen
+      Then the line the stroke is drawn along turns by at most 20 degrees between two neighbouring points
+      And strokes saved before still show
+
     Scenario: A downward pen stroke draws and does not scroll the list
       When I draw a stroke 40 pixels downwards with the pen on the ink item number 3
       Then the ink item number 3 has one more stroke
@@ -301,6 +308,15 @@ Feature: Labs: handwritten lists
       When I open the new task list form on a screen 1024 pixels wide
       Then the dialog is larger than without the feature
       And the dialog shows ruled lines to write on
+
+    @tablet
+    Scenario: Writing on the last line of the new list form does not move the lines
+      Given the device is an Android tablet that reports pen support
+      When I open the new task list form
+      Then the dialog is centred up and down on the screen
+      When I note where the last writing line is
+      And I draw a stroke with the pen
+      Then the writing line I wrote on is where it was
 
 @tablet
     Scenario: An Android tablet with a stylus gets the larger ruled dialog (decision T1)
@@ -597,6 +613,18 @@ Feature: Labs: handwritten lists
     Scenario: A list holds at least 50 handwritten items
       When I write 50 words of 8 strokes with a pen that reports 150 points per stroke
       Then the list is not full
+
+    # unit: web/test/tasklist-ink-fetch.test.ts:fetches the ink from the server and shows it in the lines
+    @unit
+    Scenario: A list whose handwriting the device has not synced yet shows it once it is fetched
+      When I edit the list "Groceries", whose handwriting is not on the device yet
+      Then its handwritten lines show the strokes the server holds
+
+    # unit: web/test/tasklist-ink-fetch.test.ts:says so when the ink cannot be fetched, and the form stays usable
+    @unit
+    Scenario: When the handwriting cannot be fetched, the form says so
+      When I edit the list "Groceries", whose handwriting is not on the device yet and cannot be fetched
+      Then a notice says the handwriting could not be loaded
 
   Rule: Ink colour and width (decision Q4, assumption A7)
 

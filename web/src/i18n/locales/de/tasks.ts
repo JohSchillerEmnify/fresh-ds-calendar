@@ -115,6 +115,7 @@ export default {
   list: {
     fallbackLabel: 'Aufgabenliste',
     gone: 'Diese Aufgabenliste gibt es nicht mehr.',
+    inkMissing: 'Die Handschrift konnte nicht geladen werden. Öffne die Liste noch einmal, wenn du online bist.',
     renameFailed: 'Die Aufgabenliste konnte nicht umbenannt werden.',
     moveFailed: 'Die Aufgabenliste konnte nicht verschoben werden.',
     rollback: 'Die Änderung konnte nicht gespeichert werden. Sie wurde rückgängig gemacht.',

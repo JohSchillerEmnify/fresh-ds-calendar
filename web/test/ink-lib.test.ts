@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { keptItems, type OutboxEntry } from '../src/lib/outbox';
-import { compactPoints, eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
+import { compactPoints, eraseAt, isRuled, penRole, readableInk, sampleStroke, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
 import simplify from 'simplify-js';
 import { INK_LIST_MAX_BYTES, inkListBytes } from '@calendar/shared/limits';
 import type { InkPoint } from '@calendar/shared/api';
@@ -222,5 +222,48 @@ describe('the list that was reported full', () => {
     const raw = [997, 797, 396, 1207].map(word);
     expect(inkListBytes(raw)).toBeGreaterThan(150_000);
     expect(inkListBytes(raw)).toBeLessThan(INK_LIST_MAX_BYTES - INK_LIST_MAX_BYTES / 10);
+  });
+});
+
+describe('sampleStroke', () => {
+  /** Largest change of direction in degrees between consecutive pieces of the sampled path. */
+  const maxTurn = (pts: InkPoint[]): number => {
+    let worst = 0;
+    for (let i = 2; i < pts.length; i++) {
+      const [a, b, c] = [pts[i - 2]!, pts[i - 1]!, pts[i]!];
+      const d = Math.abs(Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(b[1] - a[1], b[0] - a[0]));
+      worst = Math.max(worst, (Math.min(d, 2 * Math.PI - d) * 180) / Math.PI);
+    }
+    return worst;
+  };
+  const circle = (r: number, n: number, noise: number): InkPoint[] => {
+    let s = 5;
+    const rnd = () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296 - 0.5);
+    return Array.from({ length: n }, (_, i) => [0.6 + r * Math.cos((i / n) * 5), 0.6 + r * Math.sin((i / n) * 5) + rnd() * noise, 0.5] as InkPoint);
+  };
+  // a 4 px radius bend sampled at 1 px turns 14 degrees by itself; the thinned polyline had 27 to 43 degrees at its corners
+  it('draws handwriting as smooth curves, not corners', () => {
+    const wave: InkPoint[] = Array.from({ length: 200 }, (_, i) => [i * 0.01, 0.5 + 0.15 * Math.sin(i / 16), 0.5]);
+    for (const raw of [circle(0.5, 200, 0.03), circle(0.25, 150, 0.03), wave]) {
+      const sampled = sampleStroke(compactPoints(raw));
+      expect(maxTurn(sampled)).toBeLessThan(20);
+    }
+  });
+  it('stays on the drawn line: ends kept, within the thinning tolerance of the stored polyline, pressure never overshoots', () => {
+    const stored = compactPoints(circle(0.5, 200, 0));
+    const out = sampleStroke(stored);
+    expect(out[0]).toEqual(stored[0]);
+    expect(out.at(-1)).toEqual(stored.at(-1));
+    for (const o of out) expect(distToPolyline(o, stored)).toBeLessThanOrEqual(0.5 / 24 + 0.002);
+    const pressure = sampleStroke([[0, 0, 0.2], [1, 0.5, 0.4], [2, 0, 0.6], [3, 0.5, 0.8]]).map((o) => o[2]);
+    expect(Math.min(...pressure)).toBeGreaterThanOrEqual(0.2);
+    expect(Math.max(...pressure)).toBeLessThanOrEqual(0.8);
+  });
+  it('draws the outline with explicit curve controls, so rounding does not add up along the stroke', () => {
+    const arc: InkPoint[] = Array.from({ length: 60 }, (_, i) => [0.3 + 0.4 * Math.cos(i / 12), 0.6 + 0.4 * Math.sin(i / 12), 0.5]);
+    expect(strokePath(arc)).not.toMatch(/T/);
+  });
+  it('renders strokes stored in the old format', () => {
+    expect(strokePath([[0.1, 0.5, 0.5], [0.6, 0.55, 0.5], [1.2, 0.4, 0.3]])).toMatch(/^M.*Z$/);
   });
 });

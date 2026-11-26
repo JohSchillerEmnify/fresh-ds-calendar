@@ -2,8 +2,11 @@
 
 ## 2026-11-26
 - New: in Settings › Views you can show the week in two rows separately on phones and on tablets and desktops; anyone who had the two-row week turned on keeps it on both.
+- Changed: handwriting is drawn with smoother curves (still to be checked with a pen on iPad and Windows).
+- Changed: on a tablet, the task list dialog keeps its writing lines in place while you write on its last line (still to be checked on iPad).
 - Fixed: when the all-day band is switched to show the lists' items, tapping a task list there opens the list instead of growing it.
 - Fixed: when you edit a task list with handwritten items, the form now shows them in its writing lines, and saving without changes keeps them as they were.
+- Fixed: editing a handwritten list whose handwriting this device has not received yet now loads it, or tells you when it cannot.
 - Fixed: in the theme menu, tapping the sample entry in an option now picks that option.
 
 ## 2026-11-21

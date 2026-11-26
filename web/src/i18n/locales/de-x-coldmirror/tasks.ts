@@ -118,6 +118,7 @@ export default {
   list: {
     fallbackLabel: 'Aufgabenliste, yo',
     gone: 'Diese Liste ist weg, wie Hagrids Hygiene.',
+    inkMissing: 'Die Handschrift ließ sich nicht laden. Öffne die Liste noch einmal, wenn du online bist.',
     renameFailed: 'Umbenennen? Ging nicht, Digga.',
     moveFailed: 'Verschieben? Ging nicht, yo.',
     rollback: 'Ich bin alt, ich bin bald tot, aus Grün wird Rot: nix gespeichert. Alles wieder rückgängig.',

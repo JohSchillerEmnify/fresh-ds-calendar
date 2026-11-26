@@ -117,6 +117,7 @@ export default {
   list: {
     fallbackLabel: 'Task list',
     gone: 'This task list no longer exists.',
+    inkMissing: "The handwriting couldn't be loaded. Open the list again when you are online.",
     renameFailed: "Couldn't rename the task list.",
     moveFailed: "Couldn't move the task list.",
     rollback: "Couldn't save that change. It was undone.",

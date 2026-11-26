@@ -52,6 +52,13 @@ export const useInkStore = defineStore('ink', () => {
     server.value = c.op === 'item.ink' && merged?.[c.itemId] ? { ...server.value, ...merged } : withPendingInk(server.value, [{ change: c } as OutboxEntry]);
     lists.value = withPendingInk(server.value, outbox.entries);
   }
+  /** Whether the device holds the ink of this item (even a cleared one). */
+  const has = (itemId: string): boolean => itemId in lists.value;
+  /** Ink fetched from the server for lists the device had not synced yet. */
+  function adoptDoc(d: InkDoc): void {
+    server.value = { ...d.items, ...server.value };
+    lists.value = withPendingInk(server.value, outbox.entries);
+  }
   /** The strokes of one ink item. */
   function strokes(itemId: string): InkStroke[] {
     return visibleInk(lists.value[itemId] ?? []);
@@ -66,5 +73,5 @@ export const useInkStore = defineStore('ink', () => {
 
   ports.adoptInk = adopt;
 
-  return { mode, colour, eraser, penSeen, lists, strokes, fromDevice, setMode, setColour, notePen };
+  return { mode, colour, eraser, penSeen, lists, strokes, has, adoptDoc, fromDevice, setMode, setColour, notePen };
 });
