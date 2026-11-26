@@ -3400,7 +3400,15 @@ the two-row week overview is on
 tapping a task list grows it in place
 tapping a task list opens the list sheet
 the split is set to three days on top
+the week is in two rows on phones
+the week is in two rows on tablets and desktops
+the saved preferences still have the old two-row week overview on
 I open the week of {date} on a phone
+I open the week of {date} on a tablet
+I open the week of {date} in a window {int} px wide
+the window becomes {int} px wide
+the week is shown in two rows
+the week is shown in one row
 all seven days are laid out in two rows
 I see both {string} and {string} without scrolling
 Monday to Thursday are on the top row
@@ -3423,6 +3431,12 @@ the seven days are side by side in a single row
 
 - The overview is switched on through `PATCH /api/prefs` (`weekTwoRow`, `weekTwoRowTop`); the Labs master switch is not needed.
   "on a phone" sets the viewport to 375 x 812 before opening `/week/{date}`, so it also holds in the desktop project.
+- Per screen size (feature week-two-row, `@backlog`): "the two-row week overview is on" patches both size prefs on; "the week is in
+  two rows on phones" / "on tablets and desktops" patches only that size's pref (names set at build time, shared/prefs.js). "on a tablet" = 1024 x 768
+  viewport, "in a window N px wide" = N x 900, "the window becomes N px wide" resizes the open page without reload (width 767 is a
+  phone, 768 a tablet). "the week is shown in two rows / one row" = the `week-overview-row` count 2 / the single-row check.
+  "the saved preferences still have the old two-row week overview on": the person's stored prefs hold `weekTwoRow: true` and neither new key (written to the
+  prefs file before the server reads it; the planned read-time migration will turn it into both sizes on).
 - The overview reuses `TimeGrid`: test ids `week-view` (root), `week-overview-row` (`data-row` 0 top, 1 bottom, one TimeGrid each),
   `week-day-column`, `week-allday-cell`, `week-header` (`data-date`), `time-axis` (hour labels).
 - "without scrolling": both entries lie inside the viewport. "about N times as tall": heights within 15 %.
