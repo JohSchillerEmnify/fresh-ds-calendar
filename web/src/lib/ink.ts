@@ -58,14 +58,34 @@ export function compactPoints(points: InkPoint[]): InkPoint[] {
 /** Longest gap between points handed to perfect-freehand: it needs pen-like spacing, or a thinned stroke renders with thin gaps and cut corners (1 px of a 24 px line). */
 const MAX_GAP = 1 / PX;
 
-/** The stroke with straight pieces filled in at pen-like spacing (pressure interpolated); a stroke that is already dense is unchanged. */
-function densify(points: InkPoint[]): InkPoint[] {
+type Pt = [number, number];
+const mix = (a: Pt, b: Pt, k: number): Pt => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+
+/** Centripetal Catmull-Rom through p1..p2 (Barry-Goldman): passes through every stored point and never loops or overshoots at uneven spacing. */
+function splineAt(p0: Pt, p1: Pt, p2: Pt, p3: Pt, u: number): Pt {
+  const t1 = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) ** 0.5;
+  const t2 = t1 + Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) ** 0.5;
+  const t3 = t2 + Math.hypot(p3[0] - p2[0], p3[1] - p2[1]) ** 0.5;
+  const t = t1 + (t2 - t1) * u;
+  const a1 = mix(p0, p1, t / t1 || 0);
+  const a2 = mix(p1, p2, (t - t1) / (t2 - t1));
+  const a3 = mix(p2, p3, (t - t2) / (t3 - t2) || 0);
+  return mix(mix(a1, a2, (t - 0) / t2), mix(a2, a3, (t - t1) / (t3 - t1)), (t - t1) / (t2 - t1));
+}
+
+/** The stroke as a smooth curve through its stored points at pen-like spacing (pressure interpolated), so the corners of the thinned polyline do not show. Own sampler: perfect-freehand needs input spaced about 1 px, and curve libraries (d3-shape, curve-interpolator) give Béziers or no fixed spacing. */
+export function sampleStroke(points: InkPoint[]): InkPoint[] {
+  const pts = points.filter((q, i) => i === 0 || q[0] !== points[i - 1]![0] || q[1] !== points[i - 1]![1]);
   const out: InkPoint[] = [];
-  points.forEach((b, i) => {
-    const a = points[i - 1];
+  pts.forEach((b, i) => {
+    const a = pts[i - 1];
     if (a) {
+      const [p0, p3] = [pts[i - 2] ?? ([2 * a[0] - b[0], 2 * a[1] - b[1]] as Pt), pts[i + 1] ?? ([2 * b[0] - a[0], 2 * b[1] - a[1]] as Pt)];
       const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / MAX_GAP);
-      for (let k = 1; k < n; k++) out.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n, a[2] + ((b[2] - a[2]) * k) / n]);
+      for (let k = 1; k < n; k++) {
+        const [x, y] = splineAt([p0[0], p0[1]], [a[0], a[1]], [b[0], b[1]], [p3[0], p3[1]], k / n);
+        out.push([x, y, a[2] + ((b[2] - a[2]) * k) / n]);
+      }
     }
     out.push(b);
   });
@@ -74,16 +94,14 @@ function densify(points: InkPoint[]): InkPoint[] {
 
 /** SVG path data of a stroke in line-height units; the width follows the pressure (decision Q4). */
 export function strokePath(points: InkPoint[]): string {
-  const outline = getStroke(densify(points).map(([x, y, p]) => [x * PX, y * PX, p]), { size: SIZE, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
+  const outline = getStroke(sampleStroke(points).map(([x, y, p]) => [x * PX, y * PX, p]), { size: SIZE, thinning: THINNING, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
     .map(([x, y]) => [x! / PX, y! / PX] as [number, number]);
   if (outline.length < 4) return '';
-  let [a, b] = [outline[0]!, outline[1]!];
-  const c = outline[2]!;
-  let d = `M${r2(a[0])},${r2(a[1])} Q${r2(b[0])},${r2(b[1])} ${avg(b, c).map(r2).join(',')} T`;
-  for (let i = 2; i < outline.length - 1; i++) {
-    a = outline[i]!;
-    b = outline[i + 1]!;
-    d += `${avg(a, b).map(r2).join(',')} `;
+  // explicit controls: a T chain derives each control from the previous one, so the 3-decimal rounding adds up along the stroke and shows as a ripple
+  let d = `M${avg(outline.at(-1)!, outline[0]!).map(r2).join(',')} Q`;
+  for (let i = 0; i < outline.length; i++) {
+    const [a, b] = [outline[i]!, outline[(i + 1) % outline.length]!];
+    d += `${r2(a[0])},${r2(a[1])} ${avg(a, b).map(r2).join(',')} `;
   }
   return `${d}Z`;
 }

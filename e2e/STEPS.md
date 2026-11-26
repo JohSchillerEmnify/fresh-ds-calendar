@@ -4615,6 +4615,9 @@ I edit the list {string}, whose handwriting is not on the device yet
 I edit the list {string}, whose handwriting is not on the device yet and cannot be fetched
 its handwritten lines show the strokes the server holds
 a notice says the handwriting could not be loaded
+I draw a curved stroke with the pen
+the line the stroke is drawn along turns by at most {int} degrees between two neighbouring points
+strokes saved before still show
 the app says the list is full and suggests starting a new list
 the stroke has the theme's text colour
 I choose the ink colour preset {string}
