@@ -57,6 +57,13 @@ Feature: Choosing and fine-tuning a theme
     Then the preview event is drawn as an outline
     And the event "Dentist" is drawn as an outline
 
+  Scenario: Tapping the sample event in an option picks that option and opens no editor
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I tap the sample event of the option "Outline" for "Entries"
+    Then the option "Outline" for "Entries" is pressed
+    And the event dialog is closed
+
   Scenario: The live preview stays visible while I scroll the theme menu
     When I open the week view for 2026-10-12
     And I open the theme menu
