@@ -39,6 +39,26 @@ function held(): Searchable[] {
   return d ? [...dedupeBirthdays(d.events), ...d.taskLists] : [];
 }
 
+let running: Promise<void> | null = null;
+let again = false;
+/** Brings the index in step with the device copy; a call while one runs makes it go round once more, and all callers wait for the same run. */
+function syncIndex(): Promise<void> {
+  if (running) { again = true; return running; }
+  running = (async () => {
+    try {
+      do { again = false; await index.updateAsync(held()); } while (again);
+    } finally {
+      running = null;
+    }
+  })();
+  return running;
+}
+
+/** Builds the index in the background before the search is first opened, so the first query does not wait for it. */
+export function warmItemSearchIndex(): void {
+  void syncIndex().catch((e) => logUndone('item search index', e));
+}
+
 /** The note or place an event matched on, when the title did not (the second line of its result). */
 function detailOf(e: CalendarEvent, terms: IndexHit['terms']): string | null {
   const fields = new Set(Object.values(terms).flat());
@@ -62,20 +82,15 @@ export function useItemSearch(list: Ref<HTMLElement | null>) {
   /** Without a device copy the dates it holds are unknown: the search beyond waits for it. */
   const { events: beyond, state, loads, reset: resetBeyond, reachedEnd, stop } = useBeyondSearch(query, reach, computed(() => clock.today), computed(() => !!device.data));
 
-  let building = false;
-  let again = false;
   async function sync(): Promise<void> {
-    if (building) { again = true; return; }
-    building = true;
     try {
-      do { again = false; await index.updateAsync(held()); } while (again);
+      await syncIndex();
       failed.value = false;
       ready.value = true;
     } catch (e) {
       failed.value = true;
       logUndone('item search index', e);
     } finally {
-      building = false;
       version.value++;
     }
   }
