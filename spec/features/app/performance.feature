@@ -49,10 +49,11 @@ Feature: Resource efficiency and no memory leaks
     Then at most 0 requests to "/api/changes" were counted
 
   Scenario: The first load stays within the JavaScript budget
-    220 KB compressed (owner: 2026-10-23 raised from 150 to 200; 2026-11-10 raised to 220 for the new icon sets and the
-    credits list). A ceiling, not a target; well under the 1 MB that would matter.
+    230 KB compressed (owner: 2026-10-23 raised from 150 to 200; 2026-11-10 raised to 220 for the new icon sets and the
+    credits list; 2026-11-27 raised to 230 so the search is ready before its first use). A ceiling, not a target; well
+    under the 1 MB that would matter.
     When I open the app
-    Then the JavaScript downloaded for the first load is at most 220 KB compressed
+    Then the JavaScript downloaded for the first load is at most 230 KB compressed
     And the month view was rendered within 2000 ms of navigation start
 
   @month
