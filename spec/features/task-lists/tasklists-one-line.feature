@@ -97,7 +97,7 @@ Feature: A task list with just one line is one task
     Then the titleless task list and the event "Book the train tickets for the trip" wrap their text on the same number of lines
 
   Scenario: A task list with a title and one item grows in place
-    Given the calendar contains a task list "Post" on 2026-10-14 with items:
+    Given the calendar contains a task list "Post" on 2026-10-14 at 09:00 for 30 minutes with items:
       | item   | done |
       | Stamps | no   |
     When I open the day view for 2026-10-14
