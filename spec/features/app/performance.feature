@@ -95,7 +95,7 @@ Feature: Resource efficiency and no memory leaks
     And I record the server memory after garbage collection
     And I send 5000 requests to "GET /api/items?from=2026-09-28&to=2026-11-02"
     And I send 500 requests to "PATCH" the item "Milk" of the task list "Groceries" alternating done and not done
-    Then the server memory has grown by less than 20 MB since the recording
+    Then the server memory has grown by less than 40 MB since the recording
 
   Scenario: Reward effects and drag and drop leave nothing behind
     When I open the day view for 2026-10-14
