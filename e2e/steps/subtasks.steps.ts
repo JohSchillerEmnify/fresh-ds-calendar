@@ -208,7 +208,9 @@ When('I let go of the item', async function (this: World) {
   if (!this.held) throw new Error('no item is held');
   await this.held();
   finger.delete(this);
-  await this.page.waitForTimeout(900);
+  // the drop wobble runs about a second and the held sheet is released only when it ends: wait for that, not a fixed time
+  await expect(this.expanded.locator('[data-dragging]')).toHaveCount(0);
+  await this.page.waitForTimeout(150);
 });
 
 Given('the task list is scrolled to its end', async function (this: World) {
